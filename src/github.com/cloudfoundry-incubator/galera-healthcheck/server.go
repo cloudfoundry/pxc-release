@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+	. "github.com/cloudfoundry-incubator/galera-healthcheck/logger"
+
 )
 
 var serverPort = flag.Int(
@@ -48,7 +50,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	fmt.Fprintf(w, "Galera Cluster Node is %s", msg)
+	fmt.Fprintf(w, "Galera Cluster Node status: %s", msg)
+	LogWithTimestamp(msg)
 }
 
 func main() {
