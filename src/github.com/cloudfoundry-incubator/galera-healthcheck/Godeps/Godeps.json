@@ -1,0 +1,26 @@
+{
+	"ImportPath": "github.com/cloudfoundry-incubator/galera-healthcheck",
+	"GoVersion": "go1.2.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/erikstmartin/go-testdb",
+			"Rev": "ccffba4c02ddc9e05e4cff4a677d6dcf4db7ff9d"
+		},
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.1",
+			"Rev": "9a7aa3606b82e2081a13a008ada88dfdb96c20fd"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Rev": "7083fb7612a8bc8ef9a48c35b8364fd06fadf9ad"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Rev": "ff48b6baeb8028ce0ad570efbe36b1534b7efd0c"
+		}
+	]
+}
