@@ -13,7 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 )
 
-var _ =	Describe("RiakHealthChecker", func() {
+var _ =	Describe("GaleraHealthChecker", func() {
 
 	Describe("Check", func() {
 		Context("when WSREP_STATUS is joining", func() {
