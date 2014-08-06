@@ -1,14 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	"os"
+	"strconv"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/logger"
-
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var serverPort = flag.Int(
@@ -41,11 +44,17 @@ var availableWhenReadOnly = flag.Bool(
 	"Specifies if the healthcheck allows availability when in read only mode",
 )
 
+var pidfile = flag.String(
+	"pidfile",
+	"",
+	"Location for the pidfile",
+)
+
 var healthchecker *healthcheck.Healthchecker
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	result,msg := healthchecker.Check()
-	if (result) {
+	result, msg := healthchecker.Check()
+	if result {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -56,6 +65,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+
+	err := ioutil.WriteFile(*pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
+	if err != nil {
+		panic(err)
+	}
 
 	db, _ := sql.Open("mysql", fmt.Sprintf("%s:%s@/", *mysqlUser, *mysqlPassword))
 	config := healthcheck.HealthcheckerConfig{
