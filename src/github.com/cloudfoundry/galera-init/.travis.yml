@@ -1,0 +1,11 @@
+language: go
+go:
+  - 1.2
+install:
+  - go get -v github.com/onsi/ginkgo/ginkgo
+  - PATH=$PATH:$HOME/gopath/bin
+  - go get -v -t ./...
+script:  bin/test
+branches:
+  only:
+  - master
