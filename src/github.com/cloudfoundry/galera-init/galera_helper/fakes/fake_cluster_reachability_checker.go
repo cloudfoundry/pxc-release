@@ -2,7 +2,7 @@
 package fakes
 
 import (
-	"mariadb_ctrl/galera_helper"
+	"github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper"
 
 	"sync"
 )
@@ -11,7 +11,7 @@ type FakeClusterReachabilityChecker struct {
 	AnyNodesReachableStub        func() bool
 	anyNodesReachableMutex       sync.RWMutex
 	anyNodesReachableArgsForCall []struct{}
-	anyNodesReachableReturns struct {
+	anyNodesReachableReturns     struct {
 		result1 bool
 	}
 }

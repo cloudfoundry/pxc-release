@@ -2,25 +2,25 @@ package mariadb_start_manager
 
 import (
 	"fmt"
-	"mariadb_ctrl/os_helper"
-	"mariadb_ctrl/galera_helper"
+	"github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper"
+	"github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper"
 	"regexp"
 	"time"
 )
 
 type MariaDBStartManager struct {
-	osHelper               os_helper.OsHelper
-	logFileLocation        string
-	stateFileLocation      string
-	mysqlServerPath        string
-	username               string
-	password               string
-	jobIndex               int
-	numberOfNodes          int
-	loggingOn              bool
-	dbSeedScriptPath       string
-	upgradeScriptPath      string
-	mysqlCommandScriptPath string
+	osHelper                   os_helper.OsHelper
+	logFileLocation            string
+	stateFileLocation          string
+	mysqlServerPath            string
+	username                   string
+	password                   string
+	jobIndex                   int
+	numberOfNodes              int
+	loggingOn                  bool
+	dbSeedScriptPath           string
+	upgradeScriptPath          string
+	mysqlCommandScriptPath     string
 	ClusterReachabilityChecker galera_helper.ClusterReachabilityChecker
 }
 
@@ -39,18 +39,18 @@ func New(osHelper os_helper.OsHelper,
 	clusterReachabilityChecker galera_helper.ClusterReachabilityChecker,
 ) *MariaDBStartManager {
 	return &MariaDBStartManager{
-		osHelper:               osHelper,
-		logFileLocation:        logFileLocation,
-		stateFileLocation:      stateFileLocation,
-		username:               username,
-		password:               password,
-		jobIndex:               jobIndex,
-		mysqlServerPath:        mysqlServerPath,
-		numberOfNodes:          numberOfNodes,
-		loggingOn:              loggingOn,
-		dbSeedScriptPath:       dbSeedScriptPath,
-		upgradeScriptPath:      upgradeScriptPath,
-		mysqlCommandScriptPath: mysqlCommandScriptPath,
+		osHelper:                   osHelper,
+		logFileLocation:            logFileLocation,
+		stateFileLocation:          stateFileLocation,
+		username:                   username,
+		password:                   password,
+		jobIndex:                   jobIndex,
+		mysqlServerPath:            mysqlServerPath,
+		numberOfNodes:              numberOfNodes,
+		loggingOn:                  loggingOn,
+		dbSeedScriptPath:           dbSeedScriptPath,
+		upgradeScriptPath:          upgradeScriptPath,
+		mysqlCommandScriptPath:     mysqlCommandScriptPath,
 		ClusterReachabilityChecker: clusterReachabilityChecker,
 	}
 }

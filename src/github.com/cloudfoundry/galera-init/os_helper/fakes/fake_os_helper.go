@@ -2,7 +2,7 @@
 package fakes
 
 import (
-	"mariadb_ctrl/os_helper"
+	"github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper"
 	"sync"
 )
 

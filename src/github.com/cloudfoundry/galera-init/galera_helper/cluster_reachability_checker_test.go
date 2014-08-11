@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	. "mariadb_ctrl/galera_helper"
+	. "github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

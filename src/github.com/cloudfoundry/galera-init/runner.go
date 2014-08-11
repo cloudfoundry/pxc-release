@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 
-	manager "mariadb_ctrl/mariadb_start_manager"
-	"mariadb_ctrl/os_helper"
-	"mariadb_ctrl/galera_helper"
+	"github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper"
+	manager "github.com/pivotal-cf-experimental/mariadb_ctrl/mariadb_start_manager"
+	"github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper"
 )
 
 var logFileLocation = flag.String(
