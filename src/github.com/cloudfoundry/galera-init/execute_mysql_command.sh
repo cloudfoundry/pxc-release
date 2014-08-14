@@ -40,7 +40,7 @@ COMMAND_OUTPUT=$(/var/vcap/packages/mariadb/bin/mysql -e "${COMMAND}" -u${USER} 
 COMMAND_EXIT_CODE=$?
 set -e
 
-log "COMMAND: /var/vcap/packages/mariadb/bin/mysql -e \"${COMMAND}\" -u${USER} -p${PASSWORD}"
+log "COMMAND: /var/vcap/packages/mariadb/bin/mysql -e \"${COMMAND}\""
 log "COMMAND_EXIT_CODE: ${COMMAND_EXIT_CODE}"
 log "COMMAND_OUTPUT: ${COMMAND_OUTPUT}"
 
