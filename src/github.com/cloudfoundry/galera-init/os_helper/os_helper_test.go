@@ -1,7 +1,7 @@
 package os_helper_test
 
 import (
-	. "github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper"
+	. "github.com/cloudfoundry/mariadb_ctrl/os_helper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

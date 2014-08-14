@@ -2,10 +2,11 @@ package mariadb_start_manager
 
 import (
 	"fmt"
-	"github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper"
-	"github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper"
 	"regexp"
 	"time"
+
+	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 )
 
 type MariaDBStartManager struct {

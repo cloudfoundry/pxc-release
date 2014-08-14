@@ -2,8 +2,9 @@
 package fakes
 
 import (
-	"github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper"
 	"sync"
+
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 )
 
 type FakeOsHelper struct {

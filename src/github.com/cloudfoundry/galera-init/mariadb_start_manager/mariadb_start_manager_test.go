@@ -3,8 +3,8 @@ package mariadb_start_manager_test
 import (
 	"errors"
 
-	galera_fakes "github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper/fakes"
-	os_fakes "github.com/pivotal-cf-experimental/mariadb_ctrl/os_helper/fakes"
+	galera_fakes "github.com/cloudfoundry/mariadb_ctrl/galera_helper/fakes"
+	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 
 	manager "."
 	. "github.com/onsi/ginkgo"

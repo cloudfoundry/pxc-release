@@ -2,7 +2,7 @@
 package fakes
 
 import (
-	"github.com/pivotal-cf-experimental/mariadb_ctrl/galera_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
 
 	"sync"
 )
