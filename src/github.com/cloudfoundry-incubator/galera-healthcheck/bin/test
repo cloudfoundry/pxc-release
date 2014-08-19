@@ -8,4 +8,7 @@ if ! which go 2>/dev/null; then
   exit 1
 fi
 
+go get github.com/tools/godep
+godep restore
+
 ginkgo -r
