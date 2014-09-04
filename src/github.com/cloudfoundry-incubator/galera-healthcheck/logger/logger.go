@@ -12,4 +12,5 @@ func LogWithTimestamp(format string, args ...interface{}) {
 	} else {
 		fmt.Printf(format, args...)
 	}
+	fmt.Printf("\n")
 }

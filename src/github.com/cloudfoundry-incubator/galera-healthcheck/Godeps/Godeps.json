@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/cloudfoundry/mariadb_ctrl/os_helper",
+			"Rev": "2d2a8638c8549ea9924ad968a0dd4c01fc28ae7a"
+		},
+		{
 			"ImportPath": "github.com/erikstmartin/go-testdb",
 			"Rev": "ccffba4c02ddc9e05e4cff4a677d6dcf4db7ff9d"
 		},
@@ -16,7 +20,8 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Rev": "7083fb7612a8bc8ef9a48c35b8364fd06fadf9ad"
+			"Comment": "v1.1.0-2-g6225000",
+			"Rev": "6225000f34637a7aac336f8cadb9cd49ce10efef"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
