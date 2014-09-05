@@ -44,30 +44,15 @@ var _ = Describe("MariadbStartManager", func() {
 		for i := 0; i < callCount; i++ {
 			executable, args := fakeOs.RunCommandArgsForCall(i)
 
-			if lastCommand == "" && executable == "bash" && len(args) > 0 && args[0] == mysqlCommandScriptPath {
-				Expect(args[1]).To(Equal("SET global wsrep_on='OFF'"))
-				Expect(args[2]).To(Equal(username))
-				Expect(args[3]).To(Equal(password))
-				Expect(args[4]).To(Equal(logFileLocation))
-				lastCommand = "disable replication"
-			}
-
-			if lastCommand == "disable replication" && executable == "bash" && len(args) > 0 && args[0] == upgradeScriptPath {
+			if executable == "bash" && len(args) > 0 && args[0] == upgradeScriptPath {
 				Expect(args[1]).To(Equal(username))
 				Expect(args[2]).To(Equal(password))
 				Expect(args[3]).To(Equal(logFileLocation))
 				lastCommand = "upgrade"
 			}
-
-			if lastCommand == "upgrade" && executable == "bash" && len(args) > 0 && args[0] == mysqlCommandScriptPath {
-				Expect(args[1]).To(Equal("SET global wsrep_on='ON'"))
-				Expect(args[2]).To(Equal(username))
-				Expect(args[3]).To(Equal(password))
-				Expect(args[4]).To(Equal(logFileLocation))
-				lastCommand = "enable replication"
-			}
 		}
-		Expect(lastCommand).To(Equal("enable replication"))
+		
+		Expect(lastCommand).To(Equal("upgrade"))
 	}
 
 	ensureSeedDatabases := func() {
