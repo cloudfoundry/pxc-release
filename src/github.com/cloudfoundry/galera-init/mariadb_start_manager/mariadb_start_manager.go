@@ -153,60 +153,12 @@ func (m *MariaDBStartManager) seedDatabases() {
 func (m *MariaDBStartManager) upgradeAndRestartIfNecessary(mode string) {
 	m.Log("performing upgrade\n")
 
-	_, disableReplicationErr := m.osHelper.RunCommand(
-		"bash",
-		m.mysqlCommandScriptPath,
-		"SET global wsrep_on='OFF'",
-		m.username,
-		m.password,
-		m.logFileLocation)
-
-	if disableReplicationErr != nil {
-		panic(disableReplicationErr)
-	}
-
-	_, checkReplicationEnabledErr := m.osHelper.RunCommand(
-		"bash",
-		m.mysqlCommandScriptPath,
-		"SHOW variables LIKE 'wsrep_on'",
-		m.username,
-		m.password,
-		m.logFileLocation)
-
-	if checkReplicationEnabledErr != nil {
-		panic(checkReplicationEnabledErr)
-	}
-
 	upgradeOutput, upgradeErr := m.osHelper.RunCommand(
 		"bash",
 		m.upgradeScriptPath,
 		m.username,
 		m.password,
 		m.logFileLocation)
-
-	_, enableReplicationErr := m.osHelper.RunCommand(
-		"bash",
-		m.mysqlCommandScriptPath,
-		"SET global wsrep_on='ON'",
-		m.username,
-		m.password,
-		m.logFileLocation)
-
-	if enableReplicationErr != nil {
-		panic(enableReplicationErr)
-	}
-
-	_, checkReplicationDisabledErr := m.osHelper.RunCommand(
-		"bash",
-		m.mysqlCommandScriptPath,
-		"SHOW variables LIKE 'wsrep_on'",
-		m.username,
-		m.password,
-		m.logFileLocation)
-
-	if checkReplicationDisabledErr != nil {
-		panic(checkReplicationDisabledErr)
-	}
 
 	if m.requiresRestart(upgradeOutput, upgradeErr) {
 		m.Log("STOPPING NODE.\n")
