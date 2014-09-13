@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
 	manager "github.com/cloudfoundry/mariadb_ctrl/mariadb_start_manager"
@@ -14,10 +15,10 @@ var logFileLocation = flag.String(
 	"Specifies the location of the log file mysql sends logs to",
 )
 
-var mysqlServerPath = flag.String(
-	"mysqlServer",
+var mysqlDaemonPath = flag.String(
+	"mysqlDaemon",
 	"",
-	"Specifies the location of the mysql.server file",
+	"Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server",
 )
 
 var dbSeedScriptPath = flag.String(
@@ -30,12 +31,6 @@ var upgradeScriptPath = flag.String(
 	"upgradeScriptPath",
 	"",
 	"Specifies the location of the script that performs the MySQL upgrade",
-)
-
-var mysqlCommandScriptPath = flag.String(
-	"mysqlCommandScriptPath",
-	"",
-	"Specifies the location of the script that executes the given MySQL command",
 )
 
 var stateFileLocation = flag.String(
@@ -74,13 +69,20 @@ var clusterIps = flag.String(
 	"Comma-delimited list of IPs in the galera cluster",
 )
 
+var maxDatabaseSeedTries = flag.Int(
+	"maxDatabaseSeedTries",
+	1,
+	"How many times to attempt database seeding before it fails",
+)
+
 func main() {
 	flag.Parse()
 
-	mgr := manager.New(os_helper.NewImpl(),
+	mgr := manager.New(
+		os_helper.NewImpl(),
 		*logFileLocation,
 		*stateFileLocation,
-		*mysqlServerPath,
+		*mysqlDaemonPath,
 		*mysqlUser,
 		*mysqlPassword,
 		*dbSeedScriptPath,
@@ -88,9 +90,13 @@ func main() {
 		*numberOfNodes,
 		true,
 		*upgradeScriptPath,
-		*mysqlCommandScriptPath,
 		nil,
+		*maxDatabaseSeedTries,
 	)
 	mgr.ClusterReachabilityChecker = galera_helper.NewClusterReachabilityChecker(*clusterIps, mgr)
-	mgr.Execute()
+	err := mgr.Execute()
+	if err != nil {
+		mgr.Log("Execution exited with an error")
+		os.Exit(1)
+	}
 }

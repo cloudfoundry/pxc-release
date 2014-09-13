@@ -2,9 +2,9 @@
 package fakes
 
 import (
-	"sync"
-
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"sync"
+	"time"
 )
 
 type FakeOsHelper struct {
@@ -54,6 +54,11 @@ type FakeOsHelper struct {
 	}
 	writeStringToFileReturns struct {
 		result1 error
+	}
+	SleepStub        func(duration time.Duration)
+	sleepMutex       sync.RWMutex
+	sleepArgsForCall []struct {
+		duration time.Duration
 	}
 }
 
@@ -222,6 +227,29 @@ func (fake *FakeOsHelper) WriteStringToFileReturns(result1 error) {
 	fake.writeStringToFileReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeOsHelper) Sleep(duration time.Duration) {
+	fake.sleepMutex.Lock()
+	defer fake.sleepMutex.Unlock()
+	fake.sleepArgsForCall = append(fake.sleepArgsForCall, struct {
+		duration time.Duration
+	}{duration})
+	if fake.SleepStub != nil {
+		fake.SleepStub(duration)
+	}
+}
+
+func (fake *FakeOsHelper) SleepCallCount() int {
+	fake.sleepMutex.RLock()
+	defer fake.sleepMutex.RUnlock()
+	return len(fake.sleepArgsForCall)
+}
+
+func (fake *FakeOsHelper) SleepArgsForCall(i int) time.Duration {
+	fake.sleepMutex.RLock()
+	defer fake.sleepMutex.RUnlock()
+	return fake.sleepArgsForCall[i].duration
 }
 
 var _ os_helper.OsHelper = new(FakeOsHelper)

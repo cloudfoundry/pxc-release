@@ -2,7 +2,6 @@ package mariadb_start_manager_test
 
 import (
 	"errors"
-
 	galera_fakes "github.com/cloudfoundry/mariadb_ctrl/galera_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 
@@ -17,23 +16,23 @@ var _ = Describe("MariadbStartManager", func() {
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeClusterReachabilityChecker *galera_fakes.FakeClusterReachabilityChecker
 
-	logFileLocation := "/some-unused-location"
-	mysqlServerPath := "/some-server-location"
-	stateFileLocation := "/another-unused-location"
+	logFileLocation := "/logFileLocation"
+	mysqlDaemonPath := "/mysqlDaemonPath"
+	stateFileLocation := "/stateFileLocation"
 	username := "fake-username"
 	password := "fake-password"
-	dbSeedScriptPath := "/some-path"
-	upgradeScriptPath := "/some-upgrade-path"
-	mysqlCommandScriptPath := "/some-mysql-command-path"
+	dbSeedScriptPath := "/dbSeedScriptPath"
+	upgradeScriptPath := "/upgradeScriptPath"
+	maxDatabaseSeedTries := 2
 
 	ensureMySQLCommandsRanWithOptions := func(options []string) {
 		Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(len(options)))
 		for i, option := range options {
 			timeout, logFile, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(i)
-			Expect(timeout).To(Equal(300))
-			Expect(logFile).To(Equal("/some-unused-location"))
+			Expect(timeout).To(Equal(10))
+			Expect(logFile).To(Equal(logFileLocation))
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{"/some-server-location", option}))
+			Expect(args).To(Equal([]string{mysqlDaemonPath, option}))
 		}
 	}
 
@@ -51,7 +50,6 @@ var _ = Describe("MariadbStartManager", func() {
 				lastCommand = "upgrade"
 			}
 		}
-		
 		Expect(lastCommand).To(Equal("upgrade"))
 	}
 
@@ -68,7 +66,6 @@ var _ = Describe("MariadbStartManager", func() {
 				break
 			}
 		}
-
 		Expect(callExists).To(BeTrue())
 	}
 
@@ -77,6 +74,11 @@ var _ = Describe("MariadbStartManager", func() {
 		filename, contents := fakeOs.WriteStringToFileArgsForCall(count - 1)
 		Expect(filename).To(Equal(stateFileLocation))
 		Expect(contents).To(Equal(expected))
+	}
+
+	ensureNoStateFileWritten := func() {
+		count := fakeOs.WriteStringToFileCallCount()
+		Expect(count).To(Equal(0))
 	}
 
 	fakeRestartNOTNeededAfterUpgrade := func() {
@@ -99,27 +101,53 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs,
 				logFileLocation,
 				stateFileLocation,
-				mysqlServerPath,
+				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				0, 1, false,
 				upgradeScriptPath,
-				mysqlCommandScriptPath,
-				fakeClusterReachabilityChecker)
-
-			fakeOs.RunCommandStub = func(arg1 string, arg2 ...string) (string, error) {
-				return "",
-					errors.New("seeding databases failed")
-			}
+				fakeClusterReachabilityChecker,
+				maxDatabaseSeedTries)
 		})
 
-		It("panics and stops mysql (so the deploy fails)", func() {
-			Expect(func() {
-				mgr.Execute()
-			}).To(Panic())
+		Context("and the total attempts at seeding the database is less than maxTries", func() {
+			BeforeEach(func() {
+				numTries := 0
+				fakeOs.RunCommandStub = func(arg1 string, arg2 ...string) (string, error) {
+					numTries++
+					if numTries < maxDatabaseSeedTries {
+						return "", errors.New("seeding databases failed")
+					} else {
+						return "succeeded", nil
+					}
+				}
+			})
 
-			ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop"})
+			It("waits and attempts to retry to seed the database", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+				ensureSeedDatabases()
+			})
+		})
+
+		Context("and the total attempts at seeding the database is more than or equal to maxTries", func() {
+			var numTries int
+			BeforeEach(func() {
+				numTries = 0
+				fakeOs.RunCommandStub = func(arg1 string, arg2 ...string) (string, error) {
+					numTries++
+					return "", errors.New("seeding databases failed")
+				}
+			})
+
+			It("exits and stops mysql (so the deploy fails)", func() {
+				err := mgr.Execute()
+				Expect(err).To(HaveOccurred())
+				Expect(numTries).To(Equal(maxDatabaseSeedTries))
+				Expect(fakeOs.SleepCallCount()).To(Equal(maxDatabaseSeedTries))
+				ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop"})
+			})
 		})
 	})
 
@@ -133,21 +161,22 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs,
 				logFileLocation,
 				stateFileLocation,
-				mysqlServerPath,
+				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				0, 1, false,
 				upgradeScriptPath,
-				mysqlCommandScriptPath,
-				fakeClusterReachabilityChecker)
+				fakeClusterReachabilityChecker,
+				maxDatabaseSeedTries)
 		})
 
 		Context("On initial deploy, when it needs to be restarted after upgrade", func() {
 			It("Starts in bootstrap mode", func() {
-				mgr.Execute()
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
-				ensureStateFileContentIs("SINGLE_NODE")
+				ensureStateFileContentIs(manager.SINGLE_NODE)
 				ensureUpgrade()
 				ensureSeedDatabases()
 			})
@@ -159,9 +188,10 @@ var _ = Describe("MariadbStartManager", func() {
 			})
 
 			It("Starts in bootstrap mode", func() {
-				mgr.Execute()
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
-				ensureStateFileContentIs("SINGLE_NODE")
+				ensureStateFileContentIs(manager.SINGLE_NODE)
 				ensureUpgrade()
 				ensureSeedDatabases()
 			})
@@ -170,12 +200,13 @@ var _ = Describe("MariadbStartManager", func() {
 		Context("When redeploying, and a restart after upgrade is necessary", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns("SINGLE_NODE", nil)
+				fakeOs.ReadFileReturns(manager.SINGLE_NODE, nil)
 			})
 			It("Starts in bootstrap mode", func() {
-				mgr.Execute()
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
-				ensureStateFileContentIs("SINGLE_NODE")
+				ensureStateFileContentIs(manager.SINGLE_NODE)
 				ensureUpgrade()
 				ensureSeedDatabases()
 			})
@@ -193,35 +224,40 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs,
 				logFileLocation,
 				stateFileLocation,
-				mysqlServerPath,
+				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				1, 3, false,
 				upgradeScriptPath,
-				mysqlCommandScriptPath,
-				fakeClusterReachabilityChecker)
+				fakeClusterReachabilityChecker,
+				maxDatabaseSeedTries)
 		})
 
 		Context("When the node needs to restart after upgrade", func() {
-			It("Should start up in join mode, writes JOIN to a file, runs upgrade, stops mysql", func() {
-				mgr.Execute()
+			It("Should start up in join mode, writes " + manager.CLUSTERED + " to a file, runs upgrade, stops mysql", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"start", "stop", "start"})
-				ensureStateFileContentIs("JOIN")
+				ensureStateFileContentIs(manager.CLUSTERED)
 				ensureUpgrade()
 			})
+
 			Context("When starting mariadb causes an error", func() {
-				It("Panics", func() {
+				BeforeEach(func() {
 					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
 						return errors.New("some error")
 					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
+				})
+
+				It("forwards the error", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
+
 				})
 			})
 			Context("When stopping mariadb causes an error", func() {
-				It("Panics", func() {
+				BeforeEach(func() {
 					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
 						if arg3[1] == "stop" {
 							return errors.New("some errors")
@@ -229,9 +265,11 @@ var _ = Describe("MariadbStartManager", func() {
 							return nil
 						}
 					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
+				})
+
+				It("forwards the error", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -240,20 +278,22 @@ var _ = Describe("MariadbStartManager", func() {
 			BeforeEach(func() {
 				fakeRestartNOTNeededAfterUpgrade()
 			})
-			It("Should start up in join mode, writes JOIN to a file, runs upgrade", func() {
-				mgr.Execute()
+			It("Should start up in join mode, writes " + manager.CLUSTERED + " to a file, runs upgrade", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"start"})
-				ensureStateFileContentIs("JOIN")
+				ensureStateFileContentIs(manager.CLUSTERED)
 				ensureUpgrade()
 			})
 			Context("When starting mariadb causes an error", func() {
-				It("Panics", func() {
+				BeforeEach(func() {
 					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
 						return errors.New("some error")
 					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
+				})
+				It("forwards the error", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -270,27 +310,46 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs,
 				logFileLocation,
 				stateFileLocation,
-				mysqlServerPath,
+				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				0, 3, false,
 				upgradeScriptPath,
-				mysqlCommandScriptPath,
-				fakeClusterReachabilityChecker)
+				fakeClusterReachabilityChecker,
+				maxDatabaseSeedTries)
 		})
 
-		Context("When file is not present on node 0 and upgrade requires restart", func() {
+		Context("When the state file is not present", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			It("Should boostrap, upgrade and restart in bootstrap mode", func() {
-				mgr.Execute()
-				ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
-				ensureStateFileContentIs("JOIN")
-				ensureUpgrade()
-				ensureSeedDatabases()
+			Context("and upgrade requires restart", func() {
+				It("Should bootstrap, upgrade and restart in bootstrap mode", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
+					ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
+					ensureStateFileContentIs(manager.CLUSTERED)
+					ensureUpgrade()
+					ensureSeedDatabases()
+				})
+			})
+
+			Context("and upgrade does not require restart", func() {
+				BeforeEach(func() {
+					fakeRestartNOTNeededAfterUpgrade()
+				})
+
+				It("Should bootstrap, upgrade and write " + manager.CLUSTERED + " to file", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
+					ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
+					ensureUpgrade()
+					ensureSeedDatabases()
+					ensureStateFileContentIs(manager.CLUSTERED)
+				})
+
 			})
 
 			Context("When one or more other nodes is reachable", func() {
@@ -302,105 +361,101 @@ var _ = Describe("MariadbStartManager", func() {
 						fakeOs,
 						logFileLocation,
 						stateFileLocation,
-						mysqlServerPath,
+						mysqlDaemonPath,
 						username,
 						password,
 						dbSeedScriptPath,
 						0, 3, false,
 						upgradeScriptPath,
-						mysqlCommandScriptPath,
-						fakeClusterReachabilityChecker)
+						fakeClusterReachabilityChecker,
+						maxDatabaseSeedTries)
 				})
 
-				It("Upgrades and restarts", func() {
-					mgr.Execute()
+				It("Seeds database, upgrades and restarts", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"start", "stop", "start"})
-					ensureStateFileContentIs("JOIN")
+					ensureStateFileContentIs(manager.CLUSTERED)
 					ensureUpgrade()
 					ensureSeedDatabases()
 				})
 			})
 
 			Context("When starting mariadb causes an error", func() {
-				It("Panics", func() {
-					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
+				BeforeEach(func() {
+					fakeOs.RunCommandWithTimeoutStub = func(timeout int, logFile string, executable string, args ...string) error {
 						return errors.New("some error")
 					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
+				})
+
+				It("forwards the error", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when seeding the database fails", func() {
+				BeforeEach(func() {
+					fakeOs.RunCommandStub = func(executable string, args ...string) (string, error) {
+						if args[0] == dbSeedScriptPath {
+							return "", errors.New("some error")
+						}
+						return "success!", nil
+					}
+				})
+
+				It("does not write a state file", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
+					ensureNoStateFileWritten()
 				})
 			})
 		})
 
-		Context("When file is not present and upgrade does not require restart", func() {
-			BeforeEach(func() {
-				fakeOs.FileExistsReturns(false)
-				fakeRestartNOTNeededAfterUpgrade()
-			})
-			It("Should bootstrap, upgrade and write JOIN to file", func() {
-				mgr.Execute()
-				ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
-				ensureUpgrade()
-				ensureSeedDatabases()
-				ensureStateFileContentIs("JOIN")
-			})
-			Context("When starting mariadb causes an error", func() {
-				It("Panics", func() {
-					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
-						return errors.New("some error")
-					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
-				})
-			})
-		})
-
-		Context("When file is present and reads 'JOIN', and upgrade returns err: 'already upgraded'", func() {
+		Context("When file is present and reads '" + manager.CLUSTERED + "', and upgrade returns err: 'already upgraded'", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns("JOIN", nil)
+				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
 				fakeRestartNOTNeededAfterUpgrade()
 			})
 			It("Should join, perform upgrade and not restart", func() {
-				mgr.Execute()
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"start"})
 				ensureSeedDatabases()
 				ensureUpgrade()
 			})
 			Context("When starting mariadb causes an error", func() {
-				It("Panics", func() {
+				It("forwards the error", func() {
 					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
 						return errors.New("some error")
 					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
 
-		Context("When file is present and reads 'JOIN', and upgrade requires restart", func() {
+		Context("When file is present and reads '" + manager.CLUSTERED + "', and upgrade requires restart", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns("JOIN", nil)
+				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
 			})
 			It("Should join, perform upgrade and restart", func() {
-				mgr.Execute()
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"start", "stop", "start"})
-				ensureStateFileContentIs("JOIN")
+				ensureStateFileContentIs(manager.CLUSTERED)
 				ensureSeedDatabases()
 				ensureUpgrade()
 			})
 			Context("When starting mariadb causes an error", func() {
-				It("Panics", func() {
+				It("forwards the error", func() {
 					fakeOs.RunCommandWithTimeoutStub = func(arg0 int, arg1 string, arg2 string, arg3 ...string) error {
 						return errors.New("some error")
 					}
-					Expect(func() {
-						mgr.Execute()
-					}).To(Panic())
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -418,23 +473,24 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeOs,
 					logFileLocation,
 					stateFileLocation,
-					mysqlServerPath,
+					mysqlDaemonPath,
 					username,
 					password,
 					dbSeedScriptPath,
 					0, 1, false,
 					upgradeScriptPath,
-					mysqlCommandScriptPath,
-					fakeClusterReachabilityChecker)
+					fakeClusterReachabilityChecker,
+					maxDatabaseSeedTries)
 
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns("JOIN", nil)
+				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
 			})
 			Context("When restart is needed after upgrade", func() {
-				It("Bootstraps node zero and writes SINGLE_NODE to file", func() {
-					mgr.Execute()
+				It("Bootstraps node zero and writes '" + manager.SINGLE_NODE + "' to file", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
-					ensureStateFileContentIs("SINGLE_NODE")
+					ensureStateFileContentIs(manager.SINGLE_NODE)
 					ensureSeedDatabases()
 					ensureUpgrade()
 				})
@@ -444,10 +500,11 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeRestartNOTNeededAfterUpgrade()
 				})
 
-				It("Bootstraps node zero and writes SINGLE_NODE to file", func() {
-					mgr.Execute()
+				It("Bootstraps node zero and writes '" + manager.SINGLE_NODE + "' to file", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
-					ensureStateFileContentIs("SINGLE_NODE")
+					ensureStateFileContentIs(manager.SINGLE_NODE)
 					ensureSeedDatabases()
 					ensureUpgrade()
 				})
@@ -460,23 +517,24 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeOs,
 					logFileLocation,
 					stateFileLocation,
-					mysqlServerPath,
+					mysqlDaemonPath,
 					username,
 					password,
 					dbSeedScriptPath,
 					0, 3, false,
 					upgradeScriptPath,
-					mysqlCommandScriptPath,
-					fakeClusterReachabilityChecker)
+					fakeClusterReachabilityChecker,
+					maxDatabaseSeedTries)
 
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns("SINGLE_NODE", nil)
+				fakeOs.ReadFileReturns(manager.SINGLE_NODE, nil)
 			})
 			Context("When a restart after upgrade is necessary", func() {
-				It("bootstraps the first node and writes JOIN to file", func() {
-					mgr.Execute()
+				It("bootstraps the first node and writes '" + manager.CLUSTERED + "' to file", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
-					ensureStateFileContentIs("JOIN")
+					ensureStateFileContentIs(manager.CLUSTERED)
 					ensureSeedDatabases()
 					ensureUpgrade()
 				})
@@ -485,10 +543,11 @@ var _ = Describe("MariadbStartManager", func() {
 				BeforeEach(func() {
 					fakeRestartNOTNeededAfterUpgrade()
 				})
-				It("bootstraps the first node and writes JOIN to file", func() {
-					mgr.Execute()
+				It("bootstraps the first node and writes '" + manager.CLUSTERED + "' to file", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
-					ensureStateFileContentIs("JOIN")
+					ensureStateFileContentIs(manager.CLUSTERED)
 					ensureUpgrade()
 					ensureSeedDatabases()
 				})

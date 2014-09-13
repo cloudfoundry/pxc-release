@@ -1,8 +1,8 @@
 package galera_helper
 
 import (
-	"strings"
 	"net/http"
+	"strings"
 )
 
 var MakeRequest = http.Get
@@ -12,26 +12,26 @@ type Logger interface {
 }
 
 type ClusterReachabilityChecker interface {
-	AnyNodesReachable() (bool)
+	AnyNodesReachable() bool
 }
 
-type httpClusterReachabilityChecker struct{
+type httpClusterReachabilityChecker struct {
 	clusterIps []string
-	logger Logger
+	logger     Logger
 }
 
 func NewClusterReachabilityChecker(ips string, logger Logger) ClusterReachabilityChecker {
 	return httpClusterReachabilityChecker{
-		clusterIps:  strings.Split(ips, ","),
-		logger: logger,
+		clusterIps: strings.Split(ips, ","),
+		logger:     logger,
 	}
 }
 
-func (h httpClusterReachabilityChecker) AnyNodesReachable() (bool) {
+func (h httpClusterReachabilityChecker) AnyNodesReachable() bool {
 	for _, ip := range h.clusterIps {
 		h.logger.Log("Checking if node is reachable: " + ip + "\n")
 
-		resp, _ := MakeRequest("http://"+ip+":9200/")
+		resp, _ := MakeRequest("http://" + ip + ":9200/")
 		if resp != nil && resp.StatusCode == 200 {
 			h.logger.Log("At least one node in cluster is reachable.\n")
 			return true

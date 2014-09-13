@@ -14,6 +14,7 @@ type OsHelper interface {
 	FileExists(filename string) bool
 	ReadFile(filename string) (string, error)
 	WriteStringToFile(filename string, contents string) error
+	Sleep(duration time.Duration)
 }
 
 type OsHelperImpl struct{}
@@ -76,4 +77,8 @@ func (h OsHelperImpl) ReadFile(filename string) (string, error) {
 func (h OsHelperImpl) WriteStringToFile(filename string, contents string) error {
 	err := ioutil.WriteFile(filename, []byte(contents), 0644)
 	return err
+}
+
+func (h OsHelperImpl) Sleep(duration time.Duration) {
+	time.Sleep(duration)
 }
