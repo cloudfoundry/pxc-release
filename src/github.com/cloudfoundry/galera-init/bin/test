@@ -10,3 +10,4 @@ fi
 
 go test -v ./mariadb_start_manager
 go test -v ./os_helper
+go test -v ./galera_helper
