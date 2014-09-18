@@ -5,7 +5,6 @@ MysqlPassword=$2
 HAProxyIp=$3
 
 echo "Mysql user: $1"
-echo "Mysql password: $2"
 echo "HAProxy IP: $3"
 
 MysqlPath=/var/vcap/packages/mariadb/bin/mysql
