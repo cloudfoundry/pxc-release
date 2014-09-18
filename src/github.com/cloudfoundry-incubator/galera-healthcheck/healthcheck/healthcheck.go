@@ -5,7 +5,7 @@ import (
 )
 
 type Healthchecker struct {
-	db *sql.DB
+	db     *sql.DB
 	config HealthcheckerConfig
 }
 
@@ -14,9 +14,9 @@ type HealthcheckerConfig struct {
 	AvailableWhenReadOnly bool
 }
 
-func New (db *sql.DB, config HealthcheckerConfig) *Healthchecker {
+func New(db *sql.DB, config HealthcheckerConfig) *Healthchecker {
 	return &Healthchecker{
-		db: db,
+		db:     db,
 		config: config,
 	}
 }
@@ -30,7 +30,7 @@ func (h *Healthchecker) Check() (bool, string) {
 	case err != nil:
 		return false, err.Error()
 	case value == "4" || (value == "2" && h.config.AvailableWhenDonor):
-		if (!h.config.AvailableWhenReadOnly) {
+		if !h.config.AvailableWhenReadOnly {
 			var ro_variable_name string
 			var ro_value string
 			ro_err := h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&ro_variable_name, &ro_value)

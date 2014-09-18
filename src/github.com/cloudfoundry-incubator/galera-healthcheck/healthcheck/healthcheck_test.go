@@ -1,8 +1,8 @@
 package healthcheck_test
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 
 	"database/sql"
 	testdb "github.com/erikstmartin/go-testdb"
@@ -13,7 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 )
 
-var _ =	Describe("GaleraHealthChecker", func() {
+var _ = Describe("GaleraHealthChecker", func() {
 
 	Describe("Check", func() {
 		Context("when WSREP_STATUS is joining", func() {
@@ -75,12 +75,12 @@ var _ =	Describe("GaleraHealthChecker", func() {
 							true,
 						}
 
-							result, msg := HealthcheckTestHelper(config)
+						result, msg := HealthcheckTestHelper(config)
 
-							Expect(result).To(BeTrue())
-							Expect(msg).To(Equal("synced"))
-						})
+						Expect(result).To(BeTrue())
+						Expect(msg).To(Equal("synced"))
 					})
+				})
 
 				Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is false", func() {
 					It("It returns false and read-only", func() {
@@ -179,13 +179,13 @@ var _ =	Describe("GaleraHealthChecker", func() {
 				testdb.StubQueryError(sql, errors.New("test error"))
 
 				config := healthcheck.HealthcheckerConfig{
-					AvailableWhenDonor: false,
+					AvailableWhenDonor:    false,
 					AvailableWhenReadOnly: false,
 				}
 
 				healthchecker := healthcheck.New(db, config)
 
-				result,msg := healthchecker.Check()
+				result, msg := healthchecker.Check()
 
 				Expect(result).To(BeFalse())
 				Expect(msg).To(Equal("test error"))
@@ -206,13 +206,13 @@ var _ =	Describe("GaleraHealthChecker", func() {
 				testdb.StubQueryError(sql, errors.New("another test error"))
 
 				config := healthcheck.HealthcheckerConfig{
-					AvailableWhenDonor: false,
+					AvailableWhenDonor:    false,
 					AvailableWhenReadOnly: false,
 				}
 
 				healthchecker := healthcheck.New(db, config)
 
-				res,msg := healthchecker.Check()
+				res, msg := healthchecker.Check()
 
 				Expect(res).To(BeFalse())
 				Expect(msg).To(Equal("another test error"))
@@ -222,9 +222,9 @@ var _ =	Describe("GaleraHealthChecker", func() {
 })
 
 type HealthcheckTestHelperConfig struct {
-	wsrep_status string
-	read_only string
-	available_when_donor bool
+	wsrep_status             string
+	read_only                string
+	available_when_donor     bool
 	available_when_read_only bool
 }
 
@@ -242,7 +242,7 @@ func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
 
 	config := healthcheck.HealthcheckerConfig{
-		AvailableWhenDonor: testConfig.available_when_donor,
+		AvailableWhenDonor:    testConfig.available_when_donor,
 		AvailableWhenReadOnly: testConfig.available_when_read_only,
 	}
 
@@ -250,9 +250,3 @@ func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string
 
 	return healthchecker.Check()
 }
-
-
-
-
-
-

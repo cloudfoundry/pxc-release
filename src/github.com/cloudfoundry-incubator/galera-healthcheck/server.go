@@ -9,9 +9,9 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/headsman"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/logger"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/headsman"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
 )

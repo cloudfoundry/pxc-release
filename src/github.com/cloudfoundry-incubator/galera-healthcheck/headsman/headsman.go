@@ -1,8 +1,8 @@
 package headsman
 
 import (
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/logger"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 )
 
 type Headsman interface {
@@ -10,21 +10,21 @@ type Headsman interface {
 }
 
 type MysqlHeadsman struct {
-	oh 				os_helper.OsHelper
-	mysqlUsername 	string
-	mysqlPassword	string
-	executablePath	string
-	haproxyIp		string
+	oh             os_helper.OsHelper
+	mysqlUsername  string
+	mysqlPassword  string
+	executablePath string
+	haproxyIp      string
 }
 
 func NewMysqlHeadsman(oh os_helper.OsHelper, mysqlUsername string,
-						mysqlPassword string, executablePath string, haproxyIp string) *MysqlHeadsman {
+	mysqlPassword string, executablePath string, haproxyIp string) *MysqlHeadsman {
 	return &MysqlHeadsman{
-		oh : oh,
-		mysqlUsername : mysqlUsername,
-		mysqlPassword : mysqlPassword,
+		oh:             oh,
+		mysqlUsername:  mysqlUsername,
+		mysqlPassword:  mysqlPassword,
 		executablePath: executablePath,
-		haproxyIp : haproxyIp,
+		haproxyIp:      haproxyIp,
 	}
 }
 
