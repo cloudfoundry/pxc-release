@@ -96,7 +96,7 @@ func main() {
 	mgr.ClusterReachabilityChecker = galera_helper.NewClusterReachabilityChecker(*clusterIps, mgr)
 	err := mgr.Execute()
 	if err != nil {
-		mgr.Log("Execution exited with an error")
+		mgr.Log("Execution exited with an error\n")
 		os.Exit(1)
 	}
 }

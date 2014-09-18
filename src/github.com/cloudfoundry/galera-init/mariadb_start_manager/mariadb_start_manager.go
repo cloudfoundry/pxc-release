@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 )
 
 const (
-	CLUSTERED = "CLUSTERED"
-	SINGLE_NODE  = "SINGLE_NODE"
+	CLUSTERED   = "CLUSTERED"
+	SINGLE_NODE = "SINGLE_NODE"
 
 	BOOTSTRAP_COMMAND = "bootstrap"
 	JOIN_COMMAND      = "start"
-	STOP_COMMAND      = "stop"
 )
 
 type MariaDBStartManager struct {
@@ -32,6 +32,7 @@ type MariaDBStartManager struct {
 	upgradeScriptPath          string
 	ClusterReachabilityChecker galera_helper.ClusterReachabilityChecker
 	maxDatabaseSeedTries       int
+	mariaDBHelper              *mariadb_helper.MariaDBHelper
 }
 
 func New(osHelper os_helper.OsHelper,
@@ -47,6 +48,15 @@ func New(osHelper os_helper.OsHelper,
 	upgradeScriptPath string,
 	clusterReachabilityChecker galera_helper.ClusterReachabilityChecker,
 	maxDatabaseSeedTries int) *MariaDBStartManager {
+	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
+		osHelper,
+		mysqlDaemonPath,
+		logFileLocation,
+		loggingOn,
+		upgradeScriptPath,
+		username,
+		password,
+	)
 	return &MariaDBStartManager{
 		osHelper:                   osHelper,
 		logFileLocation:            logFileLocation,
@@ -61,6 +71,7 @@ func New(osHelper os_helper.OsHelper,
 		upgradeScriptPath:          upgradeScriptPath,
 		ClusterReachabilityChecker: clusterReachabilityChecker,
 		maxDatabaseSeedTries:       maxDatabaseSeedTries,
+		mariaDBHelper:              mariaDBHelper,
 	}
 }
 
@@ -76,7 +87,7 @@ func (m *MariaDBStartManager) Execute() (err error) {
 
 		//single-node deploy
 		if m.numberOfNodes == 1 {
-			m.Log("Single node deploy")
+			m.Log("Single node deploy\n")
 			err = m.bootstrapCluster(SINGLE_NODE)
 			return
 		}
@@ -134,22 +145,17 @@ func (m *MariaDBStartManager) bootstrapNode() error {
 	} else {
 		command = BOOTSTRAP_COMMAND
 	}
-	m.Log("Starting node with '" + command + "' command.\n")
-	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, command)
-
+	err := m.mariaDBHelper.StartMysqldInMode(command)
 	if err != nil {
-		m.Log(fmt.Sprintf("Error: %s\n", err.Error()))
 		return err
 	}
 	return nil
 }
 
 func (m *MariaDBStartManager) joinCluster() (err error) {
-	m.Log("Starting node with '" + JOIN_COMMAND + "' command.\n")
-	err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, JOIN_COMMAND)
+	err = m.mariaDBHelper.StartMysqldInMode(JOIN_COMMAND)
 	if err != nil {
-		m.Log(fmt.Sprintf("Error: %s\n", err.Error()))
-		return
+		return err
 	}
 
 	err = m.seedDatabases()
@@ -183,27 +189,21 @@ func (m *MariaDBStartManager) seedDatabases() (err error) {
 
 	m.Log("Seeding databases failed:\n")
 	m.Log(output + "\n")
+	if err != nil {
+		m.Log(fmt.Sprintf("Error seeding databases: %s\n", err.Error()))
+	}
 
-	m.Log("STOPPING NODE.\n")
-	m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_COMMAND)
-
-	m.Log(fmt.Sprintf("Error seeding databases: %s\n", err.Error()))
+	m.mariaDBHelper.StopMysqld()
 	return
 }
 
-func (m *MariaDBStartManager) upgradeAndRestartIfNecessary(command string) error {
+func (m *MariaDBStartManager) upgradeAndRestartIfNecessary(command string) (err error) {
 	m.Log("performing upgrade\n")
 
-	upgradeOutput, upgradeErr := m.osHelper.RunCommand(
-		"bash",
-		m.upgradeScriptPath,
-		m.username,
-		m.password,
-		m.logFileLocation)
+	upgradeOutput, upgradeErr := m.mariaDBHelper.Upgrade()
 
 	if m.requiresRestart(upgradeOutput, upgradeErr) {
-		m.Log("STOPPING NODE.\n")
-		err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_COMMAND)
+		err = m.mariaDBHelper.StopMysqld()
 		if err != nil {
 			m.Log(fmt.Sprintf("Error: %s\n", err.Error()))
 			return err
@@ -213,10 +213,8 @@ func (m *MariaDBStartManager) upgradeAndRestartIfNecessary(command string) error
 			command = JOIN_COMMAND
 		}
 
-		m.Log("Starting node with '" + command + "' command.\n")
-		err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, command)
+		err = m.mariaDBHelper.StartMysqldInMode(command)
 		if err != nil {
-			m.Log(fmt.Sprintf("Error: %s\n", err.Error()))
 			return err
 		}
 	}

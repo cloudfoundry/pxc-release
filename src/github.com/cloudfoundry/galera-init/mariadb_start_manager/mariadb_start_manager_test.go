@@ -26,14 +26,25 @@ var _ = Describe("MariadbStartManager", func() {
 	maxDatabaseSeedTries := 2
 
 	ensureMySQLCommandsRanWithOptions := func(options []string) {
-		Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(len(options)))
-		for i, option := range options {
+		numMysqlCommandsCalled := 0
+
+		for i := 0; i < fakeOs.RunCommandWithTimeoutCallCount(); i++ {
+			option := options[numMysqlCommandsCalled]
 			timeout, logFile, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(i)
+
+			// For this expectation, we only want to consider calls that were made to the mysql daemon
+			// (as opposed to other binaries like `pgrep`
+			if args[0] != mysqlDaemonPath {
+				continue
+			}
+
+			numMysqlCommandsCalled += 1
 			Expect(timeout).To(Equal(10))
 			Expect(logFile).To(Equal(logFileLocation))
 			Expect(executable).To(Equal("bash"))
 			Expect(args).To(Equal([]string{mysqlDaemonPath, option}))
 		}
+		Expect(numMysqlCommandsCalled).To(Equal(len(options)))
 	}
 
 	ensureUpgrade := func() {
@@ -92,9 +103,19 @@ var _ = Describe("MariadbStartManager", func() {
 		}
 	}
 
+	stubPgrepCheck := func(fakeOs *os_fakes.FakeOsHelper) {
+		fakeOs.RunCommandWithTimeoutStub = func(_ int, _ string, _ string, args ...string) error {
+			if args[0] == "pgrep" {
+				return errors.New("did not find the daemon")
+			}
+			return nil
+		}
+	}
+
 	Context("when there's an error seeding the databases", func() {
 		BeforeEach(func() {
 			fakeOs = new(os_fakes.FakeOsHelper)
+			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
 
 			mgr = manager.New(
@@ -111,7 +132,7 @@ var _ = Describe("MariadbStartManager", func() {
 				maxDatabaseSeedTries)
 		})
 
-		Context("and the total attempts at seeding the database is less than maxTries", func() {
+		Context("and the total attempts at seeding the database is less than maxDatabaseSeedTries", func() {
 			BeforeEach(func() {
 				numTries := 0
 				fakeOs.RunCommandStub = func(arg1 string, arg2 ...string) (string, error) {
@@ -131,7 +152,7 @@ var _ = Describe("MariadbStartManager", func() {
 			})
 		})
 
-		Context("and the total attempts at seeding the database is more than or equal to maxTries", func() {
+		Context("and the total attempts at seeding the database is more than or equal to maxDatabaseSeedTries", func() {
 			var numTries int
 			BeforeEach(func() {
 				numTries = 0
@@ -155,6 +176,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		BeforeEach(func() {
 			fakeOs = new(os_fakes.FakeOsHelper)
+			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
 
 			mgr = manager.New(
@@ -172,7 +194,7 @@ var _ = Describe("MariadbStartManager", func() {
 		})
 
 		Context("On initial deploy, when it needs to be restarted after upgrade", func() {
-			It("Starts in bootstrap mode", func() {
+			It("Starts in bootstrap mode, stops, and rebootstraps", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
@@ -218,6 +240,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		BeforeEach(func() {
 			fakeOs = new(os_fakes.FakeOsHelper)
+			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
 
 			mgr = manager.New(
@@ -235,7 +258,7 @@ var _ = Describe("MariadbStartManager", func() {
 		})
 
 		Context("When the node needs to restart after upgrade", func() {
-			It("Should start up in join mode, writes " + manager.CLUSTERED + " to a file, runs upgrade, stops mysql", func() {
+			It("Should start up in join mode, writes "+manager.CLUSTERED+" to a file, runs upgrade, stops mysql", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"start", "stop", "start"})
@@ -278,7 +301,7 @@ var _ = Describe("MariadbStartManager", func() {
 			BeforeEach(func() {
 				fakeRestartNOTNeededAfterUpgrade()
 			})
-			It("Should start up in join mode, writes " + manager.CLUSTERED + " to a file, runs upgrade", func() {
+			It("Should start up in join mode, writes "+manager.CLUSTERED+" to a file, runs upgrade", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
 				ensureMySQLCommandsRanWithOptions([]string{"start"})
@@ -303,6 +326,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		BeforeEach(func() {
 			fakeOs = new(os_fakes.FakeOsHelper)
+			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
 			fakeClusterReachabilityChecker.AnyNodesReachableReturns(false)
 
@@ -341,7 +365,7 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeRestartNOTNeededAfterUpgrade()
 				})
 
-				It("Should bootstrap, upgrade and write " + manager.CLUSTERED + " to file", func() {
+				It("Should bootstrap, upgrade and write "+manager.CLUSTERED+" to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
@@ -412,7 +436,7 @@ var _ = Describe("MariadbStartManager", func() {
 			})
 		})
 
-		Context("When file is present and reads '" + manager.CLUSTERED + "', and upgrade returns err: 'already upgraded'", func() {
+		Context("When file is present and reads '"+manager.CLUSTERED+"', and upgrade returns err: 'already upgraded'", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
@@ -436,7 +460,7 @@ var _ = Describe("MariadbStartManager", func() {
 			})
 		})
 
-		Context("When file is present and reads '" + manager.CLUSTERED + "', and upgrade requires restart", func() {
+		Context("When file is present and reads '"+manager.CLUSTERED+"', and upgrade requires restart", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
@@ -464,6 +488,7 @@ var _ = Describe("MariadbStartManager", func() {
 	Describe("When scaling the cluster", func() {
 		BeforeEach(func() {
 			fakeOs = new(os_fakes.FakeOsHelper)
+			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
 		})
 
@@ -486,7 +511,7 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
 			})
 			Context("When restart is needed after upgrade", func() {
-				It("Bootstraps node zero and writes '" + manager.SINGLE_NODE + "' to file", func() {
+				It("Bootstraps node zero and writes '"+manager.SINGLE_NODE+"' to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
@@ -500,7 +525,7 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeRestartNOTNeededAfterUpgrade()
 				})
 
-				It("Bootstraps node zero and writes '" + manager.SINGLE_NODE + "' to file", func() {
+				It("Bootstraps node zero and writes '"+manager.SINGLE_NODE+"' to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
@@ -530,7 +555,7 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs.ReadFileReturns(manager.SINGLE_NODE, nil)
 			})
 			Context("When a restart after upgrade is necessary", func() {
-				It("bootstraps the first node and writes '" + manager.CLUSTERED + "' to file", func() {
+				It("bootstraps the first node and writes '"+manager.CLUSTERED+"' to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap", "stop", "bootstrap"})
@@ -543,7 +568,7 @@ var _ = Describe("MariadbStartManager", func() {
 				BeforeEach(func() {
 					fakeRestartNOTNeededAfterUpgrade()
 				})
-				It("bootstraps the first node and writes '" + manager.CLUSTERED + "' to file", func() {
+				It("bootstraps the first node and writes '"+manager.CLUSTERED+"' to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureMySQLCommandsRanWithOptions([]string{"bootstrap"})
