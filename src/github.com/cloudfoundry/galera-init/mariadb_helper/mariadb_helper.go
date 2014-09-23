@@ -12,30 +12,36 @@ const (
 )
 
 type MariaDBHelper struct {
-	osHelper          os_helper.OsHelper
-	mysqlDaemonPath   string
-	logFileLocation   string
-	loggingOn         bool
-	upgradeScriptPath string
-	username          string
-	password          string
+	osHelper                os_helper.OsHelper
+	mysqlDaemonPath         string
+	mysqlClientPath         string
+	logFileLocation         string
+	loggingOn               bool
+	upgradeScriptPath       string
+	showDatabasesScriptPath string
+	username                string
+	password                string
 }
 
 func NewMariaDBHelper(osHelper os_helper.OsHelper,
 	mysqlDaemonPath string,
+	mysqlClientPath string,
 	logFileLocation string,
 	loggingOn bool,
 	upgradeScriptPath string,
+	showDatabasesScriptPath string,
 	username string,
 	password string) *MariaDBHelper {
 	return &MariaDBHelper{
-		osHelper:          osHelper,
-		mysqlDaemonPath:   mysqlDaemonPath,
-		logFileLocation:   logFileLocation,
-		loggingOn:         loggingOn,
-		upgradeScriptPath: upgradeScriptPath,
-		username:          username,
-		password:          password,
+		osHelper:                osHelper,
+		mysqlDaemonPath:         mysqlDaemonPath,
+		mysqlClientPath:         mysqlClientPath,
+		logFileLocation:         logFileLocation,
+		loggingOn:               loggingOn,
+		upgradeScriptPath:       upgradeScriptPath,
+		showDatabasesScriptPath: showDatabasesScriptPath,
+		username:                username,
+		password:                password,
 	}
 }
 
@@ -63,6 +69,8 @@ func (m *MariaDBHelper) StopMysqld() error {
 	if err != nil {
 		m.log("Error stopping node: " + err.Error())
 	}
+	// TODO: We should wait until the database is actually down before continuing
+	// Maybe this could be accomplished by polling the database and returning when poll fails?
 	return err
 }
 
@@ -79,4 +87,13 @@ func (m *MariaDBHelper) log(info string) {
 	if m.loggingOn {
 		fmt.Printf("%v ----- %v", time.Now().Local(), info)
 	}
+}
+
+func (m *MariaDBHelper) IsDatabaseReachable() bool {
+	output, err := m.osHelper.RunCommand("bash", m.showDatabasesScriptPath, m.mysqlClientPath, m.username, m.password)
+	m.log(fmt.Sprintf("output: %s\n", output))
+	if err != nil {
+		m.log(fmt.Sprintf("error: %s\n", err))
+	}
+	return err == nil
 }

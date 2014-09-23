@@ -11,20 +11,24 @@ import (
 var _ = Describe("MariaDBHelper", func() {
 	var mariadb_helper *helper.MariaDBHelper
 	var fakeOs *os_fakes.FakeOsHelper
-	var mysqlDaemonPath = "/mysqld"
-	var logFile = "/log-file.log"
-	var upgradeScriptPath = "/upgrade_script"
-	var username = "user"
-	var password = "password"
+	mysqlDaemonPath := "/mysqld"
+	mysqlClientPath := "/mysqlClientPath"
+	logFile := "/log-file.log"
+	upgradeScriptPath := "/upgrade_script"
+	showDatabasesScriptPath := "/showDatabasesScriptPath"
+	username := "user"
+	password := "password"
 
 	BeforeEach(func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
 		mariadb_helper = helper.NewMariaDBHelper(
 			fakeOs,
 			mysqlDaemonPath,
+			mysqlClientPath,
 			logFile,
 			false,
 			upgradeScriptPath,
+			showDatabasesScriptPath,
 			username,
 			password,
 		)

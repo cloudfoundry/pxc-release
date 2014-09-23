@@ -18,11 +18,13 @@ var _ = Describe("MariadbStartManager", func() {
 
 	logFileLocation := "/logFileLocation"
 	mysqlDaemonPath := "/mysqlDaemonPath"
+	mysqlClientPath := "/mysqlClientPath"
 	stateFileLocation := "/stateFileLocation"
 	username := "fake-username"
 	password := "fake-password"
 	dbSeedScriptPath := "/dbSeedScriptPath"
 	upgradeScriptPath := "/upgradeScriptPath"
+	showDatabasesScriptPath := "/showDatabasesScriptPath"
 	maxDatabaseSeedTries := 2
 
 	ensureMySQLCommandsRanWithOptions := func(options []string) {
@@ -64,7 +66,7 @@ var _ = Describe("MariadbStartManager", func() {
 		Expect(lastCommand).To(Equal("upgrade"))
 	}
 
-	ensureSeedDatabases := func() {
+	seededDatabases := func() bool {
 		callCount := fakeOs.RunCommandCallCount()
 
 		callExists := false
@@ -77,7 +79,17 @@ var _ = Describe("MariadbStartManager", func() {
 				break
 			}
 		}
+		return callExists
+	}
+
+	ensureSeedDatabases := func() {
+		callExists := seededDatabases()
 		Expect(callExists).To(BeTrue())
+	}
+
+	ensureNeverSeedDatabases := func() {
+		callExists := seededDatabases()
+		Expect(callExists).To(BeFalse())
 	}
 
 	ensureStateFileContentIs := func(expected string) {
@@ -123,11 +135,13 @@ var _ = Describe("MariadbStartManager", func() {
 				logFileLocation,
 				stateFileLocation,
 				mysqlDaemonPath,
+				mysqlClientPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				0, 1, false,
 				upgradeScriptPath,
+				showDatabasesScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
 		})
@@ -184,11 +198,13 @@ var _ = Describe("MariadbStartManager", func() {
 				logFileLocation,
 				stateFileLocation,
 				mysqlDaemonPath,
+				mysqlClientPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				0, 1, false,
 				upgradeScriptPath,
+				showDatabasesScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
 		})
@@ -248,13 +264,23 @@ var _ = Describe("MariadbStartManager", func() {
 				logFileLocation,
 				stateFileLocation,
 				mysqlDaemonPath,
+				mysqlClientPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				1, 3, false,
 				upgradeScriptPath,
+				showDatabasesScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
+		})
+
+		Context("When the node joins the cluster", func() {
+			It("Should not seed databases", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+				ensureNeverSeedDatabases()
+			})
 		})
 
 		Context("When the node needs to restart after upgrade", func() {
@@ -335,11 +361,13 @@ var _ = Describe("MariadbStartManager", func() {
 				logFileLocation,
 				stateFileLocation,
 				mysqlDaemonPath,
+				mysqlClientPath,
 				username,
 				password,
 				dbSeedScriptPath,
 				0, 3, false,
 				upgradeScriptPath,
+				showDatabasesScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
 		})
@@ -386,11 +414,13 @@ var _ = Describe("MariadbStartManager", func() {
 						logFileLocation,
 						stateFileLocation,
 						mysqlDaemonPath,
+						mysqlClientPath,
 						username,
 						password,
 						dbSeedScriptPath,
 						0, 3, false,
 						upgradeScriptPath,
+						showDatabasesScriptPath,
 						fakeClusterReachabilityChecker,
 						maxDatabaseSeedTries)
 				})
@@ -499,11 +529,13 @@ var _ = Describe("MariadbStartManager", func() {
 					logFileLocation,
 					stateFileLocation,
 					mysqlDaemonPath,
+					mysqlClientPath,
 					username,
 					password,
 					dbSeedScriptPath,
 					0, 1, false,
 					upgradeScriptPath,
+					showDatabasesScriptPath,
 					fakeClusterReachabilityChecker,
 					maxDatabaseSeedTries)
 
@@ -543,11 +575,13 @@ var _ = Describe("MariadbStartManager", func() {
 					logFileLocation,
 					stateFileLocation,
 					mysqlDaemonPath,
+					mysqlClientPath,
 					username,
 					password,
 					dbSeedScriptPath,
 					0, 3, false,
 					upgradeScriptPath,
+					showDatabasesScriptPath,
 					fakeClusterReachabilityChecker,
 					maxDatabaseSeedTries)
 
