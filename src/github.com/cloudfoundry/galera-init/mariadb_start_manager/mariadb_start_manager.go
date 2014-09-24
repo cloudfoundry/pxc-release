@@ -221,7 +221,7 @@ func (m *MariaDBStartManager) seedDatabases() (err error) {
 
 func (m *MariaDBStartManager) upgradeAndRestartIfNecessary(command string) (err error) {
 	m.Log("waiting for database to be ready...\n")
-	for i := 0; i < 600; i++ {
+	for i := 0; i < 120; i++ {
 		if m.mariaDBHelper.IsDatabaseReachable() {
 			break
 		}
