@@ -36,51 +36,15 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("Start", func() {
 
-		Context("when the pgrep check shows that daemon is not already running", func() {
-			BeforeEach(func() {
-				fakeOs.RunCommandWithTimeoutStub = func(timeout int, logFileLocation string, executable string, args ...string) error {
-					if args[0] == "pgrep" {
-						return errors.New("did not find the daemon")
-					} else {
-						return nil
-					}
-				}
-			})
+		It("calls the mysql daemon with the command option", func() {
+			mariadb_helper.StartMysqldInMode("bootstrap")
+			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
 
-			It("calls the mysql daemon with the command option", func() {
-				mariadb_helper.StartMysqldInMode("bootstrap")
-				Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(2))
-
-				timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
-				Expect(timeout).To(Equal(10))
-				Expect(logDestination).To(Equal(logFile))
-				Expect(executable).To(Equal("bash"))
-				Expect(args).To(Equal([]string{"pgrep", "-f", mysqlDaemonPath}))
-
-				timeout, logDestination, executable, args = fakeOs.RunCommandWithTimeoutArgsForCall(1)
-				Expect(timeout).To(Equal(10))
-				Expect(logDestination).To(Equal(logFile))
-				Expect(executable).To(Equal("bash"))
-				Expect(args).To(Equal([]string{mysqlDaemonPath, "bootstrap"}))
-			})
-		})
-
-		Context("when the pgrep check shows that daemon is already running", func() {
-			BeforeEach(func() {
-				fakeOs.RunCommandWithTimeoutReturns(nil)
-			})
-
-			It("returns an error and does not call the start command", func() {
-				err := mariadb_helper.StartMysqldInMode("bootstrap")
-				Expect(err).To(HaveOccurred())
-				Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
-
-				timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
-				Expect(timeout).To(Equal(10))
-				Expect(logDestination).To(Equal(logFile))
-				Expect(executable).To(Equal("bash"))
-				Expect(args).To(Equal([]string{"pgrep", "-f", mysqlDaemonPath}))
-			})
+			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
+			Expect(timeout).To(Equal(10))
+			Expect(logDestination).To(Equal(logFile))
+			Expect(executable).To(Equal("bash"))
+			Expect(args).To(Equal([]string{mysqlDaemonPath, "bootstrap"}))
 		})
 
 		Context("when an error occurs", func() {

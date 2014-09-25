@@ -1,7 +1,6 @@
 package mariadb_helper
 
 import (
-	"errors"
 	"fmt"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"time"
@@ -47,16 +46,7 @@ func NewMariaDBHelper(osHelper os_helper.OsHelper,
 
 func (m *MariaDBHelper) StartMysqldInMode(command string) error {
 	m.log("Starting node with '" + command + "' command.\n")
-	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", "pgrep", "-f", m.mysqlDaemonPath)
-	if err == nil {
-		// Nil error corresponds to a zero exit code - when the process does exist
-		m.log("MySQL daemon already started, this is where we should return without starting another\n")
-		return errors.New("MariaDB daemon " + m.mysqlDaemonPath + " is already running")
-	} else {
-		m.log("MySQL daemon not already started, continuing to start it\n")
-	}
-
-	err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, command)
+	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, command)
 	if err != nil {
 		m.log(fmt.Sprintf("Error starting node: %s\n", err.Error()))
 	}
