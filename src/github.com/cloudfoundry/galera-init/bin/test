@@ -8,7 +8,11 @@ if ! which go 2>/dev/null; then
   exit 1
 fi
 
+go fmt ./...
+go build ./...
+
 go test -v ./mariadb_start_manager
 go test -v ./os_helper
 go test -v ./galera_helper
 go test -v ./mariadb_helper
+go test -v ./upgrader

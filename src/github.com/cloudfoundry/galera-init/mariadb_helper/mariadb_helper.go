@@ -10,6 +10,13 @@ const (
 	STOP_COMMAND = "stop"
 )
 
+type DBHelper interface {
+	StartMysqldInMode(command string) error
+	StopMysqld() error
+	Upgrade() (output string, err error)
+	IsDatabaseReachable() bool
+}
+
 type MariaDBHelper struct {
 	osHelper                os_helper.OsHelper
 	mysqlDaemonPath         string
@@ -22,7 +29,8 @@ type MariaDBHelper struct {
 	password                string
 }
 
-func NewMariaDBHelper(osHelper os_helper.OsHelper,
+func NewMariaDBHelper(
+	osHelper os_helper.OsHelper,
 	mysqlDaemonPath string,
 	mysqlClientPath string,
 	logFileLocation string,
@@ -44,7 +52,7 @@ func NewMariaDBHelper(osHelper os_helper.OsHelper,
 	}
 }
 
-func (m *MariaDBHelper) StartMysqldInMode(command string) error {
+func (m MariaDBHelper) StartMysqldInMode(command string) error {
 	m.log("Starting node with '" + command + "' command.\n")
 	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, command)
 	if err != nil {
@@ -53,7 +61,7 @@ func (m *MariaDBHelper) StartMysqldInMode(command string) error {
 	return err
 }
 
-func (m *MariaDBHelper) StopMysqld() error {
+func (m MariaDBHelper) StopMysqld() error {
 	m.log("STOPPING NODE.\n")
 	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_COMMAND)
 	if err != nil {
@@ -64,7 +72,7 @@ func (m *MariaDBHelper) StopMysqld() error {
 	return err
 }
 
-func (m *MariaDBHelper) Upgrade() (output string, err error) {
+func (m MariaDBHelper) Upgrade() (output string, err error) {
 	return m.osHelper.RunCommand(
 		"bash",
 		m.upgradeScriptPath,
@@ -73,13 +81,13 @@ func (m *MariaDBHelper) Upgrade() (output string, err error) {
 		m.logFileLocation)
 }
 
-func (m *MariaDBHelper) log(info string) {
+func (m MariaDBHelper) log(info string) {
 	if m.loggingOn {
 		fmt.Printf("%v ----- %v", time.Now().Local(), info)
 	}
 }
 
-func (m *MariaDBHelper) IsDatabaseReachable() bool {
+func (m MariaDBHelper) IsDatabaseReachable() bool {
 	output, err := m.osHelper.RunCommand("bash", m.showDatabasesScriptPath, m.mysqlClientPath, m.username, m.password)
 	m.log(fmt.Sprintf("output: %s\n", output))
 	if err != nil {

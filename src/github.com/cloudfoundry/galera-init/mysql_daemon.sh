@@ -19,6 +19,11 @@ case "$mode" in
       echo "Bootstrapping the cluster"
       /var/vcap/packages/mariadb/bin/mysqld_safe --wsrep-new-cluster &
       ;;
+
+  'stand-alone')
+      echo "Starting the node in stand-alone mode"
+      /var/vcap/packages/mariadb/bin/mysqld_safe --wsrep-on=OFF --wsrep-desync=ON --wsrep-OSU-method=RSU --wsrep-provider='none' --pid-file=/tmp/tmp-mysql.pid &
+      ;;
 esac
 
 exit 0

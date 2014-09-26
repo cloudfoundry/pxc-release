@@ -5,8 +5,10 @@ import (
 	"os"
 
 	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	manager "github.com/cloudfoundry/mariadb_ctrl/mariadb_start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 )
 
 var logFileLocation = flag.String(
@@ -90,23 +92,50 @@ var maxDatabaseSeedTries = flag.Int(
 func main() {
 	flag.Parse()
 
+	loggingOn := true
+
+	osHelper := os_helper.NewImpl()
+
+	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
+		osHelper,
+		*mysqlDaemonPath,
+		*mysqlClientPath,
+		*logFileLocation,
+		loggingOn,
+		*upgradeScriptPath,
+		*showDatabasesScriptPath,
+		*mysqlUser,
+		*mysqlPassword,
+	)
+
+	upgrader := upgrader.NewImpl(
+		*upgradeScriptPath,
+		*mysqlDaemonPath,
+		"/var/vcap/store/mysql/mysql_upgrade_info",
+		"/var/vcap/packages/mariadb/VERSION",
+		osHelper,
+		loggingOn,
+		mariaDBHelper,
+	)
+
 	mgr := manager.New(
-		os_helper.NewImpl(),
+		osHelper,
+		mariaDBHelper,
+		upgrader,
 		*logFileLocation,
 		*stateFileLocation,
 		*mysqlDaemonPath,
-		*mysqlClientPath,
 		*mysqlUser,
 		*mysqlPassword,
 		*dbSeedScriptPath,
 		*jobIndex,
 		*numberOfNodes,
-		true,
+		loggingOn,
 		*upgradeScriptPath,
-		*showDatabasesScriptPath,
 		nil,
 		*maxDatabaseSeedTries,
 	)
+
 	mgr.ClusterReachabilityChecker = galera_helper.NewClusterReachabilityChecker(*clusterIps, mgr)
 	err := mgr.Execute()
 	if err != nil {

@@ -2,12 +2,12 @@ package mariadb_start_manager
 
 import (
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 )
 
 const (
@@ -34,14 +34,17 @@ type MariaDBStartManager struct {
 	showDatabasesScriptPath    string
 	ClusterReachabilityChecker galera_helper.ClusterReachabilityChecker
 	maxDatabaseSeedTries       int
-	mariaDBHelper              *mariadb_helper.MariaDBHelper
+	mariaDBHelper              mariadb_helper.DBHelper
+	upgrader                   upgrader.Upgrader
 }
 
-func New(osHelper os_helper.OsHelper,
+func New(
+	osHelper os_helper.OsHelper,
+	mariaDBHelper mariadb_helper.DBHelper,
+	upgrader upgrader.Upgrader,
 	logFileLocation string,
 	stateFileLocation string,
 	mysqlDaemonPath string,
-	mysqlClientPath string,
 	username string,
 	password string,
 	dbSeedScriptPath string,
@@ -49,20 +52,8 @@ func New(osHelper os_helper.OsHelper,
 	numberOfNodes int,
 	loggingOn bool,
 	upgradeScriptPath string,
-	showDatabasesScriptPath string,
 	clusterReachabilityChecker galera_helper.ClusterReachabilityChecker,
 	maxDatabaseSeedTries int) *MariaDBStartManager {
-	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
-		osHelper,
-		mysqlDaemonPath,
-		mysqlClientPath,
-		logFileLocation,
-		loggingOn,
-		upgradeScriptPath,
-		showDatabasesScriptPath,
-		username,
-		password,
-	)
 	return &MariaDBStartManager{
 		osHelper:                   osHelper,
 		logFileLocation:            logFileLocation,
@@ -78,6 +69,7 @@ func New(osHelper os_helper.OsHelper,
 		ClusterReachabilityChecker: clusterReachabilityChecker,
 		maxDatabaseSeedTries:       maxDatabaseSeedTries,
 		mariaDBHelper:              mariaDBHelper,
+		upgrader:                   upgrader,
 	}
 }
 
@@ -88,10 +80,23 @@ func (m *MariaDBStartManager) Log(info string) {
 }
 
 func (m *MariaDBStartManager) Execute() (err error) {
+	needsUpgrade, err := m.upgrader.NeedsUpgrade()
+	if err != nil {
+		m.Log((fmt.Sprintf("Failed to determine upgrade status with error %s, exiting", err.Error())))
+		return
+	}
+	if needsUpgrade {
+		err = m.upgrader.Upgrade()
+		if err != nil {
+			m.Log((fmt.Sprintf("Failed to upgrade with error %s, exiting", err.Error())))
+			return
+		}
+	}
+
 	// Nodes > 0 always join an existing cluster
 	if m.jobIndex != 0 {
-		err := m.joinCluster()
-		return err
+		err = m.joinCluster()
+		return
 	}
 
 	//single-node deploy
@@ -135,11 +140,6 @@ func (m *MariaDBStartManager) bootstrapCluster(state string) (err error) {
 		return
 	}
 
-	err = m.upgradeAndRestartIfNecessary(BOOTSTRAP_COMMAND)
-	if err != nil {
-		return
-	}
-
 	m.Log(fmt.Sprintf("writing file with contents: '%s'\n", state))
 	m.osHelper.WriteStringToFile(m.stateFileLocation, state)
 	return
@@ -166,11 +166,6 @@ func (m *MariaDBStartManager) joinCluster() (err error) {
 		return err
 	}
 
-	err = m.upgradeAndRestartIfNecessary(JOIN_COMMAND)
-	if err != nil {
-		return
-	}
-
 	m.writeStringToFile(CLUSTERED)
 	return nil
 }
@@ -187,11 +182,6 @@ func (m *MariaDBStartManager) node0JoinCluster() (err error) {
 	}
 
 	err = m.seedDatabases()
-	if err != nil {
-		return
-	}
-
-	err = m.upgradeAndRestartIfNecessary(JOIN_COMMAND)
 	if err != nil {
 		return
 	}
@@ -217,56 +207,4 @@ func (m *MariaDBStartManager) seedDatabases() (err error) {
 	m.Log(fmt.Sprintf("Error seeding databases: '%s'\n'%s'\n", err.Error(), output))
 	m.mariaDBHelper.StopMysqld()
 	return
-}
-
-func (m *MariaDBStartManager) upgradeAndRestartIfNecessary(command string) (err error) {
-	m.Log("waiting for database to be ready...\n")
-	for i := 0; i < 120; i++ {
-		if m.mariaDBHelper.IsDatabaseReachable() {
-			break
-		}
-		m.Log("Database not ready, sleeping 5 seconds...\n")
-		m.osHelper.Sleep(5 * time.Second)
-	}
-
-	m.Log("performing upgrade\n")
-
-	upgradeOutput, upgradeErr := m.mariaDBHelper.Upgrade()
-
-	if m.requiresRestart(upgradeOutput, upgradeErr) {
-		err = m.mariaDBHelper.StopMysqld()
-		if err != nil {
-			m.Log(fmt.Sprintf("Error: %s\n", err.Error()))
-			return err
-		}
-
-		if command == BOOTSTRAP_COMMAND && m.ClusterReachabilityChecker.AnyNodesReachable() {
-			command = JOIN_COMMAND
-		}
-
-		err = m.mariaDBHelper.StartMysqldInMode(command)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (m *MariaDBStartManager) requiresRestart(output string, err error) bool {
-	// No error indicates that the upgrade script performed an upgrade.
-	if err == nil {
-		m.Log("upgrade sucessful - restart required\n")
-		return true
-	}
-	m.Log(fmt.Sprintf("upgrade output: %s\n", output))
-
-	//known error messages where a restart should not occur, do not remove from
-	acceptableErrorsCompiled, _ := regexp.Compile("already upgraded|Unknown command|WSREP has not yet prepared node")
-	if acceptableErrorsCompiled.MatchString(output) {
-		m.Log("output string matches acceptable errors - skip restart\n")
-		return false
-	} else {
-		m.Log("output string does not match acceptable errors - restart required\n")
-		return true
-	}
 }
