@@ -1,15 +1,12 @@
 package galera_helper
 
 import (
+	"github.com/cloudfoundry/mariadb_ctrl/logger"
 	"net/http"
 	"strings"
 )
 
 var MakeRequest = http.Get
-
-type Logger interface {
-	Log(message string)
-}
 
 type ClusterReachabilityChecker interface {
 	AnyNodesReachable() bool
@@ -17,10 +14,10 @@ type ClusterReachabilityChecker interface {
 
 type httpClusterReachabilityChecker struct {
 	clusterIps []string
-	logger     Logger
+	logger     logger.Logger
 }
 
-func NewClusterReachabilityChecker(ips string, logger Logger) ClusterReachabilityChecker {
+func NewClusterReachabilityChecker(ips string, logger logger.Logger) ClusterReachabilityChecker {
 	return httpClusterReachabilityChecker{
 		clusterIps: strings.Split(ips, ","),
 		logger:     logger,

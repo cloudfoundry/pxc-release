@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
@@ -22,13 +23,11 @@ type MariaDBStartManager struct {
 	osHelper                   os_helper.OsHelper
 	logFileLocation            string
 	stateFileLocation          string
-	mysqlDaemonPath            string
 	mysqlClientPath            string
 	username                   string
 	password                   string
 	jobIndex                   int
 	numberOfNodes              int
-	loggingOn                  bool
 	dbSeedScriptPath           string
 	upgradeScriptPath          string
 	showDatabasesScriptPath    string
@@ -36,6 +35,7 @@ type MariaDBStartManager struct {
 	maxDatabaseSeedTries       int
 	mariaDBHelper              mariadb_helper.DBHelper
 	upgrader                   upgrader.Upgrader
+	logger                     Logger
 }
 
 func New(
@@ -44,13 +44,12 @@ func New(
 	upgrader upgrader.Upgrader,
 	logFileLocation string,
 	stateFileLocation string,
-	mysqlDaemonPath string,
 	username string,
 	password string,
 	dbSeedScriptPath string,
 	jobIndex int,
 	numberOfNodes int,
-	loggingOn bool,
+	logger Logger,
 	upgradeScriptPath string,
 	clusterReachabilityChecker galera_helper.ClusterReachabilityChecker,
 	maxDatabaseSeedTries int) *MariaDBStartManager {
@@ -61,9 +60,8 @@ func New(
 		username:                   username,
 		password:                   password,
 		jobIndex:                   jobIndex,
-		mysqlDaemonPath:            mysqlDaemonPath,
 		numberOfNodes:              numberOfNodes,
-		loggingOn:                  loggingOn,
+		logger:                     logger,
 		dbSeedScriptPath:           dbSeedScriptPath,
 		upgradeScriptPath:          upgradeScriptPath,
 		ClusterReachabilityChecker: clusterReachabilityChecker,
@@ -73,22 +71,16 @@ func New(
 	}
 }
 
-func (m *MariaDBStartManager) Log(info string) {
-	if m.loggingOn {
-		fmt.Printf("%v ----- %v", time.Now().Local(), info)
-	}
-}
-
 func (m *MariaDBStartManager) Execute() (err error) {
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
-		m.Log((fmt.Sprintf("Failed to determine upgrade status with error %s, exiting", err.Error())))
+		m.logger.Log((fmt.Sprintf("Failed to determine upgrade status with error %s", err.Error())))
 		return
 	}
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.Log((fmt.Sprintf("Failed to upgrade with error %s, exiting", err.Error())))
+			m.logger.Log((fmt.Sprintf("Failed to upgrade with error %s", err.Error())))
 			return
 		}
 	}
@@ -101,7 +93,7 @@ func (m *MariaDBStartManager) Execute() (err error) {
 
 	//single-node deploy
 	if m.numberOfNodes == 1 {
-		m.Log("Single node deploy\n")
+		m.logger.Log("Single node deploy")
 		err = m.bootstrapCluster(SINGLE_NODE)
 		return
 	}
@@ -110,14 +102,14 @@ func (m *MariaDBStartManager) Execute() (err error) {
 
 	//intial deploy, state file does not exist
 	if !m.osHelper.FileExists(m.stateFileLocation) {
-		m.Log(fmt.Sprintf("state file does not exist, creating with contents: '%s'\n", CLUSTERED))
+		m.logger.Log(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
 		err = m.bootstrapCluster(CLUSTERED)
 		return
 	}
 
 	//state file exists
 	orig_contents, _ := m.osHelper.ReadFile(m.stateFileLocation)
-	m.Log(fmt.Sprintf("state file exists and contains: '%s'\n", orig_contents))
+	m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", orig_contents))
 
 	//scaling up from a single node cluster
 	if orig_contents == SINGLE_NODE {
@@ -140,7 +132,7 @@ func (m *MariaDBStartManager) bootstrapCluster(state string) (err error) {
 		return
 	}
 
-	m.Log(fmt.Sprintf("writing file with contents: '%s'\n", state))
+	m.logger.Log(fmt.Sprintf("writing file with contents: '%s'", state))
 	m.osHelper.WriteStringToFile(m.stateFileLocation, state)
 	return
 }
@@ -171,7 +163,7 @@ func (m *MariaDBStartManager) joinCluster() (err error) {
 }
 
 func (m *MariaDBStartManager) writeStringToFile(contents string) {
-	m.Log(fmt.Sprintf("updating file with contents: '%s'\n", contents))
+	m.logger.Log(fmt.Sprintf("updating file with contents: '%s'", contents))
 	m.osHelper.WriteStringToFile(m.stateFileLocation, contents)
 }
 
@@ -195,16 +187,16 @@ func (m *MariaDBStartManager) seedDatabases() (err error) {
 	for numTries := 0; numTries < m.maxDatabaseSeedTries; numTries++ {
 		output, err = m.osHelper.RunCommand("bash", m.dbSeedScriptPath)
 		if err == nil {
-			m.Log("Seeding databases succeeded.\n")
+			m.logger.Log("Seeding databases succeeded.")
 			return
 		} else {
-			m.Log(fmt.Sprintf("There was a problem seeding the database: 's%'\n", output))
-			m.Log("Retrying seeding script...\n")
+			m.logger.Log(fmt.Sprintf("There was a problem seeding the database: 's%'", output))
+			m.logger.Log("Retrying seeding script...")
 			m.osHelper.Sleep(1 * time.Second)
 		}
 	}
 
-	m.Log(fmt.Sprintf("Error seeding databases: '%s'\n'%s'\n", err.Error(), output))
+	m.logger.Log(fmt.Sprintf("Error seeding databases: '%s'\n'%s'", err.Error(), output))
 	m.mariaDBHelper.StopMysqld()
 	return
 }

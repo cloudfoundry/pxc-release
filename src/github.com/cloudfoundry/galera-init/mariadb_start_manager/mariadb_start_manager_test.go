@@ -3,6 +3,7 @@ package mariadb_start_manager_test
 import (
 	"errors"
 	galera_fakes "github.com/cloudfoundry/mariadb_ctrl/galera_helper/fakes"
+	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
@@ -16,12 +17,14 @@ var _ = Describe("MariadbStartManager", func() {
 
 	var mgr *manager.MariaDBStartManager
 
+	var fakeLogger *logger_fakes.FakeLogger
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeClusterReachabilityChecker *galera_fakes.FakeClusterReachabilityChecker
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
 	BeforeEach(func() {
+		fakeLogger = new(logger_fakes.FakeLogger)
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
@@ -29,14 +32,12 @@ var _ = Describe("MariadbStartManager", func() {
 	})
 
 	logFileLocation := "/logFileLocation"
-	mysqlDaemonPath := "/mysqlDaemonPath"
 	stateFileLocation := "/stateFileLocation"
 	username := "fake-username"
 	password := "fake-password"
 	dbSeedScriptPath := "/dbSeedScriptPath"
 	upgradeScriptPath := "/upgradeScriptPath"
 	maxDatabaseSeedTries := 2
-	loggingOn := false
 
 	seededDatabases := func() bool {
 		callCount := fakeOs.RunCommandCallCount()
@@ -111,11 +112,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeUpgrader,
 				logFileLocation,
 				stateFileLocation,
-				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
-				0, 1, loggingOn,
+				0, 1, fakeLogger,
 				upgradeScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
@@ -173,11 +173,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeUpgrader,
 				logFileLocation,
 				stateFileLocation,
-				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
-				0, 1, loggingOn,
+				0, 1, fakeLogger,
 				upgradeScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
@@ -222,11 +221,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeUpgrader,
 				logFileLocation,
 				stateFileLocation,
-				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
-				1, 3, loggingOn,
+				1, 3, fakeLogger,
 				upgradeScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
@@ -264,11 +262,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeUpgrader,
 				logFileLocation,
 				stateFileLocation,
-				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
-				0, 3, loggingOn,
+				0, 3, fakeLogger,
 				upgradeScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
@@ -335,11 +332,10 @@ var _ = Describe("MariadbStartManager", func() {
 						fakeUpgrader,
 						logFileLocation,
 						stateFileLocation,
-						mysqlDaemonPath,
 						username,
 						password,
 						dbSeedScriptPath,
-						0, 3, loggingOn,
+						0, 3, fakeLogger,
 						upgradeScriptPath,
 						fakeClusterReachabilityChecker,
 						maxDatabaseSeedTries)
@@ -368,11 +364,10 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeUpgrader,
 					logFileLocation,
 					stateFileLocation,
-					mysqlDaemonPath,
 					username,
 					password,
 					dbSeedScriptPath,
-					0, 1, loggingOn,
+					0, 1, fakeLogger,
 					upgradeScriptPath,
 					fakeClusterReachabilityChecker,
 					maxDatabaseSeedTries)
@@ -397,11 +392,10 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeUpgrader,
 					logFileLocation,
 					stateFileLocation,
-					mysqlDaemonPath,
 					username,
 					password,
 					dbSeedScriptPath,
-					0, 3, loggingOn,
+					0, 3, fakeLogger,
 					upgradeScriptPath,
 					fakeClusterReachabilityChecker,
 					maxDatabaseSeedTries)
@@ -427,11 +421,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeUpgrader,
 				logFileLocation,
 				stateFileLocation,
-				mysqlDaemonPath,
 				username,
 				password,
 				dbSeedScriptPath,
-				0, 3, loggingOn,
+				0, 3, fakeLogger,
 				upgradeScriptPath,
 				fakeClusterReachabilityChecker,
 				maxDatabaseSeedTries)
@@ -456,11 +449,10 @@ var _ = Describe("MariadbStartManager", func() {
 					fakeUpgrader,
 					logFileLocation,
 					stateFileLocation,
-					mysqlDaemonPath,
 					username,
 					password,
 					dbSeedScriptPath,
-					0, 3, loggingOn,
+					0, 3, fakeLogger,
 					upgradeScriptPath,
 					fakeClusterReachabilityChecker,
 					maxDatabaseSeedTries)

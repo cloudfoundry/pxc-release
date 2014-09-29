@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	manager "github.com/cloudfoundry/mariadb_ctrl/mariadb_start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
@@ -94,6 +95,8 @@ func main() {
 
 	loggingOn := true
 
+	logger := NewStdOutLogger(loggingOn)
+
 	osHelper := os_helper.NewImpl()
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
@@ -101,7 +104,7 @@ func main() {
 		*mysqlDaemonPath,
 		*mysqlClientPath,
 		*logFileLocation,
-		loggingOn,
+		logger,
 		*upgradeScriptPath,
 		*showDatabasesScriptPath,
 		*mysqlUser,
@@ -114,9 +117,11 @@ func main() {
 		"/var/vcap/store/mysql/mysql_upgrade_info",
 		"/var/vcap/packages/mariadb/VERSION",
 		osHelper,
-		loggingOn,
+		logger,
 		mariaDBHelper,
 	)
+
+	galeraHelper := galera_helper.NewClusterReachabilityChecker(*clusterIps, logger)
 
 	mgr := manager.New(
 		osHelper,
@@ -124,22 +129,20 @@ func main() {
 		upgrader,
 		*logFileLocation,
 		*stateFileLocation,
-		*mysqlDaemonPath,
 		*mysqlUser,
 		*mysqlPassword,
 		*dbSeedScriptPath,
 		*jobIndex,
 		*numberOfNodes,
-		loggingOn,
+		logger,
 		*upgradeScriptPath,
-		nil,
+		galeraHelper,
 		*maxDatabaseSeedTries,
 	)
 
-	mgr.ClusterReachabilityChecker = galera_helper.NewClusterReachabilityChecker(*clusterIps, mgr)
 	err := mgr.Execute()
 	if err != nil {
-		mgr.Log("Execution exited with an error\n")
+		logger.Log("Execution exited with an error")
 		os.Exit(1)
 	}
 }

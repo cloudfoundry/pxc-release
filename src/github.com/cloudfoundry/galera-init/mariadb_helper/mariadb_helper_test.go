@@ -3,6 +3,7 @@ package mariadb_helper_test
 import (
 	helper "."
 	"errors"
+	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,6 +12,8 @@ import (
 var _ = Describe("MariaDBHelper", func() {
 	var mariadb_helper *helper.MariaDBHelper
 	var fakeOs *os_fakes.FakeOsHelper
+	var fakeLogger *logger_fakes.FakeLogger
+
 	mysqlDaemonPath := "/mysqld"
 	mysqlClientPath := "/mysqlClientPath"
 	logFile := "/log-file.log"
@@ -21,12 +24,14 @@ var _ = Describe("MariaDBHelper", func() {
 
 	BeforeEach(func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
+		fakeLogger = new(logger_fakes.FakeLogger)
+
 		mariadb_helper = helper.NewMariaDBHelper(
 			fakeOs,
 			mysqlDaemonPath,
 			mysqlClientPath,
 			logFile,
-			false,
+			fakeLogger,
 			upgradeScriptPath,
 			showDatabasesScriptPath,
 			username,

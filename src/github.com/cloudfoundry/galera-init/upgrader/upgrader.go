@@ -2,11 +2,10 @@ package upgrader
 
 import (
 	"errors"
-	"fmt"
+	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"regexp"
-	"time"
 )
 
 type Upgrader interface {
@@ -20,7 +19,7 @@ type UpgraderImpl struct {
 	packageVersionFile      string
 	lastUpgradedVersionFile string
 	osHelper                os_helper.OsHelper
-	loggingOn               bool
+	logger                  Logger
 	mariadbHelper           mariadb_helper.DBHelper
 }
 
@@ -30,7 +29,7 @@ func NewImpl(
 	packageVersionFile string,
 	lastUpgradedVersionFile string,
 	osHelper os_helper.OsHelper,
-	loggingOn bool,
+	logger Logger,
 	mariadbHelper mariadb_helper.DBHelper) *UpgraderImpl {
 
 	return &UpgraderImpl{
@@ -39,21 +38,15 @@ func NewImpl(
 		packageVersionFile:      packageVersionFile,
 		lastUpgradedVersionFile: lastUpgradedVersionFile,
 		osHelper:                osHelper,
-		loggingOn:               loggingOn,
+		logger:                  logger,
 		mariadbHelper:           mariadbHelper,
-	}
-}
-
-func (u UpgraderImpl) Log(info string) {
-	if u.loggingOn {
-		fmt.Printf("%v ----- %v\n", time.Now().Local(), info)
 	}
 }
 
 func (u UpgraderImpl) Upgrade() (err error) {
 	err = u.mariadbHelper.StartMysqldInMode("stand-alone")
 	if err != nil {
-		u.Log("There was an error starting mysql in stand-alone mode")
+		u.logger.Log("There was an error starting mysql in stand-alone mode")
 		return
 	}
 
@@ -76,9 +69,9 @@ func (u UpgraderImpl) Upgrade() (err error) {
 	if upgrade_err != nil {
 		acceptableErrorsCompiled, _ := regexp.Compile("already upgraded|Unknown command|WSREP has not yet prepared node")
 		if acceptableErrorsCompiled.MatchString(output) {
-			u.Log("output string matches acceptable errors - continuing startup\n")
+			u.logger.Log("output string matches acceptable errors - continuing startup\n")
 		} else {
-			u.Log("output string does not match acceptable errors - aborting startup\n")
+			u.logger.Log("output string does not match acceptable errors - aborting startup\n")
 			err = upgrade_err
 		}
 	}
@@ -92,32 +85,32 @@ func (u UpgraderImpl) Upgrade() (err error) {
 
 func (u UpgraderImpl) NeedsUpgrade() (bool, error) {
 	if !u.osHelper.FileExists(u.lastUpgradedVersionFile) {
-		u.Log("Version file does not exist in the data dir. Upgrade required")
+		u.logger.Log("Version file does not exist in the data dir. Upgrade required")
 		return true, nil
 	}
 
 	if !u.osHelper.FileExists(u.packageVersionFile) {
-		u.Log("Version file does not exist in the MariaDB package. There is something with the package. Cannot determine whether upgrade is required")
+		u.logger.Log("Version file does not exist in the MariaDB package. There is something with the package. Cannot determine whether upgrade is required")
 		return false, errors.New("MariaDB package is invalid because it is missing its VERSION file")
 	}
 
 	existing_version, err := u.osHelper.ReadFile(u.lastUpgradedVersionFile)
 	if err != nil {
-		u.Log("Error reading last upgraded version file. Cannot determine whether upgrade is required")
+		u.logger.Log("Error reading last upgraded version file. Cannot determine whether upgrade is required")
 		return false, errors.New("Could not read last upgraded version file in the data dir.")
 	}
 
 	package_version, err := u.osHelper.ReadFile(u.packageVersionFile)
 	if err != nil {
-		u.Log("Error reading package version file. Cannot determine whether upgrade is required")
+		u.logger.Log("Error reading package version file. Cannot determine whether upgrade is required")
 		return false, errors.New("Could not read VERSION file in the MariaDB package.")
 	}
 
 	if existing_version != package_version {
-		u.Log("Need to upgrade to latest version")
+		u.logger.Log("Need to upgrade to latest version")
 		return true, nil
 	} else {
-		u.Log("Already upgraded to latest version, starting normally")
+		u.logger.Log("Already upgraded to latest version, starting normally")
 		return false, nil
 	}
 }
