@@ -99,7 +99,7 @@ var _ = Describe("MariadbStartManager", func() {
 	}
 
 	ensureStop := func() {
-		Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(1))
+		Expect(fakeDBHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
 	}
 
 	Context("When there's an error seeding the databases", func() {

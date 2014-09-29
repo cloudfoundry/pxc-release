@@ -15,10 +15,10 @@ type FakeDBHelper struct {
 	startMysqldInModeReturns struct {
 		result1 error
 	}
-	StopMysqldStub        func() error
-	stopMysqldMutex       sync.RWMutex
-	stopMysqldArgsForCall []struct{}
-	stopMysqldReturns     struct {
+	StopStandaloneMysqlStub        func() error
+	stopStandaloneMysqlMutex       sync.RWMutex
+	stopStandaloneMysqlArgsForCall []struct{}
+	stopStandaloneMysqlReturns     struct {
 		result1 error
 	}
 	UpgradeStub        func() (output string, err error)
@@ -68,26 +68,26 @@ func (fake *FakeDBHelper) StartMysqldInModeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDBHelper) StopMysqld() error {
-	fake.stopMysqldMutex.Lock()
-	defer fake.stopMysqldMutex.Unlock()
-	fake.stopMysqldArgsForCall = append(fake.stopMysqldArgsForCall, struct{}{})
-	if fake.StopMysqldStub != nil {
-		return fake.StopMysqldStub()
+func (fake *FakeDBHelper) StopStandaloneMysql() error {
+	fake.stopStandaloneMysqlMutex.Lock()
+	defer fake.stopStandaloneMysqlMutex.Unlock()
+	fake.stopStandaloneMysqlArgsForCall = append(fake.stopStandaloneMysqlArgsForCall, struct{}{})
+	if fake.StopStandaloneMysqlStub != nil {
+		return fake.StopStandaloneMysqlStub()
 	} else {
-		return fake.stopMysqldReturns.result1
+		return fake.stopStandaloneMysqlReturns.result1
 	}
 }
 
-func (fake *FakeDBHelper) StopMysqldCallCount() int {
-	fake.stopMysqldMutex.RLock()
-	defer fake.stopMysqldMutex.RUnlock()
-	return len(fake.stopMysqldArgsForCall)
+func (fake *FakeDBHelper) StopStandaloneMysqlCallCount() int {
+	fake.stopStandaloneMysqlMutex.RLock()
+	defer fake.stopStandaloneMysqlMutex.RUnlock()
+	return len(fake.stopStandaloneMysqlArgsForCall)
 }
 
-func (fake *FakeDBHelper) StopMysqldReturns(result1 error) {
-	fake.StopMysqldStub = nil
-	fake.stopMysqldReturns = struct {
+func (fake *FakeDBHelper) StopStandaloneMysqlReturns(result1 error) {
+	fake.StopStandaloneMysqlStub = nil
+	fake.stopStandaloneMysqlReturns = struct {
 		result1 error
 	}{result1}
 }

@@ -26,15 +26,15 @@ func NewClusterReachabilityChecker(ips string, logger logger.Logger) ClusterReac
 
 func (h httpClusterReachabilityChecker) AnyNodesReachable() bool {
 	for _, ip := range h.clusterIps {
-		h.logger.Log("Checking if node is reachable: " + ip + "\n")
+		h.logger.Log("Checking if node is reachable: " + ip)
 
 		resp, _ := MakeRequest("http://" + ip + ":9200/")
 		if resp != nil && resp.StatusCode == 200 {
-			h.logger.Log("At least one node in cluster is reachable.\n")
+			h.logger.Log("At least one node in cluster is reachable.")
 			return true
 		}
 	}
 
-	h.logger.Log("No nodes in cluster are reachable.\n")
+	h.logger.Log("No nodes in cluster are reachable.")
 	return false
 }

@@ -52,9 +52,9 @@ var _ = Describe("Upgrader", func() {
 		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
 			err := upgrader.Upgrade()
 			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(30))
+			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(31))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.StopMysqldCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -112,7 +112,7 @@ var _ = Describe("Upgrader", func() {
 
 		Context("when the mysql stop script fails", func() {
 			BeforeEach(func() {
-				fakeDbHelper.StopMysqldStub = func() error {
+				fakeDbHelper.StopStandaloneMysqlStub = func() error {
 					return errors.New("exited 1")
 				}
 			})

@@ -7,12 +7,12 @@ import (
 )
 
 const (
-	STOP_COMMAND = "stop"
+	STOP_STANDALONE_COMMAND = "stop-stand-alone"
 )
 
 type DBHelper interface {
 	StartMysqldInMode(command string) error
-	StopMysqld() error
+	StopStandaloneMysql() error
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
 }
@@ -61,14 +61,12 @@ func (m MariaDBHelper) StartMysqldInMode(command string) error {
 	return err
 }
 
-func (m MariaDBHelper) StopMysqld() error {
-	m.logger.Log("STOPPING NODE.")
-	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_COMMAND)
+func (m MariaDBHelper) StopStandaloneMysql() (err error) {
+	m.logger.Log("Stopping standalone node")
+	err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_STANDALONE_COMMAND)
 	if err != nil {
-		m.logger.Log("Error stopping node: " + err.Error())
+		m.logger.Log(fmt.Sprintf("Error stopping node: %s", err.Error()))
 	}
-	// TODO: We should wait until the database is actually down before continuing
-	// Maybe this could be accomplished by polling the database and returning when poll fails?
 	return err
 }
 
@@ -82,10 +80,13 @@ func (m MariaDBHelper) Upgrade() (output string, err error) {
 }
 
 func (m MariaDBHelper) IsDatabaseReachable() bool {
+	m.logger.Log(fmt.Sprintf("Determining if database is reachable"))
 	output, err := m.osHelper.RunCommand("bash", m.showDatabasesScriptPath, m.mysqlClientPath, m.username, m.password)
-	m.logger.Log(fmt.Sprintf("output: %s", output))
 	if err != nil {
-		m.logger.Log(fmt.Sprintf("error: %s", err))
+		m.logger.Log(fmt.Sprintf("database not reachable: %s", output))
+		return false
+	} else {
+		m.logger.Log(fmt.Sprintf("database is reachable"))
+		return true
 	}
-	return err == nil
 }

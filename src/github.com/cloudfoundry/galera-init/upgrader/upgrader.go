@@ -65,6 +65,7 @@ func (u UpgraderImpl) Upgrade() (err error) {
 		return
 	}
 
+	u.logger.Log("Performing upgrade")
 	output, upgrade_err := u.mariadbHelper.Upgrade()
 
 	if upgrade_err != nil {
@@ -75,13 +76,43 @@ func (u UpgraderImpl) Upgrade() (err error) {
 			u.logger.Log("output string does not match acceptable errors - aborting startup.")
 			err = upgrade_err
 		}
+	} else {
+		u.logger.Log("Upgrade applied successfully")
 	}
 
-	stop_err := u.mariadbHelper.StopMysqld()
-	if stop_err != nil && err == nil {
-		err = stop_err
+	if err != nil {
+		return
+	}
+
+	err = u.stopStandaloneDatabaseSynchronously()
+	if err != nil {
+		u.logger.Log("Synchronously stopping standalone database failed.")
 	}
 	return
+}
+
+func (u UpgraderImpl) stopStandaloneDatabaseSynchronously() (err error) {
+	var reachable bool
+
+	err = u.mariadbHelper.StopStandaloneMysql()
+	if err != nil {
+		u.logger.Log("Failed to stop standalone MySQL")
+		return
+	} else {
+		for tries := 0; tries < 30; tries++ {
+			reachable = u.mariadbHelper.IsDatabaseReachable()
+			if !reachable {
+				break
+			}
+			u.osHelper.Sleep(2 * time.Second)
+		}
+
+		if reachable {
+			return errors.New("Database is still reachable after 30 tries.")
+		} else {
+			return nil
+		}
+	}
 }
 
 func (u UpgraderImpl) NeedsUpgrade() (bool, error) {
