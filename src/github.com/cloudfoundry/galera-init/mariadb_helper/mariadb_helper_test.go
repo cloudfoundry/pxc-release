@@ -1,16 +1,16 @@
 package mariadb_helper_test
 
 import (
-	helper "."
 	"errors"
 	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
+	. "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("MariaDBHelper", func() {
-	var mariadb_helper *helper.MariaDBHelper
+	var helper *MariaDBHelper
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeLogger *logger_fakes.FakeLogger
 
@@ -26,7 +26,7 @@ var _ = Describe("MariaDBHelper", func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeLogger = new(logger_fakes.FakeLogger)
 
-		mariadb_helper = helper.NewMariaDBHelper(
+		helper = NewMariaDBHelper(
 			fakeOs,
 			mysqlDaemonPath,
 			mysqlClientPath,
@@ -42,7 +42,7 @@ var _ = Describe("MariaDBHelper", func() {
 	Describe("Start", func() {
 
 		It("calls the mysql daemon with the command option", func() {
-			mariadb_helper.StartMysqldInMode("bootstrap")
+			helper.StartMysqldInMode("bootstrap")
 			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
 
 			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
@@ -58,7 +58,7 @@ var _ = Describe("MariaDBHelper", func() {
 			})
 
 			It("returns the error", func() {
-				err := mariadb_helper.StartMysqldInMode("bootstrap")
+				err := helper.StartMysqldInMode("bootstrap")
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -66,14 +66,14 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("Stop", func() {
 		It("calls the mysql daemon with the stop command", func() {
-			mariadb_helper.StopStandaloneMysql()
+			helper.StopStandaloneMysql()
 			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
 
 			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
 			Expect(timeout).To(Equal(10))
 			Expect(logDestination).To(Equal(logFile))
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{mysqlDaemonPath, helper.STOP_STANDALONE_COMMAND}))
+			Expect(args).To(Equal([]string{mysqlDaemonPath, STOP_STANDALONE_COMMAND}))
 		})
 
 		Context("when an error occurs", func() {
@@ -82,7 +82,7 @@ var _ = Describe("MariaDBHelper", func() {
 			})
 
 			It("returns the error", func() {
-				err := mariadb_helper.StopStandaloneMysql()
+				err := helper.StopStandaloneMysql()
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -90,7 +90,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("Upgrade", func() {
 		It("calls the mysql upgrade script", func() {
-			mariadb_helper.Upgrade()
+			helper.Upgrade()
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
@@ -100,7 +100,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 		It("returns the output and error", func() {
 			fakeOs.RunCommandReturns("some output", errors.New("some error"))
-			output, err := mariadb_helper.Upgrade()
+			output, err := helper.Upgrade()
 			Expect(output).To(Equal("some output"))
 			Expect(err.Error()).To(Equal("some error"))
 		})

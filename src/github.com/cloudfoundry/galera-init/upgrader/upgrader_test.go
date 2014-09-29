@@ -42,7 +42,7 @@ var _ = Describe("Upgrader", func() {
 			numTries := 0
 			fakeDbHelper.IsDatabaseReachableStub = func() bool {
 				numTries += 1
-				if numTries == 30 {
+				if numTries == DB_REACHABLE_POLLING_ATTEMPTS {
 					return true
 				}
 				return false
@@ -50,9 +50,10 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
+			expectedPollingCounts := DB_REACHABLE_POLLING_ATTEMPTS + 1
 			err := upgrader.Upgrade()
 			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(31))
+			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
@@ -69,7 +70,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the database server is not available after 30 attempts to reconnect", func() {
+		Context("when the database server is not available after "+string(DB_REACHABLE_POLLING_ATTEMPTS)+" attempts to reconnect", func() {
 			BeforeEach(func() {
 				fakeDbHelper.IsDatabaseReachableStub = func() bool {
 					return false
@@ -78,7 +79,7 @@ var _ = Describe("Upgrader", func() {
 
 			It("returns an error", func() {
 				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(30))
+				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(DB_REACHABLE_POLLING_ATTEMPTS))
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -119,6 +120,21 @@ var _ = Describe("Upgrader", func() {
 
 			It("considers the upgrade a failure", func() {
 				err := upgrader.Upgrade()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when we issue a stop to the DB and it hasn't stopped after polling "+string(DB_REACHABLE_POLLING_ATTEMPTS)+" times", func() {
+			expectedPollingCounts := DB_REACHABLE_POLLING_ATTEMPTS + 1
+			BeforeEach(func() {
+				fakeDbHelper.IsDatabaseReachableStub = func() bool {
+					return true
+				}
+			})
+
+			It("returns an error", func() {
+				err := upgrader.Upgrade()
+				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 				Expect(err).To(HaveOccurred())
 			})
 		})

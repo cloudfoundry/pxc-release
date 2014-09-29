@@ -8,14 +8,14 @@ import (
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
 
-	manager "."
+	. "github.com/cloudfoundry/mariadb_ctrl/mariadb_start_manager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("MariadbStartManager", func() {
 
-	var mgr *manager.MariaDBStartManager
+	var mgr *MariaDBStartManager
 
 	var fakeLogger *logger_fakes.FakeLogger
 	var fakeOs *os_fakes.FakeOsHelper
@@ -88,14 +88,14 @@ var _ = Describe("MariadbStartManager", func() {
 
 	ensureBootstrapWithStateFileContents := func(contents string) {
 		Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(1))
-		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(manager.BOOTSTRAP_COMMAND))
+		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(BOOTSTRAP_COMMAND))
 		ensureStateFileContentIs(contents)
 	}
 
 	ensureJoin := func() {
 		Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(1))
-		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(manager.JOIN_COMMAND))
-		ensureStateFileContentIs(manager.CLUSTERED)
+		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(JOIN_COMMAND))
+		ensureStateFileContentIs(CLUSTERED)
 	}
 
 	ensureStop := func() {
@@ -106,7 +106,7 @@ var _ = Describe("MariadbStartManager", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 
-			mgr = manager.New(
+			mgr = New(
 				fakeOs,
 				fakeDBHelper,
 				fakeUpgrader,
@@ -167,7 +167,7 @@ var _ = Describe("MariadbStartManager", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 
-			mgr = manager.New(
+			mgr = New(
 				fakeOs,
 				fakeDBHelper,
 				fakeUpgrader,
@@ -187,10 +187,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			It("bootstraps, seeds databases and writes '"+manager.SINGLE_NODE+"' to file", func() {
+			It("bootstraps, seeds databases and writes '"+SINGLE_NODE+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(manager.SINGLE_NODE)
+				ensureBootstrapWithStateFileContents(SINGLE_NODE)
 				ensureSeedDatabases()
 			})
 		})
@@ -198,13 +198,13 @@ var _ = Describe("MariadbStartManager", func() {
 		Context("When redeploying", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(manager.SINGLE_NODE, nil)
+				fakeOs.ReadFileReturns(SINGLE_NODE, nil)
 			})
 
-			It("boostraps, seeds databases and writes '"+manager.SINGLE_NODE+"' to file", func() {
+			It("boostraps, seeds databases and writes '"+SINGLE_NODE+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(manager.SINGLE_NODE)
+				ensureBootstrapWithStateFileContents(SINGLE_NODE)
 				ensureSeedDatabases()
 			})
 		})
@@ -215,7 +215,7 @@ var _ = Describe("MariadbStartManager", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 
-			mgr = manager.New(
+			mgr = New(
 				fakeOs,
 				fakeDBHelper,
 				fakeUpgrader,
@@ -230,7 +230,7 @@ var _ = Describe("MariadbStartManager", func() {
 				maxDatabaseSeedTries)
 		})
 
-		It("joins cluster, does not seed databases, and writes '"+manager.CLUSTERED+"' to file", func() {
+		It("joins cluster, does not seed databases, and writes '"+CLUSTERED+"' to file", func() {
 			err := mgr.Execute()
 			Expect(err).ToNot(HaveOccurred())
 			ensureJoin()
@@ -256,7 +256,7 @@ var _ = Describe("MariadbStartManager", func() {
 			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker.AnyNodesReachableReturns(false)
 
-			mgr = manager.New(
+			mgr = New(
 				fakeOs,
 				fakeDBHelper,
 				fakeUpgrader,
@@ -276,10 +276,10 @@ var _ = Describe("MariadbStartManager", func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			It("bootstraps, seeds databases and writes "+manager.CLUSTERED+" to file", func() {
+			It("bootstraps, seeds databases and writes "+CLUSTERED+" to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(manager.CLUSTERED)
+				ensureBootstrapWithStateFileContents(CLUSTERED)
 				ensureSeedDatabases()
 			})
 
@@ -297,10 +297,10 @@ var _ = Describe("MariadbStartManager", func() {
 			})
 		})
 
-		Context("When file is present and reads '"+manager.CLUSTERED+"'", func() {
+		Context("When file is present and reads '"+CLUSTERED+"'", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
+				fakeOs.ReadFileReturns(CLUSTERED, nil)
 			})
 
 			It("joins the cluster and seeds the databases", func() {
@@ -326,7 +326,7 @@ var _ = Describe("MariadbStartManager", func() {
 				BeforeEach(func() {
 					fakeClusterReachabilityChecker.AnyNodesReachableReturns(true)
 
-					mgr = manager.New(
+					mgr = New(
 						fakeOs,
 						fakeDBHelper,
 						fakeUpgrader,
@@ -358,7 +358,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		Context("When scaling down from many nodes to single", func() {
 			BeforeEach(func() {
-				mgr = manager.New(
+				mgr = New(
 					fakeOs,
 					fakeDBHelper,
 					fakeUpgrader,
@@ -373,20 +373,20 @@ var _ = Describe("MariadbStartManager", func() {
 					maxDatabaseSeedTries)
 
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(manager.CLUSTERED, nil)
+				fakeOs.ReadFileReturns(CLUSTERED, nil)
 			})
 
-			It("seeds databases, bootstraps node 0 and writes '"+manager.SINGLE_NODE+"' to file", func() {
+			It("seeds databases, bootstraps node 0 and writes '"+SINGLE_NODE+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(manager.SINGLE_NODE)
+				ensureBootstrapWithStateFileContents(SINGLE_NODE)
 				ensureSeedDatabases()
 			})
 		})
 
 		Context("Scaling from one to many nodes", func() {
 			BeforeEach(func() {
-				mgr = manager.New(
+				mgr = New(
 					fakeOs,
 					fakeDBHelper,
 					fakeUpgrader,
@@ -401,13 +401,13 @@ var _ = Describe("MariadbStartManager", func() {
 					maxDatabaseSeedTries)
 
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(manager.SINGLE_NODE, nil)
+				fakeOs.ReadFileReturns(SINGLE_NODE, nil)
 			})
 
-			It("seeds databases, bootstraps node 0 and writes '"+manager.CLUSTERED+"' to file", func() {
+			It("seeds databases, bootstraps node 0 and writes '"+CLUSTERED+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(manager.CLUSTERED)
+				ensureBootstrapWithStateFileContents(CLUSTERED)
 				ensureSeedDatabases()
 			})
 		})
@@ -415,7 +415,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 	Describe("When determining whether upgrade is required exits with an error", func() {
 		BeforeEach(func() {
-			mgr = manager.New(
+			mgr = New(
 				fakeOs,
 				fakeDBHelper,
 				fakeUpgrader,
@@ -443,7 +443,7 @@ var _ = Describe("MariadbStartManager", func() {
 		Context("When performing the upgrade exits with an error", func() {
 
 			BeforeEach(func() {
-				mgr = manager.New(
+				mgr = New(
 					fakeOs,
 					fakeDBHelper,
 					fakeUpgrader,

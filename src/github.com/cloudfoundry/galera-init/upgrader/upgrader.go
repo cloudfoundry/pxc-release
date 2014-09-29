@@ -24,6 +24,11 @@ type UpgraderImpl struct {
 	mariadbHelper           mariadb_helper.DBHelper
 }
 
+var (
+	DB_REACHABLE_POLLING_ATTEMPTS = 30
+	DB_REACHABLE_POLLING_DELAY    = 2 * time.Second
+)
+
 func NewImpl(
 	upgradeScriptPath string,
 	mysqlDaemonPath string,
@@ -45,24 +50,9 @@ func NewImpl(
 }
 
 func (u UpgraderImpl) Upgrade() (err error) {
-	err = u.mariadbHelper.StartMysqldInMode("stand-alone")
+	err = u.startStandaloneDatabaseSynchronously()
 	if err != nil {
-		u.logger.Log("There was an error starting mysql in stand-alone mode: " + err.Error())
-		return
-	}
-
-	reachable := false
-	for tries := 0; tries < 30; tries++ {
-		reachable = u.mariadbHelper.IsDatabaseReachable()
-		if reachable {
-			break
-		}
-		u.osHelper.Sleep(2 * time.Second)
-	}
-
-	if !reachable {
-		err = errors.New("Database is not reachable after 30 tries. Exiting...")
-		return
+		u.logger.Log("Synchronously starting standalone database failed.")
 	}
 
 	u.logger.Log("Performing upgrade")
@@ -91,28 +81,40 @@ func (u UpgraderImpl) Upgrade() (err error) {
 	return
 }
 
-func (u UpgraderImpl) stopStandaloneDatabaseSynchronously() (err error) {
-	var reachable bool
+func (u UpgraderImpl) startStandaloneDatabaseSynchronously() (err error) {
+	err = u.mariadbHelper.StartMysqldInMode("stand-alone")
+	if err != nil {
+		u.logger.Log("There was an error starting mysql in stand-alone mode: " + err.Error())
+		return
+	}
 
+	for tries := 0; tries < DB_REACHABLE_POLLING_ATTEMPTS; tries++ {
+		if u.mariadbHelper.IsDatabaseReachable() {
+			return nil
+		}
+
+		u.osHelper.Sleep(DB_REACHABLE_POLLING_DELAY)
+	}
+
+	return errors.New("Database is not reachable after 30 tries.")
+}
+
+func (u UpgraderImpl) stopStandaloneDatabaseSynchronously() (err error) {
 	err = u.mariadbHelper.StopStandaloneMysql()
 	if err != nil {
 		u.logger.Log("Failed to stop standalone MySQL")
 		return
-	} else {
-		for tries := 0; tries < 30; tries++ {
-			reachable = u.mariadbHelper.IsDatabaseReachable()
-			if !reachable {
-				break
-			}
-			u.osHelper.Sleep(2 * time.Second)
-		}
+	}
 
-		if reachable {
-			return errors.New("Database is still reachable after 30 tries.")
-		} else {
+	for tries := 0; tries < DB_REACHABLE_POLLING_ATTEMPTS; tries++ {
+		if !u.mariadbHelper.IsDatabaseReachable() {
 			return nil
 		}
+
+		u.osHelper.Sleep(DB_REACHABLE_POLLING_DELAY)
 	}
+
+	return errors.New("Database is still reachable after 30 tries.")
 }
 
 func (u UpgraderImpl) NeedsUpgrade() (bool, error) {
