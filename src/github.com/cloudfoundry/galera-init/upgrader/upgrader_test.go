@@ -16,8 +16,6 @@ var _ = Describe("Upgrader", func() {
 	var fakeDbHelper *db_fakes.FakeDBHelper
 	var fakeLogger *logger_fakes.FakeLogger
 
-	upgradeScriptPath := "/upgrade_script"
-	mysqlDaemonPath := "/mysql_daemon"
 	lastUpgradedVersionFile := "/var/vcap/store/mysql/mysql_upgrade_info"
 	packageVersionFile := "/var/vcap/package/mariadb/VERSION"
 
@@ -27,8 +25,6 @@ var _ = Describe("Upgrader", func() {
 		fakeLogger = new(logger_fakes.FakeLogger)
 
 		upgrader = NewImpl(
-			upgradeScriptPath,
-			mysqlDaemonPath,
 			packageVersionFile,
 			lastUpgradedVersionFile,
 			fakeOs,

@@ -21,15 +21,11 @@ const (
 
 type MariaDBStartManager struct {
 	osHelper                   os_helper.OsHelper
-	logFileLocation            string
 	stateFileLocation          string
 	mysqlClientPath            string
-	username                   string
-	password                   string
 	jobIndex                   int
 	numberOfNodes              int
 	dbSeedScriptPath           string
-	upgradeScriptPath          string
 	showDatabasesScriptPath    string
 	ClusterReachabilityChecker galera_helper.ClusterReachabilityChecker
 	maxDatabaseSeedTries       int
@@ -42,28 +38,20 @@ func New(
 	osHelper os_helper.OsHelper,
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
-	logFileLocation string,
 	stateFileLocation string,
-	username string,
-	password string,
 	dbSeedScriptPath string,
 	jobIndex int,
 	numberOfNodes int,
 	logger Logger,
-	upgradeScriptPath string,
 	clusterReachabilityChecker galera_helper.ClusterReachabilityChecker,
 	maxDatabaseSeedTries int) *MariaDBStartManager {
 	return &MariaDBStartManager{
 		osHelper:                   osHelper,
-		logFileLocation:            logFileLocation,
 		stateFileLocation:          stateFileLocation,
-		username:                   username,
-		password:                   password,
 		jobIndex:                   jobIndex,
 		numberOfNodes:              numberOfNodes,
 		logger:                     logger,
 		dbSeedScriptPath:           dbSeedScriptPath,
-		upgradeScriptPath:          upgradeScriptPath,
 		ClusterReachabilityChecker: clusterReachabilityChecker,
 		maxDatabaseSeedTries:       maxDatabaseSeedTries,
 		mariaDBHelper:              mariaDBHelper,

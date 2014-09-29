@@ -56,8 +56,6 @@ func main() {
 	)
 
 	upgrader := upgrader.NewImpl(
-		*upgradeScriptPath,
-		*mysqlDaemonPath,
 		*packageVersionFile,
 		*lastUpgradedVersionFile,
 		osHelper,
@@ -71,15 +69,11 @@ func main() {
 		osHelper,
 		mariaDBHelper,
 		upgrader,
-		*logFileLocation,
 		*stateFileLocation,
-		*mysqlUser,
-		*mysqlPassword,
 		*dbSeedScriptPath,
 		*jobIndex,
 		*numberOfNodes,
 		logger,
-		*upgradeScriptPath,
 		galeraHelper,
 		*maxDatabaseSeedTries,
 	)

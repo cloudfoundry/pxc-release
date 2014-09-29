@@ -31,12 +31,8 @@ var _ = Describe("MariadbStartManager", func() {
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 	})
 
-	logFileLocation := "/logFileLocation"
 	stateFileLocation := "/stateFileLocation"
-	username := "fake-username"
-	password := "fake-password"
 	dbSeedScriptPath := "/dbSeedScriptPath"
-	upgradeScriptPath := "/upgradeScriptPath"
 	maxDatabaseSeedTries := 2
 
 	seededDatabases := func() bool {
@@ -102,23 +98,25 @@ var _ = Describe("MariadbStartManager", func() {
 		Expect(fakeDBHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
 	}
 
+	createManager := func(jobIndex int, numberOfNodes int) *MariaDBStartManager {
+		return New(
+			fakeOs,
+			fakeDBHelper,
+			fakeUpgrader,
+			stateFileLocation,
+			dbSeedScriptPath,
+			jobIndex,
+			numberOfNodes,
+			fakeLogger,
+			fakeClusterReachabilityChecker,
+			maxDatabaseSeedTries)
+	}
+
 	Context("When there's an error seeding the databases", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 
-			mgr = New(
-				fakeOs,
-				fakeDBHelper,
-				fakeUpgrader,
-				logFileLocation,
-				stateFileLocation,
-				username,
-				password,
-				dbSeedScriptPath,
-				0, 1, fakeLogger,
-				upgradeScriptPath,
-				fakeClusterReachabilityChecker,
-				maxDatabaseSeedTries)
+			mgr = createManager(0, 1)
 		})
 
 		Context("And the total attempts at seeding the database is less than maxDatabaseSeedTries", func() {
@@ -167,19 +165,7 @@ var _ = Describe("MariadbStartManager", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 
-			mgr = New(
-				fakeOs,
-				fakeDBHelper,
-				fakeUpgrader,
-				logFileLocation,
-				stateFileLocation,
-				username,
-				password,
-				dbSeedScriptPath,
-				0, 1, fakeLogger,
-				upgradeScriptPath,
-				fakeClusterReachabilityChecker,
-				maxDatabaseSeedTries)
+			mgr = createManager(0, 1)
 		})
 
 		Context("On initial deploy", func() {
@@ -215,19 +201,7 @@ var _ = Describe("MariadbStartManager", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 
-			mgr = New(
-				fakeOs,
-				fakeDBHelper,
-				fakeUpgrader,
-				logFileLocation,
-				stateFileLocation,
-				username,
-				password,
-				dbSeedScriptPath,
-				1, 3, fakeLogger,
-				upgradeScriptPath,
-				fakeClusterReachabilityChecker,
-				maxDatabaseSeedTries)
+			mgr = createManager(1, 3)
 		})
 
 		It("joins cluster, does not seed databases, and writes '"+CLUSTERED+"' to file", func() {
@@ -256,19 +230,7 @@ var _ = Describe("MariadbStartManager", func() {
 			stubPgrepCheck(fakeOs)
 			fakeClusterReachabilityChecker.AnyNodesReachableReturns(false)
 
-			mgr = New(
-				fakeOs,
-				fakeDBHelper,
-				fakeUpgrader,
-				logFileLocation,
-				stateFileLocation,
-				username,
-				password,
-				dbSeedScriptPath,
-				0, 3, fakeLogger,
-				upgradeScriptPath,
-				fakeClusterReachabilityChecker,
-				maxDatabaseSeedTries)
+			mgr = createManager(0, 3)
 		})
 
 		Context("On initial deploy", func() {
@@ -326,19 +288,7 @@ var _ = Describe("MariadbStartManager", func() {
 				BeforeEach(func() {
 					fakeClusterReachabilityChecker.AnyNodesReachableReturns(true)
 
-					mgr = New(
-						fakeOs,
-						fakeDBHelper,
-						fakeUpgrader,
-						logFileLocation,
-						stateFileLocation,
-						username,
-						password,
-						dbSeedScriptPath,
-						0, 3, fakeLogger,
-						upgradeScriptPath,
-						fakeClusterReachabilityChecker,
-						maxDatabaseSeedTries)
+					mgr = createManager(0, 3)
 				})
 
 				It("joins the cluster and seeds databases", func() {
@@ -358,19 +308,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		Context("When scaling down from many nodes to single", func() {
 			BeforeEach(func() {
-				mgr = New(
-					fakeOs,
-					fakeDBHelper,
-					fakeUpgrader,
-					logFileLocation,
-					stateFileLocation,
-					username,
-					password,
-					dbSeedScriptPath,
-					0, 1, fakeLogger,
-					upgradeScriptPath,
-					fakeClusterReachabilityChecker,
-					maxDatabaseSeedTries)
+				mgr = createManager(0, 1)
 
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(CLUSTERED, nil)
@@ -386,19 +324,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		Context("Scaling from one to many nodes", func() {
 			BeforeEach(func() {
-				mgr = New(
-					fakeOs,
-					fakeDBHelper,
-					fakeUpgrader,
-					logFileLocation,
-					stateFileLocation,
-					username,
-					password,
-					dbSeedScriptPath,
-					0, 3, fakeLogger,
-					upgradeScriptPath,
-					fakeClusterReachabilityChecker,
-					maxDatabaseSeedTries)
+				mgr = createManager(0, 3)
 
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(SINGLE_NODE, nil)
@@ -415,19 +341,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 	Describe("When determining whether upgrade is required exits with an error", func() {
 		BeforeEach(func() {
-			mgr = New(
-				fakeOs,
-				fakeDBHelper,
-				fakeUpgrader,
-				logFileLocation,
-				stateFileLocation,
-				username,
-				password,
-				dbSeedScriptPath,
-				0, 3, fakeLogger,
-				upgradeScriptPath,
-				fakeClusterReachabilityChecker,
-				maxDatabaseSeedTries)
+			mgr = createManager(0, 3)
 
 			fakeUpgrader.NeedsUpgradeReturns(false, errors.New("Error determining whether upgrade is required"))
 		})
@@ -443,19 +357,7 @@ var _ = Describe("MariadbStartManager", func() {
 		Context("When performing the upgrade exits with an error", func() {
 
 			BeforeEach(func() {
-				mgr = New(
-					fakeOs,
-					fakeDBHelper,
-					fakeUpgrader,
-					logFileLocation,
-					stateFileLocation,
-					username,
-					password,
-					dbSeedScriptPath,
-					0, 3, fakeLogger,
-					upgradeScriptPath,
-					fakeClusterReachabilityChecker,
-					maxDatabaseSeedTries)
+				mgr = createManager(0, 3)
 
 				fakeUpgrader.NeedsUpgradeReturns(true, nil)
 				fakeUpgrader.UpgradeReturns(errors.New("Error while performing upgrade"))

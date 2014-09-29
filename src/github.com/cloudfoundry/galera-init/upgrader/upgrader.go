@@ -15,8 +15,6 @@ type Upgrader interface {
 }
 
 type UpgraderImpl struct {
-	upgradeScriptPath       string
-	mysqlDaemonPath         string
 	packageVersionFile      string
 	lastUpgradedVersionFile string
 	osHelper                os_helper.OsHelper
@@ -30,8 +28,6 @@ var (
 )
 
 func NewImpl(
-	upgradeScriptPath string,
-	mysqlDaemonPath string,
 	packageVersionFile string,
 	lastUpgradedVersionFile string,
 	osHelper os_helper.OsHelper,
@@ -39,8 +35,6 @@ func NewImpl(
 	mariadbHelper mariadb_helper.DBHelper) *UpgraderImpl {
 
 	return &UpgraderImpl{
-		upgradeScriptPath:       upgradeScriptPath,
-		mysqlDaemonPath:         mysqlDaemonPath,
 		packageVersionFile:      packageVersionFile,
 		lastUpgradedVersionFile: lastUpgradedVersionFile,
 		osHelper:                osHelper,
