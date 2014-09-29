@@ -74,13 +74,13 @@ func New(
 func (m *MariaDBStartManager) Execute() (err error) {
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
-		m.logger.Log((fmt.Sprintf("Failed to determine upgrade status with error %s", err.Error())))
+		m.logger.Log((fmt.Sprintf("Failed to determine upgrade status with error: %s", err.Error())))
 		return
 	}
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.logger.Log((fmt.Sprintf("Failed to upgrade with error %s", err.Error())))
+			m.logger.Log((fmt.Sprintf("Failed to upgrade with error: %s", err.Error())))
 			return
 		}
 	}

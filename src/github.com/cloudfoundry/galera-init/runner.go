@@ -12,91 +12,94 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 )
 
-var logFileLocation = flag.String(
-	"logFile",
-	"",
-	"Specifies the location of the log file mysql sends logs to",
-)
+var (
+	PACKAGE_VERSION_FILE       = "/var/vcap/packages/mariadb/VERSION"
+	LAST_UPGRADED_VERSION_FILE = "/var/vcap/store/mysql/mysql_upgrade_info"
+	LOGGING_ON                 = true
 
-var mysqlDaemonPath = flag.String(
-	"mysqlDaemon",
-	"",
-	"Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server",
-)
+	logFileLocation = flag.String(
+		"logFile",
+		"",
+		"Specifies the location of the log file mysql sends logs to",
+	)
 
-var mysqlClientPath = flag.String(
-	"mysqlClient",
-	"",
-	"Specifies the location of the mysql client executable",
-)
+	mysqlDaemonPath = flag.String(
+		"mysqlDaemon",
+		"",
+		"Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server",
+	)
 
-var dbSeedScriptPath = flag.String(
-	"dbSeedScript",
-	"",
-	"Specifies the location of the script that seeds the server with databases",
-)
+	mysqlClientPath = flag.String(
+		"mysqlClient",
+		"",
+		"Specifies the location of the mysql client executable",
+	)
 
-var upgradeScriptPath = flag.String(
-	"upgradeScriptPath",
-	"",
-	"Specifies the location of the script that performs the MySQL upgrade",
-)
+	dbSeedScriptPath = flag.String(
+		"dbSeedScript",
+		"",
+		"Specifies the location of the script that seeds the server with databases",
+	)
 
-var showDatabasesScriptPath = flag.String(
-	"showDatabasesScriptPath",
-	"",
-	"Specifies the location of the script that displays the MySQL databases",
-)
+	upgradeScriptPath = flag.String(
+		"upgradeScriptPath",
+		"",
+		"Specifies the location of the script that performs the MySQL upgrade",
+	)
 
-var stateFileLocation = flag.String(
-	"stateFile",
-	"",
-	"Specifies the location to store the statefile for MySQL boot",
-)
+	showDatabasesScriptPath = flag.String(
+		"showDatabasesScriptPath",
+		"",
+		"Specifies the location of the script that displays the MySQL databases",
+	)
 
-var mysqlUser = flag.String(
-	"mysqlUser",
-	"root",
-	"Specifies the user name for MySQL",
-)
+	stateFileLocation = flag.String(
+		"stateFile",
+		"",
+		"Specifies the location to store the statefile for MySQL boot",
+	)
 
-var mysqlPassword = flag.String(
-	"mysqlPassword",
-	"",
-	"Specifies the password for connecting to MySQL",
-)
+	mysqlUser = flag.String(
+		"mysqlUser",
+		"root",
+		"Specifies the user name for MySQL",
+	)
 
-var jobIndex = flag.Int(
-	"jobIndex",
-	1,
-	"Specifies the job index of the MySQL node",
-)
+	mysqlPassword = flag.String(
+		"mysqlPassword",
+		"",
+		"Specifies the password for connecting to MySQL",
+	)
 
-var numberOfNodes = flag.Int(
-	"numberOfNodes",
-	3,
-	"Number of nodes deployed in the galera cluster",
-)
+	jobIndex = flag.Int(
+		"jobIndex",
+		1,
+		"Specifies the job index of the MySQL node",
+	)
 
-var clusterIps = flag.String(
-	"clusterIps",
-	"",
-	"Comma-delimited list of IPs in the galera cluster",
-)
+	numberOfNodes = flag.Int(
+		"numberOfNodes",
+		3,
+		"Number of nodes deployed in the galera cluster",
+	)
 
-var maxDatabaseSeedTries = flag.Int(
-	"maxDatabaseSeedTries",
-	1,
-	"How many times to attempt database seeding before it fails",
+	clusterIps = flag.String(
+		"clusterIps",
+		"",
+		"Comma-delimited list of IPs in the galera cluster",
+	)
+
+	maxDatabaseSeedTries = flag.Int(
+		"maxDatabaseSeedTries",
+		1,
+		"How many times to attempt database seeding before it fails",
+	)
 )
 
 func main() {
 	flag.Parse()
 
-	loggingOn := true
-
-	logger := NewStdOutLogger(loggingOn)
-
+	logger := NewStdOutLogger(LOGGING_ON)
 	osHelper := os_helper.NewImpl()
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
@@ -114,8 +117,8 @@ func main() {
 	upgrader := upgrader.NewImpl(
 		*upgradeScriptPath,
 		*mysqlDaemonPath,
-		"/var/vcap/store/mysql/mysql_upgrade_info",
-		"/var/vcap/packages/mariadb/VERSION",
+		PACKAGE_VERSION_FILE,
+		LAST_UPGRADED_VERSION_FILE,
 		osHelper,
 		logger,
 		mariaDBHelper,
