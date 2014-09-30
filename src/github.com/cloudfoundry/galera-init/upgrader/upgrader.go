@@ -24,7 +24,7 @@ type UpgraderImpl struct {
 
 var (
 	DB_REACHABLE_POLLING_ATTEMPTS = 30
-	DB_REACHABLE_POLLING_DELAY    = 2 * time.Second
+	DB_REACHABLE_POLLING_DELAY    = 10 * time.Second
 )
 
 func NewImpl(
