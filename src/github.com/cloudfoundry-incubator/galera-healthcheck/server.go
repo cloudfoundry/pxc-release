@@ -36,7 +36,7 @@ var mysqlPassword = flag.String(
 
 var availableWhenDonor = flag.Bool(
 	"availWhenDonor",
-	false,
+	true,
 	"Specifies if the healthcheck allows availability when in donor state",
 )
 
