@@ -45,10 +45,14 @@ func (h OsHelperImpl) RunCommandWithTimeout(timeout int, logFileName string, exe
 
 	maxRunTime := time.Duration(timeout) * time.Second
 	errChannel := make(chan error, 1)
+	readyChan := make(chan interface{})
 	go func() {
 		cmd.Start()
+		close(readyChan)
 		errChannel <- cmd.Wait()
 	}()
+
+	<-readyChan
 	select {
 	case <-time.After(maxRunTime):
 		cmd.Process.Kill()
