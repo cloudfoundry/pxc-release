@@ -4,6 +4,11 @@ import (
 	"database/sql"
 )
 
+const (
+	SYNCED_STATE         = "4"
+	DONOR_DESYNCED_STATE = "2"
+)
+
 type Healthchecker struct {
 	db     *sql.DB
 	config HealthcheckerConfig
@@ -29,7 +34,7 @@ func (h *Healthchecker) Check() (bool, string) {
 	switch {
 	case err != nil:
 		return false, err.Error()
-	case value == "4" || (value == "2" && h.config.AvailableWhenDonor):
+	case value == SYNCED_STATE || (value == DONOR_DESYNCED_STATE && h.config.AvailableWhenDonor):
 		if !h.config.AvailableWhenReadOnly {
 			var ro_variable_name string
 			var ro_value string
