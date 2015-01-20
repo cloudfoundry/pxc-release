@@ -11,8 +11,8 @@ fi
 go fmt ./...
 go build ./...
 
-go test -v ./mariadb_start_manager
-go test -v ./os_helper
-go test -v ./galera_helper
-go test -v ./mariadb_helper
-go test -v ./upgrader
+go test -v -race ./mariadb_start_manager
+go test -v -race ./os_helper
+go test -v -race ./galera_helper
+go test -v -race ./mariadb_helper
+go test -v -race ./upgrader
