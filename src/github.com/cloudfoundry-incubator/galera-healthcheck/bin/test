@@ -11,4 +11,4 @@ fi
 go get github.com/tools/godep
 godep restore
 
-ginkgo -r
+ginkgo -r -race
