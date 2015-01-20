@@ -9,10 +9,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/cloudfoundry-incubator/galera-healthcheck/headsman"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/logger"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -58,12 +56,6 @@ var connectionCutterPath = flag.String(
 	"Location for the script which cuts mysql connections",
 )
 
-var haproxyIp = flag.String(
-	"haproxyIp",
-	"",
-	"IP of the HAProxy",
-)
-
 var healthchecker *healthcheck.Healthchecker
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -71,14 +63,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if result {
 		w.WriteHeader(http.StatusOK)
 	} else {
-		hm := headsman.NewMysqlHeadsman(
-			os_helper.NewImpl(),
-			*mysqlUser,
-			*mysqlPassword,
-			*connectionCutterPath,
-			*haproxyIp,
-		)
-		hm.Chop()
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
