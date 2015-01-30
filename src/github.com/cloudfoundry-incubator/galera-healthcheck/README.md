@@ -10,4 +10,3 @@ A healthy node will return HTTP status 200, and a node that should not be access
 
 Several commandline flags are supported (see the code.)
 
-[Godep](https://github.com/tools/godep) is used for dependency management; dependencies are vendored into `Godeps/_workspace/src`.
