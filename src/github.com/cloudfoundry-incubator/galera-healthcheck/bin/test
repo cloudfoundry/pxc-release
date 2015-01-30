@@ -3,12 +3,4 @@
 
 set -e
 
-if ! which go 2>/dev/null; then
-  echo "Go is not installed."
-  exit 1
-fi
-
-go get github.com/tools/godep
-godep restore
-
 ginkgo -r -race
