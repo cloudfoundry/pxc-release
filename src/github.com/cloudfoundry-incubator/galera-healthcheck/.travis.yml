@@ -6,7 +6,8 @@ install:
   - go get -v github.com/onsi/ginkgo/ginkgo
   - PATH=$PATH:$HOME/gopath/bin
   - go get -v -t ./...
-script:  bin/test
+script:
+  - ginkgo -p -r -race -failOnPending -randomizeAllSpecs
 branches:
   only:
   - master

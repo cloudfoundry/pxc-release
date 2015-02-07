@@ -1,6 +1,0 @@
-#!/bin/sh
-# vim: set ft=sh
-
-set -e
-
-ginkgo -r -race
