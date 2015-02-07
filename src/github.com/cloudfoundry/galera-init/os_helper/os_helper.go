@@ -60,7 +60,6 @@ func (h OsHelperImpl) RunCommandWithTimeout(timeout int, logFileName string, exe
 	case err := <-errChannel:
 		return err
 	}
-	return nil
 }
 
 func (h OsHelperImpl) FileExists(filename string) bool {

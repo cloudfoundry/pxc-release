@@ -178,7 +178,7 @@ func (m *MariaDBStartManager) seedDatabases() (err error) {
 			m.logger.Log("Seeding databases succeeded.")
 			return
 		} else {
-			m.logger.Log(fmt.Sprintf("There was a problem seeding the database: 's%'", output))
+			m.logger.Log(fmt.Sprintf("There was a problem seeding the database: '%s'", output))
 			m.logger.Log("Retrying seeding script...")
 			m.osHelper.Sleep(1 * time.Second)
 		}
