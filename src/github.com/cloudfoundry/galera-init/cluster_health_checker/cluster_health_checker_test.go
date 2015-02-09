@@ -1,10 +1,10 @@
-package galera_helper_test
+package cluster_health_checker_test
 
 import (
 	"errors"
 	"net/http"
 
-	. "github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	. "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +20,7 @@ func (l testLogger) Log(msg string) {
 
 var theTestLogger = testLogger{}
 
-var _ = Describe("ClusterReachabilityChecker.AnyNodesReachable()", func() {
+var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 	It("Returns true when a reachable node returns healthy", func() {
 		requestUrls := []string{}
 		MakeRequest = func(url string) (*http.Response, error) {
@@ -28,9 +28,9 @@ var _ = Describe("ClusterReachabilityChecker.AnyNodesReachable()", func() {
 			return &http.Response{StatusCode: 200}, nil
 		}
 
-		checker := NewClusterReachabilityChecker("1.2.3.4,5.6.7.8", theTestLogger)
+		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", theTestLogger)
 
-		Expect(checker.AnyNodesReachable()).To(BeTrue())
+		Expect(checker.HealthyCluster()).To(BeTrue())
 		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/"}))
 	})
 
@@ -41,9 +41,9 @@ var _ = Describe("ClusterReachabilityChecker.AnyNodesReachable()", func() {
 			return &http.Response{StatusCode: 503}, nil
 		}
 
-		checker := NewClusterReachabilityChecker("1.2.3.4,5.6.7.8", theTestLogger)
+		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", theTestLogger)
 
-		Expect(checker.AnyNodesReachable()).To(BeFalse())
+		Expect(checker.HealthyCluster()).To(BeFalse())
 		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/", "http://5.6.7.8:9200/"}))
 	})
 
@@ -54,9 +54,9 @@ var _ = Describe("ClusterReachabilityChecker.AnyNodesReachable()", func() {
 			return nil, errors.New("Timed out")
 		}
 
-		checker := NewClusterReachabilityChecker("1.2.3.4,5.6.7.8", theTestLogger)
+		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", theTestLogger)
 
-		Expect(checker.AnyNodesReachable()).To(BeFalse())
+		Expect(checker.HealthyCluster()).To(BeFalse())
 		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/", "http://5.6.7.8:9200/"}))
 	})
 })

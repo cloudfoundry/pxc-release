@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	manager "github.com/cloudfoundry/mariadb_ctrl/mariadb_start_manager"
@@ -63,7 +63,7 @@ func main() {
 		mariaDBHelper,
 	)
 
-	galeraHelper := galera_helper.NewClusterReachabilityChecker(*clusterIps, logger)
+	galeraHelper := cluster_health_checker.NewClusterHealthChecker(*clusterIps, logger)
 
 	mgr := manager.New(
 		osHelper,

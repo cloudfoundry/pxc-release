@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudfoundry/mariadb_ctrl/galera_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
@@ -21,18 +21,18 @@ const (
 )
 
 type MariaDBStartManager struct {
-	osHelper                   os_helper.OsHelper
-	stateFileLocation          string
-	mysqlClientPath            string
-	jobIndex                   int
-	numberOfNodes              int
-	dbSeedScriptPath           string
-	showDatabasesScriptPath    string
-	ClusterReachabilityChecker galera_helper.ClusterReachabilityChecker
-	maxDatabaseSeedTries       int
-	mariaDBHelper              mariadb_helper.DBHelper
-	upgrader                   upgrader.Upgrader
-	logger                     Logger
+	osHelper                os_helper.OsHelper
+	stateFileLocation       string
+	mysqlClientPath         string
+	jobIndex                int
+	numberOfNodes           int
+	dbSeedScriptPath        string
+	showDatabasesScriptPath string
+	clusterHealthChecker    cluster_health_checker.ClusterHealthChecker
+	maxDatabaseSeedTries    int
+	mariaDBHelper           mariadb_helper.DBHelper
+	upgrader                upgrader.Upgrader
+	logger                  Logger
 }
 
 func New(
@@ -44,19 +44,19 @@ func New(
 	jobIndex int,
 	numberOfNodes int,
 	logger Logger,
-	clusterReachabilityChecker galera_helper.ClusterReachabilityChecker,
+	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
 	maxDatabaseSeedTries int) *MariaDBStartManager {
 	return &MariaDBStartManager{
-		osHelper:                   osHelper,
-		stateFileLocation:          stateFileLocation,
-		jobIndex:                   jobIndex,
-		numberOfNodes:              numberOfNodes,
-		logger:                     logger,
-		dbSeedScriptPath:           dbSeedScriptPath,
-		ClusterReachabilityChecker: clusterReachabilityChecker,
-		maxDatabaseSeedTries:       maxDatabaseSeedTries,
-		mariaDBHelper:              mariaDBHelper,
-		upgrader:                   upgrader,
+		osHelper:             osHelper,
+		stateFileLocation:    stateFileLocation,
+		jobIndex:             jobIndex,
+		numberOfNodes:        numberOfNodes,
+		logger:               logger,
+		dbSeedScriptPath:     dbSeedScriptPath,
+		clusterHealthChecker: clusterHealthChecker,
+		maxDatabaseSeedTries: maxDatabaseSeedTries,
+		mariaDBHelper:        mariaDBHelper,
+		upgrader:             upgrader,
 	}
 }
 
@@ -132,11 +132,13 @@ func (m *MariaDBStartManager) bootstrapCluster(state string) (err error) {
 func (m *MariaDBStartManager) bootstrapNode() error {
 	var command string
 
-	if m.ClusterReachabilityChecker.AnyNodesReachable() {
+	// We do not condone bootstrapping if a cluster already exists and is healthy
+	if m.clusterHealthChecker.HealthyCluster() {
 		command = JOIN_COMMAND
 	} else {
 		command = BOOTSTRAP_COMMAND
 	}
+
 	err := m.mariaDBHelper.StartMysqldInMode(command)
 	if err != nil {
 		return err

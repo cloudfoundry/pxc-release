@@ -9,5 +9,5 @@ import (
 
 func TestOs_helper(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Os_helper Suite")
+	RunSpecs(t, "OS Helper Suite")
 }

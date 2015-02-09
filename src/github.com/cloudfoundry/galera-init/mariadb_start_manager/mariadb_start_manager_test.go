@@ -3,7 +3,7 @@ package mariadb_start_manager_test
 import (
 	"errors"
 
-	galera_fakes "github.com/cloudfoundry/mariadb_ctrl/galera_helper/fakes"
+	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
 	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
@@ -20,14 +20,14 @@ var _ = Describe("MariadbStartManager", func() {
 
 	var fakeLogger *logger_fakes.FakeLogger
 	var fakeOs *os_fakes.FakeOsHelper
-	var fakeClusterReachabilityChecker *galera_fakes.FakeClusterReachabilityChecker
+	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
 	BeforeEach(func() {
 		fakeLogger = new(logger_fakes.FakeLogger)
 		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeClusterReachabilityChecker = new(galera_fakes.FakeClusterReachabilityChecker)
+		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 	})
@@ -104,7 +104,7 @@ var _ = Describe("MariadbStartManager", func() {
 			jobIndex,
 			numberOfNodes,
 			fakeLogger,
-			fakeClusterReachabilityChecker,
+			fakeClusterHealthChecker,
 			maxDatabaseSeedTries)
 	}
 
@@ -224,7 +224,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
-			fakeClusterReachabilityChecker.AnyNodesReachableReturns(false)
+			fakeClusterHealthChecker.HealthyClusterReturns(false)
 
 			mgr = createManager(0, 3)
 		})
@@ -283,7 +283,7 @@ var _ = Describe("MariadbStartManager", func() {
 
 				Context("When one or more other nodes is reachable", func() {
 					BeforeEach(func() {
-						fakeClusterReachabilityChecker.AnyNodesReachableReturns(true)
+						fakeClusterHealthChecker.HealthyClusterReturns(true)
 
 						mgr = createManager(0, 3)
 					})

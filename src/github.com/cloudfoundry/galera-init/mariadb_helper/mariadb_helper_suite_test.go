@@ -10,5 +10,5 @@ import (
 func TestMariadb_helper(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "Mariadb Helper Suite")
+	RunSpecs(t, "MariaDB Helper Suite")
 }
