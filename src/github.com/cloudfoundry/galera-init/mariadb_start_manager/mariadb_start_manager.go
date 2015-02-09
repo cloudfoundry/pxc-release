@@ -73,39 +73,37 @@ func (m *MariaDBStartManager) Execute() (err error) {
 		}
 	}
 
-	// Nodes > 0 always join an existing cluster
-	if m.jobIndex != 0 {
-		err = m.joinCluster()
-		return
-	}
-
-	//single-node deploy
+	// Single-node deploy always bootstraps new cluster
 	if m.numberOfNodes == 1 {
 		m.logger.Log("Single node deploy")
 		err = m.bootstrapCluster(SINGLE_NODE)
 		return
 	}
 
-	//MULTI-NODE DEPLOYMENTS BELOW
+	// If the state file reads 'NEEDS-BOOTSTRAP' then bootstrap, irrespective of
+	// node index etc
+	//
 
-	//intial deploy, state file does not exist
-	if !m.osHelper.FileExists(m.stateFileLocation) {
-		m.logger.Log(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
-		err = m.bootstrapCluster(CLUSTERED)
-		return
+	// node 0 has special behavior
+	if m.jobIndex == 0 {
+		// Initial deploy, state file does not exist
+		if !m.osHelper.FileExists(m.stateFileLocation) {
+			m.logger.Log(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
+			err = m.bootstrapCluster(CLUSTERED)
+			return
+		}
+
+		state, _ := m.osHelper.ReadFile(m.stateFileLocation)
+		m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", state))
+
+		// state file exists, previous state was single-node
+		if state == SINGLE_NODE {
+			err = m.bootstrapCluster(CLUSTERED)
+			return
+		}
 	}
 
-	//state file exists
-	state, _ := m.osHelper.ReadFile(m.stateFileLocation)
-	m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", state))
-
-	//scaling up from a single node cluster
-	if state == SINGLE_NODE {
-		err = m.bootstrapCluster(CLUSTERED)
-		return
-	}
-
-	err = m.node0JoinCluster()
+	err = m.joinCluster()
 	return
 }
 
@@ -146,21 +144,9 @@ func (m *MariaDBStartManager) joinCluster() (err error) {
 		return err
 	}
 
-	m.writeStringToFile(CLUSTERED)
-	return nil
-}
-
-func (m *MariaDBStartManager) writeStringToFile(contents string) {
-	m.logger.Log(fmt.Sprintf("updating file with contents: '%s'", contents))
-	m.osHelper.WriteStringToFile(m.stateFileLocation, contents)
-}
-
-func (m *MariaDBStartManager) node0JoinCluster() (err error) {
-	err = m.mariaDBHelper.StartMysqldInMode(JOIN_COMMAND)
-	if err != nil {
-		return err
-	}
-
+	// We should always seed databases even when joining an existing cluster,
+	// as this encompasses the case where we're redeploying to an existing
+	// cluster but with new databases to seed.
 	err = m.seedDatabases()
 	if err != nil {
 		return
@@ -168,6 +154,11 @@ func (m *MariaDBStartManager) node0JoinCluster() (err error) {
 
 	m.writeStringToFile(CLUSTERED)
 	return nil
+}
+
+func (m *MariaDBStartManager) writeStringToFile(contents string) {
+	m.logger.Log(fmt.Sprintf("updating file with contents: '%s'", contents))
+	m.osHelper.WriteStringToFile(m.stateFileLocation, contents)
 }
 
 func (m *MariaDBStartManager) seedDatabases() (err error) {

@@ -2,6 +2,7 @@ package mariadb_start_manager_test
 
 import (
 	"errors"
+
 	galera_fakes "github.com/cloudfoundry/mariadb_ctrl/galera_helper/fakes"
 	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
@@ -54,11 +55,6 @@ var _ = Describe("MariadbStartManager", func() {
 	ensureSeedDatabases := func() {
 		callExists := seededDatabases()
 		Expect(callExists).To(BeTrue())
-	}
-
-	ensureNeverSeedDatabases := func() {
-		callExists := seededDatabases()
-		Expect(callExists).To(BeFalse())
 	}
 
 	ensureStateFileContentIs := func(expected string) {
@@ -204,11 +200,11 @@ var _ = Describe("MariadbStartManager", func() {
 			mgr = createManager(1, 3)
 		})
 
-		It("joins cluster, does not seed databases, and writes '"+CLUSTERED+"' to file", func() {
+		It("joins cluster, seeds databases, and writes '"+CLUSTERED+"' to file", func() {
 			err := mgr.Execute()
 			Expect(err).ToNot(HaveOccurred())
 			ensureJoin()
-			ensureNeverSeedDatabases()
+			ensureSeedDatabases()
 		})
 
 		Context("When starting mariadb causes an error", func() {
