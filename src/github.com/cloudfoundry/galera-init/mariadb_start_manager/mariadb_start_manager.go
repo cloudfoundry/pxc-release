@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	CLUSTERED   = "CLUSTERED"
-	SINGLE_NODE = "SINGLE_NODE"
+	CLUSTERED       = "CLUSTERED"
+	NEEDS_BOOTSTRAP = "NEEDS_BOOTSTRAP"
+	SINGLE_NODE     = "SINGLE_NODE"
 
 	BOOTSTRAP_COMMAND = "bootstrap"
 	JOIN_COMMAND      = "start"
@@ -80,31 +81,36 @@ func (m *MariaDBStartManager) Execute() (err error) {
 		return
 	}
 
-	// If the state file reads 'NEEDS-BOOTSTRAP' then bootstrap, irrespective of
-	// node index etc
-	//
-
-	// node 0 has special behavior
-	if m.jobIndex == 0 {
-		// Initial deploy, state file does not exist
-		if !m.osHelper.FileExists(m.stateFileLocation) {
+	// If there is no state file, we must be a new deploy.
+	if !m.osHelper.FileExists(m.stateFileLocation) {
+		// In this case node 0 will bootstrap
+		if m.jobIndex == 0 {
 			m.logger.Log(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
 			err = m.bootstrapCluster(CLUSTERED)
 			return
+		} else { // Other nodes join existing cluster
+			err = m.joinCluster()
+			return
 		}
-
+	} else {
 		state, _ := m.osHelper.ReadFile(m.stateFileLocation)
 		m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", state))
-
-		// state file exists, previous state was single-node
-		if state == SINGLE_NODE {
+		switch state {
+		case SINGLE_NODE:
+			// Upgrading from a single-node cluster means we have to re-bootstrap
 			err = m.bootstrapCluster(CLUSTERED)
+			return
+		case CLUSTERED:
+			err = m.joinCluster()
+			return
+		case NEEDS_BOOTSTRAP:
+			err = m.bootstrapCluster(CLUSTERED)
+			return
+		default:
+			err = fmt.Errorf("Unsupported state file contents: %s", state)
 			return
 		}
 	}
-
-	err = m.joinCluster()
-	return
 }
 
 func (m *MariaDBStartManager) bootstrapCluster(state string) (err error) {

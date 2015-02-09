@@ -255,43 +255,121 @@ var _ = Describe("MariadbStartManager", func() {
 			})
 		})
 
-		Context("When file is present and reads '"+CLUSTERED+"'", func() {
-			BeforeEach(func() {
-				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(CLUSTERED, nil)
-			})
-
-			It("joins the cluster and seeds the databases", func() {
-				err := mgr.Execute()
-				Expect(err).ToNot(HaveOccurred())
-				ensureJoin()
-				ensureSeedDatabases()
-			})
-
-			Context("When starting mariadb causes an error", func() {
+		Context("When state file is present", func() {
+			Context("and reads '"+CLUSTERED+"'", func() {
 				BeforeEach(func() {
-					fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-						return errors.New("some error")
-					}
-				})
-				It("forwards the error", func() {
-					err := mgr.Execute()
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("When one or more other nodes is reachable", func() {
-				BeforeEach(func() {
-					fakeClusterReachabilityChecker.AnyNodesReachableReturns(true)
-
-					mgr = createManager(0, 3)
+					fakeOs.FileExistsReturns(true)
+					fakeOs.ReadFileReturns(CLUSTERED, nil)
 				})
 
-				It("joins the cluster and seeds databases", func() {
+				It("joins the cluster and seeds the databases", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureJoin()
 					ensureSeedDatabases()
+				})
+
+				Context("When starting mariadb causes an error", func() {
+					BeforeEach(func() {
+						fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
+							return errors.New("some error")
+						}
+					})
+					It("forwards the error", func() {
+						err := mgr.Execute()
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("When one or more other nodes is reachable", func() {
+					BeforeEach(func() {
+						fakeClusterReachabilityChecker.AnyNodesReachableReturns(true)
+
+						mgr = createManager(0, 3)
+					})
+
+					It("joins the cluster and seeds databases", func() {
+						err := mgr.Execute()
+						Expect(err).ToNot(HaveOccurred())
+						ensureJoin()
+						ensureSeedDatabases()
+					})
+				})
+			})
+
+			Context("and reads '"+NEEDS_BOOTSTRAP+"'", func() {
+				BeforeEach(func() {
+					fakeOs.FileExistsReturns(true)
+					fakeOs.ReadFileReturns(NEEDS_BOOTSTRAP, nil)
+				})
+
+				Context("for jobIndex == 0", func() {
+					BeforeEach(func() {
+						stubPgrepCheck(fakeOs)
+
+						mgr = createManager(0, 3)
+					})
+
+					It("joins cluster, seeds databases, and writes '"+CLUSTERED+"' to file", func() {
+						err := mgr.Execute()
+						Expect(err).NotTo(HaveOccurred())
+						ensureBootstrapWithStateFileContents(CLUSTERED)
+						ensureSeedDatabases()
+					})
+
+					Context("When starting mariadb causes an error", func() {
+						BeforeEach(func() {
+							fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
+								return errors.New("some error")
+							}
+						})
+						It("forwards the error", func() {
+							err := mgr.Execute()
+							Expect(err).To(HaveOccurred())
+						})
+					})
+				})
+
+				Context("for jobIndex > 0", func() {
+					BeforeEach(func() {
+						stubPgrepCheck(fakeOs)
+
+						mgr = createManager(1, 3)
+					})
+
+					It("joins cluster, seeds databases, and writes '"+CLUSTERED+"' to file", func() {
+						err := mgr.Execute()
+						Expect(err).NotTo(HaveOccurred())
+						ensureBootstrapWithStateFileContents(CLUSTERED)
+						ensureSeedDatabases()
+					})
+
+					Context("When starting mariadb causes an error", func() {
+						BeforeEach(func() {
+							fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
+								return errors.New("some error")
+							}
+						})
+						It("forwards the error", func() {
+							err := mgr.Execute()
+							Expect(err).To(HaveOccurred())
+						})
+					})
+				})
+			})
+
+			Context("and contains an invalid state", func() {
+				BeforeEach(func() {
+					fakeOs.FileExistsReturns(true)
+					fakeOs.ReadFileReturns("INVALID_STATE", nil)
+				})
+
+				It("does not join the cluster or seed the databases", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
+					Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(0))
+					Expect(seededDatabases()).To(BeFalse())
+					ensureNoWriteToStateFile()
 				})
 			})
 		})
