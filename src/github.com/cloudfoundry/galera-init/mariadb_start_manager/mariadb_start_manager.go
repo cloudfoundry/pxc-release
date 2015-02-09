@@ -96,11 +96,11 @@ func (m *MariaDBStartManager) Execute() (err error) {
 	}
 
 	//state file exists
-	orig_contents, _ := m.osHelper.ReadFile(m.stateFileLocation)
-	m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", orig_contents))
+	state, _ := m.osHelper.ReadFile(m.stateFileLocation)
+	m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", state))
 
 	//scaling up from a single node cluster
-	if orig_contents == SINGLE_NODE {
+	if state == SINGLE_NODE {
 		err = m.bootstrapCluster(CLUSTERED)
 		return
 	}
