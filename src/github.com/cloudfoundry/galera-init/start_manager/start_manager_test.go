@@ -25,14 +25,6 @@ var _ = Describe("StartManager", func() {
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
-	BeforeEach(func() {
-		testLogger = lagertest.NewTestLogger("start_manager")
-		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
-		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
-		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
-	})
-
 	stateFileLocation := "/stateFileLocation"
 	dbSeedScriptPath := "/dbSeedScriptPath"
 	maxDatabaseSeedTries := 2
@@ -109,6 +101,14 @@ var _ = Describe("StartManager", func() {
 			maxDatabaseSeedTries)
 	}
 
+	BeforeEach(func() {
+		testLogger = lagertest.NewTestLogger("start_manager")
+		fakeOs = new(os_fakes.FakeOsHelper)
+		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
+		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
+		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
+	})
+
 	Context("When there's an error seeding the databases", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
@@ -157,7 +157,7 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("When starting in single-node deployment", func() {
+	Context("When starting in single-node deployment", func() {
 
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
@@ -165,7 +165,7 @@ var _ = Describe("StartManager", func() {
 			mgr = createManager(0, 1)
 		})
 
-		Context("On initial deploy", func() {
+		Context("And it's an initial deploy", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(false)
 			})
@@ -178,13 +178,13 @@ var _ = Describe("StartManager", func() {
 			})
 		})
 
-		Context("When redeploying", func() {
+		Context("And it's a redeploy", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(SINGLE_NODE, nil)
 			})
 
-			It("boostraps, seeds databases and writes '"+SINGLE_NODE+"' to file", func() {
+			It("bootstraps, seeds databases and writes '"+SINGLE_NODE+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
 				ensureBootstrapWithStateFileContents(SINGLE_NODE)
@@ -193,7 +193,7 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("When starting in multi-node deployment on a node > 0", func() {
+	Context("When starting in multi-node deployment on a node > 0", func() {
 
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
@@ -221,7 +221,7 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("When starting in multi-node deployment on node 0", func() {
+	Context("When starting in multi-node deployment on node 0", func() {
 
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
@@ -230,7 +230,7 @@ var _ = Describe("StartManager", func() {
 			mgr = createManager(0, 3)
 		})
 
-		Context("On initial deploy", func() {
+		Context("And it's an initial deploy", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(false)
 			})
@@ -257,7 +257,7 @@ var _ = Describe("StartManager", func() {
 		})
 
 		Context("When state file is present", func() {
-			Context("and contains extra whitespace characters as well as '"+CLUSTERED+"'", func() {
+			Context("And contains extra whitespace characters as well as '"+CLUSTERED+"'", func() {
 				BeforeEach(func() {
 					fakeOs.FileExistsReturns(true)
 					fakeOs.ReadFileReturns(fmt.Sprintf("\n\n     %s \n", CLUSTERED), nil)
@@ -270,7 +270,7 @@ var _ = Describe("StartManager", func() {
 					ensureSeedDatabases()
 				})
 			})
-			Context("and reads '"+CLUSTERED+"'", func() {
+			Context("And reads '"+CLUSTERED+"'", func() {
 				BeforeEach(func() {
 					fakeOs.FileExistsReturns(true)
 					fakeOs.ReadFileReturns(CLUSTERED, nil)
@@ -283,7 +283,7 @@ var _ = Describe("StartManager", func() {
 					ensureSeedDatabases()
 				})
 
-				Context("When starting mariadb causes an error", func() {
+				Context("And starting mariadb causes an error", func() {
 					BeforeEach(func() {
 						fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
 							return errors.New("some error")
@@ -295,29 +295,15 @@ var _ = Describe("StartManager", func() {
 					})
 				})
 
-				Context("When one or more other nodes is reachable", func() {
-					BeforeEach(func() {
-						fakeClusterHealthChecker.HealthyClusterReturns(true)
-
-						mgr = createManager(0, 3)
-					})
-
-					It("joins the cluster and seeds databases", func() {
-						err := mgr.Execute()
-						Expect(err).ToNot(HaveOccurred())
-						ensureJoin()
-						ensureSeedDatabases()
-					})
-				})
 			})
 
-			Context("and reads '"+NEEDS_BOOTSTRAP+"'", func() {
+			Context("And reads '"+NEEDS_BOOTSTRAP+"'", func() {
 				BeforeEach(func() {
 					fakeOs.FileExistsReturns(true)
 					fakeOs.ReadFileReturns(NEEDS_BOOTSTRAP, nil)
 				})
 
-				Context("for jobIndex == 0", func() {
+				Context("And jobIndex == 0", func() {
 					BeforeEach(func() {
 						stubPgrepCheck(fakeOs)
 
@@ -331,7 +317,22 @@ var _ = Describe("StartManager", func() {
 						ensureSeedDatabases()
 					})
 
-					Context("When starting mariadb causes an error", func() {
+					Context("And one or more other nodes is reachable", func() {
+						BeforeEach(func() {
+							fakeClusterHealthChecker.HealthyClusterReturns(true)
+
+							mgr = createManager(0, 3)
+						})
+
+						It("joins the cluster and seeds databases", func() {
+							err := mgr.Execute()
+							Expect(err).ToNot(HaveOccurred())
+							ensureJoin()
+							ensureSeedDatabases()
+						})
+					})
+
+					Context("And starting mariadb causes an error", func() {
 						BeforeEach(func() {
 							fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
 								return errors.New("some error")
@@ -344,7 +345,7 @@ var _ = Describe("StartManager", func() {
 					})
 				})
 
-				Context("for jobIndex > 0", func() {
+				Context("And jobIndex > 0", func() {
 					BeforeEach(func() {
 						stubPgrepCheck(fakeOs)
 
@@ -358,7 +359,7 @@ var _ = Describe("StartManager", func() {
 						ensureSeedDatabases()
 					})
 
-					Context("When starting mariadb causes an error", func() {
+					Context("And starting mariadb causes an error", func() {
 						BeforeEach(func() {
 							fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
 								return errors.New("some error")
@@ -372,7 +373,7 @@ var _ = Describe("StartManager", func() {
 				})
 			})
 
-			Context("and contains an invalid state", func() {
+			Context("And contains an invalid state", func() {
 				BeforeEach(func() {
 					fakeOs.FileExistsReturns(true)
 					fakeOs.ReadFileReturns("INVALID_STATE", nil)
@@ -389,12 +390,12 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("When scaling the cluster", func() {
+	Context("When scaling the cluster", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
 		})
 
-		Context("When scaling down from many nodes to single", func() {
+		Context("And scaling down from many nodes to single", func() {
 			BeforeEach(func() {
 				mgr = createManager(0, 1)
 
@@ -410,7 +411,7 @@ var _ = Describe("StartManager", func() {
 			})
 		})
 
-		Context("Scaling from one to many nodes", func() {
+		Context("And scaling from one to many nodes", func() {
 			BeforeEach(func() {
 				mgr = createManager(0, 3)
 
@@ -427,7 +428,7 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("When determining whether upgrade is required exits with an error", func() {
+	Context("When determining whether upgrade is required exits with an error", func() {
 		BeforeEach(func() {
 			mgr = createManager(0, 3)
 
@@ -440,9 +441,8 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("When upgrade is required", func() {
-
-		Context("When performing the upgrade exits with an error", func() {
+	Context("When upgrade is required", func() {
+		Context("And performing the upgrade exits with an error", func() {
 
 			BeforeEach(func() {
 				mgr = createManager(0, 3)
