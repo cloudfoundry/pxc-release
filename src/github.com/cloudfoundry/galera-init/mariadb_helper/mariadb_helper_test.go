@@ -2,17 +2,18 @@ package mariadb_helper_test
 
 import (
 	"errors"
-	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
+
 	. "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("MariaDBHelper", func() {
 	var helper *MariaDBHelper
 	var fakeOs *os_fakes.FakeOsHelper
-	var fakeLogger *logger_fakes.FakeLogger
+	var testLogger lagertest.TestLogger
 
 	mysqlDaemonPath := "/mysqld"
 	mysqlClientPath := "/mysqlClientPath"
@@ -24,14 +25,14 @@ var _ = Describe("MariaDBHelper", func() {
 
 	BeforeEach(func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeLogger = new(logger_fakes.FakeLogger)
+		testLogger = *lagertest.NewTestLogger("mariadb_helper")
 
 		helper = NewMariaDBHelper(
 			fakeOs,
 			mysqlDaemonPath,
 			mysqlClientPath,
 			logFile,
-			fakeLogger,
+			testLogger,
 			upgradeScriptPath,
 			showDatabasesScriptPath,
 			username,

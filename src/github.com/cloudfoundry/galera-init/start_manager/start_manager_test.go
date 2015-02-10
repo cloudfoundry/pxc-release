@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
-	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	. "github.com/onsi/ginkgo"
@@ -18,14 +18,14 @@ var _ = Describe("StartManager", func() {
 
 	var mgr *StartManager
 
-	var fakeLogger *logger_fakes.FakeLogger
+	var testLogger *lagertest.TestLogger
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
 	BeforeEach(func() {
-		fakeLogger = new(logger_fakes.FakeLogger)
+		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
@@ -103,7 +103,7 @@ var _ = Describe("StartManager", func() {
 			dbSeedScriptPath,
 			jobIndex,
 			numberOfNodes,
-			fakeLogger,
+			testLogger,
 			fakeClusterHealthChecker,
 			maxDatabaseSeedTries)
 	}

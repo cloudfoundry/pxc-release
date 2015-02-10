@@ -2,11 +2,12 @@ package upgrader
 
 import (
 	"errors"
-	. "github.com/cloudfoundry/mariadb_ctrl/logger"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"regexp"
 	"time"
+
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/pivotal-golang/lager"
 )
 
 type Upgrader interface {
@@ -18,7 +19,7 @@ type UpgraderImpl struct {
 	packageVersionFile      string
 	lastUpgradedVersionFile string
 	osHelper                os_helper.OsHelper
-	logger                  Logger
+	logger                  lager.Logger
 	mariadbHelper           mariadb_helper.DBHelper
 }
 
@@ -31,7 +32,7 @@ func NewImpl(
 	packageVersionFile string,
 	lastUpgradedVersionFile string,
 	osHelper os_helper.OsHelper,
-	logger Logger,
+	logger lager.Logger,
 	mariadbHelper mariadb_helper.DBHelper) *UpgraderImpl {
 
 	return &UpgraderImpl{
@@ -46,22 +47,22 @@ func NewImpl(
 func (u UpgraderImpl) Upgrade() (err error) {
 	err = u.startStandaloneDatabaseSynchronously()
 	if err != nil {
-		u.logger.Log("Synchronously starting standalone database failed.")
+		u.logger.Info("Synchronously starting standalone database failed.")
 	}
 
-	u.logger.Log("Performing upgrade")
+	u.logger.Info("Performing upgrade")
 	output, upgrade_err := u.mariadbHelper.Upgrade()
 
 	if upgrade_err != nil {
 		acceptableErrorsCompiled, _ := regexp.Compile("already upgraded|Unknown command|WSREP has not yet prepared node")
 		if acceptableErrorsCompiled.MatchString(output) {
-			u.logger.Log("output string matches acceptable errors - continuing startup.")
+			u.logger.Info("output string matches acceptable errors - continuing startup.")
 		} else {
-			u.logger.Log("output string does not match acceptable errors - aborting startup.")
+			u.logger.Info("output string does not match acceptable errors - aborting startup.")
 			err = upgrade_err
 		}
 	} else {
-		u.logger.Log("Upgrade applied successfully")
+		u.logger.Info("Upgrade applied successfully")
 	}
 
 	if err != nil {
@@ -70,7 +71,7 @@ func (u UpgraderImpl) Upgrade() (err error) {
 
 	err = u.stopStandaloneDatabaseSynchronously()
 	if err != nil {
-		u.logger.Log("Synchronously stopping standalone database failed.")
+		u.logger.Info("Synchronously stopping standalone database failed.")
 	}
 	return
 }
@@ -78,7 +79,7 @@ func (u UpgraderImpl) Upgrade() (err error) {
 func (u UpgraderImpl) startStandaloneDatabaseSynchronously() (err error) {
 	err = u.mariadbHelper.StartMysqldInMode("stand-alone")
 	if err != nil {
-		u.logger.Log("There was an error starting mysql in stand-alone mode: " + err.Error())
+		u.logger.Info("There was an error starting mysql in stand-alone mode: " + err.Error())
 		return
 	}
 
@@ -96,7 +97,7 @@ func (u UpgraderImpl) startStandaloneDatabaseSynchronously() (err error) {
 func (u UpgraderImpl) stopStandaloneDatabaseSynchronously() (err error) {
 	err = u.mariadbHelper.StopStandaloneMysql()
 	if err != nil {
-		u.logger.Log("Failed to stop standalone MySQL")
+		u.logger.Info("Failed to stop standalone MySQL")
 		return
 	}
 
@@ -113,32 +114,32 @@ func (u UpgraderImpl) stopStandaloneDatabaseSynchronously() (err error) {
 
 func (u UpgraderImpl) NeedsUpgrade() (bool, error) {
 	if !u.osHelper.FileExists(u.lastUpgradedVersionFile) {
-		u.logger.Log("Last Upgraded version file: '" + u.lastUpgradedVersionFile + "' does not exist in the data dir. Upgrade required.")
+		u.logger.Info("Last Upgraded version file: '" + u.lastUpgradedVersionFile + "' does not exist in the data dir. Upgrade required.")
 		return true, nil
 	}
 
 	if !u.osHelper.FileExists(u.packageVersionFile) {
-		u.logger.Log("Cannot determine whether upgrade is required. Error reading package version file: '" + u.packageVersionFile + "'. File does not exist.")
+		u.logger.Info("Cannot determine whether upgrade is required. Error reading package version file: '" + u.packageVersionFile + "'. File does not exist.")
 		return false, errors.New("MariaDB package is invalid because it is missing the version file.")
 	}
 
 	existing_version, err := u.osHelper.ReadFile(u.lastUpgradedVersionFile)
 	if err != nil {
-		u.logger.Log("Cannot determine whether upgrade is required. Error reading last upgraded version file: '" + u.lastUpgradedVersionFile + "'.")
+		u.logger.Info("Cannot determine whether upgrade is required. Error reading last upgraded version file: '" + u.lastUpgradedVersionFile + "'.")
 		return false, errors.New("Could not read last upgraded version file in the data dir.")
 	}
 
 	package_version, err := u.osHelper.ReadFile(u.packageVersionFile)
 	if err != nil {
-		u.logger.Log("Cannot determine whether upgrade is required. Error reading package version file: '" + u.packageVersionFile + "'.")
+		u.logger.Info("Cannot determine whether upgrade is required. Error reading package version file: '" + u.packageVersionFile + "'.")
 		return false, errors.New("MariaDB package is invalid because the version file is not readable.")
 	}
 
 	if existing_version != package_version {
-		u.logger.Log("Need to upgrade to latest version.")
+		u.logger.Info("Need to upgrade to latest version.")
 		return true, nil
 	} else {
-		u.logger.Log("Already upgraded to latest version, starting normally.")
+		u.logger.Info("Already upgraded to latest version, starting normally.")
 		return false, nil
 	}
 }

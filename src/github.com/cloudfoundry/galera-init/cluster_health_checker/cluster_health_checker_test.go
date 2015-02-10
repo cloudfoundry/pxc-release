@@ -5,22 +5,18 @@ import (
 	"net/http"
 
 	. "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type testLogger struct {
-	messages []string
-}
-
-func (l testLogger) Log(msg string) {
-	l.messages = append(l.messages, msg)
-}
-
-var theTestLogger = testLogger{}
-
 var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
+	var testLogger lagertest.TestLogger
+	BeforeEach(func() {
+		testLogger = *lagertest.NewTestLogger("cluster_health_checker")
+	})
+
 	It("Returns true when a reachable node returns healthy", func() {
 		requestUrls := []string{}
 		MakeRequest = func(url string) (*http.Response, error) {
@@ -28,7 +24,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return &http.Response{StatusCode: 200}, nil
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", theTestLogger)
+		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
 
 		Expect(checker.HealthyCluster()).To(BeTrue())
 		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/"}))
@@ -41,7 +37,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return &http.Response{StatusCode: 503}, nil
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", theTestLogger)
+		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
 
 		Expect(checker.HealthyCluster()).To(BeFalse())
 		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/", "http://5.6.7.8:9200/"}))
@@ -54,7 +50,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return nil, errors.New("Timed out")
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", theTestLogger)
+		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
 
 		Expect(checker.HealthyCluster()).To(BeFalse())
 		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/", "http://5.6.7.8:9200/"}))

@@ -2,19 +2,20 @@ package upgrader_test
 
 import (
 	"errors"
-	logger_fakes "github.com/cloudfoundry/mariadb_ctrl/logger/fakes"
+
 	db_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Upgrader", func() {
 	var upgrader *UpgraderImpl
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeDbHelper *db_fakes.FakeDBHelper
-	var fakeLogger *logger_fakes.FakeLogger
+	var testLogger *lagertest.TestLogger
 
 	lastUpgradedVersionFile := "/var/vcap/store/mysql/mysql_upgrade_info"
 	packageVersionFile := "/var/vcap/package/mariadb/VERSION"
@@ -22,13 +23,13 @@ var _ = Describe("Upgrader", func() {
 	BeforeEach(func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeDbHelper = new(db_fakes.FakeDBHelper)
-		fakeLogger = new(logger_fakes.FakeLogger)
+		testLogger = lagertest.NewTestLogger("upgrader")
 
 		upgrader = NewImpl(
 			packageVersionFile,
 			lastUpgradedVersionFile,
 			fakeOs,
-			fakeLogger,
+			testLogger,
 			fakeDbHelper,
 		)
 	})

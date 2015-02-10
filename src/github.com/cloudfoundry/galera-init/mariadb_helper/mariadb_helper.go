@@ -2,8 +2,9 @@ package mariadb_helper
 
 import (
 	"fmt"
-	. "github.com/cloudfoundry/mariadb_ctrl/logger"
+
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/pivotal-golang/lager"
 )
 
 const (
@@ -22,7 +23,7 @@ type MariaDBHelper struct {
 	mysqlDaemonPath         string
 	mysqlClientPath         string
 	logFileLocation         string
-	logger                  Logger
+	logger                  lager.Logger
 	upgradeScriptPath       string
 	showDatabasesScriptPath string
 	username                string
@@ -34,7 +35,7 @@ func NewMariaDBHelper(
 	mysqlDaemonPath string,
 	mysqlClientPath string,
 	logFileLocation string,
-	logger Logger,
+	logger lager.Logger,
 	upgradeScriptPath string,
 	showDatabasesScriptPath string,
 	username string,
@@ -53,19 +54,19 @@ func NewMariaDBHelper(
 }
 
 func (m MariaDBHelper) StartMysqldInMode(command string) error {
-	m.logger.Log("Starting node with '" + command + "' command.")
+	m.logger.Info("Starting node with '" + command + "' command.")
 	err := m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, command)
 	if err != nil {
-		m.logger.Log(fmt.Sprintf("Error starting node: %s", err.Error()))
+		m.logger.Info(fmt.Sprintf("Error starting node: %s", err.Error()))
 	}
 	return err
 }
 
 func (m MariaDBHelper) StopStandaloneMysql() (err error) {
-	m.logger.Log("Stopping standalone node")
+	m.logger.Info("Stopping standalone node")
 	err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_STANDALONE_COMMAND)
 	if err != nil {
-		m.logger.Log(fmt.Sprintf("Error stopping node: %s", err.Error()))
+		m.logger.Info(fmt.Sprintf("Error stopping node: %s", err.Error()))
 	}
 	return err
 }
@@ -80,13 +81,13 @@ func (m MariaDBHelper) Upgrade() (output string, err error) {
 }
 
 func (m MariaDBHelper) IsDatabaseReachable() bool {
-	m.logger.Log(fmt.Sprintf("Determining if database is reachable"))
+	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
 	output, err := m.osHelper.RunCommand("bash", m.showDatabasesScriptPath, m.mysqlClientPath, m.username, m.password)
 	if err != nil {
-		m.logger.Log(fmt.Sprintf("database not reachable: %s", output))
+		m.logger.Info(fmt.Sprintf("database not reachable: %s", output))
 		return false
 	} else {
-		m.logger.Log(fmt.Sprintf("database is reachable"))
+		m.logger.Info(fmt.Sprintf("database is reachable"))
 		return true
 	}
 }

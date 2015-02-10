@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
-	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
+	"github.com/pivotal-golang/lager"
 )
 
 const (
@@ -32,7 +32,7 @@ type StartManager struct {
 	maxDatabaseSeedTries    int
 	mariaDBHelper           mariadb_helper.DBHelper
 	upgrader                upgrader.Upgrader
-	logger                  Logger
+	logger                  lager.Logger
 }
 
 func New(
@@ -43,7 +43,7 @@ func New(
 	dbSeedScriptPath string,
 	jobIndex int,
 	numberOfNodes int,
-	logger Logger,
+	logger lager.Logger,
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
 	maxDatabaseSeedTries int) *StartManager {
 	return &StartManager{
@@ -63,20 +63,20 @@ func New(
 func (m *StartManager) Execute() (err error) {
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
-		m.logger.Log((fmt.Sprintf("Failed to determine upgrade status with error: %s", err.Error())))
+		m.logger.Info((fmt.Sprintf("Failed to determine upgrade status with error: %s", err.Error())))
 		return
 	}
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.logger.Log((fmt.Sprintf("Failed to upgrade with error: %s", err.Error())))
+			m.logger.Info((fmt.Sprintf("Failed to upgrade with error: %s", err.Error())))
 			return
 		}
 	}
 
 	// Single-node deploy always bootstraps new cluster
 	if m.numberOfNodes == 1 {
-		m.logger.Log("Single node deploy")
+		m.logger.Info("Single node deploy")
 		err = m.bootstrapCluster(SINGLE_NODE)
 		return
 	}
@@ -85,7 +85,7 @@ func (m *StartManager) Execute() (err error) {
 	if !m.osHelper.FileExists(m.stateFileLocation) {
 		// In this case node 0 will bootstrap
 		if m.jobIndex == 0 {
-			m.logger.Log(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
+			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
 			err = m.bootstrapCluster(CLUSTERED)
 			return
 		} else { // Other nodes join existing cluster
@@ -94,7 +94,7 @@ func (m *StartManager) Execute() (err error) {
 		}
 	} else {
 		state, _ := m.osHelper.ReadFile(m.stateFileLocation)
-		m.logger.Log(fmt.Sprintf("state file exists and contains: '%s'", state))
+		m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
 		switch state {
 		case SINGLE_NODE:
 			// Upgrading from a single-node cluster means we have to re-bootstrap
@@ -124,7 +124,7 @@ func (m *StartManager) bootstrapCluster(state string) (err error) {
 		return
 	}
 
-	m.logger.Log(fmt.Sprintf("writing file with contents: '%s'", state))
+	m.logger.Info(fmt.Sprintf("writing file with contents: '%s'", state))
 	m.osHelper.WriteStringToFile(m.stateFileLocation, state)
 	return
 }
@@ -165,7 +165,7 @@ func (m *StartManager) joinCluster() (err error) {
 }
 
 func (m *StartManager) writeStringToFile(contents string) {
-	m.logger.Log(fmt.Sprintf("updating file with contents: '%s'", contents))
+	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
 	m.osHelper.WriteStringToFile(m.stateFileLocation, contents)
 }
 
@@ -174,16 +174,16 @@ func (m *StartManager) seedDatabases() (err error) {
 	for numTries := 0; numTries < m.maxDatabaseSeedTries; numTries++ {
 		output, err = m.osHelper.RunCommand("bash", m.dbSeedScriptPath)
 		if err == nil {
-			m.logger.Log("Seeding databases succeeded.")
+			m.logger.Info("Seeding databases succeeded.")
 			return
 		} else {
-			m.logger.Log(fmt.Sprintf("There was a problem seeding the database: '%s'", output))
-			m.logger.Log("Retrying seeding script...")
+			m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", output))
+			m.logger.Info("Retrying seeding script...")
 			m.osHelper.Sleep(1 * time.Second)
 		}
 	}
 
-	m.logger.Log(fmt.Sprintf("Error seeding databases: '%s'\n'%s'", err.Error(), output))
+	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'\n'%s'", err.Error(), output))
 	m.mariaDBHelper.StopStandaloneMysql()
 	return
 }

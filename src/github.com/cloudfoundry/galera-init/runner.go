@@ -2,14 +2,13 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
-	. "github.com/cloudfoundry/mariadb_ctrl/logger"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	manager "github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
+	"github.com/pivotal-golang/lager"
 )
 
 var (
@@ -40,7 +39,7 @@ var (
 func main() {
 	flag.Parse()
 
-	logger := NewStdOutLogger(*loggingOn)
+	logger := lager.NewLogger("mariadb_ctrl")
 	osHelper := os_helper.NewImpl()
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
@@ -80,7 +79,6 @@ func main() {
 
 	err := mgr.Execute()
 	if err != nil {
-		logger.Log("Execution exited with an error")
-		os.Exit(1)
+		logger.Fatal("Execution exited with an error", err)
 	}
 }
