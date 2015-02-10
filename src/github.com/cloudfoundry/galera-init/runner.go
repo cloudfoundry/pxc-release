@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
@@ -40,6 +41,11 @@ func main() {
 	flag.Parse()
 
 	logger := lager.NewLogger("mariadb_ctrl")
+	sink := lager.NewReconfigurableSink(
+		lager.NewWriterSink(os.Stdout, lager.DEBUG),
+		lager.INFO,
+	)
+	logger.RegisterSink(sink)
 	osHelper := os_helper.NewImpl()
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(

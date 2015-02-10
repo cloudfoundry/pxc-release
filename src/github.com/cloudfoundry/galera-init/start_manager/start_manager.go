@@ -2,6 +2,7 @@ package start_manager
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
@@ -93,7 +94,8 @@ func (m *StartManager) Execute() (err error) {
 			return
 		}
 	} else {
-		state, _ := m.osHelper.ReadFile(m.stateFileLocation)
+		file_contents, _ := m.osHelper.ReadFile(m.stateFileLocation)
+		state := strings.TrimSpace(file_contents)
 		m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
 		switch state {
 		case SINGLE_NODE:
