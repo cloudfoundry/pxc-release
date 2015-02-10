@@ -17,42 +17,61 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 		testLogger = *lagertest.NewTestLogger("cluster_health_checker")
 	})
 
-	It("Returns true when a reachable node returns healthy", func() {
-		requestUrls := []string{}
+	It("Constructs the correct url", func() {
+		requestURLs := []string{}
 		MakeRequest = func(url string) (*http.Response, error) {
-			requestUrls = append(requestUrls, url)
+			requestURLs = append(requestURLs, url)
+			return &http.Response{StatusCode: 200}, nil
+		}
+
+		checker := NewClusterHealthChecker("1.2.3.4", testLogger)
+		checker.HealthyCluster()
+
+		Expect(requestURLs).To(Equal([]string{"http://1.2.3.4:9200/"}))
+
+	})
+
+	It("Immediately returns true when a reachable node returns healthy", func() {
+		requestURLs := []string{}
+		MakeRequest = func(url string) (*http.Response, error) {
+			requestURLs = append(requestURLs, url)
 			return &http.Response{StatusCode: 200}, nil
 		}
 
 		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
+		healthy := checker.HealthyCluster()
 
-		Expect(checker.HealthyCluster()).To(BeTrue())
-		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/"}))
+		Expect(healthy).To(BeTrue())
+
+		Expect(len(requestURLs)).To(Equal(1))
+		Expect(requestURLs[0]).To(ContainSubstring("1.2.3.4"))
 	})
 
 	It("Returns false when all nodes are reachable and return unhealthy", func() {
-		requestUrls := []string{}
+		requestURLs := []string{}
 		MakeRequest = func(url string) (*http.Response, error) {
-			requestUrls = append(requestUrls, url)
+			requestURLs = append(requestURLs, url)
 			return &http.Response{StatusCode: 503}, nil
 		}
 
 		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
+		healthy := checker.HealthyCluster()
 
-		Expect(checker.HealthyCluster()).To(BeFalse())
-		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/", "http://5.6.7.8:9200/"}))
+		Expect(healthy).To(BeFalse())
+		Expect(len(requestURLs)).To(Equal(2))
 	})
 
 	It("Returns false when all nodes are not reachable", func() {
-		requestUrls := []string{}
+		requestURLs := []string{}
 		MakeRequest = func(url string) (*http.Response, error) {
-			requestUrls = append(requestUrls, url)
+			requestURLs = append(requestURLs, url)
 			return nil, errors.New("Timed out")
 		}
 
 		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
+		healthy := checker.HealthyCluster()
 
-		Expect(checker.HealthyCluster()).To(BeFalse())
-		Expect(requestUrls).To(Equal([]string{"http://1.2.3.4:9200/", "http://5.6.7.8:9200/"}))
+		Expect(healthy).To(BeFalse())
+		Expect(len(requestURLs)).To(Equal(2))
 	})
 })
