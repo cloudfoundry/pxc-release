@@ -4,48 +4,45 @@ import (
 	"flag"
 	"os"
 
+	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	manager "github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
-	"github.com/pivotal-golang/lager"
 )
 
 var (
-	packageVersionFile      = flag.String("packagingVersionFile", "/var/vcap/packages/mariadb/VERSION", "Specifies the location of the file containing the MySQL version as deployed")
-	lastUpgradedVersionFile = flag.String("lastUpgradedVersionFile", "/var/vcap/store/mysql/mysql_upgrade_info", "Specifies the location of the file MySQL upgrade writes.")
+	flags                   = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	packageVersionFile      = flags.String("packagingVersionFile", "/var/vcap/packages/mariadb/VERSION", "Specifies the location of the file containing the MySQL version as deployed")
+	lastUpgradedVersionFile = flags.String("lastUpgradedVersionFile", "/var/vcap/store/mysql/mysql_upgrade_info", "Specifies the location of the file MySQL upgrade writes.")
 
-	loggingOn       = flag.Bool("loggingOn", true, "Specifies whether logging is enabled")
-	logFileLocation = flag.String("logFile", "", "Specifies the location of the log file mysql sends logs to")
+	loggingOn       = flags.Bool("loggingOn", true, "Specifies whether logging is enabled")
+	logFileLocation = flags.String("logFile", "", "Specifies the location of the log file mysql sends logs to")
 
-	mysqlDaemonPath = flag.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
-	mysqlClientPath = flag.String("mysqlClient", "", "Specifies the location of the mysql client executable")
+	mysqlDaemonPath = flags.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
+	mysqlClientPath = flags.String("mysqlClient", "", "Specifies the location of the mysql client executable")
 
-	dbSeedScriptPath        = flag.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
-	upgradeScriptPath       = flag.String("upgradeScriptPath", "", "Specifies the location of the script that performs the MySQL upgrade")
-	showDatabasesScriptPath = flag.String("showDatabasesScriptPath", "", "Specifies the location of the script that displays the MySQL databases")
+	dbSeedScriptPath        = flags.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
+	upgradeScriptPath       = flags.String("upgradeScriptPath", "", "Specifies the location of the script that performs the MySQL upgrade")
+	showDatabasesScriptPath = flags.String("showDatabasesScriptPath", "", "Specifies the location of the script that displays the MySQL databases")
 
-	stateFileLocation = flag.String("stateFile", "", "Specifies the location to store the statefile for MySQL boot")
+	stateFileLocation = flags.String("stateFile", "", "Specifies the location to store the statefile for MySQL boot")
 
-	mysqlUser     = flag.String("mysqlUser", "root", "Specifies the user name for MySQL")
-	mysqlPassword = flag.String("mysqlPassword", "", "Specifies the password for connecting to MySQL")
+	mysqlUser     = flags.String("mysqlUser", "root", "Specifies the user name for MySQL")
+	mysqlPassword = flags.String("mysqlPassword", "", "Specifies the password for connecting to MySQL")
 
-	jobIndex             = flag.Int("jobIndex", 1, "Specifies the job index of the MySQL node")
-	numberOfNodes        = flag.Int("numberOfNodes", 3, "Number of nodes deployed in the galera cluster")
-	clusterIps           = flag.String("clusterIps", "", "Comma-delimited list of IPs in the galera cluster")
-	maxDatabaseSeedTries = flag.Int("maxDatabaseSeedTries", 1, "How many times to attempt database seeding before it fails")
+	jobIndex             = flags.Int("jobIndex", 1, "Specifies the job index of the MySQL node")
+	numberOfNodes        = flags.Int("numberOfNodes", 3, "Number of nodes deployed in the galera cluster")
+	clusterIps           = flags.String("clusterIps", "", "Comma-delimited list of IPs in the galera cluster")
+	maxDatabaseSeedTries = flags.Int("maxDatabaseSeedTries", 1, "How many times to attempt database seeding before it fails")
 )
 
 func main() {
-	flag.Parse()
+	cf_lager.AddFlags(flags)
+	flags.Parse(os.Args[1:])
 
-	logger := lager.NewLogger("mariadb_ctrl")
-	sink := lager.NewReconfigurableSink(
-		lager.NewWriterSink(os.Stdout, lager.DEBUG),
-		lager.INFO,
-	)
-	logger.RegisterSink(sink)
+	logger, _ := cf_lager.New("mariadb_ctrl")
 	osHelper := os_helper.NewImpl()
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
