@@ -62,15 +62,6 @@ var _ = Describe("StartManager", func() {
 		Expect(count).To(Equal(0))
 	}
 
-	stubPgrepCheck := func(fakeOs *os_fakes.FakeOsHelper) {
-		fakeOs.RunCommandWithTimeoutStub = func(_ int, _ string, _ string, args ...string) error {
-			if args[0] == "pgrep" {
-				return errors.New("did not find the daemon")
-			}
-			return nil
-		}
-	}
-
 	ensureBootstrapWithStateFileContents := func(contents string) {
 		Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(1))
 		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(BOOTSTRAP_COMMAND))
@@ -157,8 +148,6 @@ var _ = Describe("StartManager", func() {
 	Describe("SeedDatabases", func() {
 		Context("When there's an error seeding the databases", func() {
 			BeforeEach(func() {
-				stubPgrepCheck(fakeOs)
-
 				mgr = createManager(0, 1)
 			})
 
@@ -207,8 +196,6 @@ var _ = Describe("StartManager", func() {
 	Context("When starting in single-node deployment", func() {
 
 		BeforeEach(func() {
-			stubPgrepCheck(fakeOs)
-
 			mgr = createManager(0, 1)
 		})
 
@@ -242,10 +229,6 @@ var _ = Describe("StartManager", func() {
 
 	Context("When starting in multi-node deployment", func() {
 
-		BeforeEach(func() {
-			stubPgrepCheck(fakeOs)
-		})
-
 		Context("And it's an initial deploy, so there's no state file", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(false)
@@ -267,8 +250,6 @@ var _ = Describe("StartManager", func() {
 			Context("And jobIndex > 0", func() {
 
 				BeforeEach(func() {
-					stubPgrepCheck(fakeOs)
-
 					mgr = createManager(1, 3)
 				})
 
@@ -342,8 +323,6 @@ var _ = Describe("StartManager", func() {
 
 				Context("And jobIndex > 0", func() {
 					BeforeEach(func() {
-						stubPgrepCheck(fakeOs)
-
 						mgr = createManager(1, 3)
 					})
 
@@ -373,10 +352,6 @@ var _ = Describe("StartManager", func() {
 	})
 
 	Context("When scaling the cluster", func() {
-		BeforeEach(func() {
-			stubPgrepCheck(fakeOs)
-		})
-
 		Context("And scaling down from many nodes to single", func() {
 			BeforeEach(func() {
 				mgr = createManager(0, 1)
