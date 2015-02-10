@@ -1,4 +1,4 @@
-package mariadb_start_manager
+package start_manager
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ const (
 	JOIN_COMMAND      = "start"
 )
 
-type MariaDBStartManager struct {
+type StartManager struct {
 	osHelper                os_helper.OsHelper
 	stateFileLocation       string
 	mysqlClientPath         string
@@ -45,8 +45,8 @@ func New(
 	numberOfNodes int,
 	logger Logger,
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
-	maxDatabaseSeedTries int) *MariaDBStartManager {
-	return &MariaDBStartManager{
+	maxDatabaseSeedTries int) *StartManager {
+	return &StartManager{
 		osHelper:             osHelper,
 		stateFileLocation:    stateFileLocation,
 		jobIndex:             jobIndex,
@@ -60,7 +60,7 @@ func New(
 	}
 }
 
-func (m *MariaDBStartManager) Execute() (err error) {
+func (m *StartManager) Execute() (err error) {
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
 		m.logger.Log((fmt.Sprintf("Failed to determine upgrade status with error: %s", err.Error())))
@@ -113,7 +113,7 @@ func (m *MariaDBStartManager) Execute() (err error) {
 	}
 }
 
-func (m *MariaDBStartManager) bootstrapCluster(state string) (err error) {
+func (m *StartManager) bootstrapCluster(state string) (err error) {
 	err = m.bootstrapNode()
 	if err != nil {
 		return
@@ -129,7 +129,7 @@ func (m *MariaDBStartManager) bootstrapCluster(state string) (err error) {
 	return
 }
 
-func (m *MariaDBStartManager) bootstrapNode() error {
+func (m *StartManager) bootstrapNode() error {
 	var command string
 
 	// We do not condone bootstrapping if a cluster already exists and is healthy
@@ -146,7 +146,7 @@ func (m *MariaDBStartManager) bootstrapNode() error {
 	return nil
 }
 
-func (m *MariaDBStartManager) joinCluster() (err error) {
+func (m *StartManager) joinCluster() (err error) {
 	err = m.mariaDBHelper.StartMysqldInMode(JOIN_COMMAND)
 	if err != nil {
 		return err
@@ -164,12 +164,12 @@ func (m *MariaDBStartManager) joinCluster() (err error) {
 	return nil
 }
 
-func (m *MariaDBStartManager) writeStringToFile(contents string) {
+func (m *StartManager) writeStringToFile(contents string) {
 	m.logger.Log(fmt.Sprintf("updating file with contents: '%s'", contents))
 	m.osHelper.WriteStringToFile(m.stateFileLocation, contents)
 }
 
-func (m *MariaDBStartManager) seedDatabases() (err error) {
+func (m *StartManager) seedDatabases() (err error) {
 	var output string
 	for numTries := 0; numTries < m.maxDatabaseSeedTries; numTries++ {
 		output, err = m.osHelper.RunCommand("bash", m.dbSeedScriptPath)

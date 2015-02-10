@@ -1,4 +1,4 @@
-package mariadb_start_manager_test
+package start_manager_test
 
 import (
 	"errors"
@@ -9,14 +9,14 @@ import (
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
 
-	. "github.com/cloudfoundry/mariadb_ctrl/mariadb_start_manager"
+	. "github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("MariadbStartManager", func() {
+var _ = Describe("StartManager", func() {
 
-	var mgr *MariaDBStartManager
+	var mgr *StartManager
 
 	var fakeLogger *logger_fakes.FakeLogger
 	var fakeOs *os_fakes.FakeOsHelper
@@ -94,7 +94,7 @@ var _ = Describe("MariadbStartManager", func() {
 		Expect(fakeDBHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
 	}
 
-	createManager := func(jobIndex int, numberOfNodes int) *MariaDBStartManager {
+	createManager := func(jobIndex int, numberOfNodes int) *StartManager {
 		return New(
 			fakeOs,
 			fakeDBHelper,
