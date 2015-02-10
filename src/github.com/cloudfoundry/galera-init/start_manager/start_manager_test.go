@@ -2,6 +2,7 @@ package start_manager_test
 
 import (
 	"errors"
+	"fmt"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
@@ -256,6 +257,19 @@ var _ = Describe("StartManager", func() {
 		})
 
 		Context("When state file is present", func() {
+			Context("and contains extra whitespace characters as well as '"+CLUSTERED+"'", func() {
+				BeforeEach(func() {
+					fakeOs.FileExistsReturns(true)
+					fakeOs.ReadFileReturns(fmt.Sprintf("\n\n     %s \n", CLUSTERED), nil)
+				})
+
+				It("joins the cluster and seeds the databases", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
+					ensureJoin()
+					ensureSeedDatabases()
+				})
+			})
 			Context("and reads '"+CLUSTERED+"'", func() {
 				BeforeEach(func() {
 					fakeOs.FileExistsReturns(true)
