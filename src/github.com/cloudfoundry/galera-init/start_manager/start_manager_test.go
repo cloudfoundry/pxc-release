@@ -109,6 +109,32 @@ var _ = Describe("StartManager", func() {
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 	})
 
+	Context("When starting mariadb with StartMysqldInMode causes an error", func() {
+		BeforeEach(func() {
+			mgr = createManager(0, 3)
+			fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
+				return errors.New("some error")
+			}
+		})
+		It("forwards the error", func() {
+			err := mgr.Execute()
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("When determining whether upgrade is required with NeedsUpgrade exits with an error", func() {
+		BeforeEach(func() {
+			mgr = createManager(0, 3)
+
+			fakeUpgrader.NeedsUpgradeReturns(false, errors.New("Error determining whether upgrade is required"))
+		})
+
+		It("forwards the error", func() {
+			err := mgr.Execute()
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	Context("When there's an error seeding the databases", func() {
 		BeforeEach(func() {
 			stubPgrepCheck(fakeOs)
@@ -207,18 +233,6 @@ var _ = Describe("StartManager", func() {
 			ensureJoin()
 			ensureSeedDatabases()
 		})
-
-		Context("When starting mariadb causes an error", func() {
-			BeforeEach(func() {
-				fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-					return errors.New("some error")
-				}
-			})
-			It("forwards the error", func() {
-				err := mgr.Execute()
-				Expect(err).To(HaveOccurred())
-			})
-		})
 	})
 
 	Context("When starting in multi-node deployment on node 0", func() {
@@ -240,19 +254,6 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureBootstrapWithStateFileContents(CLUSTERED)
 				ensureSeedDatabases()
-			})
-
-			Context("When starting mariadb causes an error", func() {
-				BeforeEach(func() {
-					fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-						return errors.New("some error")
-					}
-				})
-
-				It("forwards the error", func() {
-					err := mgr.Execute()
-					Expect(err).To(HaveOccurred())
-				})
 			})
 		})
 
@@ -282,19 +283,6 @@ var _ = Describe("StartManager", func() {
 					ensureJoin()
 					ensureSeedDatabases()
 				})
-
-				Context("And starting mariadb causes an error", func() {
-					BeforeEach(func() {
-						fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-							return errors.New("some error")
-						}
-					})
-					It("forwards the error", func() {
-						err := mgr.Execute()
-						Expect(err).To(HaveOccurred())
-					})
-				})
-
 			})
 
 			Context("And reads '"+NEEDS_BOOTSTRAP+"'", func() {
@@ -331,18 +319,6 @@ var _ = Describe("StartManager", func() {
 							ensureSeedDatabases()
 						})
 					})
-
-					Context("And starting mariadb causes an error", func() {
-						BeforeEach(func() {
-							fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-								return errors.New("some error")
-							}
-						})
-						It("forwards the error", func() {
-							err := mgr.Execute()
-							Expect(err).To(HaveOccurred())
-						})
-					})
 				})
 
 				Context("And jobIndex > 0", func() {
@@ -357,18 +333,6 @@ var _ = Describe("StartManager", func() {
 						Expect(err).NotTo(HaveOccurred())
 						ensureBootstrapWithStateFileContents(CLUSTERED)
 						ensureSeedDatabases()
-					})
-
-					Context("And starting mariadb causes an error", func() {
-						BeforeEach(func() {
-							fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-								return errors.New("some error")
-							}
-						})
-						It("forwards the error", func() {
-							err := mgr.Execute()
-							Expect(err).To(HaveOccurred())
-						})
 					})
 				})
 			})
@@ -425,19 +389,6 @@ var _ = Describe("StartManager", func() {
 				ensureBootstrapWithStateFileContents(CLUSTERED)
 				ensureSeedDatabases()
 			})
-		})
-	})
-
-	Context("When determining whether upgrade is required exits with an error", func() {
-		BeforeEach(func() {
-			mgr = createManager(0, 3)
-
-			fakeUpgrader.NeedsUpgradeReturns(false, errors.New("Error determining whether upgrade is required"))
-		})
-
-		It("forwards the error", func() {
-			err := mgr.Execute()
-			Expect(err).To(HaveOccurred())
 		})
 	})
 
