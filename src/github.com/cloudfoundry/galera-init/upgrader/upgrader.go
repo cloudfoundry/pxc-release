@@ -15,7 +15,7 @@ type Upgrader interface {
 	NeedsUpgrade() (bool, error)
 }
 
-type UpgraderImpl struct {
+type upgrader struct {
 	packageVersionFile      string
 	lastUpgradedVersionFile string
 	osHelper                os_helper.OsHelper
@@ -24,18 +24,18 @@ type UpgraderImpl struct {
 }
 
 var (
-	DB_REACHABLE_POLLING_ATTEMPTS = 30
-	DB_REACHABLE_POLLING_DELAY    = 10 * time.Second
+	DBReachablePollingAttempts = 30
+	DBReachablePollingDelay    = 10 * time.Second
 )
 
-func NewImpl(
+func NewUpgrader(
 	packageVersionFile string,
 	lastUpgradedVersionFile string,
 	osHelper os_helper.OsHelper,
 	logger lager.Logger,
-	mariadbHelper mariadb_helper.DBHelper) *UpgraderImpl {
+	mariadbHelper mariadb_helper.DBHelper) Upgrader {
 
-	return &UpgraderImpl{
+	return upgrader{
 		packageVersionFile:      packageVersionFile,
 		lastUpgradedVersionFile: lastUpgradedVersionFile,
 		osHelper:                osHelper,
@@ -44,7 +44,7 @@ func NewImpl(
 	}
 }
 
-func (u UpgraderImpl) Upgrade() (err error) {
+func (u upgrader) Upgrade() (err error) {
 	err = u.startStandaloneDatabaseSynchronously()
 	if err != nil {
 		u.logger.Info("Synchronously starting standalone database failed.")
@@ -76,43 +76,43 @@ func (u UpgraderImpl) Upgrade() (err error) {
 	return
 }
 
-func (u UpgraderImpl) startStandaloneDatabaseSynchronously() (err error) {
+func (u upgrader) startStandaloneDatabaseSynchronously() (err error) {
 	err = u.mariadbHelper.StartMysqldInMode("stand-alone")
 	if err != nil {
 		u.logger.Info("There was an error starting mysql in stand-alone mode: " + err.Error())
 		return
 	}
 
-	for tries := 0; tries < DB_REACHABLE_POLLING_ATTEMPTS; tries++ {
+	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
 		if u.mariadbHelper.IsDatabaseReachable() {
 			return nil
 		}
 
-		u.osHelper.Sleep(DB_REACHABLE_POLLING_DELAY)
+		u.osHelper.Sleep(DBReachablePollingDelay)
 	}
 
 	return errors.New("Database is not reachable after 30 tries.")
 }
 
-func (u UpgraderImpl) stopStandaloneDatabaseSynchronously() (err error) {
+func (u upgrader) stopStandaloneDatabaseSynchronously() (err error) {
 	err = u.mariadbHelper.StopStandaloneMysql()
 	if err != nil {
 		u.logger.Info("Failed to stop standalone MySQL")
 		return
 	}
 
-	for tries := 0; tries < DB_REACHABLE_POLLING_ATTEMPTS; tries++ {
+	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
 		if !u.mariadbHelper.IsDatabaseReachable() {
 			return nil
 		}
 
-		u.osHelper.Sleep(DB_REACHABLE_POLLING_DELAY)
+		u.osHelper.Sleep(DBReachablePollingDelay)
 	}
 
 	return errors.New("Database is still reachable after 30 tries.")
 }
 
-func (u UpgraderImpl) NeedsUpgrade() (bool, error) {
+func (u upgrader) NeedsUpgrade() (bool, error) {
 	if !u.osHelper.FileExists(u.lastUpgradedVersionFile) {
 		u.logger.Info("Last Upgraded version file: '" + u.lastUpgradedVersionFile + "' does not exist in the data dir. Upgrade required.")
 		return true, nil
@@ -138,8 +138,7 @@ func (u UpgraderImpl) NeedsUpgrade() (bool, error) {
 	if existing_version != package_version {
 		u.logger.Info("Need to upgrade to latest version.")
 		return true, nil
-	} else {
-		u.logger.Info("Already upgraded to latest version, starting normally.")
-		return false, nil
 	}
+	u.logger.Info("Already upgraded to latest version, starting normally.")
+	return false, nil
 }

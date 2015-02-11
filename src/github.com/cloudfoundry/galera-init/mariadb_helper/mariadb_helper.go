@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	STOP_STANDALONE_COMMAND = "stop-stand-alone"
+	StopStandaloneCommand = "stop-stand-alone"
 )
 
 type DBHelper interface {
@@ -64,7 +64,7 @@ func (m MariaDBHelper) StartMysqldInMode(command string) error {
 
 func (m MariaDBHelper) StopStandaloneMysql() (err error) {
 	m.logger.Info("Stopping standalone node")
-	err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, STOP_STANDALONE_COMMAND)
+	err = m.osHelper.RunCommandWithTimeout(10, m.logFileLocation, "bash", m.mysqlDaemonPath, StopStandaloneCommand)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error stopping node: %s", err.Error()))
 	}
@@ -86,8 +86,8 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("database not reachable: %s", output))
 		return false
-	} else {
-		m.logger.Info(fmt.Sprintf("database is reachable"))
-		return true
 	}
+
+	m.logger.Info(fmt.Sprintf("database is reachable"))
+	return true
 }

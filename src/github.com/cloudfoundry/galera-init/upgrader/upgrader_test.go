@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("Upgrader", func() {
-	var upgrader *UpgraderImpl
+	var upgrader Upgrader
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeDbHelper *db_fakes.FakeDBHelper
 	var testLogger *lagertest.TestLogger
@@ -25,7 +25,7 @@ var _ = Describe("Upgrader", func() {
 		fakeDbHelper = new(db_fakes.FakeDBHelper)
 		testLogger = lagertest.NewTestLogger("upgrader")
 
-		upgrader = NewImpl(
+		upgrader = NewUpgrader(
 			packageVersionFile,
 			lastUpgradedVersionFile,
 			fakeOs,
@@ -39,7 +39,7 @@ var _ = Describe("Upgrader", func() {
 			numTries := 0
 			fakeDbHelper.IsDatabaseReachableStub = func() bool {
 				numTries += 1
-				if numTries == DB_REACHABLE_POLLING_ATTEMPTS {
+				if numTries == DBReachablePollingAttempts {
 					return true
 				}
 				return false
@@ -47,7 +47,7 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
-			expectedPollingCounts := DB_REACHABLE_POLLING_ATTEMPTS + 1
+			expectedPollingCounts := DBReachablePollingAttempts + 1
 			err := upgrader.Upgrade()
 			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
@@ -67,7 +67,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the database server is not available after "+string(DB_REACHABLE_POLLING_ATTEMPTS)+" attempts to reconnect", func() {
+		Context("when the database server is not available after "+string(DBReachablePollingAttempts)+" attempts to reconnect", func() {
 			BeforeEach(func() {
 				fakeDbHelper.IsDatabaseReachableStub = func() bool {
 					return false
@@ -76,7 +76,7 @@ var _ = Describe("Upgrader", func() {
 
 			It("returns an error", func() {
 				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(DB_REACHABLE_POLLING_ATTEMPTS))
+				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(DBReachablePollingAttempts))
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -121,8 +121,8 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when we issue a stop to the DB and it hasn't stopped after polling "+string(DB_REACHABLE_POLLING_ATTEMPTS)+" times", func() {
-			expectedPollingCounts := DB_REACHABLE_POLLING_ATTEMPTS + 1
+		Context("when we issue a stop to the DB and it hasn't stopped after polling "+string(DBReachablePollingAttempts)+" times", func() {
+			expectedPollingCounts := DBReachablePollingAttempts + 1
 			BeforeEach(func() {
 				fakeDbHelper.IsDatabaseReachableStub = func() bool {
 					return true

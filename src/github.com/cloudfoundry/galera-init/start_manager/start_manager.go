@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	CLUSTERED       = "CLUSTERED"
-	NEEDS_BOOTSTRAP = "NEEDS_BOOTSTRAP"
-	SINGLE_NODE     = "SINGLE_NODE"
+	Clustered      = "CLUSTERED"
+	NeedsBootstrap = "NEEDS_BOOTSTRAP"
+	SingleNode     = "SINGLE_NODE"
 
-	BOOTSTRAP_COMMAND = "bootstrap"
-	JOIN_COMMAND      = "start"
+	BootstrapCommand = "bootstrap"
+	JoinCommand      = "start"
 )
 
 type StartManager struct {
@@ -78,7 +78,7 @@ func (m *StartManager) Execute() (err error) {
 	// Single-node deploy always bootstraps new cluster
 	if m.numberOfNodes == 1 {
 		m.logger.Info("Single node deploy")
-		err = m.bootstrapCluster(SINGLE_NODE)
+		err = m.bootstrapCluster(SingleNode)
 		return
 	}
 
@@ -86,33 +86,29 @@ func (m *StartManager) Execute() (err error) {
 	if !m.osHelper.FileExists(m.stateFileLocation) {
 		// In this case node 0 will bootstrap
 		if m.jobIndex == 0 {
-			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", CLUSTERED))
-			err = m.bootstrapCluster(CLUSTERED)
+			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", Clustered))
+			err = m.bootstrapCluster(Clustered)
 			return
-		} else { // Other nodes join existing cluster
-			err = m.joinCluster()
-			return
-		}
-	} else {
-		file_contents, _ := m.osHelper.ReadFile(m.stateFileLocation)
-		state := strings.TrimSpace(file_contents)
-		m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
-		switch state {
-		case SINGLE_NODE:
-			// Upgrading from a single-node cluster means we have to re-bootstrap
-			err = m.bootstrapCluster(CLUSTERED)
-			return
-		case CLUSTERED:
-			err = m.joinCluster()
-			return
-		case NEEDS_BOOTSTRAP:
-			err = m.bootstrapCluster(CLUSTERED)
-			return
-		default:
-			err = fmt.Errorf("Unsupported state file contents: %s", state)
-			return
-		}
+		} // Other nodes join existing cluster
+		err = m.joinCluster()
+		return
 	}
+
+	file_contents, _ := m.osHelper.ReadFile(m.stateFileLocation)
+	state := strings.TrimSpace(file_contents)
+	m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
+	switch state {
+	case SingleNode:
+		// Upgrading from a single-node cluster means we have to re-bootstrap
+		err = m.bootstrapCluster(Clustered)
+	case Clustered:
+		err = m.joinCluster()
+	case NeedsBootstrap:
+		err = m.bootstrapCluster(Clustered)
+	default:
+		err = fmt.Errorf("Unsupported state file contents: %s", state)
+	}
+	return
 }
 
 func (m *StartManager) bootstrapCluster(state string) (err error) {
@@ -136,9 +132,9 @@ func (m *StartManager) bootstrapNode() error {
 
 	// We do not condone bootstrapping if a cluster already exists and is healthy
 	if m.clusterHealthChecker.HealthyCluster() {
-		command = JOIN_COMMAND
+		command = JoinCommand
 	} else {
-		command = BOOTSTRAP_COMMAND
+		command = BootstrapCommand
 	}
 
 	err := m.mariaDBHelper.StartMysqldInMode(command)
@@ -149,7 +145,7 @@ func (m *StartManager) bootstrapNode() error {
 }
 
 func (m *StartManager) joinCluster() (err error) {
-	err = m.mariaDBHelper.StartMysqldInMode(JOIN_COMMAND)
+	err = m.mariaDBHelper.StartMysqldInMode(JoinCommand)
 	if err != nil {
 		return err
 	}
@@ -162,7 +158,7 @@ func (m *StartManager) joinCluster() (err error) {
 		return
 	}
 
-	m.writeStringToFile(CLUSTERED)
+	m.writeStringToFile(Clustered)
 	return nil
 }
 
@@ -178,11 +174,10 @@ func (m *StartManager) seedDatabases() (err error) {
 		if err == nil {
 			m.logger.Info("Seeding databases succeeded.")
 			return
-		} else {
-			m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", output))
-			m.logger.Info("Retrying seeding script...")
-			m.osHelper.Sleep(1 * time.Second)
 		}
+		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", output))
+		m.logger.Info("Retrying seeding script...")
+		m.osHelper.Sleep(1 * time.Second)
 	}
 
 	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'\n'%s'", err.Error(), output))

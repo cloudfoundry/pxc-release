@@ -74,7 +74,7 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(timeout).To(Equal(10))
 			Expect(logDestination).To(Equal(logFile))
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{mysqlDaemonPath, STOP_STANDALONE_COMMAND}))
+			Expect(args).To(Equal([]string{mysqlDaemonPath, StopStandaloneCommand}))
 		})
 
 		Context("when an error occurs", func() {
