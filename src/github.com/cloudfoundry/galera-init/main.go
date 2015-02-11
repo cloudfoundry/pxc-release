@@ -57,7 +57,7 @@ func main() {
 		*mysqlPassword,
 	)
 
-	upgrader := upgrader.NewImpl(
+	upgrader := upgrader.NewUpgrader(
 		*packageVersionFile,
 		*lastUpgradedVersionFile,
 		osHelper,
