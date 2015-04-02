@@ -7,8 +7,7 @@ install:
   - PATH=$PATH:$HOME/gopath/bin
   - go get -v -t ./...
 script:
-  - go tool vet -composites=false $(ls -d */ | grep -v Godeps)
-  - ginkgo -p -r -race -failOnPending -randomizeAllSpecs
+  - bin/test
 branches:
   only:
   - master
