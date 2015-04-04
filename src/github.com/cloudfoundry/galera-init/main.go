@@ -8,7 +8,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
-	manager "github.com/cloudfoundry/mariadb_ctrl/start_manager"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 )
 
@@ -66,7 +66,7 @@ func main() {
 
 	galeraHelper := cluster_health_checker.NewClusterHealthChecker(*clusterIps, logger)
 
-	mgr := manager.New(
+	mgr := start_manager.New(
 		osHelper,
 		mariaDBHelper,
 		upgrader,
