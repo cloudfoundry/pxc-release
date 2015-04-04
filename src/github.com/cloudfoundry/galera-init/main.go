@@ -17,7 +17,6 @@ var (
 	packageVersionFile      = flags.String("packagingVersionFile", "/var/vcap/packages/mariadb/VERSION", "Specifies the location of the file containing the MySQL version as deployed")
 	lastUpgradedVersionFile = flags.String("lastUpgradedVersionFile", "/var/vcap/store/mysql/mysql_upgrade_info", "Specifies the location of the file MySQL upgrade writes.")
 
-	loggingOn       = flags.Bool("loggingOn", true, "Specifies whether logging is enabled")
 	logFileLocation = flags.String("logFile", "", "Specifies the location of the log file mysql sends logs to")
 
 	mysqlDaemonPath = flags.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
