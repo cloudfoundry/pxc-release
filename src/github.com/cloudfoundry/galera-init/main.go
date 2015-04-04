@@ -22,9 +22,8 @@ var (
 	mysqlDaemonPath = flags.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
 	mysqlClientPath = flags.String("mysqlClient", "", "Specifies the location of the mysql client executable")
 
-	dbSeedScriptPath        = flags.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
-	upgradeScriptPath       = flags.String("upgradeScriptPath", "", "Specifies the location of the script that performs the MySQL upgrade")
-	showDatabasesScriptPath = flags.String("showDatabasesScriptPath", "", "Specifies the location of the script that displays the MySQL databases")
+	dbSeedScriptPath  = flags.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
+	upgradeScriptPath = flags.String("upgradeScriptPath", "", "Specifies the location of the script that performs the MySQL upgrade")
 
 	stateFileLocation = flags.String("stateFile", "", "Specifies the location to store the statefile for MySQL boot")
 
@@ -51,7 +50,6 @@ func main() {
 		*logFileLocation,
 		logger,
 		*upgradeScriptPath,
-		*showDatabasesScriptPath,
 		*mysqlUser,
 		*mysqlPassword,
 	)

@@ -19,7 +19,6 @@ var _ = Describe("MariaDBHelper", func() {
 	mysqlClientPath := "/mysqlClientPath"
 	logFile := "/log-file.log"
 	upgradeScriptPath := "/upgrade_script"
-	showDatabasesScriptPath := "/showDatabasesScriptPath"
 	username := "user"
 	password := "password"
 
@@ -34,7 +33,6 @@ var _ = Describe("MariaDBHelper", func() {
 			logFile,
 			testLogger,
 			upgradeScriptPath,
-			showDatabasesScriptPath,
 			username,
 			password,
 		)

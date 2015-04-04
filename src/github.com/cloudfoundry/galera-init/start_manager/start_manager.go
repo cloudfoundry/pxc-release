@@ -22,18 +22,17 @@ const (
 )
 
 type StartManager struct {
-	osHelper                os_helper.OsHelper
-	stateFileLocation       string
-	mysqlClientPath         string
-	jobIndex                int
-	numberOfNodes           int
-	dbSeedScriptPath        string
-	showDatabasesScriptPath string
-	clusterHealthChecker    cluster_health_checker.ClusterHealthChecker
-	maxDatabaseSeedTries    int
-	mariaDBHelper           mariadb_helper.DBHelper
-	upgrader                upgrader.Upgrader
-	logger                  lager.Logger
+	osHelper             os_helper.OsHelper
+	stateFileLocation    string
+	mysqlClientPath      string
+	jobIndex             int
+	numberOfNodes        int
+	dbSeedScriptPath     string
+	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
+	maxDatabaseSeedTries int
+	mariaDBHelper        mariadb_helper.DBHelper
+	upgrader             upgrader.Upgrader
+	logger               lager.Logger
 }
 
 func New(

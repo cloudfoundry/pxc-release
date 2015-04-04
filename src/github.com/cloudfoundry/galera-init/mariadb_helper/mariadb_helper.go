@@ -3,7 +3,10 @@ package mariadb_helper
 import (
 	"fmt"
 
+	"database/sql"
+
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -19,15 +22,14 @@ type DBHelper interface {
 }
 
 type MariaDBHelper struct {
-	osHelper                os_helper.OsHelper
-	mysqlDaemonPath         string
-	mysqlClientPath         string
-	logFileLocation         string
-	logger                  lager.Logger
-	upgradeScriptPath       string
-	showDatabasesScriptPath string
-	username                string
-	password                string
+	osHelper          os_helper.OsHelper
+	mysqlDaemonPath   string
+	mysqlClientPath   string
+	logFileLocation   string
+	logger            lager.Logger
+	upgradeScriptPath string
+	username          string
+	password          string
 }
 
 func NewMariaDBHelper(
@@ -37,19 +39,17 @@ func NewMariaDBHelper(
 	logFileLocation string,
 	logger lager.Logger,
 	upgradeScriptPath string,
-	showDatabasesScriptPath string,
 	username string,
 	password string) *MariaDBHelper {
 	return &MariaDBHelper{
-		osHelper:                osHelper,
-		mysqlDaemonPath:         mysqlDaemonPath,
-		mysqlClientPath:         mysqlClientPath,
-		logFileLocation:         logFileLocation,
-		logger:                  logger,
-		upgradeScriptPath:       upgradeScriptPath,
-		showDatabasesScriptPath: showDatabasesScriptPath,
-		username:                username,
-		password:                password,
+		osHelper:          osHelper,
+		mysqlDaemonPath:   mysqlDaemonPath,
+		mysqlClientPath:   mysqlClientPath,
+		logFileLocation:   logFileLocation,
+		logger:            logger,
+		upgradeScriptPath: upgradeScriptPath,
+		username:          username,
+		password:          password,
 	}
 }
 
@@ -82,9 +82,16 @@ func (m MariaDBHelper) Upgrade() (output string, err error) {
 
 func (m MariaDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
-	output, err := m.osHelper.RunCommand("bash", m.showDatabasesScriptPath, m.mysqlClientPath, m.username, m.password)
+
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/", m.username, m.password))
 	if err != nil {
-		m.logger.Info(fmt.Sprintf("database not reachable: %s", output))
+		m.logger.Info("database not reachable", lager.Data{"err": err})
+		return false
+	}
+
+	err = db.Ping()
+	if err != nil {
+		m.logger.Info("database not reachable", lager.Data{"err": err})
 		return false
 	}
 
