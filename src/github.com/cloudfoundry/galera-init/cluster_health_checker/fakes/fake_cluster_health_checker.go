@@ -11,7 +11,7 @@ type FakeClusterHealthChecker struct {
 	HealthyClusterStub        func() bool
 	healthyClusterMutex       sync.RWMutex
 	healthyClusterArgsForCall []struct{}
-	healthyClusterReturns struct {
+	healthyClusterReturns     struct {
 		result1 bool
 	}
 }

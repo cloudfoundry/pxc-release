@@ -19,11 +19,11 @@ var (
 
 	logFileLocation = flags.String("logFile", "", "Specifies the location of the log file mysql sends logs to")
 
-	mysqlDaemonPath = flags.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
-	mysqlClientPath = flags.String("mysqlClient", "", "Specifies the location of the mysql client executable")
+	mysqlDaemonPath  = flags.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
+	mysqlClientPath  = flags.String("mysqlClient", "", "Specifies the location of the mysql client executable")
+	mysqlUpgradePath = flags.String("mysqlUpgradePath", "/var/vcap/packages/mariadb/bin/mysql_upgrade", "Specifies the location of the script that performs the MySQL upgrade")
 
-	dbSeedScriptPath  = flags.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
-	upgradeScriptPath = flags.String("upgradeScriptPath", "", "Specifies the location of the script that performs the MySQL upgrade")
+	dbSeedScriptPath = flags.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
 
 	stateFileLocation = flags.String("stateFile", "", "Specifies the location to store the statefile for MySQL boot")
 
@@ -49,7 +49,7 @@ func main() {
 		*mysqlClientPath,
 		*logFileLocation,
 		logger,
-		*upgradeScriptPath,
+		*mysqlUpgradePath,
 		*mysqlUser,
 		*mysqlPassword,
 	)

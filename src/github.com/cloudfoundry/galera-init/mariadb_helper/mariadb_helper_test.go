@@ -18,7 +18,7 @@ var _ = Describe("MariaDBHelper", func() {
 	mysqlDaemonPath := "/mysqld"
 	mysqlClientPath := "/mysqlClientPath"
 	logFile := "/log-file.log"
-	upgradeScriptPath := "/upgrade_script"
+	mysqlUpgradePath := "/mysql_upgrade"
 	username := "user"
 	password := "password"
 
@@ -32,7 +32,7 @@ var _ = Describe("MariaDBHelper", func() {
 			mysqlClientPath,
 			logFile,
 			testLogger,
-			upgradeScriptPath,
+			mysqlUpgradePath,
 			username,
 			password,
 		)
@@ -93,8 +93,8 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{upgradeScriptPath, username, password, logFile}))
+			Expect(executable).To(Equal(mysqlUpgradePath))
+			Expect(args).To(Equal([]string{"-u" + username, "-p" + password}))
 		})
 
 		It("returns the output and error", func() {

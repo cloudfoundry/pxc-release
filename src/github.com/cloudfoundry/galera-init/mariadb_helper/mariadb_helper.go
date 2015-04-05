@@ -22,14 +22,14 @@ type DBHelper interface {
 }
 
 type MariaDBHelper struct {
-	osHelper          os_helper.OsHelper
-	mysqlDaemonPath   string
-	mysqlClientPath   string
-	logFileLocation   string
-	logger            lager.Logger
-	upgradeScriptPath string
-	username          string
-	password          string
+	osHelper         os_helper.OsHelper
+	mysqlDaemonPath  string
+	mysqlClientPath  string
+	logFileLocation  string
+	logger           lager.Logger
+	mysqlUpgradePath string
+	username         string
+	password         string
 }
 
 func NewMariaDBHelper(
@@ -38,18 +38,18 @@ func NewMariaDBHelper(
 	mysqlClientPath string,
 	logFileLocation string,
 	logger lager.Logger,
-	upgradeScriptPath string,
+	mysqlUpgradePath string,
 	username string,
 	password string) *MariaDBHelper {
 	return &MariaDBHelper{
-		osHelper:          osHelper,
-		mysqlDaemonPath:   mysqlDaemonPath,
-		mysqlClientPath:   mysqlClientPath,
-		logFileLocation:   logFileLocation,
-		logger:            logger,
-		upgradeScriptPath: upgradeScriptPath,
-		username:          username,
-		password:          password,
+		osHelper:         osHelper,
+		mysqlDaemonPath:  mysqlDaemonPath,
+		mysqlClientPath:  mysqlClientPath,
+		logFileLocation:  logFileLocation,
+		logger:           logger,
+		mysqlUpgradePath: mysqlUpgradePath,
+		username:         username,
+		password:         password,
 	}
 }
 
@@ -73,11 +73,9 @@ func (m MariaDBHelper) StopStandaloneMysql() (err error) {
 
 func (m MariaDBHelper) Upgrade() (output string, err error) {
 	return m.osHelper.RunCommand(
-		"bash",
-		m.upgradeScriptPath,
-		m.username,
-		m.password,
-		m.logFileLocation)
+		m.mysqlUpgradePath,
+		"-u"+m.username,
+		"-p"+m.password)
 }
 
 func (m MariaDBHelper) IsDatabaseReachable() bool {
