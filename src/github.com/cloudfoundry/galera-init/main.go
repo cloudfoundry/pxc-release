@@ -14,14 +14,14 @@ import (
 
 var (
 	flags                   = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	packageVersionFile      = flags.String("packagingVersionFile", "/var/vcap/packages/mariadb/VERSION", "Specifies the location of the file containing the MySQL version as deployed")
-	lastUpgradedVersionFile = flags.String("lastUpgradedVersionFile", "/var/vcap/store/mysql/mysql_upgrade_info", "Specifies the location of the file MySQL upgrade writes.")
+	packageVersionFile      = flags.String("packagingVersionFile", "", "Specifies the location of the file containing the MySQL version as deployed")
+	lastUpgradedVersionFile = flags.String("lastUpgradedVersionFile", "", "Specifies the location of the file MySQL upgrade writes.")
 
 	logFileLocation = flags.String("logFile", "", "Specifies the location of the log file mysql sends logs to")
 
 	mysqlDaemonPath  = flags.String("mysqlDaemon", "", "Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server")
 	mysqlClientPath  = flags.String("mysqlClient", "", "Specifies the location of the mysql client executable")
-	mysqlUpgradePath = flags.String("mysqlUpgradePath", "/var/vcap/packages/mariadb/bin/mysql_upgrade", "Specifies the location of the script that performs the MySQL upgrade")
+	mysqlUpgradePath = flags.String("mysqlUpgradePath", "", "Specifies the location of the script that performs the MySQL upgrade")
 
 	dbSeedScriptPath = flags.String("dbSeedScript", "", "Specifies the location of the script that seeds the server with databases")
 
