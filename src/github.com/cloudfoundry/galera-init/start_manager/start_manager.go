@@ -42,7 +42,7 @@ func New(
 	stateFileLocation string,
 	dbSeedScriptPath string,
 	jobIndex int,
-	numberOfNodes int,
+	clusterIps string,
 	logger lager.Logger,
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
 	maxDatabaseSeedTries int) *StartManager {
@@ -50,7 +50,7 @@ func New(
 		osHelper:             osHelper,
 		stateFileLocation:    stateFileLocation,
 		jobIndex:             jobIndex,
-		numberOfNodes:        numberOfNodes,
+		numberOfNodes:        len(strings.Split(clusterIps, ",")),
 		logger:               logger,
 		dbSeedScriptPath:     dbSeedScriptPath,
 		clusterHealthChecker: clusterHealthChecker,

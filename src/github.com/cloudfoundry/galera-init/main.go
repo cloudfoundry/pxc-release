@@ -31,7 +31,6 @@ var (
 	mysqlPassword = flags.String("mysqlPassword", "", "Specifies the password for connecting to MySQL")
 
 	jobIndex             = flags.Int("jobIndex", 1, "Specifies the job index of the MySQL node")
-	numberOfNodes        = flags.Int("numberOfNodes", 3, "Number of nodes deployed in the galera cluster")
 	clusterIps           = flags.String("clusterIps", "", "Comma-delimited list of IPs in the galera cluster")
 	maxDatabaseSeedTries = flags.Int("maxDatabaseSeedTries", 1, "How many times to attempt database seeding before it fails")
 )
@@ -71,7 +70,7 @@ func main() {
 		*stateFileLocation,
 		*dbSeedScriptPath,
 		*jobIndex,
-		*numberOfNodes,
+		*clusterIps,
 		logger,
 		galeraHelper,
 		*maxDatabaseSeedTries,

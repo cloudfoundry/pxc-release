@@ -79,6 +79,16 @@ var _ = Describe("StartManager", func() {
 	}
 
 	createManager := func(jobIndex int, numberOfNodes int) *StartManager {
+
+		clusterIps := ""
+
+		for i := 0; i < numberOfNodes; i++ {
+			clusterIps += "myIp"
+			if i < numberOfNodes-1 {
+				clusterIps += ","
+			}
+		}
+
 		return New(
 			fakeOs,
 			fakeDBHelper,
@@ -86,7 +96,7 @@ var _ = Describe("StartManager", func() {
 			stateFileLocation,
 			dbSeedScriptPath,
 			jobIndex,
-			numberOfNodes,
+			clusterIps,
 			testLogger,
 			fakeClusterHealthChecker,
 			maxDatabaseSeedTries)
