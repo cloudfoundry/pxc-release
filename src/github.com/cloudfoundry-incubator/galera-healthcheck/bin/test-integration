@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eux
+
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
+
+# This script assumes that it lives one directory below the src directory.
+SRC_DIR="$( cd $MY_DIR/.. && pwd  )"
+
+export DB_HOST=${DB_HOST:-127.0.0.1}
+export DB_PORT=${DB_PORT:-3306}
+export DB_USER=${DB_USER:-root}
+# Allow blank password
+export DB_PASSWORD=${DB_PASSWORD-password}
+
+ginkgo -r -p -race -failOnPending -randomizeAllSpecs "$@" ${SRC_DIR}/integration

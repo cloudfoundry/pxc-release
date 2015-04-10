@@ -63,9 +63,9 @@ var availableWhenReadOnly = flag.Bool(
 )
 
 var pidfile = flag.String(
-	"pidfile",
+	"pidFile",
 	"",
-	"Location for the pidfile",
+	"Path to create a pid file when the healthcheck server has started",
 )
 
 var healthchecker *healthcheck.Healthchecker
@@ -78,17 +78,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
-	fmt.Fprintf(w, "Galera Cluster Node status: %s", msg)
-	LogWithTimestamp(msg)
+    body := fmt.Sprintf("Galera Cluster Node Status: %s", msg)
+	fmt.Fprint(w, body)
+	LogWithTimestamp(fmt.Sprintf("Healhcheck Response Body: %s", body))
 }
 
 func main() {
 	flag.Parse()
-
-	err := ioutil.WriteFile(*pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
-	if err != nil {
-		panic(err)
-	}
 
 	db, _ := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", *dbUser, *dbPassword, *dbHost, *dbPort))
 	config := healthcheck.HealthcheckerConfig{
@@ -99,5 +95,34 @@ func main() {
 	healthchecker = healthcheck.New(db, config)
 
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), nil)
+
+    address := fmt.Sprintf("%s:%d", *host, *port)
+
+    go func() {
+        resp, err := http.Get(fmt.Sprintf("http://%s/", address))
+        if err != nil {
+            panic(err)
+        }
+        defer resp.Body.Close()
+        body, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+            panic(err)
+        }
+        LogWithTimestamp(fmt.Sprintf("Initial Response: %s", body))
+
+        if *pidfile != "" {
+            // existence of pid file means the server is running
+            err = ioutil.WriteFile(*pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
+            if err != nil {
+                panic(err)
+            }
+        }
+
+        // inform the user that the server is up
+        fmt.Println("Healthcheck Started")
+    }()
+
+    server := &http.Server{Addr: address}
+    server.ListenAndServe()
+
 }
