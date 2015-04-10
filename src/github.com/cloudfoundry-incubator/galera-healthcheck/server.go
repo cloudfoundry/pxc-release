@@ -14,20 +14,38 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var serverPort = flag.Int(
+var host = flag.String(
+    "host",
+    "0.0.0.0",
+    "Specifies the host of the healthcheck server",
+)
+
+var port = flag.Int(
 	"port",
 	8080,
 	"Specifies the port of the healthcheck server",
 )
 
-var mysqlUser = flag.String(
-	"user",
-	"root",
-	"Specifies the MySQL user to connect as",
+var dbHost = flag.String(
+    "dbHost",
+    "127.0.0.1",
+    "Specifies the MySQL host to connect to",
 )
 
-var mysqlPassword = flag.String(
-	"password",
+var dbPort = flag.Int(
+    "dbPort",
+    3306,
+    "Specifies the MySQL port to connect to",
+)
+
+var dbUser = flag.String(
+	"dbUser",
+	"root",
+	"Specifies the MySQL user to connect with",
+)
+
+var dbPassword = flag.String(
+	"dbPassword",
 	"",
 	"Specifies the MySQL password to connect with",
 )
@@ -78,7 +96,7 @@ func main() {
 		panic(err)
 	}
 
-	db, _ := sql.Open("mysql", fmt.Sprintf("%s:%s@/", *mysqlUser, *mysqlPassword))
+	db, _ := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", *dbUser, *dbPassword, *dbHost, *dbPort))
 	config := healthcheck.HealthcheckerConfig{
 		*availableWhenDonor,
 		*availableWhenReadOnly,
@@ -87,5 +105,5 @@ func main() {
 	healthchecker = healthcheck.New(db, config)
 
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(fmt.Sprintf(":%d", *serverPort), nil)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), nil)
 }
