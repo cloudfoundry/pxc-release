@@ -1,9 +1,6 @@
 package healthcheck_test
 
 import (
-//	"strings"
-//
-//	"github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -14,7 +11,6 @@ import (
 
 	"os"
 	"os/exec"
-    "database/sql"
     "time"
 )
 
@@ -68,6 +64,8 @@ func startHealthcheck(flags ...string) *gexec.Session {
         flags = append(flags, fmt.Sprintf("-dbPassword=%s", dbPassword))
     }
 
+    flags = append(flags, "-logLevel=debug")
+
 	command := exec.Command(binaryPath, flags...)
 
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -90,48 +88,9 @@ func stopHealthcheck(session *gexec.Session) {
     Eventually(session).Should(gexec.Exit())
 }
 
-//func uuidWithUnderscores(prefix string) string {
-//	id, err := uuid.NewV4()
-//	Expect(err).ToNot(HaveOccurred())
-//	idString := fmt.Sprintf("%s_%s", prefix, id.String())
-//	return strings.Replace(idString, "-", "_", -1)
-//}
-
-func NewConnection() (*sql.DB, error) {
-    return sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/", dbUser(), dbPassword(), dbHost(), dbPort()))
-}
-
 func port() int {
     // magic number for start of port range
     return 51100 + GinkgoParallelNode() - 1
-}
-
-func dbHost() string {
-    dbHost := os.Getenv("DB_HOST")
-    if dbHost == "" {
-        dbHost = "127.0.0.1"
-    }
-    return dbHost
-}
-
-func dbPort() string {
-    dbPort := os.Getenv("DB_PORT")
-    if dbPort == "" {
-        dbPort = "3306"
-    }
-    return dbPort
-}
-
-func dbUser() string {
-    dbUser := os.Getenv("DB_USER")
-    if dbUser == "" {
-        dbUser = "root"
-    }
-    return dbUser
-}
-
-func dbPassword() string {
-    return os.Getenv("DB_PASSWORD")
 }
 
 func endpoint() string {

@@ -10,67 +10,16 @@ import (
 	"strconv"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	. "github.com/cloudfoundry-incubator/galera-healthcheck/logger"
 	_ "github.com/go-sql-driver/mysql"
+    "github.com/cloudfoundry-incubator/cf-lager"
+    "github.com/pivotal-golang/lager"
 )
 
-var host = flag.String(
-    "host",
-    "0.0.0.0",
-    "Specifies the host of the healthcheck server",
-)
 
-var port = flag.Int(
-	"port",
-	8080,
-	"Specifies the port of the healthcheck server",
-)
-
-var dbHost = flag.String(
-    "dbHost",
-    "127.0.0.1",
-    "Specifies the MySQL host to connect to",
-)
-
-var dbPort = flag.Int(
-    "dbPort",
-    3306,
-    "Specifies the MySQL port to connect to",
-)
-
-var dbUser = flag.String(
-	"dbUser",
-	"root",
-	"Specifies the MySQL user to connect with",
-)
-
-var dbPassword = flag.String(
-	"dbPassword",
-	"",
-	"Specifies the MySQL password to connect with",
-)
-
-var availableWhenDonor = flag.Bool(
-	"availWhenDonor",
-	true,
-	"Specifies if the healthcheck allows availability when in donor state",
-)
-
-var availableWhenReadOnly = flag.Bool(
-	"availWhenReadOnly",
-	false,
-	"Specifies if the healthcheck allows availability when in read only mode",
-)
-
-var pidfile = flag.String(
-	"pidFile",
-	"",
-	"Path to create a pid file when the healthcheck server has started",
-)
 
 var healthchecker *healthcheck.Healthchecker
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func handler(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
 	result, msg := healthchecker.Check()
 	if result {
 		w.WriteHeader(http.StatusOK)
@@ -80,11 +29,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
     body := fmt.Sprintf("Galera Cluster Node Status: %s", msg)
 	fmt.Fprint(w, body)
-	LogWithTimestamp(fmt.Sprintf("Healhcheck Response Body: %s", body))
+
+    logger.Debug(fmt.Sprintf("Healhcheck Response Body: %s", body))
 }
 
 func main() {
-	flag.Parse()
+    flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+    var (
+        host = flags.String("host", "0.0.0.0", "Specifies the host of the healthcheck server")
+        port = flags.Int("port", 8080, "Specifies the port of the healthcheck server")
+        dbHost = flags.String("dbHost", "127.0.0.1", "Specifies the MySQL host to connect to")
+        dbPort = flags.Int("dbPort", 3306, "Specifies the MySQL port to connect to")
+        dbUser = flags.String("dbUser", "root", "Specifies the MySQL user to connect with")
+        dbPassword = flags.String("dbPassword", "", "Specifies the MySQL password to connect with")
+        availableWhenDonor = flags.Bool("availWhenDonor", true, "Specifies if the healthcheck allows availability when in donor state")
+        availableWhenReadOnly = flags.Bool("availWhenReadOnly", false, "Specifies if the healthcheck allows availability when in read only mode")
+        pidFile = flags.String("pidFile", "", "Path to create a pid file when the healthcheck server has started")
+    )
+    cf_lager.AddFlags(flags)
+    flags.Parse(os.Args[1:])
+    logger, _ := cf_lager.New("Quota Enforcer")
 
 	db, _ := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", *dbUser, *dbPassword, *dbHost, *dbPort))
 	config := healthcheck.HealthcheckerConfig{
@@ -94,7 +58,9 @@ func main() {
 
 	healthchecker = healthcheck.New(db, config)
 
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        handler(w, r, logger)
+    })
 
     address := fmt.Sprintf("%s:%d", *host, *port)
 
@@ -108,18 +74,18 @@ func main() {
         if err != nil {
             panic(err)
         }
-        LogWithTimestamp(fmt.Sprintf("Initial Response: %s", body))
+        logger.Info(fmt.Sprintf("Initial Response: %s", body))
 
-        if *pidfile != "" {
+        if *pidFile != "" {
             // existence of pid file means the server is running
-            err = ioutil.WriteFile(*pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
+            err = ioutil.WriteFile(*pidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
             if err != nil {
                 panic(err)
             }
         }
 
-        // inform the user that the server is up
-        fmt.Println("Healthcheck Started")
+        // Used by tests to deterministically know that the healthcheck is accepting incoming connections
+        logger.Info("Healthcheck Started")
     }()
 
     server := &http.Server{Addr: address}

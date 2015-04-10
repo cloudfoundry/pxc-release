@@ -41,13 +41,13 @@ func (h *Healthchecker) Check() (bool, string) {
 
 	if value == SYNCED_STATE || (value == DONOR_DESYNCED_STATE && h.config.AvailableWhenDonor) {
         if !h.config.AvailableWhenReadOnly {
-            var ro_variable_name string
-            var ro_value string
-            ro_err := h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&ro_variable_name, &ro_value)
-            switch {
-                case ro_err != nil:
-                return false, ro_err.Error()
-                case ro_value == "ON":
+            var ro_variable_name, ro_value string
+            err = h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&ro_variable_name, &ro_value)
+            if err != nil {
+                return false, err.Error()
+            }
+
+            if ro_value == "ON" {
                 return false, "read-only"
             }
         }
