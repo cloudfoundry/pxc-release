@@ -50,8 +50,16 @@ func main() {
     flags.Parse(os.Args[1:])
     logger, _ := cf_lager.New("Quota Enforcer")
 
-	db, _ := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", *dbUser, *dbPassword, *dbHost, *dbPort))
-	config := healthcheck.HealthcheckerConfig{
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", *dbUser, *dbPassword, *dbHost, *dbPort))
+    if err != nil {
+        logger.Fatal("Failed to open DB connection", err, lager.Data{
+            "dbHost": *dbHost,
+            "dbPort": *dbPort,
+            "dbUser": *dbUser,
+        })
+    }
+
+    config := healthcheck.HealthcheckerConfig{
 		*availableWhenDonor,
 		*availableWhenReadOnly,
 	}
@@ -63,24 +71,32 @@ func main() {
     })
 
     address := fmt.Sprintf("%s:%d", *host, *port)
+    url := fmt.Sprintf("http://%s/", address)
 
     go func() {
-        resp, err := http.Get(fmt.Sprintf("http://%s/", address))
+        resp, err := http.Get(url)
         if err != nil {
-            panic(err)
+            logger.Fatal("Initialization failed: GET endpoint", err, lager.Data{"url": url})
         }
         defer resp.Body.Close()
         body, err := ioutil.ReadAll(resp.Body)
         if err != nil {
-            panic(err)
+            logger.Fatal("Initialization failed: reading response body", err, lager.Data{
+                "url": url,
+                "status-code": resp.StatusCode,
+            })
         }
         logger.Info(fmt.Sprintf("Initial Response: %s", body))
 
         if *pidFile != "" {
             // existence of pid file means the server is running
+            pid := os.Getpid()
             err = ioutil.WriteFile(*pidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
             if err != nil {
-                panic(err)
+                logger.Fatal("Failed to write pid file", err, lager.Data{
+                    "pid": pid,
+                    "pidFile": *pidFile,
+                })
             }
         }
 
