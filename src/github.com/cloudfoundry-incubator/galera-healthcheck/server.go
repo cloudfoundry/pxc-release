@@ -68,12 +68,6 @@ var pidfile = flag.String(
 	"Location for the pidfile",
 )
 
-var connectionCutterPath = flag.String(
-	"connectionCutterPath",
-	"",
-	"Location for the script which cuts mysql connections",
-)
-
 var healthchecker *healthcheck.Healthchecker
 
 func handler(w http.ResponseWriter, r *http.Request) {
