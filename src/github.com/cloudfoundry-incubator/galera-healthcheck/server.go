@@ -54,7 +54,7 @@ func main() {
 		Host: "0.0.0.0",
 		Port: 8080,
 		DB: healthcheck.DBConfig{
-			Host:     "127.0.0.1",
+			Host:     "0.0.0.0",
 			Port:     3306,
 			User:     "root",
 			Password: "",
