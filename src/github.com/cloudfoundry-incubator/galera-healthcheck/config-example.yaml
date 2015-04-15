@@ -1,0 +1,10 @@
+---
+DB:
+  Host: 127.0.0.1
+  Port: 3306
+  User: root
+  Password: password
+Host: 0.0.0.0
+Port: 8080
+AvailableWhenDonor: true
+AvailableWhenReadOnly: false

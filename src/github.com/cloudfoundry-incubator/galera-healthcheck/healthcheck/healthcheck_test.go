@@ -178,7 +178,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				sql := "SHOW STATUS LIKE 'wsrep_local_state'"
 				testdb.StubQueryError(sql, errors.New("test error"))
 
-				config := healthcheck.HealthcheckerConfig{
+				config := healthcheck.Config{
 					AvailableWhenDonor:    false,
 					AvailableWhenReadOnly: false,
 				}
@@ -205,7 +205,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				sql = "SHOW GLOBAL VARIABLES LIKE 'read_only'"
 				testdb.StubQueryError(sql, errors.New("another test error"))
 
-				config := healthcheck.HealthcheckerConfig{
+				config := healthcheck.Config{
 					AvailableWhenDonor:    false,
 					AvailableWhenReadOnly: false,
 				}
@@ -241,7 +241,7 @@ func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string
 	result = fmt.Sprintf("read_only,%s", testConfig.read_only)
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
 
-	config := healthcheck.HealthcheckerConfig{
+	config := healthcheck.Config{
 		AvailableWhenDonor:    testConfig.available_when_donor,
 		AvailableWhenReadOnly: testConfig.available_when_read_only,
 	}

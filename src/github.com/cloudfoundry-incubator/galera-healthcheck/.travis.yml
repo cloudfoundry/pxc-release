@@ -7,8 +7,8 @@ install:
 - go get -t -v -d ./...
 - go install -v github.com/onsi/ginkgo/ginkgo
 script:
-- bin/test-unit
-- DB_PASSWORD="" bin/test-integration
+- ./bin/test-unit
+- CONFG_PATH="$PWD/config-travis.yaml" ./bin/test-integration
 branches:
   only:
   - master

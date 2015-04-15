@@ -9,12 +9,19 @@ import (
 	"fmt"
 	"testing"
 
+	"encoding/json"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+	"github.com/pivotal-cf-experimental/service-config"
+	"io/ioutil"
 	"os"
 	"os/exec"
-    "time"
+	"path/filepath"
+	"time"
 )
 
 var binaryPath string
+var tempDir string
+var configPath string
 
 func TestHealthcheck(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -22,7 +29,15 @@ func TestHealthcheck(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-    var err error
+	var err error
+	tempDir, err = ioutil.TempDir(os.TempDir(), fmt.Sprintf("galera-healthcheck-integration-test-%d", GinkgoParallelNode()))
+	Expect(err).NotTo(HaveOccurred())
+
+	configPath = filepath.Join(tempDir, "healthcheckConfig.yml")
+
+	config := newConfig()
+	writeConfig(config)
+
 	binaryPath, err = gexec.Build("github.com/cloudfoundry-incubator/galera-healthcheck", "-race")
 	Expect(err).ToNot(HaveOccurred())
 
@@ -33,6 +48,9 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	// We don't need to handle an error cleaning up the tempDir
+	_ = os.RemoveAll(tempDir)
+
 	gexec.CleanupBuildArtifacts()
 
 	_, err := os.Stat(binaryPath)
@@ -41,30 +59,32 @@ var _ = AfterSuite(func() {
 	}
 })
 
+func newConfig() healthcheck.Config {
+	serviceConfig := service_config.New()
+
+	var config healthcheck.Config
+	err := serviceConfig.Read(&config)
+	Expect(err).ToNot(HaveOccurred())
+
+	config.Port = port()
+
+	return config
+}
+
+func writeConfig(config healthcheck.Config) {
+	fileToWrite, err := os.Create(configPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	bytes, err := json.Marshal(config)
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = fileToWrite.Write(bytes)
+	Expect(err).ToNot(HaveOccurred())
+}
+
 func startHealthcheck(flags ...string) *gexec.Session {
-    flags = append(flags, fmt.Sprintf("-port=%d", port()))
-
-    dbHost := os.Getenv("DB_HOST")
-    if dbHost != "" {
-        flags = append(flags, fmt.Sprintf("-dbHost=%s", dbHost))
-    }
-
-    dbPort := os.Getenv("DB_PORT")
-    if dbPort != "" {
-        flags = append(flags, fmt.Sprintf("-dbPort=%s", dbPort))
-    }
-
-    dbUser := os.Getenv("DB_USER")
-    if dbUser != "" {
-        flags = append(flags, fmt.Sprintf("-dbUser=%s", dbUser))
-    }
-
-    dbPassword := os.Getenv("DB_PASSWORD")
-    if dbPassword != "" {
-        flags = append(flags, fmt.Sprintf("-dbPassword=%s", dbPassword))
-    }
-
-    flags = append(flags, "-logLevel=debug")
+	flags = append(flags, fmt.Sprintf("-configPath=%s", configPath))
+	flags = append(flags, "-logLevel=debug")
 
 	command := exec.Command(binaryPath, flags...)
 
@@ -75,24 +95,24 @@ func startHealthcheck(flags ...string) *gexec.Session {
 }
 
 func awaitHealthcheckStarted(session *gexec.Session) {
-    Eventually(session.Out).Should(gbytes.Say("Healthcheck Started"))
+	Eventually(session.Out).Should(gbytes.Say("Healthcheck Started"))
 }
 
 func stopHealthcheck(session *gexec.Session) {
-    session.Kill()
+	session.Kill()
 
-    // Once signalled, the session should shut down relatively quickly
-    session.Wait(5 * time.Second)
+	// Once signalled, the session should shut down relatively quickly
+	session.Wait(5 * time.Second)
 
-    // We don't care what the exit code is
-    Eventually(session).Should(gexec.Exit())
+	// We don't care what the exit code is
+	Eventually(session).Should(gexec.Exit())
 }
 
 func port() int {
-    // magic number for start of port range
-    return 51100 + GinkgoParallelNode() - 1
+	// magic number for start of port range
+	return 51100 + GinkgoParallelNode() - 1
 }
 
 func endpoint() string {
-    return fmt.Sprintf("http://localhost:%d", port())
+	return fmt.Sprintf("http://localhost:%d", port())
 }
