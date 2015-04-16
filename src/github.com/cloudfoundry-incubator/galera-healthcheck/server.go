@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
@@ -35,6 +36,7 @@ func handler(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
 }
 
 func main() {
+
 	serviceConfig := service_config.New()
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -43,6 +45,8 @@ func main() {
 	cf_lager.AddFlags(flags)
 	flags.Parse(os.Args[1:])
 	logger, _ := cf_lager.New("Galera Healthcheck")
+
+	logger.Info("Starting galera healthcheck...")
 
 	var config healthcheck.Config
 	err := serviceConfig.Read(&config)
@@ -70,6 +74,10 @@ func main() {
 
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", config.DB.User, config.DB.Password, config.DB.Host, config.DB.Port))
 	if err != nil {
+		// sql.Open may not actually check that the DB is reachable
+		err = db.Ping()
+	}
+	if err != nil {
 		logger.Fatal("Failed to open DB connection", err, lager.Data{
 			"dbHost": config.DB.Host,
 			"dbPort": config.DB.Port,
@@ -77,7 +85,13 @@ func main() {
 		})
 	}
 
-	healthchecker = healthcheck.New(db, config)
+	logger.Info("Opened DB connection", lager.Data{
+		"dbHost": config.DB.Host,
+		"dbPort": config.DB.Port,
+		"dbUser": config.DB.User,
+	})
+
+	healthchecker = healthcheck.New(db, config, logger)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		handler(w, r, logger)
@@ -85,12 +99,47 @@ func main() {
 
 	address := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	url := fmt.Sprintf("http://%s/", address)
+	logger.Info("Serving healthcheck endpoint", lager.Data{
+		"url": url,
+	})
 
 	go func() {
-		resp, err := http.Get(url)
-		if err != nil {
-			logger.Fatal("Initialization failed: GET endpoint", err, lager.Data{"url": url})
+		client := &http.Client{
+			Timeout: 10 * time.Second,
 		}
+
+		logger.Info("Attempting to GET endpoint...", lager.Data{
+			"url": url,
+		})
+
+		var resp *http.Response
+		retryAttemptsRemaining := 3
+		for ; retryAttemptsRemaining > 0; retryAttemptsRemaining-- {
+			resp, err = client.Get(url)
+			if err != nil {
+				logger.Info("GET endpoint failed, retrying...", lager.Data{
+					"url": url,
+					"err": err,
+				})
+				time.Sleep(time.Second * 10)
+			} else {
+				break
+			}
+		}
+		if retryAttemptsRemaining == 0 {
+			logger.Fatal(
+				"Initialization failed: Coudn't GET endpoint",
+				err,
+				lager.Data{
+					"url":     url,
+					"retries": retryAttemptsRemaining,
+				})
+		}
+		logger.Info("GET endpoint succeeded, now accepting connections", lager.Data{
+			"url":        url,
+			"statusCode": resp.StatusCode,
+		})
+
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {

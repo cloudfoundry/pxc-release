@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("GaleraHealthChecker", func() {
@@ -183,7 +184,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 					AvailableWhenReadOnly: false,
 				}
 
-				healthchecker := healthcheck.New(db, config)
+				logger := lagertest.NewTestLogger("Healthcheck test")
+				healthchecker := healthcheck.New(db, config, logger)
 
 				result, msg := healthchecker.Check()
 
@@ -210,7 +212,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 					AvailableWhenReadOnly: false,
 				}
 
-				healthchecker := healthcheck.New(db, config)
+				logger := lagertest.NewTestLogger("Healthcheck test")
+				healthchecker := healthcheck.New(db, config, logger)
 
 				res, msg := healthchecker.Check()
 
@@ -246,7 +249,8 @@ func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string
 		AvailableWhenReadOnly: testConfig.available_when_read_only,
 	}
 
-	healthchecker := healthcheck.New(db, config)
+	logger := lagertest.NewTestLogger("Healthcheck test")
+	healthchecker := healthcheck.New(db, config, logger)
 
 	return healthchecker.Check()
 }

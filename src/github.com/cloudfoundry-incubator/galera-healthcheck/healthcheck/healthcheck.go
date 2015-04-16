@@ -2,6 +2,7 @@ package healthcheck
 
 import (
 	"database/sql"
+	"github.com/pivotal-golang/lager"
 )
 
 const (
@@ -12,6 +13,7 @@ const (
 type Healthchecker struct {
 	db     *sql.DB
 	config Config
+	logger lager.Logger
 }
 
 type Config struct {
@@ -29,14 +31,18 @@ type DBConfig struct {
 	Password string `json:",omitempty"`
 }
 
-func New(db *sql.DB, config Config) *Healthchecker {
+func New(db *sql.DB, config Config, logger lager.Logger) *Healthchecker {
 	return &Healthchecker{
 		db:     db,
 		config: config,
+		logger: logger,
 	}
 }
 
 func (h *Healthchecker) Check() (bool, string) {
+
+	h.logger.Info("Checking state of galera...")
+
 	var variable_name string
 	var value string
 	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&variable_name, &value)
