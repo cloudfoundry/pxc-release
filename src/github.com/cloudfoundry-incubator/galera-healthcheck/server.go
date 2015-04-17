@@ -12,7 +12,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	"github.com/imdario/mergo"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
 
@@ -42,18 +41,6 @@ func main() {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	pidFile := flags.String("pidFile", "", "Path to create a pid file when the healthcheck server has started")
 	serviceConfig.AddFlags(flags)
-	cf_lager.AddFlags(flags)
-	flags.Parse(os.Args[1:])
-	logger, _ := cf_lager.New("Galera Healthcheck")
-
-	logger.Info("Starting galera healthcheck...")
-
-	var config healthcheck.Config
-	err := serviceConfig.Read(&config)
-	if err != nil && err != service_config.NoConfigError {
-		logger.Fatal("Failed to read config", err)
-	}
-
 	var defaults = healthcheck.Config{
 		Host: "0.0.0.0",
 		Port: 8080,
@@ -66,10 +53,18 @@ func main() {
 		AvailableWhenDonor:    true,
 		AvailableWhenReadOnly: false,
 	}
+	serviceConfig.AddDefaults(defaults)
+	cf_lager.AddFlags(flags)
 
-	err = mergo.Merge(&config, defaults)
-	if err != nil {
-		logger.Fatal("Failed to merge user config with defaults", err)
+	flags.Parse(os.Args[1:])
+	logger, _ := cf_lager.New("Galera Healthcheck")
+
+	logger.Info("Starting galera healthcheck...")
+
+	var config healthcheck.Config
+	err := serviceConfig.Read(&config)
+	if err != nil && err != service_config.NoConfigError {
+		logger.Fatal("Failed to read config", err)
 	}
 
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", config.DB.User, config.DB.Password, config.DB.Host, config.DB.Port))
