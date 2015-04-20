@@ -26,9 +26,11 @@ var _ = Describe("Upgrader", func() {
 		testLogger = lagertest.NewTestLogger("upgrader")
 
 		upgrader = NewUpgrader(
-			packageVersionFile,
-			lastUpgradedVersionFile,
 			fakeOs,
+			Config{
+				PackageVersionFile:      packageVersionFile,
+				LastUpgradedVersionFile: lastUpgradedVersionFile,
+			},
 			testLogger,
 			fakeDbHelper,
 		)

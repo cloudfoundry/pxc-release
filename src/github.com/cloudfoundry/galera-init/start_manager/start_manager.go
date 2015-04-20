@@ -21,15 +21,18 @@ const (
 	JoinCommand      = "start"
 )
 
+type Config struct {
+	StateFileLocation    string
+	DbSeedScriptPath     string
+	JobIndex             int
+	ClusterIps           []string
+	MaxDatabaseSeedTries int
+}
+
 type StartManager struct {
 	osHelper             os_helper.OsHelper
-	stateFileLocation    string
-	mysqlClientPath      string
-	jobIndex             int
-	numberOfNodes        int
-	dbSeedScriptPath     string
+	config               Config
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
-	maxDatabaseSeedTries int
 	mariaDBHelper        mariadb_helper.DBHelper
 	upgrader             upgrader.Upgrader
 	logger               lager.Logger
@@ -37,24 +40,16 @@ type StartManager struct {
 
 func New(
 	osHelper os_helper.OsHelper,
+	config Config,
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
-	stateFileLocation string,
-	dbSeedScriptPath string,
-	jobIndex int,
-	clusterIps string,
 	logger lager.Logger,
-	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
-	maxDatabaseSeedTries int) *StartManager {
+	clusterHealthChecker cluster_health_checker.ClusterHealthChecker) *StartManager {
 	return &StartManager{
 		osHelper:             osHelper,
-		stateFileLocation:    stateFileLocation,
-		jobIndex:             jobIndex,
-		numberOfNodes:        len(strings.Split(clusterIps, ",")),
+		config:               config,
 		logger:               logger,
-		dbSeedScriptPath:     dbSeedScriptPath,
 		clusterHealthChecker: clusterHealthChecker,
-		maxDatabaseSeedTries: maxDatabaseSeedTries,
 		mariaDBHelper:        mariaDBHelper,
 		upgrader:             upgrader,
 	}
@@ -75,16 +70,16 @@ func (m *StartManager) Execute() (err error) {
 	}
 
 	// Single-node deploy always bootstraps new cluster
-	if m.numberOfNodes == 1 {
+	if len(m.config.ClusterIps) == 1 {
 		m.logger.Info("Single node deploy")
 		err = m.bootstrapCluster(SingleNode)
 		return
 	}
 
 	// If there is no state file, we must be a new deploy.
-	if !m.osHelper.FileExists(m.stateFileLocation) {
+	if !m.osHelper.FileExists(m.config.StateFileLocation) {
 		// In this case node 0 will bootstrap
-		if m.jobIndex == 0 {
+		if m.config.JobIndex == 0 {
 			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", Clustered))
 			err = m.bootstrapCluster(Clustered)
 			return
@@ -93,7 +88,7 @@ func (m *StartManager) Execute() (err error) {
 		return
 	}
 
-	file_contents, _ := m.osHelper.ReadFile(m.stateFileLocation)
+	file_contents, _ := m.osHelper.ReadFile(m.config.StateFileLocation)
 	state := strings.TrimSpace(file_contents)
 	m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
 	switch state {
@@ -122,7 +117,7 @@ func (m *StartManager) bootstrapCluster(state string) (err error) {
 	}
 
 	m.logger.Info(fmt.Sprintf("writing file with contents: '%s'", state))
-	m.osHelper.WriteStringToFile(m.stateFileLocation, state)
+	m.osHelper.WriteStringToFile(m.config.StateFileLocation, state)
 	return
 }
 
@@ -163,13 +158,13 @@ func (m *StartManager) joinCluster() (err error) {
 
 func (m *StartManager) writeStringToFile(contents string) {
 	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
-	m.osHelper.WriteStringToFile(m.stateFileLocation, contents)
+	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }
 
 func (m *StartManager) seedDatabases() (err error) {
 	var output string
-	for numTries := 0; numTries < m.maxDatabaseSeedTries; numTries++ {
-		output, err = m.osHelper.RunCommand("bash", m.dbSeedScriptPath)
+	for numTries := 0; numTries < m.config.MaxDatabaseSeedTries; numTries++ {
+		output, err = m.osHelper.RunCommand("bash", m.config.DbSeedScriptPath)
 		if err == nil {
 			m.logger.Info("Seeding databases succeeded.")
 			return

@@ -24,7 +24,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return &http.Response{StatusCode: 200}, nil
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4", testLogger)
+		checker := NewClusterHealthChecker([]string{"1.2.3.4"}, testLogger)
 		checker.HealthyCluster()
 
 		Expect(requestURLs).To(Equal([]string{"http://1.2.3.4:9200/"}))
@@ -38,7 +38,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return &http.Response{StatusCode: 200}, nil
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
+		checker := NewClusterHealthChecker([]string{"1.2.3.4", "5.6.7.8"}, testLogger)
 		healthy := checker.HealthyCluster()
 
 		Expect(healthy).To(BeTrue())
@@ -54,7 +54,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return &http.Response{StatusCode: 503}, nil
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
+		checker := NewClusterHealthChecker([]string{"1.2.3.4", "5.6.7.8"}, testLogger)
 		healthy := checker.HealthyCluster()
 
 		Expect(healthy).To(BeFalse())
@@ -68,7 +68,7 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 			return nil, errors.New("Timed out")
 		}
 
-		checker := NewClusterHealthChecker("1.2.3.4,5.6.7.8", testLogger)
+		checker := NewClusterHealthChecker([]string{"1.2.3.4", "5.6.7.8"}, testLogger)
 		healthy := checker.HealthyCluster()
 
 		Expect(healthy).To(BeFalse())

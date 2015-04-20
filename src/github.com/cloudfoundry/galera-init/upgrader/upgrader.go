@@ -16,11 +16,15 @@ type Upgrader interface {
 }
 
 type upgrader struct {
-	packageVersionFile      string
-	lastUpgradedVersionFile string
-	osHelper                os_helper.OsHelper
-	logger                  lager.Logger
-	mariadbHelper           mariadb_helper.DBHelper
+	osHelper      os_helper.OsHelper
+	config        Config
+	logger        lager.Logger
+	mariadbHelper mariadb_helper.DBHelper
+}
+
+type Config struct {
+	PackageVersionFile      string
+	LastUpgradedVersionFile string
 }
 
 var (
@@ -29,18 +33,16 @@ var (
 )
 
 func NewUpgrader(
-	packageVersionFile string,
-	lastUpgradedVersionFile string,
 	osHelper os_helper.OsHelper,
+	config Config,
 	logger lager.Logger,
 	mariadbHelper mariadb_helper.DBHelper) Upgrader {
 
 	return upgrader{
-		packageVersionFile:      packageVersionFile,
-		lastUpgradedVersionFile: lastUpgradedVersionFile,
-		osHelper:                osHelper,
-		logger:                  logger,
-		mariadbHelper:           mariadbHelper,
+		osHelper:      osHelper,
+		config:        config,
+		logger:        logger,
+		mariadbHelper: mariadbHelper,
 	}
 }
 
@@ -133,45 +135,45 @@ func (u upgrader) stopStandaloneDatabaseSynchronously() (err error) {
 }
 
 func (u upgrader) NeedsUpgrade() (bool, error) {
-	if !u.osHelper.FileExists(u.lastUpgradedVersionFile) {
+	if !u.osHelper.FileExists(u.config.LastUpgradedVersionFile) {
 		u.logger.Info(
 			"Upgrade required",
 			lager.Data{
 				"reason":                  "Last Upgraded version file does not exist in data dir",
-				"lastUpgradedVersionFile": u.lastUpgradedVersionFile,
+				"lastUpgradedVersionFile": u.config.LastUpgradedVersionFile,
 			})
 		return true, nil
 	}
 
-	if !u.osHelper.FileExists(u.packageVersionFile) {
+	if !u.osHelper.FileExists(u.config.PackageVersionFile) {
 		u.logger.Info(
 			"Cannot determine whether upgrade is required.",
 			lager.Data{
 				"reason":             "Package version file does not exist",
-				"packageVersionFile": u.packageVersionFile,
+				"packageVersionFile": u.config.PackageVersionFile,
 			})
 		return false, errors.New("MariaDB package is invalid because it is missing the version file.")
 	}
 
-	existing_version, err := u.osHelper.ReadFile(u.lastUpgradedVersionFile)
+	existing_version, err := u.osHelper.ReadFile(u.config.LastUpgradedVersionFile)
 	if err != nil {
 		u.logger.Info(
 			"Cannot determine whether upgrade is required.",
 			lager.Data{
 				"reason":                  "Error reading last upgraded version file",
-				"lastUpgradedVersionFile": u.lastUpgradedVersionFile,
+				"lastUpgradedVersionFile": u.config.LastUpgradedVersionFile,
 				"err": err,
 			})
 		return false, errors.New("Could not read last upgraded version file in the data dir.")
 	}
 
-	package_version, err := u.osHelper.ReadFile(u.packageVersionFile)
+	package_version, err := u.osHelper.ReadFile(u.config.PackageVersionFile)
 	if err != nil {
 		u.logger.Info(
 			"Cannot determine whether upgrade is required.",
 			lager.Data{
 				"reason":             "Error reading package version file",
-				"packageVersionFile": u.packageVersionFile,
+				"packageVersionFile": u.config.PackageVersionFile,
 				"err":                err,
 			})
 		return false, errors.New("MariaDB package is invalid because the version file is not readable.")

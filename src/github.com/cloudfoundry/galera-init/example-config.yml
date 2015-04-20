@@ -1,0 +1,30 @@
+---
+# Specifies the location of the log file mysql sends logs to
+LogFileLocation:
+Db:
+  # Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server
+  DaemonPath:
+  # Specifies the location of the mysql client executable
+  ClientPath:
+  # Specifies the location of the script that performs the MySQL upgrade
+  UpgradePath:
+  # Specifies the user name for MySQL
+  User: root
+  # Specifies the password for connecting to MySQL
+  Password:
+Upgrader:
+  # Specifies the location of the file containing the MySQL version as deployed
+  PackageVersionFile:
+  # Specifies the location of the file MySQL upgrade writes.
+  LastUpgradedVersionFile:
+Manager:
+  # Specifies the location to store the statefile for MySQL boot
+  StateFileLocation:
+  # Specifies the location of the script that seeds the server with databases
+  DbSeedScriptPath:
+  # Specifies the job index of the MySQL node
+  JobIndex: 1
+  # Comma-delimited list of IPs in the galera cluster
+  ClusterIps: []
+  # How many times to attempt database seeding before it fails
+  MaxDatabaseSeedTries: 1

@@ -2,7 +2,6 @@ package cluster_health_checker
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/pivotal-golang/lager"
 )
@@ -18,9 +17,9 @@ type httpClusterHealthChecker struct {
 	logger     lager.Logger
 }
 
-func NewClusterHealthChecker(ips string, logger lager.Logger) ClusterHealthChecker {
+func NewClusterHealthChecker(ips []string, logger lager.Logger) ClusterHealthChecker {
 	return httpClusterHealthChecker{
-		clusterIps: strings.Split(ips, ","),
+		clusterIps: ips,
 		logger:     logger,
 	}
 }
