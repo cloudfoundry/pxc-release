@@ -31,7 +31,6 @@ func main() {
 			User: "root",
 		},
 		Manager: start_manager.Config{
-			JobIndex:             1,
 			MaxDatabaseSeedTries: 1,
 		},
 	})
