@@ -25,6 +25,9 @@ func NewClusterHealthChecker(ips []string, logger lager.Logger) ClusterHealthChe
 }
 
 func (h httpClusterHealthChecker) HealthyCluster() bool {
+	h.logger.Info("Checking for healthy cluster", lager.Data{
+		"ClusterIps": h.clusterIps,
+	})
 	for _, ip := range h.clusterIps {
 		h.logger.Info("Checking if node is healthy: " + ip)
 
