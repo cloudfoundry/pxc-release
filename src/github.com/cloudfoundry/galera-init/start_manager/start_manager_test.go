@@ -80,8 +80,9 @@ var _ = Describe("StartManager", func() {
 
 	createManager := func(jobIndex int, numberOfNodes int) *StartManager {
 
+		//clusterIps does not include the current node's IP, so skip i = 0
 		clusterIps := []string{}
-		for i := 0; i < numberOfNodes; i++ {
+		for i := 1; i < numberOfNodes; i++ {
 			clusterIps = append(clusterIps, "myIp")
 		}
 
