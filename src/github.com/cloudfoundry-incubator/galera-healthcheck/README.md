@@ -8,5 +8,5 @@ This go-based process is designed to run on a MariaDB Galera node and monitor th
 An http endpoint is opened, by default at '/' on port 9200.
 A healthy node will return HTTP status 200, and a node that should not be accessed returns a 503.
 
-Several commandline flags are supported (see the code.)
+Several commandline flags are supported, run `galera-healthcheck -h` for more information.
 
