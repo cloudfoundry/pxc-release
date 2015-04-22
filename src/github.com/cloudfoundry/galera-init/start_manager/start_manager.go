@@ -69,8 +69,12 @@ func (m *StartManager) Execute() (err error) {
 		}
 	}
 
-	// Single-node deploy always bootstraps new cluster
-	if len(m.config.ClusterIps) == 1 {
+	m.logger.Info("Determining bootstrap procedure", lager.Data{
+		"ClusterIps": m.config.ClusterIps,
+	})
+
+	// Single-node deploy (i.e. cluster ips are empty) always bootstraps new cluster
+	if len(m.config.ClusterIps) == 0 {
 		m.logger.Info("Single node deploy")
 		err = m.bootstrapCluster(SingleNode)
 		return
