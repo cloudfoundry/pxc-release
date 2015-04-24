@@ -24,6 +24,7 @@ const (
 type Config struct {
 	StateFileLocation    string
 	DbSeedScriptPath     string
+	AzIndex              int
 	JobIndex             int
 	ClusterIps           []string
 	MaxDatabaseSeedTries int
@@ -83,7 +84,7 @@ func (m *StartManager) Execute() (err error) {
 	// If there is no state file, we must be a new deploy.
 	if !m.osHelper.FileExists(m.config.StateFileLocation) {
 		// In this case node 0 will bootstrap
-		if m.config.JobIndex == 0 {
+		if m.config.AzIndex == 0 && m.config.JobIndex == 0 {
 			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", Clustered))
 			err = m.bootstrapCluster(Clustered)
 			return

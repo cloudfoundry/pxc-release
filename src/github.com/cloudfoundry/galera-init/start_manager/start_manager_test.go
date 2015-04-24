@@ -29,6 +29,12 @@ var _ = Describe("StartManager", func() {
 	dbSeedScriptPath := "/dbSeedScriptPath"
 	maxDatabaseSeedTries := 2
 
+	type managerArgs struct {
+		AzIndex   int
+		JobIndex  int
+		NodeCount int
+	}
+
 	seededDatabases := func() bool {
 		callCount := fakeOs.RunCommandCallCount()
 
@@ -78,11 +84,11 @@ var _ = Describe("StartManager", func() {
 		Expect(fakeDBHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
 	}
 
-	createManager := func(jobIndex int, numberOfNodes int) *StartManager {
+	createManager := func(args managerArgs) *StartManager {
 
 		//clusterIps does not include the current node's IP, so skip i = 0
 		clusterIps := []string{}
-		for i := 1; i < numberOfNodes; i++ {
+		for i := 1; i < args.NodeCount; i++ {
 			clusterIps = append(clusterIps, "myIp")
 		}
 
@@ -91,7 +97,8 @@ var _ = Describe("StartManager", func() {
 			Config{
 				StateFileLocation:    stateFileLocation,
 				DbSeedScriptPath:     dbSeedScriptPath,
-				JobIndex:             jobIndex,
+				AzIndex:              args.AzIndex,
+				JobIndex:             args.JobIndex,
 				ClusterIps:           clusterIps,
 				MaxDatabaseSeedTries: maxDatabaseSeedTries,
 			},
@@ -112,7 +119,11 @@ var _ = Describe("StartManager", func() {
 
 	Context("When starting mariadb with StartMysqldInMode causes an error", func() {
 		BeforeEach(func() {
-			mgr = createManager(0, 3)
+			mgr = createManager(managerArgs{
+				AzIndex:   0,
+				JobIndex:  0,
+				NodeCount: 3,
+			})
 			fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
 				return errors.New("some error")
 			}
@@ -126,7 +137,11 @@ var _ = Describe("StartManager", func() {
 	Describe("Upgrade", func() {
 		Context("When determining whether upgrade is required with NeedsUpgrade exits with an error", func() {
 			BeforeEach(func() {
-				mgr = createManager(0, 3)
+				mgr = createManager(managerArgs{
+					AzIndex:   0,
+					JobIndex:  0,
+					NodeCount: 3,
+				})
 
 				fakeUpgrader.NeedsUpgradeReturns(false, errors.New("Error determining whether upgrade is required"))
 			})
@@ -141,7 +156,11 @@ var _ = Describe("StartManager", func() {
 			Context("And performing the upgrade exits with an error", func() {
 
 				BeforeEach(func() {
-					mgr = createManager(0, 3)
+					mgr = createManager(managerArgs{
+						AzIndex:   0,
+						JobIndex:  0,
+						NodeCount: 3,
+					})
 
 					fakeUpgrader.NeedsUpgradeReturns(true, nil)
 					fakeUpgrader.UpgradeReturns(errors.New("Error while performing upgrade"))
@@ -158,7 +177,11 @@ var _ = Describe("StartManager", func() {
 	Describe("SeedDatabases", func() {
 		Context("When there's an error seeding the databases", func() {
 			BeforeEach(func() {
-				mgr = createManager(0, 1)
+				mgr = createManager(managerArgs{
+					AzIndex:   0,
+					JobIndex:  0,
+					NodeCount: 1,
+				})
 			})
 
 			Context("And the total attempts at seeding the database is less than maxDatabaseSeedTries", func() {
@@ -206,7 +229,11 @@ var _ = Describe("StartManager", func() {
 	Context("When starting in single-node deployment", func() {
 
 		BeforeEach(func() {
-			mgr = createManager(0, 1)
+			mgr = createManager(managerArgs{
+				AzIndex:   0,
+				JobIndex:  0,
+				NodeCount: 1,
+			})
 		})
 
 		Context("And it's an initial deploy", func() {
@@ -243,24 +270,58 @@ var _ = Describe("StartManager", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(false)
 			})
+
 			Context("And jobIndex == 0", func() {
-				BeforeEach(func() {
-					mgr = createManager(0, 3)
-					fakeClusterHealthChecker.HealthyClusterReturns(false)
+
+				Context("And azIndex == 0", func() {
+
+					BeforeEach(func() {
+						mgr = createManager(managerArgs{
+							AzIndex:   0,
+							JobIndex:  0,
+							NodeCount: 3,
+						})
+
+						fakeClusterHealthChecker.HealthyClusterReturns(false)
+					})
+
+					It("bootstraps, seeds databases and writes "+Clustered+" to file", func() {
+						err := mgr.Execute()
+						Expect(err).ToNot(HaveOccurred())
+						ensureBootstrapWithStateFileContents(Clustered)
+						ensureSeedDatabases()
+					})
 				})
 
-				It("bootstraps, seeds databases and writes "+Clustered+" to file", func() {
-					err := mgr.Execute()
-					Expect(err).ToNot(HaveOccurred())
-					ensureBootstrapWithStateFileContents(Clustered)
-					ensureSeedDatabases()
+				Context("And azIndex > 0", func() {
+
+					BeforeEach(func() {
+						mgr = createManager(managerArgs{
+							AzIndex:   1,
+							JobIndex:  0,
+							NodeCount: 3,
+						})
+
+						fakeClusterHealthChecker.HealthyClusterReturns(false)
+					})
+
+					It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
+						err := mgr.Execute()
+						Expect(err).ToNot(HaveOccurred())
+						ensureJoin()
+						ensureSeedDatabases()
+					})
 				})
 			})
 
 			Context("And jobIndex > 0", func() {
 
 				BeforeEach(func() {
-					mgr = createManager(1, 3)
+					mgr = createManager(managerArgs{
+						AzIndex:   0,
+						JobIndex:  1,
+						NodeCount: 3,
+					})
 				})
 
 				It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
@@ -274,7 +335,12 @@ var _ = Describe("StartManager", func() {
 
 		Context("When state file is present", func() {
 			BeforeEach(func() {
-				mgr = createManager(0, 3)
+				mgr = createManager(managerArgs{
+					AzIndex:   0,
+					JobIndex:  0,
+					NodeCount: 3,
+				})
+
 				fakeOs.FileExistsReturns(true)
 			})
 
@@ -320,7 +386,11 @@ var _ = Describe("StartManager", func() {
 					BeforeEach(func() {
 						fakeClusterHealthChecker.HealthyClusterReturns(true)
 
-						mgr = createManager(0, 3)
+						mgr = createManager(managerArgs{
+							AzIndex:   0,
+							JobIndex:  0,
+							NodeCount: 3,
+						})
 					})
 
 					It("joins the cluster and seeds databases", func() {
@@ -333,7 +403,11 @@ var _ = Describe("StartManager", func() {
 
 				Context("And jobIndex > 0", func() {
 					BeforeEach(func() {
-						mgr = createManager(1, 3)
+						mgr = createManager(managerArgs{
+							AzIndex:   0,
+							JobIndex:  1,
+							NodeCount: 3,
+						})
 					})
 
 					It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
@@ -364,7 +438,11 @@ var _ = Describe("StartManager", func() {
 	Context("When scaling the cluster", func() {
 		Context("And scaling down from many nodes to single", func() {
 			BeforeEach(func() {
-				mgr = createManager(0, 1)
+				mgr = createManager(managerArgs{
+					AzIndex:   0,
+					JobIndex:  0,
+					NodeCount: 1,
+				})
 
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(Clustered, nil)
@@ -380,7 +458,11 @@ var _ = Describe("StartManager", func() {
 
 		Context("And scaling from one to many nodes", func() {
 			BeforeEach(func() {
-				mgr = createManager(0, 3)
+				mgr = createManager(managerArgs{
+					AzIndex:   0,
+					JobIndex:  0,
+					NodeCount: 3,
+				})
 
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(SingleNode, nil)
