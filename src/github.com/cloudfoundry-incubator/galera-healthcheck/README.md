@@ -3,6 +3,7 @@ galera-healthcheck
 
 [![Build Status](https://travis-ci.org/cloudfoundry-incubator/galera-healthcheck.svg?branch=master)](https://travis-ci.org/cloudfoundry-incubator/galera-healthcheck)
 
+**Note:** This project is not intended to stand alone. It is a supporting project that is used with the Cloud Foundry project, [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release). While this project is open source (so you can fork it and do whatever you like within the requirements of the license), the community will likely accept only PRs that are not in conflict with the intended purpose of the project.
 
 This go-based process is designed to run on a MariaDB Galera node and monitor the health of the node.
 An http endpoint is opened, by default at '/' on port 9200.
