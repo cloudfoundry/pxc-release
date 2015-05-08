@@ -14,12 +14,19 @@ const (
 	StopStandaloneCommand = "stop-stand-alone"
 )
 
+type PreseededDatabase struct {
+	DBName   string
+	User     string
+	Password string
+}
+
 type Config struct {
-	DaemonPath  string
-	ClientPath  string
-	UpgradePath string
-	User        string
-	Password    string
+	DaemonPath         string
+	ClientPath         string
+	UpgradePath        string
+	User               string
+	Password           string
+	PreseededDatabases []PreseededDatabase
 }
 
 type DBHelper interface {
@@ -47,6 +54,18 @@ func NewMariaDBHelper(
 		logFileLocation: logFileLocation,
 		logger:          logger,
 	}
+}
+
+// Overridable methods to allow mocking DB connections in tests
+var OpenDBConnection = func(config Config) (*sql.DB, error) {
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/", config.User, config.Password))
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+var CloseDBConnection = func(db *sql.DB) error {
+	return db.Close()
 }
 
 func (m MariaDBHelper) StartMysqldInMode(command string) error {
@@ -90,12 +109,12 @@ func (m MariaDBHelper) Upgrade() (output string, err error) {
 func (m MariaDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/", m.config.User, m.config.Password))
-
+	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Info("database not reachable", lager.Data{"err": err})
 		return false
 	}
+	defer CloseDBConnection(db)
 
 	err = db.Ping()
 	if err != nil {
@@ -105,4 +124,68 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 
 	m.logger.Info(fmt.Sprintf("database is reachable"))
 	return true
+}
+
+func (m MariaDBHelper) Seed() error {
+	m.logger.Info("Preseeding Databases")
+
+	db, err := OpenDBConnection(m.config)
+	if err != nil {
+		m.logger.Error("database not reachable", err)
+		return err
+	}
+	defer CloseDBConnection(db)
+
+	for _, dbToCreate := range m.config.PreseededDatabases {
+		_, err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbToCreate.DBName))
+		if err != nil {
+			m.logger.Error("Error creating preseeded database", err, lager.Data{"dbName": dbToCreate.DBName})
+			return err
+		}
+
+		rows, err := db.Query(fmt.Sprintf(
+			"SELECT User FROM mysql.user WHERE User = '%s'",
+			dbToCreate.User))
+		if err != nil {
+			m.logger.Error("Error getting list of users", err, lager.Data{
+				"dbName": dbToCreate.DBName,
+			})
+			return err
+		}
+		userAlreadyExists := rows.Next()
+
+		if userAlreadyExists == false {
+			_, err = db.Exec(fmt.Sprintf(
+				"CREATE USER %s IDENTIFIED BY '%s'",
+				dbToCreate.User,
+				dbToCreate.Password))
+			if err != nil {
+				m.logger.Error("Error creating user", err, lager.Data{
+					"user": dbToCreate.User,
+				})
+				return err
+			}
+		}
+
+		_, err = db.Exec(fmt.Sprintf(
+			"GRANT ALL ON %s.* TO %s",
+			dbToCreate.DBName,
+			dbToCreate.User))
+		if err != nil {
+			m.logger.Error("Error granting user privileges", err, lager.Data{
+				"dbName": dbToCreate.DBName,
+				"user":   dbToCreate.User,
+			})
+			return err
+		}
+
+	}
+
+	_, err = db.Exec("FLUSH PRIVILEGES")
+	if err != nil {
+		m.logger.Error("Error flushing privileges", err)
+		return err
+	}
+
+	return nil
 }

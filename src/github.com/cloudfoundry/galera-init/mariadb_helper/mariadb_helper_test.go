@@ -1,10 +1,12 @@
 package mariadb_helper_test
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
-	. "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,31 +14,61 @@ import (
 )
 
 var _ = Describe("MariaDBHelper", func() {
-	var helper *MariaDBHelper
-	var fakeOs *os_fakes.FakeOsHelper
-	var testLogger lagertest.TestLogger
-	var logFile string
-	var config Config
+	var (
+		helper     *mariadb_helper.MariaDBHelper
+		fakeOs     *os_fakes.FakeOsHelper
+		testLogger lagertest.TestLogger
+		logFile    string
+		config     mariadb_helper.Config
+		fakeDB     *sql.DB
+	)
 
 	BeforeEach(func() {
+		var err error
 		fakeOs = new(os_fakes.FakeOsHelper)
 		testLogger = *lagertest.NewTestLogger("mariadb_helper")
 		logFile = "/log-file.log"
-
-		config = Config{
+		config = mariadb_helper.Config{
 			DaemonPath:  "/mysqld",
 			ClientPath:  "/mysqlClientPath",
 			UpgradePath: "/mysql_upgrade",
 			User:        "user",
 			Password:    "password",
+			PreseededDatabases: []mariadb_helper.PreseededDatabase{
+				mariadb_helper.PreseededDatabase{
+					DBName:   "DB1",
+					User:     "user1",
+					Password: "password1",
+				},
+				mariadb_helper.PreseededDatabase{
+					DBName:   "DB2",
+					User:     "user2",
+					Password: "password2",
+				},
+			},
 		}
 
-		helper = NewMariaDBHelper(
+		fakeDB, err = sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		mariadb_helper.OpenDBConnection = func(mariadb_helper.Config) (*sql.DB, error) {
+			return fakeDB, nil
+		}
+		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
+			// fakeDB is closed in AfterEach to allow assertions against mock expectations
+			return nil
+		}
+
+		helper = mariadb_helper.NewMariaDBHelper(
 			fakeOs,
 			config,
 			logFile,
 			testLogger,
 		)
+	})
+
+	AfterEach(func() {
+		err := fakeDB.Close()
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("Start", func() {
@@ -73,7 +105,7 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(timeout).To(Equal(10))
 			Expect(logDestination).To(Equal(logFile))
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{config.DaemonPath, StopStandaloneCommand}))
+			Expect(args).To(Equal([]string{config.DaemonPath, mariadb_helper.StopStandaloneCommand}))
 		})
 
 		Context("when an error occurs", func() {
@@ -106,6 +138,55 @@ var _ = Describe("MariaDBHelper", func() {
 			output, err := helper.Upgrade()
 			Expect(output).To(Equal("some output"))
 			Expect(err.Error()).To(Equal("some error"))
+		})
+	})
+
+	Describe("Seed", func() {
+
+		const lastInsertId = -1
+		const rowsAffected = 1
+
+		It("creates the specified databases", func() {
+
+			for _, preseedDb := range config.PreseededDatabases {
+
+				createDbExec := fmt.Sprintf(
+					"CREATE DATABASE IF NOT EXISTS %s",
+					preseedDb.DBName)
+				sqlmock.ExpectExec(createDbExec).
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+				selectUsersQuery := fmt.Sprintf(
+					"SELECT User FROM mysql\\.user WHERE User = '%s'",
+					preseedDb.User)
+				sqlmock.ExpectQuery(selectUsersQuery).
+					WithArgs().
+					WillReturnRows(sqlmock.NewRows([]string{"User"}))
+
+				createUserExec := fmt.Sprintf(
+					"CREATE USER %s IDENTIFIED BY '%s'",
+					preseedDb.User,
+					preseedDb.Password)
+				sqlmock.ExpectExec(createUserExec).
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+				grantExec := fmt.Sprintf(
+					"GRANT ALL ON %s\\.\\* TO %s",
+					preseedDb.DBName,
+					preseedDb.User)
+				sqlmock.ExpectExec(grantExec).
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+			}
+
+			sqlmock.ExpectExec("FLUSH PRIVILEGES").
+				WithArgs().
+				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+			helper.Seed()
 		})
 	})
 })
