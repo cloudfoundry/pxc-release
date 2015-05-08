@@ -26,17 +26,13 @@ var _ = Describe("MariaDB Helper", func() {
 	)
 
 	BeforeEach(func() {
-		fakeOs = new(os_fakes.FakeOsHelper)
-		testLogger = *lagertest.NewTestLogger("mariadb_helper")
-		logFile = "/log-file.log"
-
 		// MySQL mandates usernames are <= 16 chars
 		user0 := getUUIDWithPrefix("MARIADB")[:16]
 		user1 := getUUIDWithPrefix("MARIADB")[:16]
 
 		config = mariadb_helper.Config{
-			User:     "root",
-			Password: "password",
+			User:     testConfig.User,
+			Password: testConfig.Password,
 			PreseededDatabases: []mariadb_helper.PreseededDatabase{
 				mariadb_helper.PreseededDatabase{
 					DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
@@ -55,6 +51,10 @@ var _ = Describe("MariaDB Helper", func() {
 				},
 			},
 		}
+
+		fakeOs = new(os_fakes.FakeOsHelper)
+		testLogger = *lagertest.NewTestLogger("mariadb_helper")
+		logFile = "/log-file.log"
 
 		helper = mariadb_helper.NewMariaDBHelper(
 			fakeOs,
