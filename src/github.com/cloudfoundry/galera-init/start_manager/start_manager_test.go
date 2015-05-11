@@ -26,7 +26,6 @@ var _ = Describe("StartManager", func() {
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
 	stateFileLocation := "/stateFileLocation"
-	dbSeedScriptPath := "/dbSeedScriptPath"
 	maxDatabaseSeedTries := 2
 
 	type managerArgs struct {
@@ -79,7 +78,6 @@ var _ = Describe("StartManager", func() {
 			fakeOs,
 			Config{
 				StateFileLocation:    stateFileLocation,
-				DbSeedScriptPath:     dbSeedScriptPath,
 				AzIndex:              args.AzIndex,
 				JobIndex:             args.JobIndex,
 				ClusterIps:           clusterIps,

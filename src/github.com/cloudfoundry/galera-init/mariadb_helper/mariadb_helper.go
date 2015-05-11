@@ -22,7 +22,6 @@ type PreseededDatabase struct {
 
 type Config struct {
 	DaemonPath         string
-	ClientPath         string
 	UpgradePath        string
 	User               string
 	Password           string

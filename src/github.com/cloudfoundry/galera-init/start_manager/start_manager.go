@@ -23,7 +23,6 @@ const (
 
 type Config struct {
 	StateFileLocation    string
-	DbSeedScriptPath     string
 	AzIndex              int
 	JobIndex             int
 	ClusterIps           []string

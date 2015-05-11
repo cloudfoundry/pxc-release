@@ -30,7 +30,6 @@ var _ = Describe("MariaDBHelper", func() {
 		logFile = "/log-file.log"
 		config = mariadb_helper.Config{
 			DaemonPath:  "/mysqld",
-			ClientPath:  "/mysqlClientPath",
 			UpgradePath: "/mysql_upgrade",
 			User:        "user",
 			Password:    "password",
