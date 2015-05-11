@@ -166,20 +166,20 @@ func (m *StartManager) writeStringToFile(contents string) {
 	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }
 
-func (m *StartManager) seedDatabases() (err error) {
-	var output string
+func (m *StartManager) seedDatabases() error {
+	var err error
 	for numTries := 0; numTries < m.config.MaxDatabaseSeedTries; numTries++ {
-		output, err = m.osHelper.RunCommand("bash", m.config.DbSeedScriptPath)
+		err = m.mariaDBHelper.Seed()
 		if err == nil {
 			m.logger.Info("Seeding databases succeeded.")
-			return
+			return nil
 		}
-		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", output))
+		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
 		m.logger.Info("Retrying seeding script...")
 		m.osHelper.Sleep(1 * time.Second)
 	}
 
-	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'\n'%s'", err.Error(), output))
+	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'", err.Error()))
 	m.mariaDBHelper.StopStandaloneMysql()
-	return
+	return err
 }

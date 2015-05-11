@@ -34,6 +34,7 @@ type DBHelper interface {
 	StopStandaloneMysql() error
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
+	Seed() error
 }
 
 type MariaDBHelper struct {

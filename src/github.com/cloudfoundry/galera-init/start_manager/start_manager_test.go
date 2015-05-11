@@ -35,25 +35,8 @@ var _ = Describe("StartManager", func() {
 		NodeCount int
 	}
 
-	seededDatabases := func() bool {
-		callCount := fakeOs.RunCommandCallCount()
-
-		callExists := false
-
-		for i := 0; i < callCount; i++ {
-			executable, args := fakeOs.RunCommandArgsForCall(i)
-
-			if executable == "bash" && len(args) > 0 && args[0] == dbSeedScriptPath {
-				callExists = true
-				break
-			}
-		}
-		return callExists
-	}
-
 	ensureSeedDatabases := func() {
-		callExists := seededDatabases()
-		Expect(callExists).To(BeTrue())
+		Expect(fakeDBHelper.SeedCallCount()).To(BeNumerically(">=", 1))
 	}
 
 	ensureStateFileContentIs := func(expected string) {
@@ -187,12 +170,13 @@ var _ = Describe("StartManager", func() {
 			Context("And the total attempts at seeding the database is less than maxDatabaseSeedTries", func() {
 				BeforeEach(func() {
 					numTries := 0
-					fakeOs.RunCommandStub = func(arg1 string, arg2 ...string) (string, error) {
+
+					fakeDBHelper.SeedStub = func() error {
 						numTries++
 						if numTries < maxDatabaseSeedTries {
-							return "", errors.New("seeding databases failed")
+							return errors.New("seeding databases failed")
 						} else {
-							return "succeeded", nil
+							return nil
 						}
 					}
 				})
@@ -200,7 +184,7 @@ var _ = Describe("StartManager", func() {
 				It("waits and attempts to retry to seed the database", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
-					ensureSeedDatabases()
+					Expect(fakeDBHelper.SeedCallCount()).To(Equal(maxDatabaseSeedTries))
 				})
 			})
 
@@ -208,9 +192,9 @@ var _ = Describe("StartManager", func() {
 				var numTries int
 				BeforeEach(func() {
 					numTries = 0
-					fakeOs.RunCommandStub = func(arg1 string, arg2 ...string) (string, error) {
+					fakeDBHelper.SeedStub = func() error {
 						numTries++
-						return "", errors.New("seeding databases failed")
+						return errors.New("seeding databases failed")
 					}
 				})
 
@@ -218,7 +202,7 @@ var _ = Describe("StartManager", func() {
 					err := mgr.Execute()
 					Expect(err).To(HaveOccurred())
 					Expect(numTries).To(Equal(maxDatabaseSeedTries))
-					Expect(fakeOs.SleepCallCount()).To(Equal(maxDatabaseSeedTries))
+					Expect(fakeDBHelper.SeedCallCount()).To(Equal(maxDatabaseSeedTries))
 					ensureStop()
 					ensureNoWriteToStateFile()
 				})
@@ -428,7 +412,7 @@ var _ = Describe("StartManager", func() {
 					err := mgr.Execute()
 					Expect(err).To(HaveOccurred())
 					Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(0))
-					Expect(seededDatabases()).To(BeFalse())
+					Expect(fakeDBHelper.SeedCallCount()).To(BeZero())
 					ensureNoWriteToStateFile()
 				})
 			})

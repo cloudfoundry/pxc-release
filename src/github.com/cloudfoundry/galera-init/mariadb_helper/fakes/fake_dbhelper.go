@@ -2,8 +2,10 @@
 package fakes
 
 import (
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"sync"
+
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type FakeDBHelper struct {
@@ -18,30 +20,36 @@ type FakeDBHelper struct {
 	StopStandaloneMysqlStub        func() error
 	stopStandaloneMysqlMutex       sync.RWMutex
 	stopStandaloneMysqlArgsForCall []struct{}
-	stopStandaloneMysqlReturns     struct {
+	stopStandaloneMysqlReturns struct {
 		result1 error
 	}
 	UpgradeStub        func() (output string, err error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct{}
-	upgradeReturns     struct {
+	upgradeReturns struct {
 		result1 string
 		result2 error
 	}
 	IsDatabaseReachableStub        func() bool
 	isDatabaseReachableMutex       sync.RWMutex
 	isDatabaseReachableArgsForCall []struct{}
-	isDatabaseReachableReturns     struct {
+	isDatabaseReachableReturns struct {
 		result1 bool
+	}
+	SeedStub        func() error
+	seedMutex       sync.RWMutex
+	seedArgsForCall []struct{}
+	seedReturns struct {
+		result1 error
 	}
 }
 
 func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
 	fake.startMysqldInModeMutex.Lock()
-	defer fake.startMysqldInModeMutex.Unlock()
 	fake.startMysqldInModeArgsForCall = append(fake.startMysqldInModeArgsForCall, struct {
 		command string
 	}{command})
+	fake.startMysqldInModeMutex.Unlock()
 	if fake.StartMysqldInModeStub != nil {
 		return fake.StartMysqldInModeStub(command)
 	} else {
@@ -70,8 +78,8 @@ func (fake *FakeDBHelper) StartMysqldInModeReturns(result1 error) {
 
 func (fake *FakeDBHelper) StopStandaloneMysql() error {
 	fake.stopStandaloneMysqlMutex.Lock()
-	defer fake.stopStandaloneMysqlMutex.Unlock()
 	fake.stopStandaloneMysqlArgsForCall = append(fake.stopStandaloneMysqlArgsForCall, struct{}{})
+	fake.stopStandaloneMysqlMutex.Unlock()
 	if fake.StopStandaloneMysqlStub != nil {
 		return fake.StopStandaloneMysqlStub()
 	} else {
@@ -94,8 +102,8 @@ func (fake *FakeDBHelper) StopStandaloneMysqlReturns(result1 error) {
 
 func (fake *FakeDBHelper) Upgrade() (output string, err error) {
 	fake.upgradeMutex.Lock()
-	defer fake.upgradeMutex.Unlock()
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct{}{})
+	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
 		return fake.UpgradeStub()
 	} else {
@@ -119,8 +127,8 @@ func (fake *FakeDBHelper) UpgradeReturns(result1 string, result2 error) {
 
 func (fake *FakeDBHelper) IsDatabaseReachable() bool {
 	fake.isDatabaseReachableMutex.Lock()
-	defer fake.isDatabaseReachableMutex.Unlock()
 	fake.isDatabaseReachableArgsForCall = append(fake.isDatabaseReachableArgsForCall, struct{}{})
+	fake.isDatabaseReachableMutex.Unlock()
 	if fake.IsDatabaseReachableStub != nil {
 		return fake.IsDatabaseReachableStub()
 	} else {
@@ -138,6 +146,30 @@ func (fake *FakeDBHelper) IsDatabaseReachableReturns(result1 bool) {
 	fake.IsDatabaseReachableStub = nil
 	fake.isDatabaseReachableReturns = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakeDBHelper) Seed() error {
+	fake.seedMutex.Lock()
+	fake.seedArgsForCall = append(fake.seedArgsForCall, struct{}{})
+	fake.seedMutex.Unlock()
+	if fake.SeedStub != nil {
+		return fake.SeedStub()
+	} else {
+		return fake.seedReturns.result1
+	}
+}
+
+func (fake *FakeDBHelper) SeedCallCount() int {
+	fake.seedMutex.RLock()
+	defer fake.seedMutex.RUnlock()
+	return len(fake.seedArgsForCall)
+}
+
+func (fake *FakeDBHelper) SeedReturns(result1 error) {
+	fake.SeedStub = nil
+	fake.seedReturns = struct {
+		result1 error
 	}{result1}
 }
 
