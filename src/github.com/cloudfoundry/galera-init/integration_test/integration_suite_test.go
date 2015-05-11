@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -28,6 +29,10 @@ var _ = BeforeSuite(func() {
 
 	serviceConfig := service_config.New()
 
+	//Use default options rather than throw error if env variables are blank
+	if os.Getenv("CONFIG") == "" && os.Getenv("CONFIG_PATH") == "" {
+		os.Setenv("CONFIG", "{}")
+	}
 	serviceConfig.AddDefaults(TestDBConfig{
 		Host:     "127.0.0.1",
 		Port:     3306,
