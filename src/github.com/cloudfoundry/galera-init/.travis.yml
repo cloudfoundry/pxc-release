@@ -7,7 +7,5 @@ install:
   - PATH=$PATH:$HOME/gopath/bin
   - go get -v -t ./...
 script:
-  - bin/test
-branches:
-  only:
-  - master
+  - bin/test-unit
+  - CONFIG="{Password: ''}" ./bin/test-integration

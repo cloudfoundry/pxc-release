@@ -21,6 +21,7 @@ type TestDBConfig struct {
 	Port     int
 	User     string
 	Password string
+	DBName   string
 }
 
 var _ = BeforeSuite(func() {
@@ -28,7 +29,7 @@ var _ = BeforeSuite(func() {
 	serviceConfig := service_config.New()
 
 	serviceConfig.AddDefaults(TestDBConfig{
-		Host:     "localhost",
+		Host:     "127.0.0.1",
 		Port:     3306,
 		User:     "root",
 		Password: "",

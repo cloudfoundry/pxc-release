@@ -25,6 +25,22 @@ var _ = Describe("MariaDB Helper", func() {
 		db         *sql.DB
 	)
 
+	var openDBConnection = func(config TestDBConfig) (*sql.DB, error) {
+		return sql.Open("mysql", fmt.Sprintf(
+			"%s:%s@tcp(%s:%d)/%s",
+			config.User,
+			config.Password,
+			config.Host,
+			config.Port,
+			config.DBName,
+		))
+	}
+
+	var openRootDBConnection = func(config TestDBConfig) (*sql.DB, error) {
+		config.DBName = ""
+		return openDBConnection(config)
+	}
+
 	BeforeEach(func() {
 		// MySQL mandates usernames are <= 16 chars
 		user0 := getUUIDWithPrefix("MARIADB")[:16]
@@ -63,8 +79,16 @@ var _ = Describe("MariaDB Helper", func() {
 			testLogger,
 		)
 
+		//override db connection to use test DB
+		mariadb_helper.OpenDBConnection = func(config mariadb_helper.Config) (*sql.DB, error) {
+			return openRootDBConnection(testConfig)
+		}
+
 		var err error
-		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/", config.User, config.Password))
+		db, err = openRootDBConnection(testConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Ping()
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -95,10 +119,13 @@ var _ = Describe("MariaDB Helper", func() {
 			Expect(dbRows.Next()).To(BeTrue(), fmt.Sprintf("Expected DB to exist: %s", preseededDB.DBName))
 
 			//check that user can login to DB
-			userDb, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/%s",
-				preseededDB.User,
-				preseededDB.Password,
-				preseededDB.DBName))
+			userDb, err := openDBConnection(TestDBConfig{
+				Host:     testConfig.Host,
+				Port:     testConfig.Port,
+				User:     preseededDB.User,
+				Password: preseededDB.Password,
+				DBName:   preseededDB.DBName,
+			})
 			Expect(err).NotTo(HaveOccurred())
 			defer userDb.Close()
 
