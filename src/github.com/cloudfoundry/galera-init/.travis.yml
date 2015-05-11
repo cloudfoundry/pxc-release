@@ -5,7 +5,7 @@ go:
 install:
   - go get -v github.com/onsi/ginkgo/ginkgo
   - PATH=$PATH:$HOME/gopath/bin
-  - go get -v -t ./...
+  - go get -t -v -d ./...
 script:
   - ./bin/test-unit
   - ./bin/test-integration
