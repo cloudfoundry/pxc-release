@@ -175,7 +175,7 @@ func (m *StartManager) seedDatabases() error {
 		}
 		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
 		m.logger.Info("Retrying seeding script...")
-		m.osHelper.Sleep(1 * time.Second)
+		m.osHelper.Sleep(5 * time.Second)
 	}
 
 	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'", err.Error()))
