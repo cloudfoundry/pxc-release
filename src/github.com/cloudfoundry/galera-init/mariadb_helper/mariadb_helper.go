@@ -12,6 +12,7 @@ import (
 
 const (
 	StopStandaloneCommand = "stop-stand-alone"
+	StopCommand           = "stop"
 )
 
 type PreseededDatabase struct {
@@ -30,6 +31,7 @@ type Config struct {
 
 type DBHelper interface {
 	StartMysqldInMode(command string) error
+	StopMysql() error
 	StopStandaloneMysql() error
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
@@ -70,32 +72,38 @@ var CloseDBConnection = func(db *sql.DB) error {
 
 func (m MariaDBHelper) StartMysqldInMode(command string) error {
 	m.logger.Info("Starting node with '" + command + "' command.")
-	err := m.osHelper.RunCommandWithTimeout(
-		10,
-		m.logFileLocation,
-		"bash",
-		m.config.DaemonPath,
-		command)
-
+	err := m.runMysqlDaemon(command)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node: %s", err.Error()))
 	}
 	return err
 }
 
-func (m MariaDBHelper) StopStandaloneMysql() (err error) {
-	m.logger.Info("Stopping standalone node")
-	err = m.osHelper.RunCommandWithTimeout(
-		10,
-		m.logFileLocation,
-		"bash",
-		m.config.DaemonPath,
-		StopStandaloneCommand)
-
+func (m MariaDBHelper) StopMysql() error {
+	m.logger.Info("Stopping node")
+	err := m.runMysqlDaemon(StopCommand)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error stopping node: %s", err.Error()))
 	}
 	return err
+}
+
+func (m MariaDBHelper) StopStandaloneMysql() error {
+	m.logger.Info("Stopping standalone node")
+	err := m.runMysqlDaemon(StopStandaloneCommand)
+	if err != nil {
+		m.logger.Info(fmt.Sprintf("Error stopping standalone node: %s", err.Error()))
+	}
+	return err
+}
+
+func (m MariaDBHelper) runMysqlDaemon(mode string) error {
+	return m.osHelper.RunCommandWithTimeout(
+		10,
+		m.logFileLocation,
+		"bash",
+		m.config.DaemonPath,
+		mode)
 }
 
 func (m MariaDBHelper) Upgrade() (output string, err error) {

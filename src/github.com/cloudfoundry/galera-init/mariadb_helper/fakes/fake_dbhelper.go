@@ -17,6 +17,12 @@ type FakeDBHelper struct {
 	startMysqldInModeReturns struct {
 		result1 error
 	}
+	StopMysqlStub        func() error
+	stopMysqlMutex       sync.RWMutex
+	stopMysqlArgsForCall []struct{}
+	stopMysqlReturns struct {
+		result1 error
+	}
 	StopStandaloneMysqlStub        func() error
 	stopStandaloneMysqlMutex       sync.RWMutex
 	stopStandaloneMysqlArgsForCall []struct{}
@@ -72,6 +78,30 @@ func (fake *FakeDBHelper) StartMysqldInModeArgsForCall(i int) string {
 func (fake *FakeDBHelper) StartMysqldInModeReturns(result1 error) {
 	fake.StartMysqldInModeStub = nil
 	fake.startMysqldInModeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) StopMysql() error {
+	fake.stopMysqlMutex.Lock()
+	fake.stopMysqlArgsForCall = append(fake.stopMysqlArgsForCall, struct{}{})
+	fake.stopMysqlMutex.Unlock()
+	if fake.StopMysqlStub != nil {
+		return fake.StopMysqlStub()
+	} else {
+		return fake.stopMysqlReturns.result1
+	}
+}
+
+func (fake *FakeDBHelper) StopMysqlCallCount() int {
+	fake.stopMysqlMutex.RLock()
+	defer fake.stopMysqlMutex.RUnlock()
+	return len(fake.stopMysqlArgsForCall)
+}
+
+func (fake *FakeDBHelper) StopMysqlReturns(result1 error) {
+	fake.StopMysqlStub = nil
+	fake.stopMysqlReturns = struct {
 		result1 error
 	}{result1}
 }

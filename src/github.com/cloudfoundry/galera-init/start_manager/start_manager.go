@@ -179,6 +179,6 @@ func (m *StartManager) seedDatabases() error {
 	}
 
 	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'", err.Error()))
-	m.mariaDBHelper.StopStandaloneMysql()
+	m.mariaDBHelper.StopMysql()
 	return err
 }

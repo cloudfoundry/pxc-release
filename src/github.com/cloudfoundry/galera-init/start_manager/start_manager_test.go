@@ -63,7 +63,7 @@ var _ = Describe("StartManager", func() {
 	}
 
 	ensureStop := func() {
-		Expect(fakeDBHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
+		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
 	}
 
 	createManager := func(args managerArgs) *StartManager {
