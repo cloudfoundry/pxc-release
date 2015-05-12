@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
@@ -11,12 +12,15 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-cf-experimental/service-config"
+	"github.com/pivotal-golang/lager"
 )
 
 type Config struct {
 	LogFileLocation string
 	Db              mariadb_helper.Config
 	Manager         start_manager.Config
+	PidFile         string
+	MariaPidFile    string
 	Upgrader        upgrader.Config
 }
 
@@ -79,4 +83,19 @@ func main() {
 	if err != nil {
 		logger.Fatal("Execution exited with an error", err)
 	}
+
+	err = writePidFile(config, logger)
+	if err != nil {
+		logger.Fatal("Failed to create pidFile", err, lager.Data{
+			"Maria Pid File": config.MariaPidFile,
+			"Pid File":       config.PidFile,
+		})
+	}
+
+	logger.Info("mariadb_ctrl started successfully")
+}
+
+func writePidFile(config Config, logger lager.Logger) error {
+	logger.Info(fmt.Sprintf("Creating symlink from %s to %s", config.MariaPidFile, config.PidFile))
+	return os.Symlink(config.MariaPidFile, config.PidFile)
 }

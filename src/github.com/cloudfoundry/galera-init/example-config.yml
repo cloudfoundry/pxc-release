@@ -1,6 +1,10 @@
 ---
 # Specifies the location of the log file mysql sends logs to
 LogFileLocation:
+# Specifies the file where the startup manager will write its PID
+PidFile:
+# Specifies the file where MariaDB will its PID (see my.cnf)
+MariaPidFile:
 Db:
   # Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server
   DaemonPath:
