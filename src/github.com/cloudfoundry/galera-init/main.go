@@ -13,14 +13,16 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 )
 
 type Config struct {
 	LogFileLocation string
-	Db              mariadb_helper.Config
-	Manager         start_manager.Config
 	PidFile         string
 	MariaPidFile    string
+	Db              mariadb_helper.Config
+	Manager         start_manager.Config
 	Upgrader        upgrader.Config
 }
 
@@ -79,23 +81,37 @@ func main() {
 		galeraHelper,
 	)
 
-	err = mgr.Execute()
-	if err != nil {
-		logger.Fatal("Execution exited with an error", err)
+	members := grouper.Members{
+		{
+			Name:   "start_manager",
+			Runner: start_manager.NewRunner(mgr, logger),
+		},
 	}
+	groupRunner := grouper.NewParallel(os.Kill, members)
+	process := ifrit.Invoke(groupRunner)
 
 	err = writePidFile(config, logger)
 	if err != nil {
-		logger.Fatal("Failed to create pidFile", err, lager.Data{
-			"Maria Pid File": config.MariaPidFile,
-			"Pid File":       config.PidFile,
+		process.Signal(os.Kill)
+		<-process.Wait()
+
+		logger.Fatal("Error writing pidfile", err, lager.Data{
+			"PidFile":      config.PidFile,
+			"MariaPidFile": config.MariaPidFile,
 		})
 	}
 
-	logger.Info("mariadb_ctrl started successfully")
+	logger.Info("mariadb_ctrl started")
+
+	err = <-process.Wait()
+	if err != nil {
+		logger.Fatal("Error starting mariadb_ctrl", err)
+	}
 }
 
 func writePidFile(config Config, logger lager.Logger) error {
-	logger.Info(fmt.Sprintf("Creating symlink from %s to %s", config.MariaPidFile, config.PidFile))
+	logger.Info(fmt.Sprintf("Creating symlink from %s to %s",
+		config.MariaPidFile,
+		config.PidFile))
 	return os.Symlink(config.MariaPidFile, config.PidFile)
 }

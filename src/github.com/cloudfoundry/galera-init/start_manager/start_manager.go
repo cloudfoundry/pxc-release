@@ -109,6 +109,11 @@ func (m *StartManager) Execute() (err error) {
 	return
 }
 
+func (m *StartManager) Shutdown() error {
+	m.logger.Info("Shutting down MariaDB")
+	return m.mariaDBHelper.StopMysql()
+}
+
 func (m *StartManager) bootstrapCluster(state string) (err error) {
 	err = m.bootstrapNode()
 	if err != nil {
@@ -179,6 +184,5 @@ func (m *StartManager) seedDatabases() error {
 	}
 
 	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'", err.Error()))
-	m.mariaDBHelper.StopMysql()
 	return err
 }

@@ -62,10 +62,6 @@ var _ = Describe("StartManager", func() {
 		ensureStateFileContentIs(Clustered)
 	}
 
-	ensureStop := func() {
-		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
-	}
-
 	createManager := func(args managerArgs) *StartManager {
 
 		//clusterIps does not include the current node's IP, so skip i = 0
@@ -201,7 +197,6 @@ var _ = Describe("StartManager", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(numTries).To(Equal(maxDatabaseSeedTries))
 					Expect(fakeDBHelper.SeedCallCount()).To(Equal(maxDatabaseSeedTries))
-					ensureStop()
 					ensureNoWriteToStateFile()
 				})
 			})
