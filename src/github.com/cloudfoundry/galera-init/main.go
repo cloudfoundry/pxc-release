@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strconv"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
@@ -20,7 +22,6 @@ import (
 type Config struct {
 	LogFileLocation string
 	PidFile         string
-	MariaPidFile    string
 	Db              mariadb_helper.Config
 	Manager         start_manager.Config
 	Upgrader        upgrader.Config
@@ -88,7 +89,14 @@ func main() {
 		},
 	}
 	groupRunner := grouper.NewParallel(os.Kill, members)
-	process := ifrit.Invoke(groupRunner)
+	process := ifrit.Background(groupRunner)
+
+	select {
+	case err = <-process.Wait():
+		logger.Fatal("Error starting mariadb", err)
+	case <-process.Ready():
+		//continue
+	}
 
 	err = writePidFile(config, logger)
 	if err != nil {
@@ -96,8 +104,7 @@ func main() {
 		<-process.Wait()
 
 		logger.Fatal("Error writing pidfile", err, lager.Data{
-			"PidFile":      config.PidFile,
-			"MariaPidFile": config.MariaPidFile,
+			"PidFile": config.PidFile,
 		})
 	}
 
@@ -105,13 +112,12 @@ func main() {
 
 	err = <-process.Wait()
 	if err != nil {
+		//TODO: remove pidfile
 		logger.Fatal("Error starting mariadb_ctrl", err)
 	}
 }
 
 func writePidFile(config Config, logger lager.Logger) error {
-	logger.Info(fmt.Sprintf("Creating symlink from %s to %s",
-		config.MariaPidFile,
-		config.PidFile))
-	return os.Symlink(config.MariaPidFile, config.PidFile)
+	logger.Info(fmt.Sprintf("Writing pid to %s", config.PidFile))
+	return ioutil.WriteFile(config.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
 }

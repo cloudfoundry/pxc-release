@@ -21,11 +21,31 @@ func NewRunner(mgr *StartManager, logger lager.Logger) Runner {
 func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	err := r.mgr.Execute()
 	if err != nil {
+		r.logger.Error("Failed starting Maria with error:", err)
 		return err
 	}
+
+	process, err := r.mgr.GetMariaProcess()
+	if err != nil {
+		r.logger.Error("Error getting Maria process", err)
+		return err
+	}
+
+	r.logger.Info("start_manager process is ready")
 	close(ready)
 
-	<-signals
-	err = r.mgr.Shutdown()
-	return err
+	mariaExited := make(chan error)
+	go func() {
+		_, err = process.Wait()
+		mariaExited <- err
+	}()
+
+	var shutdownErr error
+	select {
+	case <-signals:
+		shutdownErr = r.mgr.Shutdown()
+	case err = <-mariaExited:
+		shutdownErr = err
+	}
+	return shutdownErr
 }

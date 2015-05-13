@@ -2,6 +2,9 @@ package start_manager
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +30,7 @@ type Config struct {
 	JobIndex             int
 	ClusterIps           []string
 	MaxDatabaseSeedTries int
+	MariaPidFile         string
 }
 
 type StartManager struct {
@@ -107,6 +111,23 @@ func (m *StartManager) Execute() (err error) {
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
 	return
+}
+
+func (m *StartManager) GetMariaProcess() (*os.Process, error) {
+	m.logger.Info(fmt.Sprintf("Reading pid from pidfile: %s", m.config.MariaPidFile))
+	contents, err := ioutil.ReadFile(m.config.MariaPidFile)
+	if err != nil {
+		return nil, err
+	}
+	pidStr := strings.TrimSpace(string(contents))
+
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return nil, err
+	}
+	m.logger.Info(fmt.Sprintf("Pid retrieved as '%d'", pid))
+
+	return os.FindProcess(pid)
 }
 
 func (m *StartManager) Shutdown() error {
