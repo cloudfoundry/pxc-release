@@ -10,6 +10,7 @@ import (
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
@@ -27,6 +28,17 @@ var _ = Describe("MariaDBHelper", func() {
 		var err error
 		fakeOs = new(os_fakes.FakeOsHelper)
 		testLogger = *lagertest.NewTestLogger("mariadb_helper")
+
+		fakeDB, err = sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		mariadb_helper.OpenDBConnection = func(mariadb_helper.Config) (*sql.DB, error) {
+			return fakeDB, nil
+		}
+		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
+			// fakeDB is closed in AfterEach to allow assertions against mock expectations
+			return nil
+		}
+
 		logFile = "/log-file.log"
 		config = mariadb_helper.Config{
 			DaemonPath:  "/mysqld",
@@ -46,17 +58,9 @@ var _ = Describe("MariaDBHelper", func() {
 				},
 			},
 		}
+	})
 
-		fakeDB, err = sqlmock.New()
-		Expect(err).ToNot(HaveOccurred())
-		mariadb_helper.OpenDBConnection = func(mariadb_helper.Config) (*sql.DB, error) {
-			return fakeDB, nil
-		}
-		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
-			// fakeDB is closed in AfterEach to allow assertions against mock expectations
-			return nil
-		}
-
+	JustBeforeEach(func() {
 		helper = mariadb_helper.NewMariaDBHelper(
 			fakeOs,
 			config,
@@ -186,6 +190,19 @@ var _ = Describe("MariaDBHelper", func() {
 				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
 			helper.Seed()
+		})
+
+		Context("when there are no seeded databases", func() {
+			BeforeEach(func() {
+				config.PreseededDatabases = []mariadb_helper.PreseededDatabase{}
+			})
+
+			It("does not make any queries", func() {
+				//expect no queries or execs
+				err := helper.Seed()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(testLogger.Buffer()).To(Say("No preseeded databases specified, skipping seeding."))
+			})
 		})
 	})
 })

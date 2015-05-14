@@ -167,6 +167,12 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 }
 
 func (m MariaDBHelper) Seed() error {
+
+	if m.config.PreseededDatabases == nil || len(m.config.PreseededDatabases) == 0 {
+		m.logger.Info("No preseeded databases specified, skipping seeding.")
+		return nil
+	}
+
 	m.logger.Info("Preseeding Databases")
 
 	db, err := OpenDBConnection(m.config)
