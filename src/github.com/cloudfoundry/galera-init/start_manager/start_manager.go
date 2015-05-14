@@ -1,10 +1,9 @@
 package start_manager
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"strconv"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -30,7 +29,6 @@ type Config struct {
 	JobIndex             int
 	ClusterIps           []string
 	MaxDatabaseSeedTries int
-	MariaPidFile         string
 }
 
 type StartManager struct {
@@ -40,6 +38,7 @@ type StartManager struct {
 	mariaDBHelper        mariadb_helper.DBHelper
 	upgrader             upgrader.Upgrader
 	logger               lager.Logger
+	mysqlCmd             *exec.Cmd
 }
 
 func New(
@@ -113,21 +112,11 @@ func (m *StartManager) Execute() (err error) {
 	return
 }
 
-func (m *StartManager) GetMariaProcess() (*os.Process, error) {
-	m.logger.Info(fmt.Sprintf("Reading pid from pidfile: %s", m.config.MariaPidFile))
-	contents, err := ioutil.ReadFile(m.config.MariaPidFile)
-	if err != nil {
-		return nil, err
+func (m *StartManager) GetMysqlCmd() (*exec.Cmd, error) {
+	if m.mysqlCmd != nil {
+		return m.mysqlCmd, nil
 	}
-	pidStr := strings.TrimSpace(string(contents))
-
-	pid, err := strconv.Atoi(pidStr)
-	if err != nil {
-		return nil, err
-	}
-	m.logger.Info(fmt.Sprintf("Pid retrieved as '%d'", pid))
-
-	return os.FindProcess(pid)
+	return nil, errors.New("Mysql has not been started")
 }
 
 func (m *StartManager) Shutdown() error {
@@ -136,7 +125,15 @@ func (m *StartManager) Shutdown() error {
 }
 
 func (m *StartManager) bootstrapCluster(state string) (err error) {
-	err = m.bootstrapNode()
+
+	m.logger.Info("Bootstrapping cluster")
+
+	if state == SingleNode {
+		err = m.bootstrapSingleNode()
+	} else {
+		err = m.bootstrapClusterNode()
+	}
+
 	if err != nil {
 		return
 	}
@@ -151,28 +148,44 @@ func (m *StartManager) bootstrapCluster(state string) (err error) {
 	return
 }
 
-func (m *StartManager) bootstrapNode() error {
-	var command string
-
-	// We do not condone bootstrapping if a cluster already exists and is healthy
-	if m.clusterHealthChecker.HealthyCluster() {
-		command = JoinCommand
-	} else {
-		command = BootstrapCommand
-	}
-
-	err := m.mariaDBHelper.StartMysqldInMode(command)
+func (m *StartManager) bootstrapSingleNode() error {
+	cmd, err := m.mariaDBHelper.StartMysqlInBootstrap()
 	if err != nil {
 		return err
 	}
+	m.mysqlCmd = cmd
+
+	return nil
+}
+
+func (m *StartManager) bootstrapClusterNode() error {
+
+	var cmd *exec.Cmd
+	var err error
+	// We do not condone bootstrapping if a cluster already exists and is healthy
+	if m.clusterHealthChecker.HealthyCluster() {
+		cmd, err = m.mariaDBHelper.StartMysqlInJoin()
+	} else {
+		cmd, err = m.mariaDBHelper.StartMysqlInBootstrap()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	m.mysqlCmd = cmd
+
 	return nil
 }
 
 func (m *StartManager) joinCluster() (err error) {
-	err = m.mariaDBHelper.StartMysqldInMode(JoinCommand)
+	cmd, err := m.mariaDBHelper.StartMysqlInJoin()
+
 	if err != nil {
 		return err
 	}
+
+	m.mysqlCmd = cmd
 
 	// We should always seed databases even when joining an existing cluster,
 	// as this encompasses the case where we're redeploying to an existing

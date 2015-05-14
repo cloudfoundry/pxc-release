@@ -16,7 +16,7 @@ import (
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/sigmon"
 )
 
 type Config struct {
@@ -82,14 +82,9 @@ func main() {
 		galeraHelper,
 	)
 
-	members := grouper.Members{
-		{
-			Name:   "start_manager",
-			Runner: start_manager.NewRunner(mgr, logger),
-		},
-	}
-	groupRunner := grouper.NewParallel(os.Kill, members)
-	process := ifrit.Background(groupRunner)
+	runner := start_manager.NewRunner(mgr, logger)
+	sigRunner := sigmon.New(runner, os.Kill)
+	process := ifrit.Background(sigRunner)
 
 	select {
 	case err = <-process.Wait():
@@ -111,10 +106,12 @@ func main() {
 	logger.Info("mariadb_ctrl started")
 
 	err = <-process.Wait()
+	//TODO: remove pidfile
 	if err != nil {
-		//TODO: remove pidfile
 		logger.Fatal("Error starting mariadb_ctrl", err)
 	}
+
+	logger.Info("Process exited without error.")
 }
 
 func writePidFile(config Config, logger lager.Logger) error {

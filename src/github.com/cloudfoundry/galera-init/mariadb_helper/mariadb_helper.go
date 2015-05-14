@@ -2,6 +2,7 @@ package mariadb_helper
 
 import (
 	"fmt"
+	"os/exec"
 
 	"database/sql"
 
@@ -31,6 +32,8 @@ type Config struct {
 
 type DBHelper interface {
 	StartMysqldInMode(command string) error
+	StartMysqlInJoin() (*exec.Cmd, error)
+	StartMysqlInBootstrap() (*exec.Cmd, error)
 	StopMysql() error
 	StopStandaloneMysql() error
 	Upgrade() (output string, err error)
@@ -71,12 +74,34 @@ var CloseDBConnection = func(db *sql.DB) error {
 }
 
 func (m MariaDBHelper) StartMysqldInMode(command string) error {
-	m.logger.Info("Starting node with '" + command + "' command.")
+	m.logger.Info("Starting mysqld with '" + command + "' command.")
 	err := m.runMysqlDaemon(command)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node: %s", err.Error()))
 	}
 	return err
+}
+
+func (m MariaDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
+	m.logger.Info("Starting mysqld with 'join'.")
+	cmd, err := m.startMysqlAsChildProcess()
+
+	if err != nil {
+		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
+		return nil, err
+	}
+	return cmd, nil
+}
+
+func (m MariaDBHelper) StartMysqlInBootstrap() (*exec.Cmd, error) {
+	m.logger.Info("Starting mysql with 'bootstrap'.")
+	cmd, err := m.startMysqlAsChildProcess("--wsrep-new-cluster")
+
+	if err != nil {
+		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
+		return nil, err
+	}
+	return cmd, nil
 }
 
 func (m MariaDBHelper) StopMysql() error {
@@ -104,6 +129,13 @@ func (m MariaDBHelper) runMysqlDaemon(mode string) error {
 		"bash",
 		m.config.DaemonPath,
 		mode)
+}
+
+func (m MariaDBHelper) startMysqlAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
+	return m.osHelper.StartCommand(
+		m.logFileLocation,
+		"/var/vcap/packages/mariadb/bin/mysqld_safe",
+		mysqlArgs...)
 }
 
 func (m MariaDBHelper) Upgrade() (output string, err error) {

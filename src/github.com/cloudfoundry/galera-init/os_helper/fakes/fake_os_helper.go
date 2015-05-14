@@ -2,9 +2,11 @@
 package fakes
 
 import (
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 )
 
 type FakeOsHelper struct {
@@ -28,6 +30,17 @@ type FakeOsHelper struct {
 	}
 	runCommandWithTimeoutReturns struct {
 		result1 error
+	}
+	StartCommandStub        func(logFileName string, executable string, args ...string) (*exec.Cmd, error)
+	startCommandMutex       sync.RWMutex
+	startCommandArgsForCall []struct {
+		logFileName string
+		executable  string
+		args        []string
+	}
+	startCommandReturns struct {
+		result1 *exec.Cmd
+		result2 error
 	}
 	FileExistsStub        func(filename string) bool
 	fileExistsMutex       sync.RWMutex
@@ -64,11 +77,11 @@ type FakeOsHelper struct {
 
 func (fake *FakeOsHelper) RunCommand(executable string, args ...string) (string, error) {
 	fake.runCommandMutex.Lock()
-	defer fake.runCommandMutex.Unlock()
 	fake.runCommandArgsForCall = append(fake.runCommandArgsForCall, struct {
 		executable string
 		args       []string
 	}{executable, args})
+	fake.runCommandMutex.Unlock()
 	if fake.RunCommandStub != nil {
 		return fake.RunCommandStub(executable, args...)
 	} else {
@@ -98,13 +111,13 @@ func (fake *FakeOsHelper) RunCommandReturns(result1 string, result2 error) {
 
 func (fake *FakeOsHelper) RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error {
 	fake.runCommandWithTimeoutMutex.Lock()
-	defer fake.runCommandWithTimeoutMutex.Unlock()
 	fake.runCommandWithTimeoutArgsForCall = append(fake.runCommandWithTimeoutArgsForCall, struct {
 		timeout     int
 		logFileName string
 		executable  string
 		args        []string
 	}{timeout, logFileName, executable, args})
+	fake.runCommandWithTimeoutMutex.Unlock()
 	if fake.RunCommandWithTimeoutStub != nil {
 		return fake.RunCommandWithTimeoutStub(timeout, logFileName, executable, args...)
 	} else {
@@ -131,12 +144,47 @@ func (fake *FakeOsHelper) RunCommandWithTimeoutReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeOsHelper) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
+	fake.startCommandMutex.Lock()
+	fake.startCommandArgsForCall = append(fake.startCommandArgsForCall, struct {
+		logFileName string
+		executable  string
+		args        []string
+	}{logFileName, executable, args})
+	fake.startCommandMutex.Unlock()
+	if fake.StartCommandStub != nil {
+		return fake.StartCommandStub(logFileName, executable, args...)
+	} else {
+		return fake.startCommandReturns.result1, fake.startCommandReturns.result2
+	}
+}
+
+func (fake *FakeOsHelper) StartCommandCallCount() int {
+	fake.startCommandMutex.RLock()
+	defer fake.startCommandMutex.RUnlock()
+	return len(fake.startCommandArgsForCall)
+}
+
+func (fake *FakeOsHelper) StartCommandArgsForCall(i int) (string, string, []string) {
+	fake.startCommandMutex.RLock()
+	defer fake.startCommandMutex.RUnlock()
+	return fake.startCommandArgsForCall[i].logFileName, fake.startCommandArgsForCall[i].executable, fake.startCommandArgsForCall[i].args
+}
+
+func (fake *FakeOsHelper) StartCommandReturns(result1 *exec.Cmd, result2 error) {
+	fake.StartCommandStub = nil
+	fake.startCommandReturns = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeOsHelper) FileExists(filename string) bool {
 	fake.fileExistsMutex.Lock()
-	defer fake.fileExistsMutex.Unlock()
 	fake.fileExistsArgsForCall = append(fake.fileExistsArgsForCall, struct {
 		filename string
 	}{filename})
+	fake.fileExistsMutex.Unlock()
 	if fake.FileExistsStub != nil {
 		return fake.FileExistsStub(filename)
 	} else {
@@ -165,10 +213,10 @@ func (fake *FakeOsHelper) FileExistsReturns(result1 bool) {
 
 func (fake *FakeOsHelper) ReadFile(filename string) (string, error) {
 	fake.readFileMutex.Lock()
-	defer fake.readFileMutex.Unlock()
 	fake.readFileArgsForCall = append(fake.readFileArgsForCall, struct {
 		filename string
 	}{filename})
+	fake.readFileMutex.Unlock()
 	if fake.ReadFileStub != nil {
 		return fake.ReadFileStub(filename)
 	} else {
@@ -198,11 +246,11 @@ func (fake *FakeOsHelper) ReadFileReturns(result1 string, result2 error) {
 
 func (fake *FakeOsHelper) WriteStringToFile(filename string, contents string) error {
 	fake.writeStringToFileMutex.Lock()
-	defer fake.writeStringToFileMutex.Unlock()
 	fake.writeStringToFileArgsForCall = append(fake.writeStringToFileArgsForCall, struct {
 		filename string
 		contents string
 	}{filename, contents})
+	fake.writeStringToFileMutex.Unlock()
 	if fake.WriteStringToFileStub != nil {
 		return fake.WriteStringToFileStub(filename, contents)
 	} else {
@@ -231,10 +279,10 @@ func (fake *FakeOsHelper) WriteStringToFileReturns(result1 error) {
 
 func (fake *FakeOsHelper) Sleep(duration time.Duration) {
 	fake.sleepMutex.Lock()
-	defer fake.sleepMutex.Unlock()
 	fake.sleepArgsForCall = append(fake.sleepArgsForCall, struct {
 		duration time.Duration
 	}{duration})
+	fake.sleepMutex.Unlock()
 	if fake.SleepStub != nil {
 		fake.SleepStub(duration)
 	}

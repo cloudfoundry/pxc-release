@@ -25,7 +25,7 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 		return err
 	}
 
-	process, err := r.mgr.GetMariaProcess()
+	cmd, err := r.mgr.GetMysqlCmd()
 	if err != nil {
 		r.logger.Error("Error getting Maria process", err)
 		return err
@@ -36,15 +36,17 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	mariaExited := make(chan error)
 	go func() {
-		_, err = process.Wait()
+		err = cmd.Wait()
 		mariaExited <- err
 	}()
 
 	var shutdownErr error
 	select {
 	case <-signals:
+		r.logger.Info("Received shutdown signal. Shutting down Maria.")
 		shutdownErr = r.mgr.Shutdown()
 	case err = <-mariaExited:
+		r.logger.Error("Maria process exited", err)
 		shutdownErr = err
 	}
 	return shutdownErr

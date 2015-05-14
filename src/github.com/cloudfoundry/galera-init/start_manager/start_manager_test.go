@@ -3,6 +3,7 @@ package start_manager_test
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
@@ -51,14 +52,12 @@ var _ = Describe("StartManager", func() {
 	}
 
 	ensureBootstrapWithStateFileContents := func(contents string) {
-		Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(1))
-		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(BootstrapCommand))
+		Expect(fakeDBHelper.StartMysqlInBootstrapCallCount()).To(Equal(1))
 		ensureStateFileContentIs(contents)
 	}
 
 	ensureJoin := func() {
-		Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(1))
-		Expect(fakeDBHelper.StartMysqldInModeArgsForCall(0)).To(Equal(JoinCommand))
+		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
 		ensureStateFileContentIs(Clustered)
 	}
 
@@ -101,8 +100,8 @@ var _ = Describe("StartManager", func() {
 				JobIndex:  0,
 				NodeCount: 3,
 			})
-			fakeDBHelper.StartMysqldInModeStub = func(arg0 string) error {
-				return errors.New("some error")
+			fakeDBHelper.StartMysqlInBootstrapStub = func() (*exec.Cmd, error) {
+				return nil, errors.New("some error")
 			}
 		})
 		It("forwards the error", func() {
