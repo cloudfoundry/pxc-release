@@ -154,7 +154,7 @@ var _ = Describe("MariaDBHelper", func() {
 			for _, preseedDb := range config.PreseededDatabases {
 
 				createDbExec := fmt.Sprintf(
-					"CREATE DATABASE IF NOT EXISTS %s",
+					"CREATE DATABASE IF NOT EXISTS `%s`",
 					preseedDb.DBName)
 				sqlmock.ExpectExec(createDbExec).
 					WithArgs().
@@ -168,7 +168,7 @@ var _ = Describe("MariaDBHelper", func() {
 					WillReturnRows(sqlmock.NewRows([]string{"User"}))
 
 				createUserExec := fmt.Sprintf(
-					"CREATE USER %s IDENTIFIED BY '%s'",
+					"CREATE USER `%s` IDENTIFIED BY '%s'",
 					preseedDb.User,
 					preseedDb.Password)
 				sqlmock.ExpectExec(createUserExec).
@@ -176,7 +176,7 @@ var _ = Describe("MariaDBHelper", func() {
 					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
 				grantExec := fmt.Sprintf(
-					"GRANT ALL ON %s\\.\\* TO %s",
+					"GRANT ALL ON `%s`\\.\\* TO `%s`",
 					preseedDb.DBName,
 					preseedDb.User)
 				sqlmock.ExpectExec(grantExec).

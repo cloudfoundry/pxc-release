@@ -71,7 +71,9 @@ var _ = Describe("MariaDB Helper", func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
 		testLogger = *lagertest.NewTestLogger("mariadb_helper")
 		logFile = "/log-file.log"
+	})
 
+	JustBeforeEach(func() {
 		helper = mariadb_helper.NewMariaDBHelper(
 			fakeOs,
 			config,
@@ -107,32 +109,62 @@ var _ = Describe("MariaDB Helper", func() {
 		}
 	})
 
-	It("seeds databases and users", func() {
-		err := helper.Seed()
-		Expect(err).NotTo(HaveOccurred())
+	Describe("Seed", func() {
 
-		for _, preseededDB := range config.PreseededDatabases {
-			//check that DB exists
-			dbRows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", preseededDB.DBName))
+		var ensureSeedSucceeds = func() {
+			err := helper.Seed()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(dbRows.Err()).NotTo(HaveOccurred())
-			Expect(dbRows.Next()).To(BeTrue(), fmt.Sprintf("Expected DB to exist: %s", preseededDB.DBName))
 
-			//check that user can login to DB
-			userDb, err := openDBConnection(TestDBConfig{
-				Host:     testConfig.Host,
-				Port:     testConfig.Port,
-				User:     preseededDB.User,
-				Password: preseededDB.Password,
-				DBName:   preseededDB.DBName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			defer userDb.Close()
+			for _, preseededDB := range config.PreseededDatabases {
+				//check that DB exists
+				dbRows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", preseededDB.DBName))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbRows.Err()).NotTo(HaveOccurred())
+				Expect(dbRows.Next()).To(BeTrue(), fmt.Sprintf("Expected DB to exist: %s", preseededDB.DBName))
 
-			//check that user has permission to create a table
-			_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
-			Expect(err).NotTo(HaveOccurred())
+				//check that user can login to DB
+				userDb, err := openDBConnection(TestDBConfig{
+					Host:     testConfig.Host,
+					Port:     testConfig.Port,
+					User:     preseededDB.User,
+					Password: preseededDB.Password,
+					DBName:   preseededDB.DBName,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				defer userDb.Close()
+
+				//check that user has permission to create a table
+				_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
+				Expect(err).NotTo(HaveOccurred())
+			}
 		}
+
+		It("seeds databases and users", ensureSeedSucceeds)
+
+		Context("when database name contains a hyphen", func() {
+
+			BeforeEach(func() {
+				dbNameWithHyphen := getUUIDWithPrefix("MARIADB_CTRL_DB")
+				dbNameWithHyphen = strings.Replace(dbNameWithHyphen, "_", "-", -1)
+
+				config.PreseededDatabases[0].DBName = dbNameWithHyphen
+			})
+
+			It("seeds databases and users", ensureSeedSucceeds)
+		})
+
+		Context("when database name contains a hyphen", func() {
+
+			BeforeEach(func() {
+				userWithHyphen := getUUIDWithPrefix("MARIADB")[:16]
+				userWithHyphen = strings.Replace(userWithHyphen, "_", "-", -1)
+
+				config.PreseededDatabases[0].User = userWithHyphen
+			})
+
+			It("seeds databases and users", ensureSeedSucceeds)
+		})
+
 	})
 })
 
