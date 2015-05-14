@@ -105,10 +105,17 @@ func main() {
 
 	logger.Info("mariadb_ctrl started")
 
-	err = <-process.Wait()
-	//TODO: remove pidfile
+	processErr := <-process.Wait()
+
+	err = deletePidFile(config, logger)
 	if err != nil {
-		logger.Fatal("Error starting mariadb_ctrl", err)
+		logger.Error("Error deleting pidfile", err, lager.Data{
+			"pidfile": config.PidFile,
+		})
+	}
+
+	if processErr != nil {
+		logger.Fatal("Error starting mariadb_ctrl", processErr)
 	}
 
 	logger.Info("Process exited without error.")
@@ -117,4 +124,9 @@ func main() {
 func writePidFile(config Config, logger lager.Logger) error {
 	logger.Info(fmt.Sprintf("Writing pid to %s", config.PidFile))
 	return ioutil.WriteFile(config.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+}
+
+func deletePidFile(config Config, logger lager.Logger) error {
+	logger.Info(fmt.Sprintf("Deleting pidfile: %s", config.PidFile))
+	return os.Remove(config.PidFile)
 }
