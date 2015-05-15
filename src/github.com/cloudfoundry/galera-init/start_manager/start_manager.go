@@ -24,13 +24,6 @@ const (
 	JoinCommand      = "start"
 )
 
-type Config struct {
-	MyIP                 string
-	StateFileLocation    string
-	ClusterIps           []string
-	MaxDatabaseSeedTries int
-}
-
 type StartManager struct {
 	osHelper             os_helper.OsHelper
 	config               config.StartManager

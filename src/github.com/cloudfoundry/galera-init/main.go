@@ -45,6 +45,11 @@ func main() {
 		logger.Fatal("Error reading config file", err)
 	}
 
+	err = rootConfig.Validate()
+	if err != nil {
+		logger.Fatal("Error validating config", err)
+	}
+
 	osHelper := os_helper.NewImpl()
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(

@@ -27,8 +27,7 @@ var _ = Describe("Config", func() {
 				},
 				Manager: config.StartManager{
 					StateFileLocation: "testStateFileLocation",
-					AzIndex:           0,
-					JobIndex:          0,
+					MyIP:              "1.1.1.1",
 					ClusterIps: []string{
 						"1.1.1.1",
 						"1.1.1.2",
@@ -128,10 +127,8 @@ var _ = Describe("Config", func() {
 		Describe("StartManager", func() {
 			It("returns an error if Manager.StateFileLocation is blank", isRequiredField("Manager.StateFileLocation"))
 			It("returns an error if Manager.MaxDatabaseSeedTries is blank", isRequiredField("Manager.MaxDatabaseSeedTries"))
-
-			It("does not return an error if Manager.AzIndex is blank", isOptionalField("Manager.AzIndex"))
-			It("does not return an error if Manager.JobIndex is blank", isOptionalField("Manager.JobIndex"))
-			It("does not return an error if Manager.ClusterIps is blank", isOptionalField("Manager.ClusterIps"))
+			It("returns an error if Manager.MyIP is blank", isRequiredField("Manager.MyIP"))
+			It("returns an error if Manager.ClusterIps is blank", isRequiredField("Manager.ClusterIps"))
 		})
 
 		Describe("DBHelper", func() {

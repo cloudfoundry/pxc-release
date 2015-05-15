@@ -24,11 +24,10 @@ type DBHelper struct {
 }
 
 type StartManager struct {
-	StateFileLocation    string `validate:"nonzero"`
-	MaxDatabaseSeedTries int    `validate:"nonzero"`
-	AzIndex              int
-	JobIndex             int
-	ClusterIps           []string
+	StateFileLocation    string   `validate:"nonzero"`
+	MaxDatabaseSeedTries int      `validate:"nonzero"`
+	ClusterIps           []string `validate:"nonzero"`
+	MyIP                 string   `validate:"nonzero"`
 }
 
 type Upgrader struct {
