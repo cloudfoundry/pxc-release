@@ -24,9 +24,8 @@ const (
 )
 
 type Config struct {
+	MyIP                 string
 	StateFileLocation    string
-	AzIndex              int
-	JobIndex             int
 	ClusterIps           []string
 	MaxDatabaseSeedTries int
 }
@@ -58,46 +57,49 @@ func New(
 	}
 }
 
-func (m *StartManager) Execute() (err error) {
+func (m *StartManager) Execute() error {
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
-		m.logger.Info((fmt.Sprintf("Failed to determine upgrade status with error: %s", err.Error())))
-		return
+		m.logger.Info("Failed to determine upgrade status with error", lager.Data{"err": err.Error()})
+		return err
 	}
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.logger.Info((fmt.Sprintf("Failed to upgrade with error: %s", err.Error())))
-			return
+			m.logger.Info("Failed to upgrade", lager.Data{"err": err.Error()})
+			return err
 		}
 	}
 
 	m.logger.Info("Determining bootstrap procedure", lager.Data{
 		"ClusterIps": m.config.ClusterIps,
+		"MyIP":       m.config.MyIP,
 	})
 
-	// Single-node deploy (i.e. cluster ips are empty) always bootstraps new cluster
-	if len(m.config.ClusterIps) == 0 {
+	// Single-node deploy always requires bootstraping of new cluster
+	if len(m.config.ClusterIps) == 1 {
 		m.logger.Info("Single node deploy")
 		err = m.bootstrapCluster(SingleNode)
-		return
+		return err
 	}
 
-	// If there is no state file, we must be a new deploy.
-	if !m.osHelper.FileExists(m.config.StateFileLocation) {
-		// In this case node 0 will bootstrap
-		if m.config.AzIndex == 0 && m.config.JobIndex == 0 {
+	if m.firstTimeDeploy() {
+		if m.config.MyIP == m.config.ClusterIps[0] {
 			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", Clustered))
 			err = m.bootstrapCluster(Clustered)
-			return
-		} // Other nodes join existing cluster
+			return err
+		}
+
 		err = m.joinCluster()
-		return
+		return err
 	}
 
-	file_contents, _ := m.osHelper.ReadFile(m.config.StateFileLocation)
-	state := strings.TrimSpace(file_contents)
-	m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
+	// If we are not a first time deploy we must already have a state file
+	state, err := m.readStateFromFile()
+	if err != nil {
+		m.logger.Info("state file could not be read", lager.Data{"err": err.Error()})
+		return err
+	}
 	switch state {
 	case SingleNode:
 		// Upgrading from a single-node cluster means we have to re-bootstrap
@@ -109,7 +111,21 @@ func (m *StartManager) Execute() (err error) {
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
-	return
+	return err
+}
+
+func (m *StartManager) readStateFromFile() (string, error) {
+	state, err := m.osHelper.ReadFile(m.config.StateFileLocation)
+	if err != nil {
+		return "", err
+	}
+	state = strings.TrimSpace(state)
+	m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
+	return state, nil
+}
+
+func (m *StartManager) firstTimeDeploy() bool {
+	return !m.osHelper.FileExists(m.config.StateFileLocation)
 }
 
 func (m *StartManager) GetMysqlCmd() (*exec.Cmd, error) {

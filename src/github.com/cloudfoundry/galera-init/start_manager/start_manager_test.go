@@ -3,7 +3,6 @@ package start_manager_test
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
@@ -30,8 +29,7 @@ var _ = Describe("StartManager", func() {
 	maxDatabaseSeedTries := 2
 
 	type managerArgs struct {
-		AzIndex   int
-		JobIndex  int
+		NodeIndex int
 		NodeCount int
 	}
 
@@ -63,18 +61,16 @@ var _ = Describe("StartManager", func() {
 
 	createManager := func(args managerArgs) *StartManager {
 
-		//clusterIps does not include the current node's IP, so skip i = 0
 		clusterIps := []string{}
-		for i := 1; i < args.NodeCount; i++ {
-			clusterIps = append(clusterIps, "myIp")
+		for i := 0; i < args.NodeCount; i++ {
+			clusterIps = append(clusterIps, fmt.Sprintf("0.0.0.%d", i+1))
 		}
 
 		return New(
 			fakeOs,
 			Config{
 				StateFileLocation:    stateFileLocation,
-				AzIndex:              args.AzIndex,
-				JobIndex:             args.JobIndex,
+				MyIP:                 clusterIps[args.NodeIndex],
 				ClusterIps:           clusterIps,
 				MaxDatabaseSeedTries: maxDatabaseSeedTries,
 			},
@@ -93,16 +89,26 @@ var _ = Describe("StartManager", func() {
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 	})
 
-	Context("When starting mariadb with StartMysqldInMode causes an error", func() {
+	Context("When StartMysqlInBootstrap exits with an error", func() {
 		BeforeEach(func() {
 			mgr = createManager(managerArgs{
-				AzIndex:   0,
-				JobIndex:  0,
 				NodeCount: 3,
 			})
-			fakeDBHelper.StartMysqlInBootstrapStub = func() (*exec.Cmd, error) {
-				return nil, errors.New("some error")
-			}
+			fakeDBHelper.StartMysqlInBootstrapReturns(nil, errors.New("some errors"))
+		})
+		It("forwards the error", func() {
+			err := mgr.Execute()
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("When StartMysqlInJoin exits with an error", func() {
+		BeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeIndex: 1,
+				NodeCount: 3,
+			})
+			fakeDBHelper.StartMysqlInJoinReturns(nil, errors.New("some errors"))
 		})
 		It("forwards the error", func() {
 			err := mgr.Execute()
@@ -111,11 +117,9 @@ var _ = Describe("StartManager", func() {
 	})
 
 	Describe("Upgrade", func() {
-		Context("When determining whether upgrade is required with NeedsUpgrade exits with an error", func() {
+		Context("When determining whether an upgrade is required exits with an error", func() {
 			BeforeEach(func() {
 				mgr = createManager(managerArgs{
-					AzIndex:   0,
-					JobIndex:  0,
 					NodeCount: 3,
 				})
 
@@ -133,8 +137,6 @@ var _ = Describe("StartManager", func() {
 
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
-						AzIndex:   0,
-						JobIndex:  0,
 						NodeCount: 3,
 					})
 
@@ -154,8 +156,6 @@ var _ = Describe("StartManager", func() {
 		Context("When there's an error seeding the databases", func() {
 			BeforeEach(func() {
 				mgr = createManager(managerArgs{
-					AzIndex:   0,
-					JobIndex:  0,
 					NodeCount: 1,
 				})
 			})
@@ -206,8 +206,6 @@ var _ = Describe("StartManager", func() {
 
 		BeforeEach(func() {
 			mgr = createManager(managerArgs{
-				AzIndex:   0,
-				JobIndex:  0,
 				NodeCount: 1,
 			})
 		})
@@ -247,57 +245,33 @@ var _ = Describe("StartManager", func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			Context("And jobIndex == 0", func() {
-
-				Context("And azIndex == 0", func() {
-
-					BeforeEach(func() {
-						mgr = createManager(managerArgs{
-							AzIndex:   0,
-							JobIndex:  0,
-							NodeCount: 3,
-						})
-
-						fakeClusterHealthChecker.HealthyClusterReturns(false)
-					})
-
-					It("bootstraps, seeds databases and writes "+Clustered+" to file", func() {
-						err := mgr.Execute()
-						Expect(err).ToNot(HaveOccurred())
-						ensureBootstrapWithStateFileContents(Clustered)
-						ensureSeedDatabases()
-					})
-				})
-
-				Context("And azIndex > 0", func() {
-
-					BeforeEach(func() {
-						mgr = createManager(managerArgs{
-							AzIndex:   1,
-							JobIndex:  0,
-							NodeCount: 3,
-						})
-
-						fakeClusterHealthChecker.HealthyClusterReturns(false)
-					})
-
-					It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
-						err := mgr.Execute()
-						Expect(err).ToNot(HaveOccurred())
-						ensureJoin()
-						ensureSeedDatabases()
-					})
-				})
-			})
-
-			Context("And jobIndex > 0", func() {
+			Context("And the IP of the current node is the first in the cluster", func() {
 
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
-						AzIndex:   0,
-						JobIndex:  1,
 						NodeCount: 3,
 					})
+
+					fakeClusterHealthChecker.HealthyClusterReturns(false)
+				})
+
+				It("bootstraps, seeds databases and writes "+Clustered+" to file", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
+					ensureBootstrapWithStateFileContents(Clustered)
+					ensureSeedDatabases()
+				})
+			})
+
+			Context("And the IP of the current node is not the first in the cluster", func() {
+
+				BeforeEach(func() {
+					mgr = createManager(managerArgs{
+						NodeIndex: 1,
+						NodeCount: 3,
+					})
+
+					fakeClusterHealthChecker.HealthyClusterReturns(false)
 				})
 
 				It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
@@ -312,8 +286,6 @@ var _ = Describe("StartManager", func() {
 		Context("When state file is present", func() {
 			BeforeEach(func() {
 				mgr = createManager(managerArgs{
-					AzIndex:   0,
-					JobIndex:  0,
 					NodeCount: 3,
 				})
 
@@ -363,8 +335,6 @@ var _ = Describe("StartManager", func() {
 						fakeClusterHealthChecker.HealthyClusterReturns(true)
 
 						mgr = createManager(managerArgs{
-							AzIndex:   0,
-							JobIndex:  0,
 							NodeCount: 3,
 						})
 					})
@@ -377,16 +347,15 @@ var _ = Describe("StartManager", func() {
 					})
 				})
 
-				Context("And jobIndex > 0", func() {
+				Context("And the IP of the current node is not the first in the cluster", func() {
 					BeforeEach(func() {
 						mgr = createManager(managerArgs{
-							AzIndex:   0,
-							JobIndex:  1,
+							NodeIndex: 1,
 							NodeCount: 3,
 						})
 					})
 
-					It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
+					It("bootstraps, seeds databases, and writes '"+Clustered+"' to file", func() {
 						err := mgr.Execute()
 						Expect(err).NotTo(HaveOccurred())
 						ensureBootstrapWithStateFileContents(Clustered)
@@ -400,9 +369,34 @@ var _ = Describe("StartManager", func() {
 					fakeOs.ReadFileReturns("INVALID_STATE", nil)
 				})
 
+				It("Forwards the error", func() {
+					actualErr := mgr.Execute()
+					Expect(actualErr).To(HaveOccurred())
+				})
+
 				It("does not join the cluster or seed the databases", func() {
-					err := mgr.Execute()
-					Expect(err).To(HaveOccurred())
+					mgr.Execute()
+					Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(0))
+					Expect(fakeDBHelper.SeedCallCount()).To(BeZero())
+					ensureNoWriteToStateFile()
+				})
+			})
+
+			Context("But is unreadable", func() {
+				var err error
+				BeforeEach(func() {
+					err = errors.New("some error")
+					fakeOs.ReadFileReturns("", err)
+				})
+
+				It("Forwards the error", func() {
+					actualErr := mgr.Execute()
+					Expect(actualErr).To(HaveOccurred())
+					Expect(actualErr).To(Equal(err))
+				})
+
+				It("does not join the cluster or seed the databases", func() {
+					mgr.Execute()
 					Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(0))
 					Expect(fakeDBHelper.SeedCallCount()).To(BeZero())
 					ensureNoWriteToStateFile()
@@ -415,8 +409,6 @@ var _ = Describe("StartManager", func() {
 		Context("And scaling down from many nodes to single", func() {
 			BeforeEach(func() {
 				mgr = createManager(managerArgs{
-					AzIndex:   0,
-					JobIndex:  0,
 					NodeCount: 1,
 				})
 
@@ -435,8 +427,6 @@ var _ = Describe("StartManager", func() {
 		Context("And scaling from one to many nodes", func() {
 			BeforeEach(func() {
 				mgr = createManager(managerArgs{
-					AzIndex:   0,
-					JobIndex:  0,
 					NodeCount: 3,
 				})
 
@@ -452,5 +442,4 @@ var _ = Describe("StartManager", func() {
 			})
 		})
 	})
-
 })

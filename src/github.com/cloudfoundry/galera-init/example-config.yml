@@ -21,7 +21,7 @@ Manager:
   # Specifies the location to store the statefile for MySQL boot
   StateFileLocation:
   # Specifies the job index of the MySQL node
-  JobIndex: 1
+  MyIP: 10.10.0.1
   # Comma-delimited list of IPs in the galera cluster
   ClusterIps: []
   # How many times to attempt database seeding before it fails
