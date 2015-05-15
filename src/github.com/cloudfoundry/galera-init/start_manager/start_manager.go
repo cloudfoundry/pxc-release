@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
@@ -32,7 +33,7 @@ type Config struct {
 
 type StartManager struct {
 	osHelper             os_helper.OsHelper
-	config               Config
+	config               config.StartManager
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
 	mariaDBHelper        mariadb_helper.DBHelper
 	upgrader             upgrader.Upgrader
@@ -42,7 +43,7 @@ type StartManager struct {
 
 func New(
 	osHelper os_helper.OsHelper,
-	config Config,
+	config config.StartManager,
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	logger lager.Logger,

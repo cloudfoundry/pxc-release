@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
@@ -19,25 +20,17 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-type Config struct {
-	LogFileLocation string
-	PidFile         string
-	Db              mariadb_helper.Config
-	Manager         start_manager.Config
-	Upgrader        upgrader.Config
-}
-
 func main() {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	serviceConfig := service_config.New()
 	serviceConfig.AddFlags(flags)
 
-	serviceConfig.AddDefaults(Config{
-		Db: mariadb_helper.Config{
+	serviceConfig.AddDefaults(config.Config{
+		Db: config.DBHelper{
 			User: "root",
 		},
-		Manager: start_manager.Config{
+		Manager: config.StartManager{
 			MaxDatabaseSeedTries: 1,
 		},
 	})
@@ -46,8 +39,8 @@ func main() {
 
 	logger, _ := cf_lager.New("mariadb_ctrl")
 
-	var config Config
-	err := serviceConfig.Read(&config)
+	var rootConfig config.Config
+	err := serviceConfig.Read(&rootConfig)
 	if err != nil {
 		logger.Fatal("Error reading config file", err)
 	}
@@ -56,26 +49,26 @@ func main() {
 
 	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
 		osHelper,
-		config.Db,
-		config.LogFileLocation,
+		rootConfig.Db,
+		rootConfig.LogFileLocation,
 		logger,
 	)
 
 	upgrader := upgrader.NewUpgrader(
 		osHelper,
-		config.Upgrader,
+		rootConfig.Upgrader,
 		logger,
 		mariaDBHelper,
 	)
 
 	galeraHelper := cluster_health_checker.NewClusterHealthChecker(
-		config.Manager.ClusterIps,
+		rootConfig.Manager.ClusterIps,
 		logger,
 	)
 
 	mgr := start_manager.New(
 		osHelper,
-		config.Manager,
+		rootConfig.Manager,
 		mariaDBHelper,
 		upgrader,
 		logger,
@@ -93,13 +86,13 @@ func main() {
 		//continue
 	}
 
-	err = writePidFile(config, logger)
+	err = writePidFile(rootConfig, logger)
 	if err != nil {
 		process.Signal(os.Kill)
 		<-process.Wait()
 
 		logger.Fatal("Error writing pidfile", err, lager.Data{
-			"PidFile": config.PidFile,
+			"PidFile": rootConfig.PidFile,
 		})
 	}
 
@@ -107,10 +100,10 @@ func main() {
 
 	processErr := <-process.Wait()
 
-	err = deletePidFile(config, logger)
+	err = deletePidFile(rootConfig, logger)
 	if err != nil {
 		logger.Error("Error deleting pidfile", err, lager.Data{
-			"pidfile": config.PidFile,
+			"pidfile": rootConfig.PidFile,
 		})
 	}
 
@@ -121,12 +114,12 @@ func main() {
 	logger.Info("Process exited without error.")
 }
 
-func writePidFile(config Config, logger lager.Logger) error {
-	logger.Info(fmt.Sprintf("Writing pid to %s", config.PidFile))
-	return ioutil.WriteFile(config.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+func writePidFile(rootConfig config.Config, logger lager.Logger) error {
+	logger.Info(fmt.Sprintf("Writing pid to %s", rootConfig.PidFile))
+	return ioutil.WriteFile(rootConfig.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
 }
 
-func deletePidFile(config Config, logger lager.Logger) error {
-	logger.Info(fmt.Sprintf("Deleting pidfile: %s", config.PidFile))
-	return os.Remove(config.PidFile)
+func deletePidFile(rootConfig config.Config, logger lager.Logger) error {
+	logger.Info(fmt.Sprintf("Deleting pidfile: %s", rootConfig.PidFile))
+	return os.Remove(rootConfig.PidFile)
 }

@@ -3,6 +3,7 @@ package upgrader_test
 import (
 	"errors"
 
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	db_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/cloudfoundry/mariadb_ctrl/upgrader"
@@ -27,7 +28,7 @@ var _ = Describe("Upgrader", func() {
 
 		upgrader = NewUpgrader(
 			fakeOs,
-			Config{
+			config.Upgrader{
 				PackageVersionFile:      packageVersionFile,
 				LastUpgradedVersionFile: lastUpgradedVersionFile,
 			},

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	_ "github.com/go-sql-driver/mysql"
@@ -21,24 +22,24 @@ var _ = Describe("MariaDB Helper", func() {
 		fakeOs     *os_fakes.FakeOsHelper
 		testLogger lagertest.TestLogger
 		logFile    string
-		config     mariadb_helper.Config
+		dbConfig   config.DBHelper
 		db         *sql.DB
 	)
 
-	var openDBConnection = func(config TestDBConfig) (*sql.DB, error) {
+	var openDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
 		return sql.Open("mysql", fmt.Sprintf(
 			"%s:%s@tcp(%s:%d)/%s",
-			config.User,
-			config.Password,
-			config.Host,
-			config.Port,
-			config.DBName,
+			testConfig.User,
+			testConfig.Password,
+			testConfig.Host,
+			testConfig.Port,
+			testConfig.DBName,
 		))
 	}
 
-	var openRootDBConnection = func(config TestDBConfig) (*sql.DB, error) {
-		config.DBName = ""
-		return openDBConnection(config)
+	var openRootDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
+		testConfig.DBName = ""
+		return openDBConnection(testConfig)
 	}
 
 	BeforeEach(func() {
@@ -46,21 +47,21 @@ var _ = Describe("MariaDB Helper", func() {
 		user0 := getUUIDWithPrefix("MARIADB")[:16]
 		user1 := getUUIDWithPrefix("MARIADB")[:16]
 
-		config = mariadb_helper.Config{
+		dbConfig = config.DBHelper{
 			User:     testConfig.User,
 			Password: testConfig.Password,
-			PreseededDatabases: []mariadb_helper.PreseededDatabase{
-				mariadb_helper.PreseededDatabase{
+			PreseededDatabases: []config.PreseededDatabase{
+				config.PreseededDatabase{
 					DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
 					User:     user0,
 					Password: "password0",
 				},
-				mariadb_helper.PreseededDatabase{
+				config.PreseededDatabase{
 					DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
 					User:     user0,
 					Password: "password0",
 				},
-				mariadb_helper.PreseededDatabase{
+				config.PreseededDatabase{
 					DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
 					User:     user1,
 					Password: "password1",
@@ -76,13 +77,13 @@ var _ = Describe("MariaDB Helper", func() {
 	JustBeforeEach(func() {
 		helper = mariadb_helper.NewMariaDBHelper(
 			fakeOs,
-			config,
+			dbConfig,
 			logFile,
 			testLogger,
 		)
 
 		//override db connection to use test DB
-		mariadb_helper.OpenDBConnection = func(config mariadb_helper.Config) (*sql.DB, error) {
+		mariadb_helper.OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
 			return openRootDBConnection(testConfig)
 		}
 
@@ -98,7 +99,7 @@ var _ = Describe("MariaDB Helper", func() {
 
 		defer db.Close()
 
-		for _, preseededDB := range config.PreseededDatabases {
+		for _, preseededDB := range dbConfig.PreseededDatabases {
 			_, err := db.Exec(
 				fmt.Sprintf("DROP DATABASE IF EXISTS %s", preseededDB.DBName))
 			testLogger.Error("Error cleaning up test DB's", err)
@@ -115,7 +116,7 @@ var _ = Describe("MariaDB Helper", func() {
 			err := helper.Seed()
 			Expect(err).NotTo(HaveOccurred())
 
-			for _, preseededDB := range config.PreseededDatabases {
+			for _, preseededDB := range dbConfig.PreseededDatabases {
 				//check that DB exists
 				dbRows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", preseededDB.DBName))
 				Expect(err).NotTo(HaveOccurred())
@@ -147,7 +148,7 @@ var _ = Describe("MariaDB Helper", func() {
 				dbNameWithHyphen := getUUIDWithPrefix("MARIADB_CTRL_DB")
 				dbNameWithHyphen = strings.Replace(dbNameWithHyphen, "_", "-", -1)
 
-				config.PreseededDatabases[0].DBName = dbNameWithHyphen
+				dbConfig.PreseededDatabases[0].DBName = dbNameWithHyphen
 			})
 
 			It("seeds databases and users", ensureSeedSucceeds)
@@ -159,7 +160,7 @@ var _ = Describe("MariaDB Helper", func() {
 				userWithHyphen := getUUIDWithPrefix("MARIADB")[:16]
 				userWithHyphen = strings.Replace(userWithHyphen, "_", "-", -1)
 
-				config.PreseededDatabases[0].User = userWithHyphen
+				dbConfig.PreseededDatabases[0].User = userWithHyphen
 			})
 
 			It("seeds databases and users", ensureSeedSucceeds)

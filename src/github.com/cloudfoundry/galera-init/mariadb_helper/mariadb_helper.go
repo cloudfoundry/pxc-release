@@ -6,6 +6,7 @@ import (
 
 	"database/sql"
 
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-golang/lager"
@@ -15,20 +16,6 @@ const (
 	StopStandaloneCommand = "stop-stand-alone"
 	StopCommand           = "stop"
 )
-
-type PreseededDatabase struct {
-	DBName   string
-	User     string
-	Password string
-}
-
-type Config struct {
-	DaemonPath         string
-	UpgradePath        string
-	User               string
-	Password           string
-	PreseededDatabases []PreseededDatabase
-}
 
 type DBHelper interface {
 	StartMysqldInMode(command string) error
@@ -45,12 +32,12 @@ type MariaDBHelper struct {
 	osHelper        os_helper.OsHelper
 	logFileLocation string
 	logger          lager.Logger
-	config          Config
+	config          config.DBHelper
 }
 
 func NewMariaDBHelper(
 	osHelper os_helper.OsHelper,
-	config Config,
+	config config.DBHelper,
 	logFileLocation string,
 	logger lager.Logger) *MariaDBHelper {
 	return &MariaDBHelper{
@@ -62,7 +49,7 @@ func NewMariaDBHelper(
 }
 
 // Overridable methods to allow mocking DB connections in tests
-var OpenDBConnection = func(config Config) (*sql.DB, error) {
+var OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/", config.User, config.Password))
 	if err != nil {
 		return nil, err

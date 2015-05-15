@@ -6,11 +6,13 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Executable", func() {
+var _ = Describe("MariaDB_Ctrl", func() {
 
-	It("compiles the binary without errors", func() {
-		_, err := gexec.Build("github.com/cloudfoundry/mariadb_ctrl")
-		gexec.CleanupBuildArtifacts()
-		Expect(err).NotTo(HaveOccurred())
+	Describe("Executable", func() {
+		It("compiles the binary without errors", func() {
+			_, err := gexec.Build("github.com/cloudfoundry/mariadb_ctrl")
+			gexec.CleanupBuildArtifacts()
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 })

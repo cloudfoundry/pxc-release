@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
@@ -68,7 +69,7 @@ var _ = Describe("StartManager", func() {
 
 		return New(
 			fakeOs,
-			Config{
+			config.StartManager{
 				StateFileLocation:    stateFileLocation,
 				MyIP:                 clusterIps[args.NodeIndex],
 				ClusterIps:           clusterIps,

@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/pivotal-golang/lager"
@@ -17,14 +18,9 @@ type Upgrader interface {
 
 type upgrader struct {
 	osHelper      os_helper.OsHelper
-	config        Config
+	config        config.Upgrader
 	logger        lager.Logger
 	mariadbHelper mariadb_helper.DBHelper
-}
-
-type Config struct {
-	PackageVersionFile      string
-	LastUpgradedVersionFile string
 }
 
 var (
@@ -34,7 +30,7 @@ var (
 
 func NewUpgrader(
 	osHelper os_helper.OsHelper,
-	config Config,
+	config config.Upgrader,
 	logger lager.Logger,
 	mariadbHelper mariadb_helper.DBHelper) Upgrader {
 

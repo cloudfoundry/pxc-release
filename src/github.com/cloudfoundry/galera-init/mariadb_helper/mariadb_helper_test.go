@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
@@ -20,7 +21,7 @@ var _ = Describe("MariaDBHelper", func() {
 		fakeOs     *os_fakes.FakeOsHelper
 		testLogger lagertest.TestLogger
 		logFile    string
-		config     mariadb_helper.Config
+		dbConfig   config.DBHelper
 		fakeDB     *sql.DB
 	)
 
@@ -31,7 +32,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 		fakeDB, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
-		mariadb_helper.OpenDBConnection = func(mariadb_helper.Config) (*sql.DB, error) {
+		mariadb_helper.OpenDBConnection = func(config.DBHelper) (*sql.DB, error) {
 			return fakeDB, nil
 		}
 		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
@@ -40,18 +41,18 @@ var _ = Describe("MariaDBHelper", func() {
 		}
 
 		logFile = "/log-file.log"
-		config = mariadb_helper.Config{
+		dbConfig = config.DBHelper{
 			DaemonPath:  "/mysqld",
 			UpgradePath: "/mysql_upgrade",
 			User:        "user",
 			Password:    "password",
-			PreseededDatabases: []mariadb_helper.PreseededDatabase{
-				mariadb_helper.PreseededDatabase{
+			PreseededDatabases: []config.PreseededDatabase{
+				config.PreseededDatabase{
 					DBName:   "DB1",
 					User:     "user1",
 					Password: "password1",
 				},
-				mariadb_helper.PreseededDatabase{
+				config.PreseededDatabase{
 					DBName:   "DB2",
 					User:     "user2",
 					Password: "password2",
@@ -63,7 +64,7 @@ var _ = Describe("MariaDBHelper", func() {
 	JustBeforeEach(func() {
 		helper = mariadb_helper.NewMariaDBHelper(
 			fakeOs,
-			config,
+			dbConfig,
 			logFile,
 			testLogger,
 		)
@@ -84,7 +85,7 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(timeout).To(Equal(10))
 			Expect(logDestination).To(Equal(logFile))
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{config.DaemonPath, "bootstrap"}))
+			Expect(args).To(Equal([]string{dbConfig.DaemonPath, "bootstrap"}))
 		})
 
 		Context("when an error occurs", func() {
@@ -108,7 +109,7 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(timeout).To(Equal(10))
 			Expect(logDestination).To(Equal(logFile))
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{config.DaemonPath, mariadb_helper.StopStandaloneCommand}))
+			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StopStandaloneCommand}))
 		})
 
 		Context("when an error occurs", func() {
@@ -129,10 +130,10 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal(config.UpgradePath))
+			Expect(executable).To(Equal(dbConfig.UpgradePath))
 			Expect(args).To(Equal([]string{
-				fmt.Sprintf("-u%s", config.User),
-				fmt.Sprintf("-p%s", config.Password),
+				fmt.Sprintf("-u%s", dbConfig.User),
+				fmt.Sprintf("-p%s", dbConfig.Password),
 			}))
 		})
 
@@ -151,7 +152,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 		It("creates the specified databases", func() {
 
-			for _, preseedDb := range config.PreseededDatabases {
+			for _, preseedDb := range dbConfig.PreseededDatabases {
 
 				createDbExec := fmt.Sprintf(
 					"CREATE DATABASE IF NOT EXISTS `%s`",
@@ -194,7 +195,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 		Context("when there are no seeded databases", func() {
 			BeforeEach(func() {
-				config.PreseededDatabases = []mariadb_helper.PreseededDatabase{}
+				dbConfig.PreseededDatabases = []config.PreseededDatabase{}
 			})
 
 			It("does not make any queries", func() {
