@@ -226,7 +226,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 })
 
 type HealthcheckTestHelperConfig struct {
-	wsrep_status             string
+	wsrep_status             int
 	read_only                string
 	available_when_donor     bool
 	available_when_read_only bool
@@ -237,7 +237,7 @@ func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string
 
 	sql := "SHOW STATUS LIKE 'wsrep_local_state'"
 	columns := []string{"Variable_name", "Value"}
-	result := fmt.Sprintf("wsrep_local_state,%s", testConfig.wsrep_status)
+	result := fmt.Sprintf("wsrep_local_state,%d", testConfig.wsrep_status)
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
 
 	sql = "SHOW GLOBAL VARIABLES LIKE 'read_only'"

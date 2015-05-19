@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	STATE_JOINING        = "1"
-	STATE_DONOR_DESYNCED = "2"
-	STATE_JOINED         = "3"
-	STATE_SYNCED         = "4"
+	STATE_JOINING        = 1
+	STATE_DONOR_DESYNCED = 2
+	STATE_JOINED         = 3
+	STATE_SYNCED         = 4
 )
 
 type Healthchecker struct {
@@ -47,7 +47,7 @@ func (h *Healthchecker) Check() (bool, string) {
 	h.logger.Info("Checking state of galera...")
 
 	var variable_name string
-	var value string
+	var value int
 	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&variable_name, &value)
 
 	if err == sql.ErrNoRows {
