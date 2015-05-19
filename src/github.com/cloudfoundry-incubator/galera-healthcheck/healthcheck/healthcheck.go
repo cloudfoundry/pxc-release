@@ -2,6 +2,7 @@ package healthcheck
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/pivotal-golang/lager"
 )
@@ -45,9 +46,9 @@ func New(db *sql.DB, config Config, logger lager.Logger) *Healthchecker {
 func (h *Healthchecker) Check() (bool, string) {
 	h.logger.Info("Checking state of galera...")
 
-	var variable_name string
+	var unused string
 	var value int
-	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&variable_name, &value)
+	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&unused, &value)
 
 	if err == sql.ErrNoRows {
 		return false, "wsrep_local_state variable not set (possibly not a galera db)"
@@ -57,20 +58,47 @@ func (h *Healthchecker) Check() (bool, string) {
 		return false, err.Error()
 	}
 
-	if value == STATE_SYNCED || (value == STATE_DONOR_DESYNCED && h.config.AvailableWhenDonor) {
-		if !h.config.AvailableWhenReadOnly {
-			var unused, readOnly string
-			err = h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&unused, &readOnly)
-			if err != nil {
-				return false, err.Error()
-			}
-
-			if readOnly == "ON" {
-				return false, "read-only"
-			}
+	switch value {
+	case STATE_JOINING:
+		return false, "joining"
+	case STATE_DONOR_DESYNCED:
+		if h.config.AvailableWhenDonor {
+			return h.healthy(value)
 		}
-		return true, "synced"
+		return false, "not synced"
+	case STATE_JOINED:
+		return false, "joined"
+	case STATE_SYNCED:
+		return h.healthy(value)
+	default:
+		return false, fmt.Sprintf("Unrecognized state: %d", value)
 	}
 
-	return false, "not synced"
+}
+
+func (h Healthchecker) healthy(value int) (bool, string) {
+	if !h.config.AvailableWhenReadOnly {
+		readOnly, err := h.isReadOnly()
+		if err != nil {
+			return false, err.Error()
+		}
+
+		if readOnly {
+			return false, "read-only"
+		}
+	}
+	return true, "synced"
+}
+
+func (h Healthchecker) isReadOnly() (bool, error) {
+	var unused, readOnly string
+	err := h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&unused, &readOnly)
+	if err != nil {
+		return false, err
+	}
+
+	if readOnly == "ON" {
+		return true, nil
+	}
+	return false, nil
 }

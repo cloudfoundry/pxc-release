@@ -19,7 +19,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 
 	Describe("Check", func() {
 		Context("when WSREP_STATUS is joining", func() {
-			It("returns false and not synced", func() {
+			It("returns false and joining", func() {
 				config := healthcheckTestHelperConfig{
 					wsrepStatus: healthcheck.STATE_JOINING,
 				}
@@ -27,12 +27,12 @@ var _ = Describe("GaleraHealthChecker", func() {
 				result, msg := healthcheckTestHelper(config)
 
 				Expect(result).To(BeFalse())
-				Expect(msg).To(Equal("not synced"))
+				Expect(msg).To(Equal("joining"))
 			})
 		})
 
 		Context("when WSREP_STATUS is joined", func() {
-			It("returns false and not synced", func() {
+			It("returns false and joined", func() {
 				config := healthcheckTestHelperConfig{
 					wsrepStatus: healthcheck.STATE_JOINED,
 				}
@@ -40,7 +40,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				result, msg := healthcheckTestHelper(config)
 
 				Expect(result).To(BeFalse())
-				Expect(msg).To(Equal("not synced"))
+				Expect(msg).To(Equal("joined"))
 			})
 		})
 
