@@ -43,7 +43,6 @@ func New(db *sql.DB, config Config, logger lager.Logger) *Healthchecker {
 }
 
 func (h *Healthchecker) Check() (bool, string) {
-
 	h.logger.Info("Checking state of galera...")
 
 	var variable_name string
@@ -60,13 +59,13 @@ func (h *Healthchecker) Check() (bool, string) {
 
 	if value == STATE_SYNCED || (value == STATE_DONOR_DESYNCED && h.config.AvailableWhenDonor) {
 		if !h.config.AvailableWhenReadOnly {
-			var ro_variable_name, ro_value string
-			err = h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&ro_variable_name, &ro_value)
+			var unused, readOnly string
+			err = h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&unused, &readOnly)
 			if err != nil {
 				return false, err.Error()
 			}
 
-			if ro_value == "ON" {
+			if readOnly == "ON" {
 				return false, "read-only"
 			}
 		}

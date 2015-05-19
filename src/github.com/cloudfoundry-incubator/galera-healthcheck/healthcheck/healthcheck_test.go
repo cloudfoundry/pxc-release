@@ -21,10 +21,10 @@ var _ = Describe("GaleraHealthChecker", func() {
 		Context("when WSREP_STATUS is joining", func() {
 			It("It returns false and not synced", func() {
 				config := HealthcheckTestHelperConfig{
-					healthcheck.STATE_JOINING,
-					"OFF",
-					false,
-					false,
+					wsrepStatus:           healthcheck.STATE_JOINING,
+					readOnly:              "OFF",
+					availableWhenDonor:    false,
+					availableWhenReadOnly: false,
 				}
 
 				result, msg := HealthcheckTestHelper(config)
@@ -37,10 +37,10 @@ var _ = Describe("GaleraHealthChecker", func() {
 		Context("when WSREP_STATUS is joined", func() {
 			It("It returns false and not synced", func() {
 				config := HealthcheckTestHelperConfig{
-					healthcheck.STATE_JOINED,
-					"OFF",
-					false,
-					false,
+					wsrepStatus:           healthcheck.STATE_JOINED,
+					readOnly:              "OFF",
+					availableWhenDonor:    false,
+					availableWhenReadOnly: false,
 				}
 
 				result, msg := HealthcheckTestHelper(config)
@@ -54,10 +54,10 @@ var _ = Describe("GaleraHealthChecker", func() {
 			Context("when not AVAILABLE_WHEN_DONOR", func() {
 				It("It returns false and not-synced", func() {
 					config := HealthcheckTestHelperConfig{
-						healthcheck.STATE_DONOR_DESYNCED,
-						"OFF",
-						false,
-						false,
+						wsrepStatus:           healthcheck.STATE_DONOR_DESYNCED,
+						readOnly:              "OFF",
+						availableWhenDonor:    false,
+						availableWhenReadOnly: false,
 					}
 
 					result, msg := HealthcheckTestHelper(config)
@@ -68,45 +68,47 @@ var _ = Describe("GaleraHealthChecker", func() {
 			})
 
 			Context("when AVAILABLE_WHEN_DONOR", func() {
-				Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is true", func() {
-					It("It returns true and synced", func() {
-						config := HealthcheckTestHelperConfig{
-							healthcheck.STATE_DONOR_DESYNCED,
-							"ON",
-							true,
-							true,
-						}
+				Context("when READ_ONLY is ON", func() {
+					Context("when AVAILABLE_WHEN_READONLY is true", func() {
+						It("It returns true and synced", func() {
+							config := HealthcheckTestHelperConfig{
+								wsrepStatus:           healthcheck.STATE_DONOR_DESYNCED,
+								readOnly:              "ON",
+								availableWhenDonor:    true,
+								availableWhenReadOnly: true,
+							}
 
-						result, msg := HealthcheckTestHelper(config)
+							result, msg := HealthcheckTestHelper(config)
 
-						Expect(result).To(BeTrue())
-						Expect(msg).To(Equal("synced"))
+							Expect(result).To(BeTrue())
+							Expect(msg).To(Equal("synced"))
+						})
 					})
-				})
 
-				Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is false", func() {
-					It("It returns false and read-only", func() {
-						config := HealthcheckTestHelperConfig{
-							healthcheck.STATE_DONOR_DESYNCED,
-							"ON",
-							true,
-							false,
-						}
+					Context("when AVAILABLE_WHEN_READONLY is false", func() {
+						It("It returns false and read-only", func() {
+							config := HealthcheckTestHelperConfig{
+								wsrepStatus:           healthcheck.STATE_DONOR_DESYNCED,
+								readOnly:              "ON",
+								availableWhenDonor:    true,
+								availableWhenReadOnly: false,
+							}
 
-						result, msg := HealthcheckTestHelper(config)
+							result, msg := HealthcheckTestHelper(config)
 
-						Expect(result).To(BeFalse())
-						Expect(msg).To(Equal("read-only"))
+							Expect(result).To(BeFalse())
+							Expect(msg).To(Equal("read-only"))
+						})
 					})
 				})
 
 				Context("when READ_ONLY is OFF", func() {
 					It("It returns true and synced", func() {
 						config := HealthcheckTestHelperConfig{
-							healthcheck.STATE_DONOR_DESYNCED,
-							"OFF",
-							true,
-							false,
+							wsrepStatus:           healthcheck.STATE_DONOR_DESYNCED,
+							readOnly:              "OFF",
+							availableWhenDonor:    true,
+							availableWhenReadOnly: false,
 						}
 
 						result, msg := HealthcheckTestHelper(config)
@@ -120,48 +122,47 @@ var _ = Describe("GaleraHealthChecker", func() {
 		})
 
 		Context("when WSREP_STATUS is synced", func() {
+			Context("when READ_ONLY is ON", func() {
+				Context("when AVAILABLE_WHEN_READONLY is true", func() {
+					It("It returns true and synced", func() {
+						config := HealthcheckTestHelperConfig{
+							wsrepStatus:           healthcheck.STATE_SYNCED,
+							readOnly:              "ON",
+							availableWhenDonor:    false,
+							availableWhenReadOnly: true,
+						}
 
-			Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is true", func() {
-				It("It returns true and synced", func() {
+						result, msg := HealthcheckTestHelper(config)
 
-					config := HealthcheckTestHelperConfig{
-						healthcheck.STATE_SYNCED,
-						"ON",
-						false,
-						true,
-					}
-
-					result, msg := HealthcheckTestHelper(config)
-
-					Expect(result).To(BeTrue())
-					Expect(msg).To(Equal("synced"))
+						Expect(result).To(BeTrue())
+						Expect(msg).To(Equal("synced"))
+					})
 				})
-			})
 
-			Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is false", func() {
-				It("It returns false and read-only", func() {
+				Context("when AVAILABLE_WHEN_READONLY is false", func() {
+					It("It returns false and read-only", func() {
+						config := HealthcheckTestHelperConfig{
+							wsrepStatus:           healthcheck.STATE_SYNCED,
+							readOnly:              "ON",
+							availableWhenDonor:    false,
+							availableWhenReadOnly: false,
+						}
 
-					config := HealthcheckTestHelperConfig{
-						healthcheck.STATE_SYNCED,
-						"ON",
-						false,
-						false,
-					}
+						result, msg := HealthcheckTestHelper(config)
 
-					result, msg := HealthcheckTestHelper(config)
-
-					Expect(result).To(BeFalse())
-					Expect(msg).To(Equal("read-only"))
+						Expect(result).To(BeFalse())
+						Expect(msg).To(Equal("read-only"))
+					})
 				})
 			})
 
 			Context("when READ_ONLY is OFF", func() {
 				It("It returns true and synced", func() {
 					config := HealthcheckTestHelperConfig{
-						healthcheck.STATE_SYNCED,
-						"OFF",
-						false,
-						false,
+						wsrepStatus:           healthcheck.STATE_SYNCED,
+						readOnly:              "OFF",
+						availableWhenDonor:    false,
+						availableWhenReadOnly: false,
 					}
 
 					result, msg := HealthcheckTestHelper(config)
@@ -172,9 +173,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 			})
 		})
 
-		Context("when SHOW STATUS has errors", func() {
+		Context("when SHOW STATUS returns an error", func() {
 			It("returns false and the error message", func() {
-
 				db, _ := sql.Open("testdb", "")
 
 				sql := "SHOW STATUS LIKE 'wsrep_local_state'"
@@ -195,9 +195,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 			})
 		})
 
-		Context("when SHOW STATUS has errors", func() {
+		Context("when SHOW GLOBAL VARIABLES LIKE returns an error", func() {
 			It("returns false and the error message", func() {
-
 				db, _ := sql.Open("testdb", "")
 
 				sql := "SHOW STATUS LIKE 'wsrep_local_state'"
@@ -226,10 +225,10 @@ var _ = Describe("GaleraHealthChecker", func() {
 })
 
 type HealthcheckTestHelperConfig struct {
-	wsrep_status             int
-	read_only                string
-	available_when_donor     bool
-	available_when_read_only bool
+	wsrepStatus           int
+	readOnly              string
+	availableWhenDonor    bool
+	availableWhenReadOnly bool
 }
 
 func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string) {
@@ -237,17 +236,17 @@ func HealthcheckTestHelper(testConfig HealthcheckTestHelperConfig) (bool, string
 
 	sql := "SHOW STATUS LIKE 'wsrep_local_state'"
 	columns := []string{"Variable_name", "Value"}
-	result := fmt.Sprintf("wsrep_local_state,%d", testConfig.wsrep_status)
+	result := fmt.Sprintf("wsrep_local_state,%d", testConfig.wsrepStatus)
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
 
 	sql = "SHOW GLOBAL VARIABLES LIKE 'read_only'"
 	columns = []string{"Variable_name", "Value"}
-	result = fmt.Sprintf("read_only,%s", testConfig.read_only)
+	result = fmt.Sprintf("read_only,%s", testConfig.readOnly)
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
 
 	config := healthcheck.Config{
-		AvailableWhenDonor:    testConfig.available_when_donor,
-		AvailableWhenReadOnly: testConfig.available_when_read_only,
+		AvailableWhenDonor:    testConfig.availableWhenDonor,
+		AvailableWhenReadOnly: testConfig.availableWhenReadOnly,
 	}
 
 	logger := lagertest.NewTestLogger("Healthcheck test")
