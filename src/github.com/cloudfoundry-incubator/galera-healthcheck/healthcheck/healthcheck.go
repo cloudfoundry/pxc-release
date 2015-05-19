@@ -2,12 +2,15 @@ package healthcheck
 
 import (
 	"database/sql"
+
 	"github.com/pivotal-golang/lager"
 )
 
 const (
-	SYNCED_STATE         = "4"
-	DONOR_DESYNCED_STATE = "2"
+	STATE_JOINING        = "1"
+	STATE_DONOR_DESYNCED = "2"
+	STATE_JOINED         = "3"
+	STATE_SYNCED         = "4"
 )
 
 type Healthchecker struct {
@@ -55,7 +58,7 @@ func (h *Healthchecker) Check() (bool, string) {
 		return false, err.Error()
 	}
 
-	if value == SYNCED_STATE || (value == DONOR_DESYNCED_STATE && h.config.AvailableWhenDonor) {
+	if value == STATE_SYNCED || (value == STATE_DONOR_DESYNCED && h.config.AvailableWhenDonor) {
 		if !h.config.AvailableWhenReadOnly {
 			var ro_variable_name, ro_value string
 			err = h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&ro_variable_name, &ro_value)

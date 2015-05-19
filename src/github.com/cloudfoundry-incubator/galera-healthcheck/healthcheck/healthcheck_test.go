@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"database/sql"
+
 	testdb "github.com/erikstmartin/go-testdb"
 
 	. "github.com/onsi/ginkgo"
@@ -20,7 +21,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 		Context("when WSREP_STATUS is joining", func() {
 			It("It returns false and not synced", func() {
 				config := HealthcheckTestHelperConfig{
-					"1",
+					healthcheck.STATE_JOINING,
 					"OFF",
 					false,
 					false,
@@ -36,7 +37,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 		Context("when WSREP_STATUS is joined", func() {
 			It("It returns false and not synced", func() {
 				config := HealthcheckTestHelperConfig{
-					"3",
+					healthcheck.STATE_JOINED,
 					"OFF",
 					false,
 					false,
@@ -53,7 +54,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 			Context("when not AVAILABLE_WHEN_DONOR", func() {
 				It("It returns false and not-synced", func() {
 					config := HealthcheckTestHelperConfig{
-						"2",
+						healthcheck.STATE_DONOR_DESYNCED,
 						"OFF",
 						false,
 						false,
@@ -70,7 +71,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is true", func() {
 					It("It returns true and synced", func() {
 						config := HealthcheckTestHelperConfig{
-							"2",
+							healthcheck.STATE_DONOR_DESYNCED,
 							"ON",
 							true,
 							true,
@@ -86,7 +87,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				Context("when READ_ONLY is ON and AVAILABLE_WHEN_READONLY is false", func() {
 					It("It returns false and read-only", func() {
 						config := HealthcheckTestHelperConfig{
-							"2",
+							healthcheck.STATE_DONOR_DESYNCED,
 							"ON",
 							true,
 							false,
@@ -102,7 +103,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				Context("when READ_ONLY is OFF", func() {
 					It("It returns true and synced", func() {
 						config := HealthcheckTestHelperConfig{
-							"2",
+							healthcheck.STATE_DONOR_DESYNCED,
 							"OFF",
 							true,
 							false,
@@ -124,7 +125,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				It("It returns true and synced", func() {
 
 					config := HealthcheckTestHelperConfig{
-						"4",
+						healthcheck.STATE_SYNCED,
 						"ON",
 						false,
 						true,
@@ -141,7 +142,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				It("It returns false and read-only", func() {
 
 					config := HealthcheckTestHelperConfig{
-						"4",
+						healthcheck.STATE_SYNCED,
 						"ON",
 						false,
 						false,
@@ -157,7 +158,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 			Context("when READ_ONLY is OFF", func() {
 				It("It returns true and synced", func() {
 					config := HealthcheckTestHelperConfig{
-						"4",
+						healthcheck.STATE_SYNCED,
 						"OFF",
 						false,
 						false,
