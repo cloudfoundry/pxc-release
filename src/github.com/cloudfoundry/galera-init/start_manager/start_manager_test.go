@@ -154,13 +154,20 @@ var _ = Describe("StartManager", func() {
 	})
 
 	Describe("SeedDatabases", func() {
-		Context("When there's an error seeding the databases", func() {
-			BeforeEach(func() {
-				mgr = createManager(managerArgs{
-					NodeCount: 1,
-				})
+		BeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeCount: 1,
 			})
+		})
 
+		Context("When the database seeding succeeds", func() {
+			It("returns without error", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("When there's an error seeding the databases", func() {
 			Context("And the total attempts at seeding the database is less than maxDatabaseSeedTries", func() {
 				BeforeEach(func() {
 					numTries := 0
