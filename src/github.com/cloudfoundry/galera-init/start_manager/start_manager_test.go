@@ -26,8 +26,8 @@ var _ = Describe("StartManager", func() {
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
-	stateFileLocation := "/stateFileLocation"
-	maxDatabaseSeedTries := 2
+	const stateFileLocation = "/stateFileLocation"
+	const maxDatabaseSeedTries = 2
 
 	type managerArgs struct {
 		NodeIndex int
@@ -88,6 +88,8 @@ var _ = Describe("StartManager", func() {
 		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
+
+		fakeDBHelper.IsDatabaseReachableReturns(true)
 	})
 
 	Context("When StartMysqlInBootstrap exits with an error", func() {
@@ -160,52 +162,79 @@ var _ = Describe("StartManager", func() {
 			})
 		})
 
-		Context("When the database seeding succeeds", func() {
-			It("returns without error", func() {
-				err := mgr.Execute()
-				Expect(err).ToNot(HaveOccurred())
+		Context("When the database is reachable", func() {
+			BeforeEach(func() {
+				fakeDBHelper.IsDatabaseReachableReturns(true)
+			})
+
+			Context("When the database seeding succeeds", func() {
+				BeforeEach(func() {
+					fakeDBHelper.SeedReturns(nil)
+				})
+
+				It("returns without error", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when database seeding fails", func() {
+				var expectedErr error
+				BeforeEach(func() {
+					expectedErr = errors.New("seeding databases failed")
+					fakeDBHelper.SeedReturns(expectedErr)
+				})
+
+				It("forwards the error", func() {
+					err := mgr.Execute()
+					Expect(err).To(Equal(expectedErr))
+				})
 			})
 		})
 
-		Context("When there's an error seeding the databases", func() {
-			Context("And the total attempts at seeding the database is less than maxDatabaseSeedTries", func() {
-				BeforeEach(func() {
-					numTries := 0
+		Context("When the database is not reachable initially, but then is reachable later", func() {
+			BeforeEach(func() {
+				numTries := 0
 
-					fakeDBHelper.SeedStub = func() error {
-						numTries++
-						if numTries < maxDatabaseSeedTries {
-							return errors.New("seeding databases failed")
-						} else {
-							return nil
-						}
+				fakeDBHelper.IsDatabaseReachableStub = func() bool {
+					numTries++
+					if numTries < maxDatabaseSeedTries {
+						return false
+					} else {
+						return true
 					}
-				})
-
-				It("waits and attempts to retry to seed the database", func() {
-					err := mgr.Execute()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fakeDBHelper.SeedCallCount()).To(Equal(maxDatabaseSeedTries))
-				})
+				}
 			})
 
-			Context("And the total attempts at seeding the database is greater than or equal to maxDatabaseSeedTries", func() {
-				var numTries int
-				BeforeEach(func() {
-					numTries = 0
-					fakeDBHelper.SeedStub = func() error {
-						numTries++
-						return errors.New("seeding databases failed")
-					}
-				})
+			It("retries reaching the database, and seeds the database", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxDatabaseSeedTries))
+				Expect(fakeDBHelper.SeedCallCount()).To(Equal(1))
+			})
+		})
 
-				It("exits and stops mysql (so the deploy fails) and does not write to the state file", func() {
-					err := mgr.Execute()
-					Expect(err).To(HaveOccurred())
-					Expect(numTries).To(Equal(maxDatabaseSeedTries))
-					Expect(fakeDBHelper.SeedCallCount()).To(Equal(maxDatabaseSeedTries))
-					ensureNoWriteToStateFile()
-				})
+		Context("When the database is not reachable after maxDatabaseSeedTries", func() {
+			var numTries int
+			BeforeEach(func() {
+				numTries = 0
+				fakeDBHelper.IsDatabaseReachableStub = func() bool {
+					numTries++
+					return false
+				}
+			})
+
+			It("does not attempt to seed the database", func() {
+				mgr.Execute()
+				Expect(numTries).To(Equal(maxDatabaseSeedTries))
+				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxDatabaseSeedTries))
+				Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
+			})
+
+			It("exits and stops mysql (so the deploy fails) and does not write to the state file", func() {
+				err := mgr.Execute()
+				Expect(err).To(HaveOccurred())
+				ensureNoWriteToStateFile()
 			})
 		})
 	})

@@ -215,18 +215,24 @@ func (m *StartManager) writeStringToFile(contents string) {
 }
 
 func (m *StartManager) seedDatabases() error {
-	var err error
 	for numTries := 0; numTries < m.config.MaxDatabaseSeedTries; numTries++ {
-		err = m.mariaDBHelper.Seed()
-		if err == nil {
-			m.logger.Info("Seeding databases succeeded.")
-			return nil
+		if !m.mariaDBHelper.IsDatabaseReachable() {
+			m.logger.Info("Database not reachable, retrying...")
+			m.osHelper.Sleep(5 * time.Second)
+			continue
 		}
-		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
-		m.logger.Info("Retrying seeding script...")
-		m.osHelper.Sleep(5 * time.Second)
+
+		err := m.mariaDBHelper.Seed()
+		if err != nil {
+			m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
+			return err
+		}
+
+		m.logger.Info("Seeding databases succeeded.")
+		return nil
 	}
 
-	m.logger.Info(fmt.Sprintf("Error seeding databases: '%s'", err.Error()))
+	err := fmt.Errorf("Database not reachable after %d attempts", m.config.MaxDatabaseSeedTries)
+	m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
 	return err
 }
