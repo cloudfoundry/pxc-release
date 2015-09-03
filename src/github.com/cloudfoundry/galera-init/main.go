@@ -30,9 +30,6 @@ func main() {
 		Db: config.DBHelper{
 			User: "root",
 		},
-		Manager: config.StartManager{
-			MaxDatabaseSeedTries: 1,
-		},
 	})
 	cf_lager.AddFlags(flags)
 	flags.Parse(os.Args[1:])

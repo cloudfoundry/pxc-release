@@ -27,7 +27,7 @@ var _ = Describe("StartManager", func() {
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 
 	const stateFileLocation = "/stateFileLocation"
-	const maxDatabaseSeedTries = 2
+	const databaseStartupTimeout = 10
 
 	type managerArgs struct {
 		NodeIndex int
@@ -70,10 +70,10 @@ var _ = Describe("StartManager", func() {
 		return New(
 			fakeOs,
 			config.StartManager{
-				StateFileLocation:    stateFileLocation,
-				MyIP:                 clusterIps[args.NodeIndex],
-				ClusterIps:           clusterIps,
-				MaxDatabaseSeedTries: maxDatabaseSeedTries,
+				StateFileLocation:      stateFileLocation,
+				MyIP:                   clusterIps[args.NodeIndex],
+				ClusterIps:             clusterIps,
+				DatabaseStartupTimeout: databaseStartupTimeout,
 			},
 			fakeDBHelper,
 			fakeUpgrader,
@@ -156,10 +156,13 @@ var _ = Describe("StartManager", func() {
 	})
 
 	Describe("SeedDatabases", func() {
+		var maxDatabaseSeedTries int
 		BeforeEach(func() {
 			mgr = createManager(managerArgs{
 				NodeCount: 1,
 			})
+
+			maxDatabaseSeedTries = databaseStartupTimeout / StartupPollingFrequencyInSeconds
 		})
 
 		Context("When the database is reachable", func() {

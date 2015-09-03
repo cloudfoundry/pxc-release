@@ -22,6 +22,8 @@ const (
 
 	BootstrapCommand = "bootstrap"
 	JoinCommand      = "start"
+
+	StartupPollingFrequencyInSeconds = 5
 )
 
 type StartManager struct {
@@ -106,6 +108,10 @@ func (m *StartManager) Execute() error {
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
 	return err
+}
+
+func (m *StartManager) maxDatabaseSeedTries() int {
+	return m.config.DatabaseStartupTimeout / StartupPollingFrequencyInSeconds
 }
 
 func (m *StartManager) readStateFromFile() (string, error) {
@@ -215,10 +221,11 @@ func (m *StartManager) writeStringToFile(contents string) {
 }
 
 func (m *StartManager) seedDatabases() error {
-	for numTries := 0; numTries < m.config.MaxDatabaseSeedTries; numTries++ {
+	m.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", m.config.DatabaseStartupTimeout))
+	for numTries := 0; numTries < m.maxDatabaseSeedTries(); numTries++ {
 		if !m.mariaDBHelper.IsDatabaseReachable() {
 			m.logger.Info("Database not reachable, retrying...")
-			m.osHelper.Sleep(5 * time.Second)
+			m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
 			continue
 		}
 
@@ -232,7 +239,7 @@ func (m *StartManager) seedDatabases() error {
 		return nil
 	}
 
-	err := fmt.Errorf("Database not reachable after %d attempts", m.config.MaxDatabaseSeedTries)
+	err := fmt.Errorf("Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
 	m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
 	return err
 }
