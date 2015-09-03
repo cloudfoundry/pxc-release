@@ -18,7 +18,7 @@ import (
 
 var _ = Describe("StartManager", func() {
 
-	var mgr *StartManager
+	var mgr StartManager
 
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_fakes.FakeOsHelper
@@ -60,7 +60,7 @@ var _ = Describe("StartManager", func() {
 		ensureStateFileContentIs(Clustered)
 	}
 
-	createManager := func(args managerArgs) *StartManager {
+	createManager := func(args managerArgs) StartManager {
 
 		clusterIps := []string{}
 		for i := 0; i < args.NodeCount; i++ {

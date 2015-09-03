@@ -26,7 +26,13 @@ const (
 	StartupPollingFrequencyInSeconds = 5
 )
 
-type StartManager struct {
+type StartManager interface {
+	Execute() error
+	GetMysqlCmd() (*exec.Cmd, error)
+	Shutdown() error
+}
+
+type startManager struct {
 	osHelper             os_helper.OsHelper
 	config               config.StartManager
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
@@ -42,8 +48,8 @@ func New(
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	logger lager.Logger,
-	clusterHealthChecker cluster_health_checker.ClusterHealthChecker) *StartManager {
-	return &StartManager{
+	clusterHealthChecker cluster_health_checker.ClusterHealthChecker) StartManager {
+	return &startManager{
 		osHelper:             osHelper,
 		config:               config,
 		logger:               logger,
@@ -53,7 +59,7 @@ func New(
 	}
 }
 
-func (m *StartManager) Execute() error {
+func (m *startManager) Execute() error {
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
 		m.logger.Info("Failed to determine upgrade status with error", lager.Data{"err": err.Error()})
@@ -110,7 +116,7 @@ func (m *StartManager) Execute() error {
 	return err
 }
 
-func (m *StartManager) getCurrentNodeState() (string, error) {
+func (m *startManager) getCurrentNodeState() (string, error) {
 
 	// Single-node deploy always requires bootstraping of new cluster
 	if len(m.config.ClusterIps) == 1 {
@@ -140,11 +146,11 @@ func (m *StartManager) getCurrentNodeState() (string, error) {
 	return state, nil
 }
 
-func (m *StartManager) maxDatabaseSeedTries() int {
+func (m *startManager) maxDatabaseSeedTries() int {
 	return m.config.DatabaseStartupTimeout / StartupPollingFrequencyInSeconds
 }
 
-func (m *StartManager) readStateFromFile() (string, error) {
+func (m *startManager) readStateFromFile() (string, error) {
 	state, err := m.osHelper.ReadFile(m.config.StateFileLocation)
 	if err != nil {
 		return "", err
@@ -154,23 +160,23 @@ func (m *StartManager) readStateFromFile() (string, error) {
 	return state, nil
 }
 
-func (m *StartManager) firstTimeDeploy() bool {
+func (m *startManager) firstTimeDeploy() bool {
 	return !m.osHelper.FileExists(m.config.StateFileLocation)
 }
 
-func (m *StartManager) GetMysqlCmd() (*exec.Cmd, error) {
+func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
 	if m.mysqlCmd != nil {
 		return m.mysqlCmd, nil
 	}
 	return nil, errors.New("Mysql has not been started")
 }
 
-func (m *StartManager) Shutdown() error {
+func (m *startManager) Shutdown() error {
 	m.logger.Info("Shutting down MariaDB")
 	return m.mariaDBHelper.StopMysql()
 }
 
-func (m *StartManager) bootstrapSingleNode() error {
+func (m *startManager) bootstrapSingleNode() error {
 
 	m.logger.Info("Bootstrapping a single node cluster")
 	cmd, err := m.mariaDBHelper.StartMysqlInBootstrap()
@@ -182,7 +188,7 @@ func (m *StartManager) bootstrapSingleNode() error {
 	return nil
 }
 
-func (m *StartManager) bootstrapCluster() error {
+func (m *startManager) bootstrapCluster() error {
 
 	m.logger.Info("Bootstrapping a multi-node cluster")
 	var cmd *exec.Cmd
@@ -203,7 +209,7 @@ func (m *StartManager) bootstrapCluster() error {
 	return nil
 }
 
-func (m *StartManager) joinCluster() (err error) {
+func (m *startManager) joinCluster() (err error) {
 
 	m.logger.Info("Joining a multi-node cluster")
 	cmd, err := m.mariaDBHelper.StartMysqlInJoin()
@@ -217,12 +223,12 @@ func (m *StartManager) joinCluster() (err error) {
 	return nil
 }
 
-func (m *StartManager) writeStringToFile(contents string) {
+func (m *startManager) writeStringToFile(contents string) {
 	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
 	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }
 
-func (m *StartManager) waitForDatabaseToAcceptConnections() error {
+func (m *startManager) waitForDatabaseToAcceptConnections() error {
 	m.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", m.config.DatabaseStartupTimeout))
 	for numTries := 0; numTries < m.maxDatabaseSeedTries(); numTries++ {
 		if m.mariaDBHelper.IsDatabaseReachable() {
@@ -238,7 +244,7 @@ func (m *StartManager) waitForDatabaseToAcceptConnections() error {
 	return err
 }
 
-func (m *StartManager) seedDatabases() error {
+func (m *startManager) seedDatabases() error {
 	err := m.mariaDBHelper.Seed()
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))

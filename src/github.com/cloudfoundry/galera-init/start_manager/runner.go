@@ -7,11 +7,11 @@ import (
 )
 
 type Runner struct {
-	mgr    *StartManager
+	mgr    StartManager
 	logger lager.Logger
 }
 
-func NewRunner(mgr *StartManager, logger lager.Logger) Runner {
+func NewRunner(mgr StartManager, logger lager.Logger) Runner {
 	return Runner{
 		mgr:    mgr,
 		logger: logger,
