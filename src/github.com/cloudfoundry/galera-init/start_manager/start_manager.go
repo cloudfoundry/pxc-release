@@ -72,42 +72,53 @@ func (m *StartManager) Execute() error {
 		"MyIP":       m.config.MyIP,
 	})
 
+	desiredState, err := m.getDesiredClusterState()
+	if err != nil {
+		return err
+	}
+
+	switch desiredState {
+	case SingleNode:
+		err = m.bootstrapCluster(SingleNode)
+	case NeedsBootstrap:
+		err = m.bootstrapCluster(Clustered)
+	case Clustered:
+		err = m.joinCluster()
+	default:
+		err = fmt.Errorf("Unsupported state file contents: %s", desiredState)
+	}
+
+	return err
+}
+
+func (m *StartManager) getDesiredClusterState() (string, error) {
+
 	// Single-node deploy always requires bootstraping of new cluster
 	if len(m.config.ClusterIps) == 1 {
-		m.logger.Info("Single node deploy")
-		err = m.bootstrapCluster(SingleNode)
-		return err
+		return SingleNode, nil
 	}
 
 	if m.firstTimeDeploy() {
 		if m.config.MyIP == m.config.ClusterIps[0] {
-			m.logger.Info(fmt.Sprintf("state file does not exist, creating with contents: '%s'", Clustered))
-			err = m.bootstrapCluster(Clustered)
-			return err
+			return NeedsBootstrap, nil
 		}
 
-		err = m.joinCluster()
-		return err
+		return Clustered, nil
 	}
 
 	// If we are not a first time deploy we must already have a state file
 	state, err := m.readStateFromFile()
 	if err != nil {
 		m.logger.Info("state file could not be read", lager.Data{"err": err.Error()})
-		return err
+		return "", err
 	}
-	switch state {
-	case SingleNode:
+
+	if state == SingleNode && len(m.config.ClusterIps) > 1 {
 		// Upgrading from a single-node cluster means we have to re-bootstrap
-		err = m.bootstrapCluster(Clustered)
-	case Clustered:
-		err = m.joinCluster()
-	case NeedsBootstrap:
-		err = m.bootstrapCluster(Clustered)
-	default:
-		err = fmt.Errorf("Unsupported state file contents: %s", state)
+		return NeedsBootstrap, nil
 	}
-	return err
+
+	return state, nil
 }
 
 func (m *StartManager) maxDatabaseSeedTries() int {
