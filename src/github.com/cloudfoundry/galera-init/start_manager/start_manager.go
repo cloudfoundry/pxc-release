@@ -239,7 +239,7 @@ func (m *StartManager) seedDatabases() error {
 		return nil
 	}
 
-	err := fmt.Errorf("Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
+	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
 	m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
 	return err
 }
