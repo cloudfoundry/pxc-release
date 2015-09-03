@@ -72,26 +72,45 @@ func (m *StartManager) Execute() error {
 		"MyIP":       m.config.MyIP,
 	})
 
-	desiredState, err := m.getDesiredClusterState()
+	currentState, err := m.getCurrentNodeState()
 	if err != nil {
 		return err
 	}
 
-	switch desiredState {
+	var newNodeState string
+	switch currentState {
 	case SingleNode:
-		err = m.bootstrapCluster(SingleNode)
+		err = m.bootstrapSingleNode()
+		newNodeState = SingleNode
 	case NeedsBootstrap:
-		err = m.bootstrapCluster(Clustered)
+		err = m.bootstrapCluster()
+		newNodeState = Clustered
 	case Clustered:
 		err = m.joinCluster()
+		newNodeState = Clustered
 	default:
-		err = fmt.Errorf("Unsupported state file contents: %s", desiredState)
+		err = fmt.Errorf("Unsupported state file contents: %s", currentState)
 	}
+	if err != nil {
+		return err
+	}
+
+	err = m.waitForDatabaseToAcceptConnections()
+	if err != nil {
+		return err
+	}
+
+	err = m.seedDatabases()
+	if err != nil {
+		return err
+	}
+
+	m.writeStringToFile(newNodeState)
 
 	return err
 }
 
-func (m *StartManager) getDesiredClusterState() (string, error) {
+func (m *StartManager) getCurrentNodeState() (string, error) {
 
 	// Single-node deploy always requires bootstraping of new cluster
 	if len(m.config.ClusterIps) == 1 {
@@ -151,31 +170,9 @@ func (m *StartManager) Shutdown() error {
 	return m.mariaDBHelper.StopMysql()
 }
 
-func (m *StartManager) bootstrapCluster(state string) (err error) {
-
-	m.logger.Info("Bootstrapping cluster")
-
-	if state == SingleNode {
-		err = m.bootstrapSingleNode()
-	} else {
-		err = m.bootstrapClusterNode()
-	}
-
-	if err != nil {
-		return
-	}
-
-	err = m.seedDatabases()
-	if err != nil {
-		return
-	}
-
-	m.logger.Info(fmt.Sprintf("writing file with contents: '%s'", state))
-	m.osHelper.WriteStringToFile(m.config.StateFileLocation, state)
-	return
-}
-
 func (m *StartManager) bootstrapSingleNode() error {
+
+	m.logger.Info("Bootstrapping a single node cluster")
 	cmd, err := m.mariaDBHelper.StartMysqlInBootstrap()
 	if err != nil {
 		return err
@@ -185,8 +182,9 @@ func (m *StartManager) bootstrapSingleNode() error {
 	return nil
 }
 
-func (m *StartManager) bootstrapClusterNode() error {
+func (m *StartManager) bootstrapCluster() error {
 
+	m.logger.Info("Bootstrapping a multi-node cluster")
 	var cmd *exec.Cmd
 	var err error
 	// We do not condone bootstrapping if a cluster already exists and is healthy
@@ -206,6 +204,8 @@ func (m *StartManager) bootstrapClusterNode() error {
 }
 
 func (m *StartManager) joinCluster() (err error) {
+
+	m.logger.Info("Joining a multi-node cluster")
 	cmd, err := m.mariaDBHelper.StartMysqlInJoin()
 
 	if err != nil {
@@ -214,15 +214,6 @@ func (m *StartManager) joinCluster() (err error) {
 
 	m.mysqlCmd = cmd
 
-	// We should always seed databases even when joining an existing cluster,
-	// as this encompasses the case where we're redeploying to an existing
-	// cluster but with new databases to seed.
-	err = m.seedDatabases()
-	if err != nil {
-		return
-	}
-
-	m.writeStringToFile(Clustered)
 	return nil
 }
 
@@ -231,26 +222,29 @@ func (m *StartManager) writeStringToFile(contents string) {
 	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }
 
-func (m *StartManager) seedDatabases() error {
+func (m *StartManager) waitForDatabaseToAcceptConnections() error {
 	m.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", m.config.DatabaseStartupTimeout))
 	for numTries := 0; numTries < m.maxDatabaseSeedTries(); numTries++ {
-		if !m.mariaDBHelper.IsDatabaseReachable() {
-			m.logger.Info("Database not reachable, retrying...")
-			m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
-			continue
+		if m.mariaDBHelper.IsDatabaseReachable() {
+			m.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
+			return nil
 		}
-
-		err := m.mariaDBHelper.Seed()
-		if err != nil {
-			m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
-			return err
-		}
-
-		m.logger.Info("Seeding databases succeeded.")
-		return nil
+		m.logger.Info("Database not reachable, retrying...")
+		m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
 	}
 
 	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
 	m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
 	return err
+}
+
+func (m *StartManager) seedDatabases() error {
+	err := m.mariaDBHelper.Seed()
+	if err != nil {
+		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
+		return err
+	}
+
+	m.logger.Info("Seeding databases succeeded.")
+	return nil
 }
