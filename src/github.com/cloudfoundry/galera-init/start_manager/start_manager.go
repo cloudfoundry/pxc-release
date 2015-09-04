@@ -60,6 +60,16 @@ func New(
 }
 
 func (m *startManager) Execute() error {
+
+	if m.mariaDBHelper.IsProcessRunning() {
+		m.logger.Info("MySQL process is already running, shutting down before continuing")
+		err := m.Shutdown()
+		if err != nil {
+			m.logger.Error("Failed to shutdown mysql process", err)
+			return err
+		}
+	}
+
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
 		m.logger.Info("Failed to determine upgrade status with error", lager.Data{"err": err.Error()})

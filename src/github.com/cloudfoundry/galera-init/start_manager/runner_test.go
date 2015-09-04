@@ -2,7 +2,6 @@ package start_manager_test
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -17,28 +16,32 @@ import (
 var _ = Describe("StartManagerRunner", func() {
 
 	var (
-		fakeManager *fakes.FakeStartManager
-		successCmd  *exec.Cmd
-		runner      start_manager.Runner
+		fakeManager    *fakes.FakeStartManager
+		longRunningCmd *exec.Cmd
+		runner         start_manager.Runner
 	)
-	cmdDurationInSec := 0.3
-	readyTimeout := 0.1
 
 	BeforeEach(func() {
 		testLogger := lagertest.NewTestLogger("start_manager")
-		successCmd = exec.Command("sleep", fmt.Sprintf("%f", cmdDurationInSec))
+		longRunningCmd = exec.Command("yes")
 
 		fakeManager = &fakes.FakeStartManager{}
 
 		runner = start_manager.NewRunner(fakeManager, testLogger)
 	})
 
+	AfterEach(func() {
+		if longRunningCmd.Process != nil {
+			_ = longRunningCmd.Process.Signal(os.Kill) //ignore error
+		}
+	})
+
 	Context("When StartManager.Execute succeeds", func() {
 
 		BeforeEach(func() {
-			fakeManager.GetMysqlCmdReturns(successCmd, nil)
+			fakeManager.GetMysqlCmdReturns(longRunningCmd, nil)
 			fakeManager.ExecuteStub = func() error {
-				err := successCmd.Start()
+				err := longRunningCmd.Start()
 				Expect(err).ToNot(HaveOccurred())
 				return nil
 			}
@@ -53,25 +56,66 @@ var _ = Describe("StartManagerRunner", func() {
 				runErr <- runner.Run(signals, ready)
 			}()
 
-			Eventually(ready, readyTimeout).Should(BeClosed())
-			Eventually(runErr, cmdDurationInSec+readyTimeout).Should(Receive(nil))
+			Eventually(ready).Should(BeClosed())
+
+			Consistently(runErr).ShouldNot(Receive())
+			longRunningCmd.Process.Signal(os.Kill)
+			Eventually(runErr).Should(Receive(nil))
+		})
+
+		Context("And the runner is signaled", func() {
+
+			It("Tells the mysql process to shutdown", func() {
+				signals := make(chan os.Signal)
+				ready := make(chan struct{})
+
+				runErr := make(chan error)
+				go func() {
+					runErr <- runner.Run(signals, ready)
+				}()
+
+				Eventually(ready).Should(BeClosed())
+
+				Consistently(runErr).ShouldNot(Receive())
+				signals <- os.Kill
+				Eventually(runErr).Should(Receive())
+				Expect(fakeManager.ShutdownCallCount()).To(Equal(1))
+			})
 		})
 	})
 
 	Context("When StartManager.Execute fails", func() {
-		errorMsg := "exec error"
+		const errorMsg = "exec error"
+		var signals chan os.Signal
+		var ready chan struct{}
+
 		BeforeEach(func() {
 			fakeManager.ExecuteReturns(errors.New(errorMsg))
+
+			signals = make(chan os.Signal)
+			ready = make(chan struct{})
 		})
 
-		It("Returns the error without closing ready", func() {
-			signals := make(chan os.Signal)
-			ready := make(chan struct{})
-
+		It("Returns the error", func() {
 			err := runner.Run(signals, ready)
 			Expect(err).To(MatchError(errorMsg))
+		})
 
-			Expect(ready).ToNot(BeClosed())
+		It("does not close the ready channel", func() {
+			err := runner.Run(signals, ready)
+			Expect(err).To(HaveOccurred())
+
+			Consistently(ready).ShouldNot(BeClosed())
+		})
+
+		It("Tells the mysql process to shutdown", func() {
+			runErr := make(chan error)
+			go func() {
+				runErr <- runner.Run(signals, ready)
+			}()
+
+			Eventually(runErr).Should(Receive())
+			Expect(fakeManager.ShutdownCallCount()).To(Equal(1))
 		})
 	})
 })

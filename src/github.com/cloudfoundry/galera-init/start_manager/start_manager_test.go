@@ -89,7 +89,23 @@ var _ = Describe("StartManager", func() {
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 
+		fakeDBHelper.IsProcessRunningReturns(false)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
+	})
+
+	Context("When a mysql process is already running", func() {
+		BeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeCount: 3,
+			})
+			fakeDBHelper.IsProcessRunningReturns(true)
+		})
+
+		It("kills the process before continuing", func() {
+			err := mgr.Execute()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
+		})
 	})
 
 	Context("When StartMysqlInBootstrap exits with an error", func() {

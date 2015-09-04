@@ -124,6 +124,29 @@ var _ = Describe("MariaDBHelper", func() {
 		})
 	})
 
+	Describe("IsProcessRunning", func() {
+		It("returns true if `mysql.server status` exits zero", func() {
+			fakeOs.RunCommandReturns(" * MySQL running (2391)", nil)
+
+			isRunning := helper.IsProcessRunning()
+			Expect(isRunning).To(BeTrue())
+		})
+
+		It("returns false if `mysql.server status` exits non-zero", func() {
+			fakeOs.RunCommandWithTimeoutStub = func(_ int, _, _ string, args ...string) error {
+				mode := args[1]
+				if mode == mariadb_helper.StatusCommand {
+					return errors.New("not running error")
+				} else {
+					return nil
+				}
+			}
+
+			isRunning := helper.IsProcessRunning()
+			Expect(isRunning).To(BeFalse())
+		})
+	})
+
 	Describe("Upgrade", func() {
 		It("calls the mysql upgrade script", func() {
 			helper.Upgrade()

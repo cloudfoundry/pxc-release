@@ -15,6 +15,7 @@ import (
 const (
 	StopStandaloneCommand = "stop-stand-alone"
 	StopCommand           = "stop"
+	StatusCommand         = "status"
 )
 
 type DBHelper interface {
@@ -25,6 +26,7 @@ type DBHelper interface {
 	StopStandaloneMysql() error
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
+	IsProcessRunning() bool
 	Seed() error
 }
 
@@ -58,6 +60,15 @@ var OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
 }
 var CloseDBConnection = func(db *sql.DB) error {
 	return db.Close()
+}
+
+func (m MariaDBHelper) IsProcessRunning() bool {
+	err := m.runMysqlDaemon(StatusCommand)
+	if err == nil {
+		//exit 0 means process is running
+		return true
+	}
+	return false
 }
 
 func (m MariaDBHelper) StartMysqldInMode(command string) error {

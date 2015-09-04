@@ -1,6 +1,8 @@
 #!/bin/bash
 
-mode=$1    # start, stop or bootstrap
+set -e
+
+mode=$1
 
 STANDALONE_PID_FILE=/tmp/tmp-mysql.pid
 
@@ -42,6 +44,11 @@ case "$mode" in
   'stand-alone')
       echo "Starting the node in stand-alone mode"
       /var/vcap/packages/mariadb/bin/mysqld_safe --wsrep-on=OFF --wsrep-desync=ON --wsrep-OSU-method=RSU --wsrep-provider='none' --pid-file=$STANDALONE_PID_FILE &
+      ;;
+
+  'status')
+      echo "Getting status of mysql process (exit 0 == running)"
+      /var/vcap/packages/mariadb/support-files/mysql.server status
       ;;
 esac
 

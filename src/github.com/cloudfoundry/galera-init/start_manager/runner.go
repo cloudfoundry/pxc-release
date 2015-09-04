@@ -22,6 +22,11 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	err := r.mgr.Execute()
 	if err != nil {
 		r.logger.Error("Failed starting Maria with error:", err)
+		//database may have started but failed to accept connections
+		shutdownErr := r.mgr.Shutdown()
+		if shutdownErr != nil {
+			r.logger.Error("Error stopping mysql process", shutdownErr)
+		}
 		return err
 	}
 
