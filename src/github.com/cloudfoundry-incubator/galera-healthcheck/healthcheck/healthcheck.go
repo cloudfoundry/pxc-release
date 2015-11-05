@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -16,27 +17,11 @@ const (
 
 type Healthchecker struct {
 	db     *sql.DB
-	config Config
+	config config.Config
 	logger lager.Logger
 }
 
-type Config struct {
-	DB                    DBConfig
-	StatusEndpoint        string `json:",omitempty"`
-	Host                  string `json:",omitempty"`
-	Port                  int    `json:",omitempty"`
-	AvailableWhenDonor    bool   `json:",omitempty"`
-	AvailableWhenReadOnly bool   `json:",omitempty"`
-}
-
-type DBConfig struct {
-	Host     string `json:",omitempty"`
-	User     string `json:",omitempty"`
-	Port     int    `json:",omitempty"`
-	Password string `json:",omitempty"`
-}
-
-func New(db *sql.DB, config Config, logger lager.Logger) *Healthchecker {
+func New(db *sql.DB, config config.Config, logger lager.Logger) *Healthchecker {
 	return &Healthchecker{
 		db:     db,
 		config: config,

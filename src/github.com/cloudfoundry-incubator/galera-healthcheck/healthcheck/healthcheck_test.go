@@ -8,10 +8,10 @@ import (
 
 	testdb "github.com/erikstmartin/go-testdb"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
@@ -162,7 +162,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				sql := "SHOW STATUS LIKE 'wsrep_local_state'"
 				testdb.StubQueryError(sql, errors.New("test error"))
 
-				config := healthcheck.Config{
+				config := config.Config{
 					AvailableWhenDonor:    false,
 					AvailableWhenReadOnly: false,
 				}
@@ -189,7 +189,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				sql = "SHOW GLOBAL VARIABLES LIKE 'read_only'"
 				testdb.StubQueryError(sql, errors.New("another test error"))
 
-				config := healthcheck.Config{
+				config := config.Config{
 					AvailableWhenDonor:    false,
 					AvailableWhenReadOnly: false,
 				}
@@ -232,7 +232,7 @@ func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (bool, string
 	result = fmt.Sprintf("read_only,%s", readOnlyText)
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
 
-	config := healthcheck.Config{
+	config := config.Config{
 		AvailableWhenDonor:    testConfig.availableWhenDonor,
 		AvailableWhenReadOnly: testConfig.availableWhenReadOnly,
 	}

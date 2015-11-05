@@ -9,14 +9,16 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+
 	"encoding/json"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	"github.com/pivotal-cf-experimental/service-config"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/pivotal-cf-experimental/service-config"
 )
 
 var binaryPath string
@@ -59,10 +61,10 @@ var _ = AfterSuite(func() {
 	}
 })
 
-func newConfig() healthcheck.Config {
+func newConfig() config.Config {
 	serviceConfig := service_config.New()
 
-	var config healthcheck.Config
+	var config config.Config
 	err := serviceConfig.Read(&config)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -71,7 +73,7 @@ func newConfig() healthcheck.Config {
 	return config
 }
 
-func writeConfig(config healthcheck.Config) {
+func writeConfig(config config.Config) {
 	fileToWrite, err := os.Create(configPath)
 	Expect(err).ToNot(HaveOccurred())
 

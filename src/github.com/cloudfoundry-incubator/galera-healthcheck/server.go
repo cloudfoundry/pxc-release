@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/pivotal-cf-experimental/service-config"
@@ -42,11 +44,11 @@ func main() {
 	pidFile := flags.String("pidFile", "", "Path to create a pid file when the healthcheck server has started")
 	statusEndpoint := flags.String("statusEndpoint", "", "Http Endpoint to get healthcheck of server")
 	serviceConfig.AddFlags(flags)
-	var defaults = healthcheck.Config{
+	var defaults = config.Config{
 		Host:           "0.0.0.0",
 		Port:           8080,
 		StatusEndpoint: *statusEndpoint,
-		DB: healthcheck.DBConfig{
+		DB: config.DBConfig{
 			Host:     "0.0.0.0",
 			Port:     3306,
 			User:     "root",
@@ -63,7 +65,7 @@ func main() {
 
 	logger.Info("Starting galera healthcheck...")
 
-	var config healthcheck.Config
+	var config config.Config
 	err := serviceConfig.Read(&config)
 	if err != nil && err != service_config.NoConfigError {
 		logger.Fatal("Failed to read config", err)
