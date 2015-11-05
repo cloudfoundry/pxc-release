@@ -22,6 +22,7 @@ type Healthchecker struct {
 
 type Config struct {
 	DB                    DBConfig
+	StatusEndpoint        string `json:",omitempty"`
 	Host                  string `json:",omitempty"`
 	Port                  int    `json:",omitempty"`
 	AvailableWhenDonor    bool   `json:",omitempty"`

@@ -6,5 +6,6 @@ DB:
   Password: password
 Host: 0.0.0.0
 Port: 8080
+StatusEndpoint: galera_status
 AvailableWhenDonor: true
 AvailableWhenReadOnly: false

@@ -40,10 +40,12 @@ func main() {
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	pidFile := flags.String("pidFile", "", "Path to create a pid file when the healthcheck server has started")
+	statusEndpoint := flags.String("statusEndpoint", "", "Http Endpoint to get healthcheck of server")
 	serviceConfig.AddFlags(flags)
 	var defaults = healthcheck.Config{
-		Host: "0.0.0.0",
-		Port: 8080,
+		Host:           "0.0.0.0",
+		Port:           8080,
+		StatusEndpoint: *statusEndpoint,
 		DB: healthcheck.DBConfig{
 			Host:     "0.0.0.0",
 			Port:     3306,
@@ -87,8 +89,8 @@ func main() {
 	})
 
 	healthchecker = healthcheck.New(db, config, logger)
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	StatusEndpointHandler := fmt.Sprintf("/%s", *statusEndpoint)
+	http.HandleFunc(StatusEndpointHandler, func(w http.ResponseWriter, r *http.Request) {
 		handler(w, r, logger)
 	})
 
