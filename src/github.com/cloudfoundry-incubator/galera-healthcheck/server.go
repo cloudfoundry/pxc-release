@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
@@ -21,6 +22,7 @@ import (
 )
 
 var healthchecker *healthcheck.Healthchecker
+var sequence_number_checker *sequence_number.SequenceNumberchecker
 
 func handler(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
 	result, msg := healthchecker.Check()
@@ -93,6 +95,11 @@ func main() {
 	healthchecker = healthcheck.New(db, config, logger)
 	StatusEndpointHandler := fmt.Sprintf("/%s", *statusEndpoint)
 	http.HandleFunc(StatusEndpointHandler, func(w http.ResponseWriter, r *http.Request) {
+		handler(w, r, logger)
+	})
+
+	sequence_number_checker = sequence_number.New(db, config, logger)
+	http.HandleFunc("sequence_number", func(w http.ResponseWriter, r *http.Request) {
 		handler(w, r, logger)
 	})
 
