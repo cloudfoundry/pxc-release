@@ -2,9 +2,10 @@ package sequence_number_test
 
 import (
 	"database/sql"
-	"database/sql/driver"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 
 	"github.com/erikstmartin/go-testdb"
 	. "github.com/onsi/ginkgo"
@@ -17,75 +18,60 @@ import (
 
 var _ = Describe("GaleraSequenceChecker", func() {
 
-	Describe("Check", func() {
+	const startPositionQuery = "SHOW variables LIKE 'wsrep_start_position'"
+	const expectedSeqNumber = "32"
+
+	var (
+		sequenceChecker *sequence_number.SequenceNumberchecker
+	)
+
+	BeforeEach(func() {
+		rootConfig := config.Config{}
+		logger := lagertest.NewTestLogger("sequence_number test")
+		db, _ := sql.Open("testdb", "")
+		sequenceChecker = sequence_number.New(db, rootConfig, logger)
+	})
+
+	AfterEach(func() {
+		testdb.Reset()
+	})
+
+	Describe("ServeHTTP", func() {
 		Context("db works", func() {
-			It("returns sequence number and no error", func() {
-				_, err := sequenceNumberTestHelper()
+
+			BeforeEach(func() {
+				fake_result := fmt.Sprintf("fake-guid:%s", expectedSeqNumber)
+				columns := []string{"Variable_name", "Value:Id"}
+				result := fmt.Sprintf("wsrep_start_position,%s", fake_result)
+				testdb.StubQuery(startPositionQuery, testdb.RowsFromCSVString(columns, result))
+			})
+
+			It("returns a successful HTTP status", func() {
+				req, err := http.NewRequest("GET", "/sequence_number", nil)
 				Expect(err).ToNot(HaveOccurred())
+
+				w := httptest.NewRecorder()
+				sequenceChecker.ServeHTTP(w, req)
+				Expect(w.Code).To(Equal(http.StatusOK))
+				Expect(w.Body.String()).To(Equal(expectedSeqNumber))
 			})
 		})
+
 		Context("db is down", func() {
-			It("returns an error", func() {
-				_, err := sequenceNumberFailingDbSetup()
-				Expect(err).To(HaveOccurred())
+			BeforeEach(func() {
+				testdb.StubQueryError(startPositionQuery, errors.New("failed to connect"))
+			})
+
+			It("returns a failed HTTP status", func() {
+				req, err := http.NewRequest("GET", "/sequence_number", nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				w := httptest.NewRecorder()
+				sequenceChecker.ServeHTTP(w, req)
+				Expect(w.Code).To(Equal(http.StatusInternalServerError))
+				Expect(w.Body.String()).ToNot(ContainSubstring(expectedSeqNumber))
+				Expect(w.Body.String()).To(ContainSubstring("failed to connect"))
 			})
 		})
 	})
 })
-
-func newTestConfig() config.Config {
-
-	rawConfig := `{
-		"StatusEndpoint": "fake",
-		"Host": "localhost",
-		"Port": "8080",
-		"AvailableWhenReadOnly": false,
-		"AvailableWhenDonor": true,
-		"DB": {
-			"Host": "localhost",
-			"User": "vcap",
-			"Port": 3000,
-			"Password": "password"
-		}
-	}`
-
-	osArgs := []string{
-		"galera-healthcheck",
-		fmt.Sprintf("-config=%s", rawConfig),
-	}
-
-	var err error
-	rootConfig, err := config.NewConfig(osArgs)
-	Expect(err).ToNot(HaveOccurred())
-	return *rootConfig
-}
-func sequenceNumberFailingDbSetup() (int, error) {
-	testdb.SetOpenFunc(func(dsn string) (driver.Conn, error) {
-		return testdb.Conn(), errors.New("failed to connect")
-	})
-	db, _ := sql.Open("testdb", "")
-	fake_result := "asdf:32"
-	sql := "SHOW variables LIKE 'wsrep_start_position'"
-	columns := []string{"Variable_name", "Value:Id"}
-	result := fmt.Sprintf("wsrep_start_position,%s", fake_result)
-	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
-	logger := lagertest.NewTestLogger("sequence_number test")
-	sequence_number_checker := sequence_number.New(db, newTestConfig(), logger)
-
-	return sequence_number_checker.Check()
-
-}
-
-func sequenceNumberTestHelper() (int, error) {
-	db, _ := sql.Open("testdb", "")
-	fake_result := "asdf:32"
-	sql := "SHOW variables LIKE 'wsrep_start_position'"
-	columns := []string{"Variable_name", "Value:Id"}
-	result := fmt.Sprintf("wsrep_start_position,%s", fake_result)
-	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
-	logger := lagertest.NewTestLogger("sequence_number test")
-	sequence_number_checker := sequence_number.New(db, newTestConfig(), logger)
-
-	return sequence_number_checker.Check()
-
-}

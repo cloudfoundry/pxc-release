@@ -21,20 +21,6 @@ import (
 var healthchecker *healthcheck.Healthchecker
 var sequence_number_checker *sequence_number.SequenceNumberchecker
 
-func handler(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
-	result, msg := healthchecker.Check()
-	if result {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	body := fmt.Sprintf("Galera Cluster Node Status: %s", msg)
-	fmt.Fprint(w, body)
-
-	logger.Debug(fmt.Sprintf("Healhcheck Response Body: %s", body))
-}
-
 func main() {
 
 	rootConfig, err := config.NewConfig(os.Args)
@@ -70,16 +56,11 @@ func main() {
 		"dbUser": rootConfig.DB.User,
 	})
 
-	healthchecker = healthcheck.New(db, config, logger)
-	StatusEndpointHandler := fmt.Sprintf("/%s", *statusEndpoint)
-	http.HandleFunc(StatusEndpointHandler, func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, logger)
-	})
+	healthchecker = healthcheck.New(db, *rootConfig, logger)
+	http.Handle("/galera_status", healthchecker)
 
-	sequence_number_checker = sequence_number.New(db, config, logger)
-	http.HandleFunc("sequence_number", func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, logger)
-	})
+	sequence_number_checker = sequence_number.New(db, *rootConfig, logger)
+	http.Handle("/sequence_number", sequence_number_checker)
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)

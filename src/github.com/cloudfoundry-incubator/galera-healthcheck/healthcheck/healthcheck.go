@@ -3,6 +3,7 @@ package healthcheck
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-golang/lager"
@@ -27,6 +28,20 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) *Healthchecker {
 		config: config,
 		logger: logger,
 	}
+}
+
+func (h *Healthchecker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	result, msg := h.Check()
+	if result {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+
+	body := fmt.Sprintf("Galera Cluster Node Status: %s", msg)
+	fmt.Fprint(w, body)
+
+	h.logger.Debug(fmt.Sprintf("Healhcheck Response Body: %s", body))
 }
 
 func (h *Healthchecker) Check() (bool, string) {

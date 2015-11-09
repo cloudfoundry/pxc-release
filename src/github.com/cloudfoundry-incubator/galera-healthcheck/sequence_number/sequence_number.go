@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -24,8 +25,24 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) *SequenceNumberc
 		logger: logger,
 	}
 }
-func (h *SequenceNumberchecker) Check() (int, error) {
-	h.logger.Info("Checking sequence number of mariadb node...")
+
+func (s *SequenceNumberchecker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	result, err := s.Check()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		errMsg := fmt.Sprintf("Failed to determine sequence number: %s", err.Error())
+		s.logger.Error(errMsg, err)
+		w.Write([]byte(errMsg))
+		return
+	}
+
+	resultStr := []byte(strconv.Itoa(result))
+	s.logger.Debug(fmt.Sprintf("Response body: %s", resultStr))
+	w.Write(resultStr)
+}
+
+func (s *SequenceNumberchecker) Check() (int, error) {
+	s.logger.Info("Checking sequence number of mariadb node...")
 
 	var (
 		unused string
@@ -33,7 +50,7 @@ func (h *SequenceNumberchecker) Check() (int, error) {
 		err    error
 	)
 
-	err = h.db.QueryRow("SHOW variables LIKE 'wsrep_start_position'").Scan(&unused, &value)
+	err = s.db.QueryRow("SHOW variables LIKE 'wsrep_start_position'").Scan(&unused, &value)
 
 	if err == sql.ErrNoRows {
 		return -1, errors.New("wsrep_start_position variable not set")
