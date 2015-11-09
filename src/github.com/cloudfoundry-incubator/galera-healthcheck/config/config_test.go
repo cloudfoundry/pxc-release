@@ -25,6 +25,7 @@ var _ = Describe("Config", func() {
 				"Port": "8080",
 				"AvailableWhenReadOnly": false,
 				"AvailableWhenDonor": true,
+				"PidFile": "fake-path",
 				"DB": {
 					"Host": "localhost",
 					"User": "vcap",
@@ -46,11 +47,6 @@ var _ = Describe("Config", func() {
 		It("does not return error on valid config", func() {
 			err := rootConfig.Validate()
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns an error if StatusEndpoint is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "StatusEndpoint")
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("returns an error if Host is blank", func() {
@@ -91,6 +87,15 @@ var _ = Describe("Config", func() {
 		It("returns an error if DB.Password is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "DB.Password")
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if PidFile is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "PidFile")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns a valid logger", func() {
+			Expect(rootConfig.Logger()).ToNot(BeNil())
 		})
 	})
 

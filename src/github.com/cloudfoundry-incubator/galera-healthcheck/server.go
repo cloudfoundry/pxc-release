@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,9 +12,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 
-	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -40,56 +37,37 @@ func handler(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
 
 func main() {
 
-	serviceConfig := service_config.New()
+	rootConfig, err := config.NewConfig(os.Args)
 
-	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	pidFile := flags.String("pidFile", "", "Path to create a pid file when the healthcheck server has started")
-	statusEndpoint := flags.String("statusEndpoint", "", "Http Endpoint to get healthcheck of server")
-	serviceConfig.AddFlags(flags)
-	var defaults = config.Config{
-		Host:           "0.0.0.0",
-		Port:           8080,
-		StatusEndpoint: *statusEndpoint,
-		DB: config.DBConfig{
-			Host:     "0.0.0.0",
-			Port:     3306,
-			User:     "root",
-			Password: "",
-		},
-		AvailableWhenDonor:    true,
-		AvailableWhenReadOnly: false,
-	}
-	serviceConfig.AddDefaults(defaults)
-	cf_lager.AddFlags(flags)
+	logger := rootConfig.Logger()
 
-	flags.Parse(os.Args[1:])
-	logger, _ := cf_lager.New("Galera Healthcheck")
-
-	logger.Info("Starting galera healthcheck...")
-
-	var config config.Config
-	err := serviceConfig.Read(&config)
-	if err != nil && err != service_config.NoConfigError {
-		logger.Fatal("Failed to read config", err)
+	err = rootConfig.Validate()
+	if err != nil {
+		logger.Fatal("Failed to validate config", err)
 	}
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/", config.DB.User, config.DB.Password, config.DB.Host, config.DB.Port))
+	db, err := sql.Open("mysql",
+		fmt.Sprintf("%s:%s@tcp(%s:%d)/",
+			rootConfig.DB.User,
+			rootConfig.DB.Password,
+			rootConfig.DB.Host,
+			rootConfig.DB.Port))
 	if err != nil {
 		// sql.Open may not actually check that the DB is reachable
 		err = db.Ping()
 	}
 	if err != nil {
 		logger.Fatal("Failed to open DB connection", err, lager.Data{
-			"dbHost": config.DB.Host,
-			"dbPort": config.DB.Port,
-			"dbUser": config.DB.User,
+			"dbHost": rootConfig.DB.Host,
+			"dbPort": rootConfig.DB.Port,
+			"dbUser": rootConfig.DB.User,
 		})
 	}
 
 	logger.Info("Opened DB connection", lager.Data{
-		"dbHost": config.DB.Host,
-		"dbPort": config.DB.Port,
-		"dbUser": config.DB.User,
+		"dbHost": rootConfig.DB.Host,
+		"dbPort": rootConfig.DB.Port,
+		"dbUser": rootConfig.DB.User,
 	})
 
 	healthchecker = healthcheck.New(db, config, logger)
@@ -103,7 +81,7 @@ func main() {
 		handler(w, r, logger)
 	})
 
-	address := fmt.Sprintf("%s:%d", config.Host, config.Port)
+	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)
 	logger.Info("Serving healthcheck endpoint", lager.Data{
 		"url": url,
@@ -156,16 +134,14 @@ func main() {
 		}
 		logger.Info(fmt.Sprintf("Initial Response: %s", body))
 
-		if *pidFile != "" {
-			// existence of pid file means the server is running
-			pid := os.Getpid()
-			err = ioutil.WriteFile(*pidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
-			if err != nil {
-				logger.Fatal("Failed to write pid file", err, lager.Data{
-					"pid":     pid,
-					"pidFile": *pidFile,
-				})
-			}
+		// existence of pid file means the server is running
+		pid := os.Getpid()
+		err = ioutil.WriteFile(rootConfig.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+		if err != nil {
+			logger.Fatal("Failed to write pid file", err, lager.Data{
+				"pid":     pid,
+				"pidFile": rootConfig.PidFile,
+			})
 		}
 
 		// Used by tests to deterministically know that the healthcheck is accepting incoming connections
