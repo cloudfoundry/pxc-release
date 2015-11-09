@@ -27,7 +27,7 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) *SequenceNumberc
 }
 
 func (s *SequenceNumberchecker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	result, err := s.Check()
+	result, err := s.check()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		errMsg := fmt.Sprintf("Failed to determine sequence number: %s", err.Error())
@@ -41,7 +41,7 @@ func (s *SequenceNumberchecker) ServeHTTP(w http.ResponseWriter, r *http.Request
 	w.Write(resultStr)
 }
 
-func (s *SequenceNumberchecker) Check() (int, error) {
+func (s *SequenceNumberchecker) check() (int, error) {
 	s.logger.Info("Checking sequence number of mariadb node...")
 
 	var (
