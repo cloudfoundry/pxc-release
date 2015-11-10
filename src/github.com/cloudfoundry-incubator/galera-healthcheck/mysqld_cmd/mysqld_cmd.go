@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -17,12 +18,14 @@ type MysqldCmd interface {
 }
 
 type mysqldCmd struct {
-	logger lager.Logger
+	logger       lager.Logger
+	mysqldconfig config.Config
 }
 
-func NewMysqldCmd(logger lager.Logger) MysqldCmd {
+func NewMysqldCmd(logger lager.Logger, mysqldconfig config.Config) MysqldCmd {
 	return &mysqldCmd{
-		logger: logger,
+		logger:       logger,
+		mysqldconfig: mysqldconfig,
 	}
 }
 
@@ -40,7 +43,7 @@ func (m *mysqldCmd) RecoverSeqno() (string, error) {
 	errorLogFile := path.Join(os.TempDir(), "galera-healthcheck-mysqld-log.err")
 	os.RemoveAll(errorLogFile) //ensure log is empty
 
-	cmd := exec.Command("/var/vcap/packages/mariadb/bin/mysqld",
+	cmd := exec.Command(m.mysqldconfig.MysqldPath,
 		"--wsrep-recover",
 		fmt.Sprintf("--log-error=%s", errorLogFile))
 

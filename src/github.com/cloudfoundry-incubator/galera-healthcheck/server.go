@@ -57,7 +57,7 @@ func main() {
 		"dbUser": rootConfig.DB.User,
 	})
 
-	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger)
+	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
 
 	healthchecker = healthcheck.New(db, *rootConfig, logger)
 	http.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier

@@ -48,7 +48,7 @@ func (s *SequenceNumberchecker) check() (string, error) {
 	if s.dbReachable() {
 		return s.readSeqNoFromDB()
 	} else {
-		return s.readSeqNoFromLogs()
+		return s.readSeqNoFromRecoverCmd()
 	}
 }
 
@@ -82,7 +82,7 @@ func (s *SequenceNumberchecker) readSeqNoFromDB() (string, error) {
 	return seq_number, nil
 }
 
-func (s *SequenceNumberchecker) readSeqNoFromLogs() (string, error) {
+func (s *SequenceNumberchecker) readSeqNoFromRecoverCmd() (string, error) {
 	s.logger.Info("Reading seqno from logs")
 	seqno, err := s.mysqldCmd.RecoverSeqno()
 	if err != nil {

@@ -19,6 +19,7 @@ type Config struct {
 	AvailableWhenReadOnly bool
 	PidFile               string `validate:"nonzero"`
 	logger                lager.Logger
+	MysqldPath            string `validate:"nonzero"`
 }
 
 type DBConfig struct {

@@ -31,7 +31,8 @@ var _ = Describe("Config", func() {
 					"User": "vcap",
 					"Port": 3000,
 					"Password": "password"
-				}
+				},
+				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld"
 			}`
 
 			osArgs := []string{
@@ -91,6 +92,11 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if PidFile is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "PidFile")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if MysqldPath is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "MysqldPath")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
