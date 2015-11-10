@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
@@ -56,10 +57,12 @@ func main() {
 		"dbUser": rootConfig.DB.User,
 	})
 
+	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger)
+
 	healthchecker = healthcheck.New(db, *rootConfig, logger)
 	http.Handle("/galera_status", healthchecker)
 
-	sequence_number_checker = sequence_number.New(db, *rootConfig, logger)
+	sequence_number_checker = sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 	http.Handle("/sequence_number", sequence_number_checker)
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
