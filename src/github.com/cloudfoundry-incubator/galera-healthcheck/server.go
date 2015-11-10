@@ -60,6 +60,7 @@ func main() {
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger)
 
 	healthchecker = healthcheck.New(db, *rootConfig, logger)
+	http.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier
 	http.Handle("/galera_status", healthchecker)
 
 	sequence_number_checker = sequence_number.New(db, mysqldCmd, *rootConfig, logger)
