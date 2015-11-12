@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -20,7 +19,6 @@ import (
 
 var _ = Describe("GaleraSequenceChecker", func() {
 
-	const startPositionQuery = "SHOW variables LIKE 'wsrep_start_position'"
 	const expectedSeqNumber = "32"
 
 	var (
@@ -47,29 +45,24 @@ var _ = Describe("GaleraSequenceChecker", func() {
 		Context("db works", func() {
 
 			BeforeEach(func() {
-				fake_result := fmt.Sprintf("fake-guid:%s", expectedSeqNumber)
-				columns := []string{"Variable_name", "Value:Id"}
-				result := fmt.Sprintf("wsrep_start_position,%s", fake_result)
-				testdb.StubQuery(startPositionQuery, testdb.RowsFromCSVString(columns, result))
 				testdb.SetExecFunc(func(query string) (driver.Result, error) {
 					return nil, nil
 				})
 			})
 
-			It("returns a successful HTTP status", func() {
+			It("returns an unsuccessful HTTP status", func() {
 				req, err := http.NewRequest("GET", "/sequence_number", nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				w := httptest.NewRecorder()
 				sequenceChecker.ServeHTTP(w, req)
-				Expect(w.Code).To(Equal(http.StatusOK))
-				Expect(w.Body.String()).To(Equal(expectedSeqNumber))
+				Expect(w.Code).To(Equal(http.StatusInternalServerError))
+				Expect(w.Body.String()).To(Equal("Failed to determine sequence number: can't determine sequence number when database is running"))
 			})
 		})
 
 		Context("db is down", func() {
 			BeforeEach(func() {
-				testdb.StubQueryError(startPositionQuery, errors.New("failed to connect"))
 				testdb.SetExecFunc(func(query string) (driver.Result, error) {
 					return nil, errors.New("failed to connect")
 				})

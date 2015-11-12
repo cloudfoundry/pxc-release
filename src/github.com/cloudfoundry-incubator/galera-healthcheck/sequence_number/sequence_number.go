@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
@@ -46,40 +45,10 @@ func (s *SequenceNumberchecker) check() (string, error) {
 	s.logger.Info("Checking sequence number of mariadb node...")
 
 	if s.dbReachable() {
-		return s.readSeqNoFromDB()
+		return "", errors.New("can't determine sequence number when database is running")
 	} else {
 		return s.readSeqNoFromRecoverCmd()
 	}
-}
-
-func (s *SequenceNumberchecker) readSeqNoFromDB() (string, error) {
-
-	s.logger.Info("Reading seqno from DB")
-
-	var (
-		unused string
-		value  string
-		err    error
-	)
-
-	err = s.db.QueryRow("SHOW variables LIKE 'wsrep_start_position'").Scan(&unused, &value)
-
-	if err == sql.ErrNoRows {
-		return "", errors.New("wsrep_start_position variable not set")
-	}
-
-	if err != nil {
-		return "", err
-	}
-
-	wsrep_status_array := strings.Split(value, ":")
-	if len(wsrep_status_array) != 2 {
-		err = fmt.Errorf("wsrep_start_position variable returns %s. Expected format guid:integer", value)
-		return "", err
-	}
-
-	seq_number := wsrep_status_array[1]
-	return seq_number, nil
 }
 
 func (s *SequenceNumberchecker) readSeqNoFromRecoverCmd() (string, error) {
