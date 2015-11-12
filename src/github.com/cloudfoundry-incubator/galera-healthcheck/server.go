@@ -39,23 +39,20 @@ func main() {
 			rootConfig.DB.Password,
 			rootConfig.DB.Host,
 			rootConfig.DB.Port))
+
 	if err != nil {
-		// sql.Open may not actually check that the DB is reachable
-		err = db.Ping()
-	}
-	if err != nil {
-		logger.Fatal("Failed to open DB connection", err, lager.Data{
+		logger.Error("Failed to open DB connection", err, lager.Data{
 			"dbHost": rootConfig.DB.Host,
 			"dbPort": rootConfig.DB.Port,
 			"dbUser": rootConfig.DB.User,
 		})
-	}
-
-	logger.Info("Opened DB connection", lager.Data{
+	} else {
+		logger.Info("Opened DB connection", lager.Data{
 		"dbHost": rootConfig.DB.Host,
 		"dbPort": rootConfig.DB.Port,
 		"dbUser": rootConfig.DB.User,
-	})
+		})
+	}
 
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
 
