@@ -32,6 +32,12 @@ var _ = Describe("Config", func() {
 					"Port": 3000,
 					"Password": "password"
 				},
+				"Monit" : {
+					"Host": "localhost",
+					"User": "vcap",
+					"Port": 2822,
+					"Password": "random-password"
+				},
 				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld"
 			}`
 
@@ -87,6 +93,26 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if DB.Password is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "DB.Password")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Monit.Host is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Monit.Host")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Monit.User is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Monit.User")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Monit.Port is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Monit.Port")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Monit.Password is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Monit.Password")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

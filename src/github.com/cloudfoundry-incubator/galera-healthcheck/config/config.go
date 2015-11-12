@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	DB                    DBConfig `validate:"nonzero"`
-	Host                  string   `validate:"nonzero"`
-	Port                  int      `validate:"nonzero"`
+	DB                    DBConfig    `validate:"nonzero"`
+	Monit                 MonitConfig `validate:"nonzero"`
+	Host                  string      `validate:"nonzero"`
+	Port                  int         `validate:"nonzero"`
 	AvailableWhenDonor    bool
 	AvailableWhenReadOnly bool
 	PidFile               string `validate:"nonzero"`
@@ -23,6 +24,13 @@ type Config struct {
 }
 
 type DBConfig struct {
+	Host     string `validate:"nonzero"`
+	User     string `validate:"nonzero"`
+	Port     int    `validate:"nonzero"`
+	Password string `validate:"nonzero"`
+}
+
+type MonitConfig struct {
 	Host     string `validate:"nonzero"`
 	User     string `validate:"nonzero"`
 	Port     int    `validate:"nonzero"`
