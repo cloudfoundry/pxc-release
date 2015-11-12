@@ -48,9 +48,9 @@ func main() {
 		})
 	} else {
 		logger.Info("Opened DB connection", lager.Data{
-		"dbHost": rootConfig.DB.Host,
-		"dbPort": rootConfig.DB.Port,
-		"dbUser": rootConfig.DB.User,
+			"dbHost": rootConfig.DB.Host,
+			"dbPort": rootConfig.DB.Port,
+			"dbUser": rootConfig.DB.User,
 		})
 	}
 
