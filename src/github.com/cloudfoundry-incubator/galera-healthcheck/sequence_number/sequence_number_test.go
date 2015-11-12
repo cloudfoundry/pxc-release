@@ -24,16 +24,21 @@ var _ = Describe("GaleraSequenceChecker", func() {
 	var (
 		sequenceChecker *sequence_number.SequenceNumberchecker
 		mysqldCmd       *fakes.FakeMysqldCmd
+		rootConfig      config.Config
+		logger          *lagertest.TestLogger
+		db              *sql.DB
 	)
 
 	BeforeEach(func() {
-		rootConfig := config.Config{}
-		logger := lagertest.NewTestLogger("sequence_number test")
-		db, _ := sql.Open("testdb", "")
+		rootConfig = config.Config{}
+		logger = lagertest.NewTestLogger("sequence_number test")
+		db, _ = sql.Open("testdb", "")
 
 		mysqldCmd = &fakes.FakeMysqldCmd{}
 		mysqldCmd.RecoverSeqnoReturns(expectedSeqNumber, nil)
+	})
 
+	JustBeforeEach(func() {
 		sequenceChecker = sequence_number.New(db, mysqldCmd, rootConfig, logger)
 	})
 
@@ -76,6 +81,38 @@ var _ = Describe("GaleraSequenceChecker", func() {
 				sequenceChecker.ServeHTTP(w, req)
 				Expect(w.Code).To(Equal(http.StatusOK))
 				Expect(w.Body.String()).To(ContainSubstring(expectedSeqNumber))
+			})
+
+			Context("and recover cmd returns -1", func() {
+				BeforeEach(func() {
+					mysqldCmd.RecoverSeqnoReturns("-1", nil)
+				})
+
+				It("returns an unsuccessful HTTP status", func() {
+					req, err := http.NewRequest("GET", "/sequence_number", nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					w := httptest.NewRecorder()
+					sequenceChecker.ServeHTTP(w, req)
+					Expect(w.Code).To(Equal(http.StatusInternalServerError))
+					Expect(w.Body.String()).To(ContainSubstring("Invalid sequence number -1"))
+				})
+			})
+
+			Context("and recover cmd returns error", func() {
+				BeforeEach(func() {
+					mysqldCmd.RecoverSeqnoReturns("", errors.New("something went wrong"))
+				})
+
+				It("returns an unsuccessful HTTP status", func() {
+					req, err := http.NewRequest("GET", "/sequence_number", nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					w := httptest.NewRecorder()
+					sequenceChecker.ServeHTTP(w, req)
+					Expect(w.Code).To(Equal(http.StatusInternalServerError))
+					Expect(w.Body.String()).To(ContainSubstring("something went wrong"))
+				})
 			})
 		})
 	})

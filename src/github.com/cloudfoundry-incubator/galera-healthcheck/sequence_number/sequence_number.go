@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/pivotal-golang/lager"
+	"strconv"
 )
 
 type SequenceNumberchecker struct {
@@ -47,7 +48,21 @@ func (s *SequenceNumberchecker) check() (string, error) {
 	if s.dbReachable() {
 		return "", errors.New("can't determine sequence number when database is running")
 	} else {
-		return s.readSeqNoFromRecoverCmd()
+		returnedSeqNo, err := s.readSeqNoFromRecoverCmd()
+		if err != nil {
+			return "", err
+		}
+
+		returnedSeqNoInt, converr := strconv.Atoi(returnedSeqNo)
+		if converr != nil {
+			return "", converr
+		}
+
+		if returnedSeqNoInt < 0 {
+			return "", errors.New(fmt.Sprintf("Invalid sequence number %s", returnedSeqNo))
+		}
+
+		return returnedSeqNo, nil
 	}
 }
 
