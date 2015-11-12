@@ -2,7 +2,6 @@ package monitStatus
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
 )
 
@@ -49,7 +48,8 @@ func (monitStatusObject MonitStatus) GetStatus(name string) (string, error) {
 		}
 	}
 
-	return "", errors.New("Could not find process in the monit status report")
+	err := fmt.Errorf("Could not find process %s in the monit status", name)
+	return "", err
 }
 
 func ParseXML(xmlString string) (MonitStatus, error) {
@@ -57,7 +57,10 @@ func ParseXML(xmlString string) (MonitStatus, error) {
 	err := xml.Unmarshal([]byte(xmlString), &result)
 
 	if err != nil {
-		err := fmt.Errorf("Failed to unmarshal the xml response %s", xmlString)
+		err := fmt.Errorf("Failed to unmarshal the xml %s with error %s",
+			xmlString,
+			err.Error(),
+		)
 		return result, err
 	}
 

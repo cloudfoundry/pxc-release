@@ -60,7 +60,7 @@ var _ = Describe("GaleraStatusChecker", func() {
 		Context("and when passed an invalid process name", func() {
 			It("returns an error", func() {
 				_, err := statusObject.GetStatus("fake_process")
-				Expect(err.Error()).To(Equal("Could not find process in the monit status report"))
+				Expect(err.Error()).To(ContainSubstring("Could not find process fake_process"))
 			})
 		})
 	})
@@ -70,7 +70,7 @@ var _ = Describe("GaleraStatusChecker", func() {
 			xmlStatus = "fake XML status!!"
 			_, err := statusObject.NewMonitStatus(xmlStatus)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml response"))
+			Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
 		})
 	})
 })
