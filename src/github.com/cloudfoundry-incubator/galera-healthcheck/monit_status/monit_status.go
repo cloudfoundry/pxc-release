@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	CHARSETENCODING = "ISO-8859-1"
+	CHARSET_ENCODING = "ISO-8859-1"
 )
 
 type MonitStatus struct {
@@ -27,7 +27,7 @@ type serviceTag struct {
 func (s serviceTag) StatusString() (statusString string) {
 	switch {
 	case s.Monitor == 0:
-		statusString = "unknown"
+		statusString = "stopped"
 	case s.Monitor == 2:
 		statusString = "starting"
 	case s.Status == 0:
@@ -67,7 +67,7 @@ func ParseXML(xmlReader io.Reader) (MonitStatus, error) {
 	decoder := xml.NewDecoder(xmlReader)
 
 	decoder.CharsetReader = func(characterSet string, xmlReader io.Reader) (io.Reader, error) {
-		return charset.NewReader(xmlReader, CHARSETENCODING)
+		return charset.NewReader(xmlReader, CHARSET_ENCODING)
 	}
 	err := decoder.Decode(&result)
 

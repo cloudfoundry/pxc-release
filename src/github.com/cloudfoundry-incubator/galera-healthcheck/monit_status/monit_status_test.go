@@ -24,14 +24,14 @@ var _ = Describe("GaleraStatusChecker", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Context("when passed a valid XML", func() {
+	Context("when passed a valid XML response", func() {
 
-		Context("and when passed a valid process name", func() {
+		Context("when passed a valid process name", func() {
 
-			It("returns unknown", func() {
+			It("returns stopped", func() {
 				stat, err := statusObject.GetStatus("mariadb_ctrl")
 				Expect(err).ToNot(HaveOccurred())
-				Expect(stat).To(Equal("unknown"))
+				Expect(stat).To(Equal("stopped"))
 			})
 
 			It("returns running", func() {
@@ -53,7 +53,7 @@ var _ = Describe("GaleraStatusChecker", func() {
 			})
 		})
 
-		Context("and when passed an invalid process name", func() {
+		Context("when passed an invalid process name", func() {
 			It("returns an error", func() {
 				_, err := statusObject.GetStatus("fake_process")
 				Expect(err.Error()).To(ContainSubstring("Could not find process fake_process"))
