@@ -45,6 +45,7 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 	client := &http.Client{}
 
 	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/_status", config.Host, config.Port))
+
 	if err != nil {
 		mysqlstatus.logger.Error("Failed to parse URL", err)
 		mysqlstatus.logger.Info("URL info", lager.Data{
@@ -56,6 +57,10 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 	urlValues := url.Values{}
 	urlValues.Set("format", "xml")
 	statusURL.RawQuery = urlValues.Encode()
+
+	mysqlstatus.logger.Info("URL info", lager.Data{
+		"url": statusURL.String(),
+	})
 
 	req, err := http.NewRequest("GET", statusURL.String(), nil)
 	if err != nil {
@@ -90,20 +95,20 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 		return "", non200Error
 	}
 
+	mysqlstatus.logger.Info("Made successful request to monit API")
+
 	defer resp.Body.Close()
-	responseBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		mysqlstatus.logger.Error("Failed to read response body", err)
 		return "", err
 	}
 
-	statusObject, err = statusObject.NewMonitStatus(responseBytes)
+	statusObject, err = statusObject.NewMonitStatus(resp.Body, mysqlstatus.logger)
 	if err != nil {
 		xmlParsingError := fmt.Errorf("Failed to parse XML")
 		mysqlstatus.logger.Error(xmlParsingError.Error(), xmlParsingError)
 		mysqlstatus.logger.Info("Response body Info", lager.Data{
-			"status_code":   resp.StatusCode,
-			"response_body": string(responseBytes),
+			"status_code": resp.StatusCode,
 		})
 		return "", xmlParsingError
 	}

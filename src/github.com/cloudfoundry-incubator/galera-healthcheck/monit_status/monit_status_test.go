@@ -4,26 +4,23 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_status"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 	"os"
+	"bytes"
 )
 
 var _ = Describe("GaleraStatusChecker", func() {
 
 	var (
 		statusObject monit_status.MonitStatus
-		xmlStatus    []byte
+		logger *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		xmlFile, err := os.Open("example_status.xml")
+		logger = lagertest.NewTestLogger("monit_status")
 
-		Expect(err).ToNot(HaveOccurred())
-		xmlStatus := make([]byte, 20000)
-		count, err := xmlFile.Read(xmlStatus)
-
-		Expect(count).ToNot(Equal(0))
-
-		statusObject, err = statusObject.NewMonitStatus(xmlStatus)
+		statusObject, err = statusObject.NewMonitStatus(xmlFile, logger)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -64,12 +61,12 @@ var _ = Describe("GaleraStatusChecker", func() {
 		})
 	})
 
-	Context("when passed an invalid XML", func() {
-		It("returns an error", func() {
-			xmlStatus = []byte("fake XML status!!")
-			_, err := statusObject.NewMonitStatus(xmlStatus)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
+		Context("when passed an invalid XML", func() {
+			It("returns an error", func() {
+				xmlFile := bytes.NewReader([]byte("fake XML status!!"))
+				_, err := statusObject.NewMonitStatus(xmlFile, logger)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
+			})
 		})
-	})
 })
