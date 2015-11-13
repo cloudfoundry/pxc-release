@@ -24,7 +24,7 @@ func New(monitConfig config.MonitConfig, logger lager.Logger) *MySQLStatus {
 }
 func (mysqlstatus *MySQLStatus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := MySQLStatusHandler(mysqlstatus.config)
+	resp, err := mysqlstatus.MySQLStatusHandler()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		errMsg := fmt.Sprintf("Failed to determine mariadb_ctrl process status: %s", err.Error())
@@ -38,11 +38,11 @@ func (mysqlstatus *MySQLStatus) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 }
 
-func MySQLStatusHandler(monitConfig config.MonitConfig) (string, error) {
-
+func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
+	config := mysqlstatus.config
 	var statusObject monit_status.MonitStatus
 	client := &http.Client{}
-	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/", monitConfig.Host, monitConfig.Port))
+	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/", config.Host, config.Port))
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,7 @@ func MySQLStatusHandler(monitConfig config.MonitConfig) (string, error) {
 		return "", err
 	}
 
-	req.SetBasicAuth(monitConfig.User, monitConfig.Password)
+	req.SetBasicAuth(config.User, config.Password)
 
 	resp, err := client.Do(req)
 	if err != nil {
