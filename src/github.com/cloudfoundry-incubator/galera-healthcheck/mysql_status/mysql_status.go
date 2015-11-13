@@ -1,7 +1,6 @@
 package mysql_status
 
 import (
-	"errors"
 	"fmt"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_status"
@@ -44,8 +43,13 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 	config := mysqlstatus.config
 	var statusObject monit_status.MonitStatus
 	client := &http.Client{}
+
 	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/_status", config.Host, config.Port))
 	if err != nil {
+		mysqlstatus.logger.Error("Failed to parse URL", err)
+		mysqlstatus.logger.Info("URL info", lager.Data{
+			"URL": statusURL,
+		})
 		return "", err
 	}
 
@@ -55,7 +59,10 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 
 	req, err := http.NewRequest("GET", statusURL.String(), nil)
 	if err != nil {
-		err = fmt.Errorf("Failed to create an http request %s", err.Error())
+		mysqlstatus.logger.Error("Failed to create http request", err)
+		mysqlstatus.logger.Info("request info", lager.Data{
+			"request": req.URL,
+		})
 		return "", err
 	}
 
@@ -63,23 +70,42 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		err = fmt.Errorf("Error sending http request %s", err.Error())
+		mysqlstatus.logger.Error("Error sending http request", err)
+		responseBytes, _ := ioutil.ReadAll(resp.Body)
+		mysqlstatus.logger.Info("request and response info", lager.Data{
+			"request":  req.URL,
+			"response": string(responseBytes),
+		})
 		return "", err
 	}
 
 	if resp.StatusCode != 200 {
-		return "", errors.New(fmt.Sprintf("Received non-200 response %s", resp.Body))
+		non200Error := fmt.Errorf("Received %d response from monit", resp.StatusCode)
+		mysqlstatus.logger.Error("Failed with non-200 response", non200Error)
+		responseBytes, _ := ioutil.ReadAll(resp.Body)
+		mysqlstatus.logger.Info("", lager.Data{
+			"status_code":   resp.StatusCode,
+			"response_body": string(responseBytes),
+		})
+		return "", non200Error
 	}
 
 	defer resp.Body.Close()
 	responseBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		mysqlstatus.logger.Error("Failed to read response body", err)
 		return "", err
 	}
 
 	statusObject, err = statusObject.NewMonitStatus(responseBytes)
 	if err != nil {
-		return "", err
+		xmlParsingError := fmt.Errorf("Failed to parse XML")
+		mysqlstatus.logger.Error(xmlParsingError.Error(), xmlParsingError)
+		mysqlstatus.logger.Info("Response body Info", lager.Data{
+			"status_code":   resp.StatusCode,
+			"response_body": string(responseBytes),
+		})
+		return "", xmlParsingError
 	}
 
 	return statusObject.GetStatus(mysqlstatus.processName)

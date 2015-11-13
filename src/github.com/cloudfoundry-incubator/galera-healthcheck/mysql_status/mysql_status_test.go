@@ -21,16 +21,39 @@ var _ = Describe("GaleraStatusChecker", func() {
 		ts          *httptest.Server
 	)
 
-	BeforeEach(func() {
-		monitStatus, ts = NewTestConfig()
-	})
+	Context("when mariadb_ctrl is running", func() {
 
-	Context("When mariadb_ctrl is running", func() {
+		It("returns http response 200 and process as running", func() {
+			successHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				xmlFile, _ := os.Open("example_status.xml")
+				xmlStatus := make([]byte, 20000)
+				_, _ = xmlFile.Read(xmlStatus)
+				fmt.Fprintln(w, string(xmlStatus))
+			})
 
-		It("returns status with running", func() {
+			monitStatus, ts = NewTestConfig(successHandler)
 			st, err := monitStatus.MySQLStatusHandler()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(st).To(Equal("unknown"))
+		})
+
+		It("returns non 200 http response for bad monit API request", func() {
+			failingHandler := func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, "something failed", http.StatusBadRequest)
+			}
+			monitStatus, ts = NewTestConfig(failingHandler)
+			_, err := monitStatus.MySQLStatusHandler()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Received 400 response from monit"))
+		})
+		It("returns non 200 http response from monit API for parsing bad xml", func() {
+			badXmlHandler := func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "fake-xml")
+			}
+			monitStatus, ts = NewTestConfig(badXmlHandler)
+			_, err := monitStatus.MySQLStatusHandler()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Failed to parse XML"))
 		})
 	})
 
@@ -39,15 +62,10 @@ var _ = Describe("GaleraStatusChecker", func() {
 	})
 })
 
-func NewTestConfig() (*mysql_status.MySQLStatus, *httptest.Server) {
+func NewTestConfig(handler http.HandlerFunc) (*mysql_status.MySQLStatus, *httptest.Server) {
 	logger := lagertest.NewTestLogger("mysql_status")
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		xmlFile, _ := os.Open("example_status.xml")
-		xmlStatus := make([]byte, 20000)
-		_, _ = xmlFile.Read(xmlStatus)
-		fmt.Fprintln(w, string(xmlStatus))
-	}))
+	ts := httptest.NewServer(handler)
 
 	testHost, testPort := splitHostandPort(ts.URL)
 	monitConfig := config.MonitConfig{
