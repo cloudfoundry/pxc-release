@@ -12,14 +12,16 @@ import (
 )
 
 type MySQLStatus struct {
-	config config.MonitConfig
-	logger lager.Logger
+	config      config.MonitConfig
+	logger      lager.Logger
+	processName string
 }
 
 func New(monitConfig config.MonitConfig, logger lager.Logger) *MySQLStatus {
 	return &MySQLStatus{
-		config: monitConfig,
-		logger: logger,
+		config:      monitConfig,
+		logger:      logger,
+		processName: "mariadb_ctrl",
 	}
 }
 func (mysqlstatus *MySQLStatus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +44,7 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 	config := mysqlstatus.config
 	var statusObject monit_status.MonitStatus
 	client := &http.Client{}
-	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/", config.Host, config.Port))
+	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/_status", config.Host, config.Port))
 	if err != nil {
 		return "", err
 	}
@@ -80,5 +82,5 @@ func (mysqlstatus *MySQLStatus) MySQLStatusHandler() (string, error) {
 		return "", err
 	}
 
-	return statusObject.GetStatus("mariadb_ctrl")
+	return statusObject.GetStatus(mysqlstatus.processName)
 }
