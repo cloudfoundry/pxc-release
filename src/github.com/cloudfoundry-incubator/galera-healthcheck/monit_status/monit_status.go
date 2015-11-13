@@ -1,4 +1,4 @@
-package monitStatus
+package monit_status
 
 import (
 	"encoding/xml"
@@ -31,7 +31,7 @@ func (s serviceTag) StatusString() (statusString string) {
 	return
 }
 
-func (st MonitStatus) NewMonitStatus(xmlStatus string) (MonitStatus, error) {
+func (st MonitStatus) NewMonitStatus(xmlStatus []byte) (MonitStatus, error) {
 	status, err := ParseXML(xmlStatus)
 	if err != nil {
 		err = fmt.Errorf("Failed to create a monit status object %s", err.Error())
@@ -52,9 +52,9 @@ func (monitStatusObject MonitStatus) GetStatus(name string) (string, error) {
 	return "", err
 }
 
-func ParseXML(xmlString string) (MonitStatus, error) {
+func ParseXML(xmlString []byte) (MonitStatus, error) {
 	result := MonitStatus{}
-	err := xml.Unmarshal([]byte(xmlString), &result)
+	err := xml.Unmarshal(xmlString, &result)
 
 	if err != nil {
 		err := fmt.Errorf("Failed to unmarshal the xml %s with error %s",

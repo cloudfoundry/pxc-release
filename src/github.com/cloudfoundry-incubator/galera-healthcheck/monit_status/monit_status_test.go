@@ -1,4 +1,4 @@
-package monitStatus_test
+package monit_status_test
 
 import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_status"
@@ -10,19 +10,18 @@ import (
 var _ = Describe("GaleraStatusChecker", func() {
 
 	var (
-		statusObject monitStatus.MonitStatus
-		xmlStatus    string
+		statusObject monit_status.MonitStatus
+		xmlStatus    []byte
 	)
 
 	BeforeEach(func() {
 		xmlFile, err := os.Open("example_status.xml")
 
 		Expect(err).ToNot(HaveOccurred())
-		data := make([]byte, 20000)
-		count, err := xmlFile.Read(data)
+		xmlStatus := make([]byte, 20000)
+		count, err := xmlFile.Read(xmlStatus)
 
 		Expect(count).ToNot(Equal(0))
-		xmlStatus = string(data[:count])
 
 		statusObject, err = statusObject.NewMonitStatus(xmlStatus)
 		Expect(err).ToNot(HaveOccurred())
@@ -67,7 +66,7 @@ var _ = Describe("GaleraStatusChecker", func() {
 
 	Context("when passed an invalid XML", func() {
 		It("returns an error", func() {
-			xmlStatus = "fake XML status!!"
+			xmlStatus = []byte("fake XML status!!")
 			_, err := statusObject.NewMonitStatus(xmlStatus)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))

@@ -1,4 +1,4 @@
-package monitStatus_test
+package monit_status_test
 
 import (
 	"testing"

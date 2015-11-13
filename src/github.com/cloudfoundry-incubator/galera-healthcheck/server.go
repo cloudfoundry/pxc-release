@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/mysql_status"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
-
-	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/pivotal-golang/lager"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -62,6 +62,9 @@ func main() {
 
 	sequence_number_checker = sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 	http.Handle("/sequence_number", sequence_number_checker)
+
+	mysql_status_checker := mysql_status.New(rootConfig.Monit, logger)
+	http.Handle("/mysql_status", mysql_status_checker)
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)
