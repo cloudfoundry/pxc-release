@@ -34,7 +34,7 @@ var _ = Describe("GaleraStatusChecker", func() {
 			monitStatus, ts = NewTestConfig(successHandler)
 			st, err := monitStatus.MySQLStatusHandler()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(st).To(Equal("unknown"))
+			Expect(st).To(Equal("stopped"))
 		})
 
 		It("returns non 200 http response for bad monit API request", func() {
