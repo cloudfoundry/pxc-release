@@ -16,6 +16,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 	"github.com/pivotal-golang/lager"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -65,6 +66,9 @@ func main() {
 
 	mysql_status_checker := mysql_status.New(rootConfig.Monit, logger)
 	http.Handle("/mysql_status", mysql_status_checker)
+
+	monit_client := monit_client.New(rootConfig.Monit, logger, "mariadb_ctrl")
+	http.Handle("/stop_mysql", monit_client)
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)
