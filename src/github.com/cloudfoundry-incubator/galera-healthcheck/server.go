@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_cmd"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -56,6 +57,7 @@ func main() {
 	}
 
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
+	monit_client := monit_client.New(rootConfig.Monit, logger, "mariadb_ctrl")
 
 	healthchecker = healthcheck.New(db, *rootConfig, logger)
 	http.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier
@@ -67,8 +69,14 @@ func main() {
 	mysql_status_checker := mysql_status.New(rootConfig.Monit, logger)
 	http.Handle("/mysql_status", mysql_status_checker)
 
-	monit_client := monit_client.New(rootConfig.Monit, logger, "mariadb_ctrl")
-	http.Handle("/stop_mysql", monit_client)
+	stop_mysql_cmd := monit_cmd.NewStopMysqlCmd(monit_client)
+	http.Handle("/stop_mysql", stop_mysql_cmd)
+
+	start_mysql_cmd_join := monit_cmd.NewStartMysqlCmd(monit_client, "join")
+	http.Handle("/start_mysql_join", start_mysql_cmd_join)
+
+	start_mysql_cmd_bs := monit_cmd.NewStartMysqlCmd(monit_client, "bootstrap")
+	http.Handle("/start_mysql_bootstrap", start_mysql_cmd_bs)
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)

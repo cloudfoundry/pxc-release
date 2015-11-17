@@ -1,4 +1,4 @@
-package start_mysql_test
+package monit_cmd_test
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestGalera_StartMysql(t *testing.T) {
+func TestMonit_Cmd(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "StartMySql Suite")
+	RunSpecs(t, "Monit Cmd Suite")
 }

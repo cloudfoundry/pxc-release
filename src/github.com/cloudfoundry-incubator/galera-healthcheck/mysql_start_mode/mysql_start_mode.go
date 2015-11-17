@@ -1,29 +1,29 @@
-package start_mysql
+package mysql_start_mode
 
 import (
 	"fmt"
 	"io/ioutil"
 )
 
-type StartMysql struct {
+type MysqlStartMode struct {
 	stateFilePath string
 	mode          string
 }
 
-func NewStartMySql(stateFilePath string, mode string) *StartMysql {
-	return &StartMysql{
+func NewMysqlStartMode(stateFilePath string, mode string) *MysqlStartMode {
+	return &MysqlStartMode{
 		stateFilePath: stateFilePath,
 		mode:          mode,
 	}
 }
 
-func (ms *StartMysql) Start() (bool, error) {
+func (ms *MysqlStartMode) Start() (bool, error) {
 	var err error
 	switch ms.mode {
 	case "bootstrap":
-		err = ms.startMysqlInBootstrap()
+		err = ms.mysqlStartModeInBootstrap()
 	case "join":
-		err = ms.startMysqlInJoin()
+		err = ms.mysqlStartModeInJoin()
 	default:
 		err = fmt.Errorf("Unrecognized value for start mode!")
 	}
@@ -34,7 +34,7 @@ func (ms *StartMysql) Start() (bool, error) {
 	return true, err
 }
 
-func (ms *StartMysql) startMysqlInBootstrap() error {
+func (ms *MysqlStartMode) mysqlStartModeInBootstrap() error {
 	err := ioutil.WriteFile(ms.stateFilePath, []byte("NEEDS_BOOTSTRAP"), 0777)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (ms *StartMysql) startMysqlInBootstrap() error {
 	return nil
 }
 
-func (ms *StartMysql) startMysqlInJoin() error {
+func (ms *MysqlStartMode) mysqlStartModeInJoin() error {
 	err := ioutil.WriteFile(ms.stateFilePath, []byte("CLUSTERED"), 0777)
 	if err != nil {
 		return err

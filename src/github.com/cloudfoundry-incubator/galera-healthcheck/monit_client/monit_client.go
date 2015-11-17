@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/mysql_start_mode"
 	"github.com/pivotal-golang/lager"
 	"io/ioutil"
 	"net/http"
@@ -11,38 +12,56 @@ import (
 	"strings"
 )
 
-type Monit_Client struct {
+type MonitClient interface {
+	StartService(startMode string) (bool, error)
+	StopService() (bool, error)
+	GetLogger() lager.Logger
+}
+
+type monitClient struct {
 	monitConfig config.MonitConfig
 	logger      lager.Logger
 	serviceName string
 }
 
-func New(monitConfig config.MonitConfig, logger lager.Logger, serviceName string) *Monit_Client {
-	return &Monit_Client{
+func New(monitConfig config.MonitConfig, logger lager.Logger, serviceName string) *monitClient {
+	return &monitClient{
 		monitConfig: monitConfig,
 		logger:      logger,
 		serviceName: serviceName,
 	}
 }
 
-func (monitClient *Monit_Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-	resp, err := monitClient.StopService()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		errMsg := fmt.Sprintf("Failed to determine mariadb_ctrl process status: %s", err.Error())
-		monitClient.logger.Error(errMsg, err)
-		w.Write([]byte(errMsg))
-		return
-	}
-
-	monitClient.logger.Debug(fmt.Sprintf("Response body: %t", resp))
-	w.Write([]byte(fmt.Sprintf("MySQLService Stopped Successfully. Req URL: %s", r.URL.String())))
+func (monitClient *monitClient) GetLogger() lager.Logger {
+	return monitClient.logger
 }
 
-func (monitClient *Monit_Client) StopService() (bool, error) {
+func (monitClient *monitClient) StartService(startMode string) (bool, error) {
+
+	mySqlStartMode := mysql_start_mode.NewMysqlStartMode(monitClient.monitConfig.MysqlStateFilePath, startMode)
+	_, err := mySqlStartMode.Start()
+	if err != nil {
+		monitClient.logger.Error("Failed to write state file", err)
+		monitClient.logger.Info("mySqlStartMode info", lager.Data{
+			"startMode":          startMode,
+			"MysqlStateFilePath": monitClient.monitConfig.MysqlStateFilePath,
+		})
+		return false, err
+	}
+
+	resp, err := monitClient.runServiceCmd("monitor", "not monitored - monitor pending")
+	return resp, err
+}
+
+func (monitClient *monitClient) StopService() (bool, error) {
+	resp, err := monitClient.runServiceCmd("unmonitor", "running - unmonitor pending")
+	return resp, err
+}
+
+func (monitClient *monitClient) runServiceCmd(command string, expectedSuccessResponse string) (bool, error) {
 	config := monitClient.monitConfig
 	client := &http.Client{}
+	var serviceAction = []byte(fmt.Sprintf(`action=%s`, command))
 
 	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/%s",
 		config.Host,
@@ -60,9 +79,7 @@ func (monitClient *Monit_Client) StopService() (bool, error) {
 
 	urlValues := url.Values{}
 	statusURL.RawQuery = urlValues.Encode()
-
-	var jsonStr = []byte(`action=unmonitor`)
-	req, err := http.NewRequest("POST", statusURL.String(), bytes.NewReader(jsonStr))
+	req, err := http.NewRequest("POST", statusURL.String(), bytes.NewReader(serviceAction))
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -102,16 +119,16 @@ func (monitClient *Monit_Client) StopService() (bool, error) {
 	monitClient.logger.Info("Made successful request to monit API")
 	responseBytes, _ := ioutil.ReadAll(resp.Body)
 	responseStr := string(responseBytes)
-	stopSuccessful := "running - unmonitor pending"
-	if !strings.Contains(responseStr, stopSuccessful) {
-		monitStopFailure := fmt.Errorf("Monit failed to stop %s successfully", monitClient.serviceName)
-		monitClient.logger.Error("Monit failure:", monitStopFailure)
+
+	if !strings.Contains(responseStr, expectedSuccessResponse) {
+		monitFailure := fmt.Errorf("Monit failed to %s %s successfully", command, monitClient.serviceName)
+		monitClient.logger.Error("Monit failure:", monitFailure)
 		responseBytes, _ := ioutil.ReadAll(resp.Body)
 		monitClient.logger.Info("request info", lager.Data{
 			"response_body": string(responseBytes),
 		})
 
-		return false, monitStopFailure
+		return false, monitFailure
 	}
 
 	defer resp.Body.Close()

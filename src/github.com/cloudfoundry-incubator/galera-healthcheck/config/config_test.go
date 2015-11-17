@@ -36,7 +36,8 @@ var _ = Describe("Config", func() {
 					"Host": "localhost",
 					"User": "vcap",
 					"Port": 2822,
-					"Password": "random-password"
+					"Password": "random-password",
+					"MysqlStateFilePath": "/var/vcap/store/mysql/state.txt"
 				},
 				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld"
 			}`
@@ -123,6 +124,11 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if MysqldPath is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "MysqldPath")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Monit.MysqlStateFilePath is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Monit.MysqlStateFilePath")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

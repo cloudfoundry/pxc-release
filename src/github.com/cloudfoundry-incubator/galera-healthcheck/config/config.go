@@ -31,10 +31,11 @@ type DBConfig struct {
 }
 
 type MonitConfig struct {
-	Host     string `validate:"nonzero"`
-	User     string `validate:"nonzero"`
-	Port     int    `validate:"nonzero"`
-	Password string `validate:"nonzero"`
+	Host               string `validate:"nonzero"`
+	User               string `validate:"nonzero"`
+	Port               int    `validate:"nonzero"`
+	Password           string `validate:"nonzero"`
+	MysqlStateFilePath string `validate:"nonzero"`
 }
 
 func defaultConfig() *Config {
