@@ -25,6 +25,13 @@ type FakeMonitClient struct {
 		result1 bool
 		result2 error
 	}
+	GetStatusStub        func() (string, error)
+	getStatusMutex       sync.RWMutex
+	getStatusArgsForCall []struct{}
+	getStatusReturns     struct {
+		result1 string
+		result2 error
+	}
 	GetLoggerStub        func() lager.Logger
 	getLoggerMutex       sync.RWMutex
 	getLoggerArgsForCall []struct{}
@@ -87,6 +94,31 @@ func (fake *FakeMonitClient) StopServiceReturns(result1 bool, result2 error) {
 	fake.StopServiceStub = nil
 	fake.stopServiceReturns = struct {
 		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMonitClient) GetStatus() (string, error) {
+	fake.getStatusMutex.Lock()
+	fake.getStatusArgsForCall = append(fake.getStatusArgsForCall, struct{}{})
+	fake.getStatusMutex.Unlock()
+	if fake.GetStatusStub != nil {
+		return fake.GetStatusStub()
+	} else {
+		return fake.getStatusReturns.result1, fake.getStatusReturns.result2
+	}
+}
+
+func (fake *FakeMonitClient) GetStatusCallCount() int {
+	fake.getStatusMutex.RLock()
+	defer fake.getStatusMutex.RUnlock()
+	return len(fake.getStatusArgsForCall)
+}
+
+func (fake *FakeMonitClient) GetStatusReturns(result1 string, result2 error) {
+	fake.GetStatusStub = nil
+	fake.getStatusReturns = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }

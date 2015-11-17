@@ -25,7 +25,7 @@
         <swap>1048572</swap>
     </platform>
     <service type="3">
-        <name>mariadb_ctrl</name>
+        <name>unmonitored_process</name>
         <collected_sec>1447354269</collected_sec>
         <collected_usec>469894</collected_usec>
         <status>0</status>
@@ -35,7 +35,7 @@
         <pendingaction>0</pendingaction>
     </service>
     <service type="3">
-        <name>galera-healthcheck</name>
+        <name>running_process</name>
         <collected_sec>1447354269</collected_sec>
         <collected_usec>469891</collected_usec>
         <status>0</status>
@@ -45,7 +45,7 @@
         <pendingaction>0</pendingaction>
     </service>
     <service type="3">
-        <name>log-purger</name>
+        <name>unmonitored_failing_process</name>
         <collected_sec>1447354269</collected_sec>
         <collected_usec>469892</collected_usec>
         <status>1</status>
@@ -55,7 +55,7 @@
         <pendingaction>0</pendingaction>
     </service>
     <service type="5">
-        <name>system</name>
+        <name>failing_process</name>
         <collected_sec>1447354269</collected_sec>
         <collected_usec>469893</collected_usec>
         <status>1</status>

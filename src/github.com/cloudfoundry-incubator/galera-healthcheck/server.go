@@ -11,7 +11,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/mysql_status"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 	"github.com/pivotal-golang/lager"
@@ -66,8 +65,8 @@ func main() {
 	sequence_number_checker = sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 	http.Handle("/sequence_number", sequence_number_checker)
 
-	mysql_status_checker := mysql_status.New(rootConfig.Monit, logger)
-	http.Handle("/mysql_status", mysql_status_checker)
+	mysql_status_cmd := monit_cmd.NewGetStatusCmd(monit_client)
+	http.Handle("/mysql_status", mysql_status_cmd)
 
 	stop_mysql_cmd := monit_cmd.NewStopMysqlCmd(monit_client)
 	http.Handle("/stop_mysql", stop_mysql_cmd)

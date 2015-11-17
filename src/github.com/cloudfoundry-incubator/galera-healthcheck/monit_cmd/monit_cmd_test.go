@@ -2,13 +2,14 @@ package monit_cmd_test
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
-	"net/http"
-	"net/http/httptest"
 )
 
 var _ = Describe("MonitCmd", func() {
@@ -48,4 +49,13 @@ var _ = Describe("MonitCmd", func() {
 		Expect(monitClient.StartServiceCallCount()).To(Equal(1))
 		Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("bootstrap"))
 	})
+
+	It("Calls GetStatus on the monit client when a new GetStatusCmd is created", func() {
+		monitClient.GetStatusReturns("running", nil)
+		getStatusCmd := monit_cmd.NewGetStatusCmd(monitClient)
+
+		getStatusCmd.ServeHTTP(w, r)
+		Expect(monitClient.GetStatusCallCount()).To(Equal(1))
+	})
+
 })
