@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
-	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/fakes"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/test_helpers"
 	"github.com/fraenkel/candiedyaml"
 	. "github.com/onsi/ginkgo"
@@ -21,23 +20,29 @@ import (
 
 var _ = Describe("Bootstrap", func() {
 
+	const SERVER_COUNT = 3
+
 	var (
-		testServers     []*httptest.Server
-		endpointHandler *test_helpers.EndpointHandler
-		rootConfig      *config.Config
-		cmd             *exec.Cmd
+		testServers      []*httptest.Server
+		endpointHandlers []*test_helpers.EndpointHandler
+		rootConfig       *config.Config
+		cmd              *exec.Cmd
 	)
 
 	BeforeEach(func() {
-		endpointHandler = test_helpers.NewEndpointHandler()
-		endpointHandler.StubEndpoint("/stop_mysql")
+		endpointHandlers = []*test_helpers.EndpointHandler{}
+		for i := 0; i < SERVER_COUNT; i++ {
+			endpointHandler := test_helpers.NewEndpointHandler()
+			endpointHandler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
+			endpointHandlers = append(endpointHandlers, endpointHandler)
+		}
 	})
 
 	JustBeforeEach(func() {
 		rootConfig = &config.Config{}
 		testServers = []*httptest.Server{}
-		for i := 0; i < 3; i++ {
-			newServer := httptest.NewServer(endpointHandler)
+		for i := 0; i < SERVER_COUNT; i++ {
+			newServer := httptest.NewServer(endpointHandlers[i])
 			testServers = append(testServers, newServer)
 
 			rootConfig.HealthcheckURLs = append(rootConfig.HealthcheckURLs, newServer.URL)
@@ -53,35 +58,30 @@ var _ = Describe("Bootstrap", func() {
 		}
 	})
 
-	// make api call to stop monitoring mysql process and we should get 200 ok
 	Context("when we get 200 response for shutting down mariadb_ctrl from mysql node", func() {
 
 		It("sends request to /stop_mysql on each node", func() {
 			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(0))
-			Expect(endpointHandler.Handlers["/stop_mysql"].ServeHTTPCallCount()).To(Equal(3))
+			for _, handler := range endpointHandlers {
+				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+			}
 		})
 	})
 
 	Context("when we get non-200 response for shutting down mariadb_ctrl from mysql node", func() {
 		BeforeEach(func() {
-			fakeHandler := &fakes.FakeHandler{}
-			fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "fake-error")
-			}
-			endpointHandler.StubEndpoint("/stop_mysql", fakeHandler)
+			endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusInternalServerError, "fake-error")
 		})
 
-		It("sends request to /stop_mysql on each node", func() {
+		It("prints error to STDERR", func() {
 			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 			Eventually(session).Should(gexec.Exit())
 			Expect(session.ExitCode()).ToNot(BeZero())
 			Expect(session.Err).To(gbytes.Say("Non 200 response"))
-
-			Expect(endpointHandler.Handlers["/stop_mysql"].ServeHTTPCallCount()).To(Equal(1))
+			Expect(endpointHandlers[0].GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
 		})
 	})
 })
