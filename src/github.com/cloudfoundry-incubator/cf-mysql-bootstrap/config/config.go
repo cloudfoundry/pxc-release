@@ -11,13 +11,12 @@ import (
 
 type Config struct {
 	Logger                    lager.Logger
-	ClusterIps                []string `validate:"nonzero"`
+	HealthcheckURLs           []string `validate:"nonzero"`
 	ShutDownMysql             string
 	MysqlStatus               string
 	GetSeqNumber              string
 	StartMysqlInJoinMode      string
 	StartMysqlInBootstrapMode string
-	HealthcheckPort           int `validate:"nonzero"`
 }
 
 func defaultConfig() *Config {

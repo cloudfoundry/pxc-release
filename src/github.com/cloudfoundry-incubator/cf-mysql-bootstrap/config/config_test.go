@@ -20,12 +20,11 @@ var _ = Describe("Config", func() {
 
 		BeforeEach(func() {
 			rawConfig = `{
-				"ClusterIps": [
-					"10.10.10.10",
-					"11.11.11.11",
-					"12.12.12.12"
-				],
-				"HealthcheckPort": 9200
+				"HealthcheckURLs": [
+					"10.10.10.10:9200",
+					"11.11.11.11:9200",
+					"12.12.12.12:9200"
+				]
 			}`
 
 			osArgs := []string{
@@ -43,13 +42,8 @@ var _ = Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns an error if ClusterIps is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "ClusterIps")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns an error if HealthcheckPort is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "HealthcheckPort")
+		It("returns an error if HealthcheckURLs is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "HealthcheckURLs")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
