@@ -37,9 +37,10 @@ var _ = Describe("Config", func() {
 					"User": "vcap",
 					"Port": 2822,
 					"Password": "random-password",
-					"MysqlStateFilePath": "/var/vcap/store/mysql/state.txt"
+					"MysqlStateFilePath": "/var/vcap/store/mysql/state.txt",
+					"ServiceName": "mariadb_ctrl"
 				},
-				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld"
+				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld"				
 			}`
 
 			osArgs := []string{
@@ -129,6 +130,11 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if Monit.MysqlStateFilePath is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "Monit.MysqlStateFilePath")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Monit.ServiceName is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Monit.ServiceName")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

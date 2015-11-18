@@ -36,6 +36,7 @@ type MonitConfig struct {
 	Port               int    `validate:"nonzero"`
 	Password           string `validate:"nonzero"`
 	MysqlStateFilePath string `validate:"nonzero"`
+	ServiceName        string `validate:"nonzero"`
 }
 
 func defaultConfig() *Config {
