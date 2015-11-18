@@ -64,4 +64,14 @@
         <monitormode>0</monitormode>
         <pendingaction>0</pendingaction>
     </service>
+    <service type="6">
+        <name>pending_process</name>
+        <collected_sec>1447354269</collected_sec>
+        <collected_usec>469893</collected_usec>
+        <status>0</status>
+        <status_hint>0</status_hint>
+        <monitor>0</monitor>
+        <monitormode>0</monitormode>
+        <pendingaction>6</pendingaction>
+    </service>
 </monit>

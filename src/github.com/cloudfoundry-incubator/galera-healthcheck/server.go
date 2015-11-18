@@ -56,7 +56,7 @@ func main() {
 	}
 
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
-	monit_client := monit_client.New(rootConfig.Monit, logger, rootConfig.ServiceName)
+	monit_client := monit_client.New(rootConfig.Monit, logger)
 
 	healthchecker = healthcheck.New(db, *rootConfig, logger)
 	http.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier

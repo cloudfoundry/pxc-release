@@ -51,11 +51,12 @@ var _ = Describe("monitClient", func() {
 			Host:               testHost,
 			Port:               testPort,
 			MysqlStateFilePath: stateFile.Name(),
+			ServiceName:        processName,
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
 
-		monitClient = monit_client.New(monitConfig, logger, processName)
+		monitClient = monit_client.New(monitConfig, logger)
 	})
 
 	AfterEach(func() {
@@ -215,6 +216,17 @@ var _ = Describe("monitClient", func() {
 					stat, err := monitClient.GetStatus()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(stat).To(Equal("failing"))
+				})
+			})
+
+			Context("and process is pending", func() {
+				BeforeEach(func() {
+					processName = "pending_process"
+				})
+				It("returns failing", func() {
+					stat, err := monitClient.GetStatus()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(stat).To(Equal("pending"))
 				})
 			})
 

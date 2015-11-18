@@ -18,10 +18,11 @@ type MonitStatus struct {
 }
 
 type ServiceTag struct {
-	XMLName xml.Name `xml:"service"`
-	Name    string   `xml:"name"`
-	Status  int      `xml:"status"`
-	Monitor int      `xml:"monitor"`
+	XMLName       xml.Name `xml:"service"`
+	Name          string   `xml:"name"`
+	Status        int      `xml:"status"`
+	Monitor       int      `xml:"monitor"`
+	PendingAction int      `xml:"pendingaction"`
 }
 
 func ParseXML(xmlReader io.Reader) (MonitStatus, error) {

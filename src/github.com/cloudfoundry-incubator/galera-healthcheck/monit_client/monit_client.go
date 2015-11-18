@@ -23,14 +23,12 @@ type MonitClient interface {
 type monitClient struct {
 	monitConfig config.MonitConfig
 	logger      lager.Logger
-	serviceName string
 }
 
-func New(monitConfig config.MonitConfig, logger lager.Logger, serviceName string) *monitClient {
+func New(monitConfig config.MonitConfig, logger lager.Logger) *monitClient {
 	return &monitClient{
 		monitConfig: monitConfig,
 		logger:      logger,
-		serviceName: serviceName,
 	}
 }
 
@@ -65,17 +63,19 @@ func (monitClient *monitClient) statusLookup(s MonitStatus) (string, error) {
 	var tagForService ServiceTag
 	foundService := false
 	for _, serviceTag := range s.Services {
-		if serviceTag.Name == monitClient.serviceName {
+		if serviceTag.Name == monitClient.monitConfig.ServiceName {
 			tagForService = serviceTag
 			foundService = true
 			break
 		}
 	}
 	if foundService == false {
-		return "", fmt.Errorf("Could not find process %s", monitClient.serviceName)
+		return "", fmt.Errorf("Could not find process %s", monitClient.monitConfig.ServiceName)
 	}
 
 	switch {
+	case tagForService.PendingAction != 0:
+		return "pending", nil
 	case tagForService.Monitor == 0:
 		return "stopped", nil
 	case tagForService.Monitor == 2:
@@ -144,7 +144,7 @@ func (monitClient *monitClient) runStatusCmd() (io.Reader, error) {
 func (monitClient *monitClient) runServiceCmd(command string, expectedSuccessResponse string) (bool, error) {
 	serviceAction := fmt.Sprintf("action=%s", command)
 
-	statusURL, err := monitClient.newUrl(monitClient.serviceName)
+	statusURL, err := monitClient.newUrl(monitClient.monitConfig.ServiceName)
 
 	respBody, err := monitClient.sendRequest(statusURL, "POST", serviceAction)
 
@@ -155,7 +155,7 @@ func (monitClient *monitClient) runServiceCmd(command string, expectedSuccessRes
 	responseStr := string(responseBytes)
 
 	if !strings.Contains(responseStr, expectedSuccessResponse) {
-		monitFailure := fmt.Errorf("Monit failed to %s %s successfully", command, monitClient.serviceName)
+		monitFailure := fmt.Errorf("Monit failed to %s %s successfully", command, monitClient.monitConfig.ServiceName)
 		monitClient.logger.Error("Monit failure:", monitFailure)
 		monitClient.logger.Info("request info", lager.Data{
 			"response_body": string(responseBytes),
