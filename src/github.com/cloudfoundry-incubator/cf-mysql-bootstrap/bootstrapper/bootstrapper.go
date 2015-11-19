@@ -46,8 +46,8 @@ func (b *Bootstrapper) Run() error {
 		logger.Info(fmt.Sprintf("Successfully sent stop request to URL: %s", stopMysqlUrl))
 	}
 
-	pollingIntervalInSec := 3
-	timeoutInSec := 30
+	pollingIntervalInSec := 5
+	timeoutInSec := 60
 	maxIterations := timeoutInSec / pollingIntervalInSec
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
