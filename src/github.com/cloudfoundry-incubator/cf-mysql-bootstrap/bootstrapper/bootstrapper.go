@@ -45,6 +45,30 @@ func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, erro
 	return responseBody, nil
 }
 
+func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse string) error {
+	pollingIntervalInSec := 5
+	timeoutInSec := 60
+	maxIterations := timeoutInSec / pollingIntervalInSec
+	sawResponse := false
+	for i := 0; i < maxIterations; i++ {
+		responseBody, err := b.sendRequest(endpoint, "mysql status")
+		if err != nil {
+			return err
+		}
+		if responseBody == expectedResponse {
+			sawResponse = true
+			break
+		}
+		<-b.clock.After(time.Duration(pollingIntervalInSec) * time.Second)
+	}
+	if sawResponse == false {
+		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, timeoutInSec)
+	} else {
+		b.rootConfig.Logger.Info(fmt.Sprintf("Successfully received %s response from mysql", expectedResponse), lager.Data{"url": endpoint})
+		return nil
+	}
+}
+
 func (b *Bootstrapper) Run() error {
 	logger := b.rootConfig.Logger
 
@@ -56,27 +80,11 @@ func (b *Bootstrapper) Run() error {
 		}
 	}
 
-	pollingIntervalInSec := 5
-	timeoutInSec := 60
-	maxIterations := timeoutInSec / pollingIntervalInSec
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
-		stoppedSuccessfully := false
-		for i := 0; i < maxIterations; i++ {
-			responseBody, err := b.sendRequest(statusUrl, "mysql status")
-			if err != nil {
-				return err
-			}
-			if responseBody == "stopped" {
-				stoppedSuccessfully = true
-				break
-			}
-			<-b.clock.After(time.Duration(pollingIntervalInSec) * time.Second)
-		}
-		if stoppedSuccessfully == false {
-			return fmt.Errorf("Timed out waiting for mysql to stop after %d seconds", timeoutInSec)
-		} else {
-			logger.Info("Successfully stopped mysql process", lager.Data{"url": statusUrl})
+		err := b.pollUntilResponse(statusUrl, "stopped")
+		if err != nil {
+			return err
 		}
 	}
 
@@ -105,26 +113,10 @@ func (b *Bootstrapper) Run() error {
 	}
 
 	statusUrl := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.MysqlStatus)
-	runningSuccessfully := false
 
-	for i := 0; i < maxIterations; i++ {
-		responseBody, err := b.sendRequest(statusUrl, "get mysql status")
-		if err != nil {
-			return err
-		}
-
-		if responseBody == "running" {
-			runningSuccessfully = true
-			break
-		}
-
-		<-b.clock.After(time.Duration(pollingIntervalInSec) * time.Second)
-	}
-
-	if runningSuccessfully == false {
-		return fmt.Errorf("Timed out waiting for mysql to start after %d seconds", timeoutInSec)
-	} else {
-		logger.Info("Successfully bootstrapped mysql node", lager.Data{"url": statusUrl})
+	err = b.pollUntilResponse(statusUrl, "running")
+	if err != nil {
+		return err
 	}
 
 	for _, joinNode := range joinNodes {
@@ -138,26 +130,9 @@ func (b *Bootstrapper) Run() error {
 
 	for _, url := range joinNodes {
 		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
-		runningSuccessfully := false
-
-		for i := 0; i < maxIterations; i++ {
-			responseBody, err := b.sendRequest(statusUrl, "get mysql status")
-			if err != nil {
-				return err
-			}
-
-			if responseBody == "running" {
-				runningSuccessfully = true
-				break
-			}
-
-			<-b.clock.After(time.Duration(pollingIntervalInSec) * time.Second)
-		}
-
-		if runningSuccessfully == false {
-			return fmt.Errorf("Timed out waiting for mysql to start after %d seconds", timeoutInSec)
-		} else {
-			logger.Info("Successfully running mysql process", lager.Data{"url": statusUrl})
+		err = b.pollUntilResponse(statusUrl, "running")
+		if err != nil {
+			return err
 		}
 	}
 	logger.Info("Successfully started mysql process on all joining nodes")
