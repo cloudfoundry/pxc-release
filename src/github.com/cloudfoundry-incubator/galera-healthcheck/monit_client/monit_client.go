@@ -49,12 +49,12 @@ func (monitClient *monitClient) StartService(startMode string) (bool, error) {
 		return false, err
 	}
 
-	resp, err := monitClient.runServiceCmd("monitor", "not monitored - monitor pending")
+	resp, err := monitClient.runServiceCmd("start")
 	return resp, err
 }
 
 func (monitClient *monitClient) StopService() (bool, error) {
-	resp, err := monitClient.runServiceCmd("unmonitor", "running - unmonitor pending")
+	resp, err := monitClient.runServiceCmd("stop")
 	return resp, err
 }
 
@@ -141,9 +141,9 @@ func (monitClient *monitClient) runStatusCmd() (io.Reader, error) {
 	return resp, err
 }
 
-func (monitClient *monitClient) runServiceCmd(command string, expectedSuccessResponse string) (bool, error) {
+func (monitClient *monitClient) runServiceCmd(command string) (bool, error) {
 	serviceAction := fmt.Sprintf("action=%s", command)
-
+	pendingStatusMsg := fmt.Sprintf("%s pending", command)
 	statusURL, err := monitClient.newUrl(monitClient.monitConfig.ServiceName)
 
 	respBody, err := monitClient.sendRequest(statusURL, "POST", serviceAction)
@@ -154,7 +154,7 @@ func (monitClient *monitClient) runServiceCmd(command string, expectedSuccessRes
 	responseBytes, _ := ioutil.ReadAll(respBody)
 	responseStr := string(responseBytes)
 
-	if !strings.Contains(responseStr, expectedSuccessResponse) {
+	if !strings.Contains(responseStr, pendingStatusMsg) {
 		monitFailure := fmt.Errorf("Monit failed to %s %s successfully", command, monitClient.monitConfig.ServiceName)
 		monitClient.logger.Error("Monit failure:", monitFailure)
 		monitClient.logger.Info("request info", lager.Data{

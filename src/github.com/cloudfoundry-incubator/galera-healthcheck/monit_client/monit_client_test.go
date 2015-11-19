@@ -70,7 +70,7 @@ var _ = Describe("monitClient", func() {
 			BeforeEach(func() {
 				fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					fmt.Fprintln(w, "running - unmonitor pending")
+					fmt.Fprintln(w, "not monitored - stop pending")
 				})
 			})
 
@@ -108,7 +108,7 @@ var _ = Describe("monitClient", func() {
 			It("returns http response 200 and process has not stopped", func() {
 				st, err := monitClient.StopService()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to unmonitor"))
+				Expect(err.Error()).To(ContainSubstring("failed to stop"))
 				Expect(st).To(BeFalse())
 			})
 		})
@@ -137,7 +137,7 @@ var _ = Describe("monitClient", func() {
 			BeforeEach(func() {
 				fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					fmt.Fprintln(w, "not monitored - monitor pending")
+					fmt.Fprintln(w, "not monitored - start pending")
 				})
 			})
 
@@ -159,7 +159,7 @@ var _ = Describe("monitClient", func() {
 			It("returns http response 200 and process has not started", func() {
 				st, err := monitClient.StartService("join")
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to monitor"))
+				Expect(err.Error()).To(ContainSubstring("failed to start"))
 				Expect(st).To(BeFalse())
 			})
 		})
