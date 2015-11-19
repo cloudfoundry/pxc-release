@@ -2,6 +2,7 @@ package bootstrapper_test
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"net/http"
@@ -33,7 +34,14 @@ var _ = Describe("Bootstrap", func() {
 		for i := 0; i < SERVER_COUNT; i++ {
 			endpointHandler := test_helpers.NewEndpointHandler()
 			endpointHandler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
+			endpointHandler.StubEndpointWithStatus("/sequence_number", http.StatusOK, strconv.Itoa(i))
+			if i == SERVER_COUNT-1 {
+				endpointHandler.StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
+			} else {
+				endpointHandler.StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
+			}
 			endpointHandlers = append(endpointHandlers, endpointHandler)
+
 		}
 	})
 
@@ -70,7 +78,8 @@ var _ = Describe("Bootstrap", func() {
 
 	Context("when we get 200 response for shutting down mariadb_ctrl from mysql node", func() {
 
-		const callCountUntilRunning = 5
+		const stoppedCallCount = 5
+		const runningCallCount = 10
 
 		BeforeEach(func() {
 			for i := 0; i < SERVER_COUNT; i++ {
@@ -78,12 +87,14 @@ var _ = Describe("Bootstrap", func() {
 				fakeHandler := &fakes.FakeHandler{}
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
-					if currCallCount >= callCountUntilRunning {
+					if currCallCount == stoppedCallCount {
 						responseText = "stopped"
+					} else if currCallCount == runningCallCount {
+						responseText = "running"
 					} else {
 						responseText = "pending"
-						currCallCount++
 					}
+					currCallCount++
 					fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[i].StubEndpoint("/mysql_status", fakeHandler)
@@ -98,7 +109,21 @@ var _ = Describe("Bootstrap", func() {
 			}
 
 			for _, handler := range endpointHandlers {
-				Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", callCountUntilRunning))
+				Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", stoppedCallCount))
+			}
+
+			for _, handler := range endpointHandlers {
+				Expect(handler.GetFakeHandler("/sequence_number").ServeHTTPCallCount()).To(Equal(1))
+			}
+
+			Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
+			Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
+
+			for i, handler := range endpointHandlers {
+				if i < (SERVER_COUNT - 1) {
+					Expect(handler.GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
+					Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
+				}
 			}
 		})
 	})
