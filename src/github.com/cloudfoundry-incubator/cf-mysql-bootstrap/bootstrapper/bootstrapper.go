@@ -24,26 +24,36 @@ func New(rootConfig *config.Config, clock clock.Clock) *Bootstrapper {
 	}
 }
 
+func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, error) {
+	resp, err := http.Get(endpoint)
+	responseBody := ""
+	if err != nil {
+		return responseBody, fmt.Errorf("Failed to %s: %s", action, err.Error())
+	}
+
+	if resp.Body != nil {
+		responseBytes, _ := ioutil.ReadAll(resp.Body)
+		responseBody = string(responseBytes)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return responseBody, fmt.Errorf("Non 200 response from %s at %s: %s", action, endpoint, responseBody)
+	}
+
+	b.rootConfig.Logger.Info(fmt.Sprintf("Successfully sent %s request to URL: %s", action, endpoint))
+
+	return responseBody, nil
+}
+
 func (b *Bootstrapper) Run() error {
 	logger := b.rootConfig.Logger
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
-		resp, err := http.Get(stopMysqlUrl)
+		_, err := b.sendRequest(stopMysqlUrl, "stop mysql")
 		if err != nil {
-			return fmt.Errorf("Failed to stop mysql: %s", err.Error())
+			return err
 		}
-
-		if resp.StatusCode != http.StatusOK {
-			responseBody := ""
-			if resp.Body != nil {
-				responseBytes, _ := ioutil.ReadAll(resp.Body)
-				responseBody = string(responseBytes)
-			}
-			return fmt.Errorf("Non 200 response from stopping mysql at %s: %s", stopMysqlUrl, responseBody)
-		}
-
-		logger.Info(fmt.Sprintf("Successfully sent stop request to URL: %s", stopMysqlUrl))
 	}
 
 	pollingIntervalInSec := 5
@@ -52,31 +62,17 @@ func (b *Bootstrapper) Run() error {
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
 		stoppedSuccessfully := false
-
 		for i := 0; i < maxIterations; i++ {
-			resp, err := http.Get(statusUrl)
+			responseBody, err := b.sendRequest(statusUrl, "mysql status")
 			if err != nil {
-				return fmt.Errorf("Failed to get mysql status: %s", err.Error())
+				return err
 			}
-
-			responseBody := ""
-			if resp.Body != nil {
-				responseBytes, _ := ioutil.ReadAll(resp.Body)
-				responseBody = string(responseBytes)
-			}
-
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("Received non-200 response when getting mysql status: %s", responseBody)
-			}
-
 			if responseBody == "stopped" {
 				stoppedSuccessfully = true
 				break
 			}
-
 			<-b.clock.After(time.Duration(pollingIntervalInSec) * time.Second)
 		}
-
 		if stoppedSuccessfully == false {
 			return fmt.Errorf("Timed out waiting for mysql to stop after %d seconds", timeoutInSec)
 		} else {
@@ -88,69 +84,33 @@ func (b *Bootstrapper) Run() error {
 	sequenceNumberMap := make(map[string]int)
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		getSeqNumberUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.GetSeqNumber)
-		resp, err := http.Get(getSeqNumberUrl)
+		responseBody, err := b.sendRequest(getSeqNumberUrl, "get sequence number")
 		if err != nil {
-			return fmt.Errorf("Failed to get sequence number from mysql: %s", err.Error())
+			return err
 		}
 
-		responseBody := ""
-		if resp.Body != nil {
-			responseBytes, _ := ioutil.ReadAll(resp.Body)
-			responseBody = string(responseBytes)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Non 200 response for fetching sequence number from mysql at %s: %s", getSeqNumberUrl, responseBody)
-		}
-
-		logger.Info("resp body", lager.Data{
-			"seqno response": responseBody})
 		sequenceNumber, err := strconv.Atoi(responseBody)
-
 		if err != nil {
 			return fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
 		}
 
 		sequenceNumberMap[url] = sequenceNumber
-
-		logger.Info(fmt.Sprintf("Successfully sent request to URL to fetch sequence number: %s", getSeqNumberUrl))
 	}
 
 	bootstrapNode, joinNodes := largestSequenceNumber(sequenceNumberMap)
 	bootstrapReqURL := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.StartMysqlInBootstrapMode)
-	resp, err := http.Get(bootstrapReqURL)
+	_, err := b.sendRequest(bootstrapReqURL, "bootstrap mysql node")
 	if err != nil {
-		return fmt.Errorf("Failed to bootstrap mysql node: %s", err.Error())
+		return err
 	}
-
-	if resp.StatusCode != http.StatusOK {
-		responseBody := ""
-		if resp.Body != nil {
-			responseBytes, _ := ioutil.ReadAll(resp.Body)
-			responseBody = string(responseBytes)
-		}
-		return fmt.Errorf("Non 200 response from bootstrapping mysql at %s: %s", bootstrapReqURL, responseBody)
-	}
-
-	logger.Info(fmt.Sprintf("Successfully sent bootstrap request to URL: %s", bootstrapReqURL))
 
 	statusUrl := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.MysqlStatus)
 	runningSuccessfully := false
 
 	for i := 0; i < maxIterations; i++ {
-		resp, err := http.Get(statusUrl)
+		responseBody, err := b.sendRequest(statusUrl, "get mysql status")
 		if err != nil {
-			return fmt.Errorf("Failed to get mysql status: %s", err.Error())
-		}
-
-		responseBody := ""
-		if resp.Body != nil {
-			responseBytes, _ := ioutil.ReadAll(resp.Body)
-			responseBody = string(responseBytes)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Received non-200 response when getting mysql status: %s", responseBody)
+			return err
 		}
 
 		if responseBody == "running" {
@@ -169,21 +129,11 @@ func (b *Bootstrapper) Run() error {
 
 	for _, joinNode := range joinNodes {
 		joinReqURL := fmt.Sprintf("%s/%s", joinNode, b.rootConfig.StartMysqlInJoinMode)
-		resp, err := http.Get(joinReqURL)
+		_, err := b.sendRequest(joinReqURL, "join mysql")
+
 		if err != nil {
-			return fmt.Errorf("Failed to join mysql node: %s", err.Error())
+			return err
 		}
-
-		if resp.StatusCode != http.StatusOK {
-			responseBody := ""
-			if resp.Body != nil {
-				responseBytes, _ := ioutil.ReadAll(resp.Body)
-				responseBody = string(responseBytes)
-			}
-			return fmt.Errorf("Non 200 response from joining mysql at %s: %s", joinReqURL, responseBody)
-		}
-
-		logger.Info(fmt.Sprintf("Successfully sent join request to URL: %s", joinReqURL))
 	}
 
 	for _, url := range joinNodes {
@@ -191,19 +141,9 @@ func (b *Bootstrapper) Run() error {
 		runningSuccessfully := false
 
 		for i := 0; i < maxIterations; i++ {
-			resp, err := http.Get(statusUrl)
+			responseBody, err := b.sendRequest(statusUrl, "get mysql status")
 			if err != nil {
-				return fmt.Errorf("Failed to get mysql status: %s", err.Error())
-			}
-
-			responseBody := ""
-			if resp.Body != nil {
-				responseBytes, _ := ioutil.ReadAll(resp.Body)
-				responseBody = string(responseBytes)
-			}
-
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("Received non-200 response when getting mysql status: %s", responseBody)
+				return err
 			}
 
 			if responseBody == "running" {
