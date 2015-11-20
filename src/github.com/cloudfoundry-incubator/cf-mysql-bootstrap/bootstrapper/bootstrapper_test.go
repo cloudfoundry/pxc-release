@@ -33,6 +33,7 @@ var _ = Describe("Bootstrap", func() {
 		endpointHandlers = []*test_helpers.EndpointHandler{}
 		for i := 0; i < SERVER_COUNT; i++ {
 			endpointHandler := test_helpers.NewEndpointHandler()
+			endpointHandler.StubEndpointWithStatus("/", http.StatusOK)
 			endpointHandler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
 			endpointHandler.StubEndpointWithStatus("/sequence_number", http.StatusOK, strconv.Itoa(i))
 			if i == SERVER_COUNT-1 {
@@ -76,56 +77,131 @@ var _ = Describe("Bootstrap", func() {
 		}
 	})
 
-	Context("when we get 200 response for shutting down mariadb_ctrl from mysql node", func() {
-
-		const stoppedCallCount = 5
-		const runningCallCount = 10
+	Context("when all mysql nodes are already synced", func() {
 
 		BeforeEach(func() {
 			for i := 0; i < SERVER_COUNT; i++ {
-				currCallCount := 0
 				fakeHandler := &fakes.FakeHandler{}
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
-					if currCallCount == stoppedCallCount {
-						responseText = "stopped"
-					} else if currCallCount == runningCallCount {
-						responseText = "running"
-					} else {
-						responseText = "pending"
-					}
-					currCallCount++
+					responseText = "synced"
 					fmt.Fprintf(w, responseText)
 				}
-				endpointHandlers[i].StubEndpoint("/mysql_status", fakeHandler)
+				endpointHandlers[i].StubEndpoint("/", fakeHandler)
 			}
 		})
 
-		It("sends request to /stop_mysql on each node and waits for shutdown", func() {
-			err := bootstrapper.Run()
+		It("quits gracefully without bootstrapping", func() {
+			_, err := bootstrapper.Run()
 			Expect(err).ToNot(HaveOccurred())
 			for _, handler := range endpointHandlers {
-				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(0))
 			}
+		})
 
-			for _, handler := range endpointHandlers {
-				Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", stoppedCallCount))
-			}
+	})
 
-			for _, handler := range endpointHandlers {
-				Expect(handler.GetFakeHandler("/sequence_number").ServeHTTPCallCount()).To(Equal(1))
-			}
+	Context("when some mysql nodes are synced but some are unhealthy", func() {
 
-			Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
-			Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
-
-			for i, handler := range endpointHandlers {
-				if i < (SERVER_COUNT - 1) {
-					Expect(handler.GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
-					Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
+		BeforeEach(func() {
+			for i := 0; i < SERVER_COUNT; i++ {
+				if i < SERVER_COUNT-1 {
+					fakeHandler := &fakes.FakeHandler{}
+					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+						var responseText string
+						responseText = "synced"
+						fmt.Fprintf(w, responseText)
+					}
+					endpointHandlers[i].StubEndpoint("/", fakeHandler)
+				} else {
+					fakeHandler := &fakes.FakeHandler{}
+					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+						var responseText string
+						responseText = "not synced"
+						fmt.Fprintf(w, responseText)
+					}
+					endpointHandlers[i].StubEndpoint("/", fakeHandler)
 				}
 			}
 		})
+
+		It("quits gracefully without bootstrapping", func() {
+			msg, err := bootstrapper.Run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(msg).To(ContainSubstring("one or more nodes are failing"))
+			for _, handler := range endpointHandlers {
+				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(0))
+			}
+		})
+
+	})
+
+	Context("when mysql nodes need bootstrap because db is down on all of them and ", func() {
+
+		BeforeEach(func() {
+			for i := 0; i < SERVER_COUNT; i++ {
+				fakeHandler := &fakes.FakeHandler{}
+				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+					var responseText string
+					responseText = "Cannot get status from galera"
+					fmt.Fprintf(w, responseText)
+				}
+				endpointHandlers[i].StubEndpoint("/", fakeHandler)
+			}
+		})
+
+		Context("when we get 200 response for shutting down mariadb_ctrl from a mysql node", func() {
+
+			const stoppedCallCount = 5
+			const runningCallCount = 10
+
+			BeforeEach(func() {
+				for i := 0; i < SERVER_COUNT; i++ {
+					currCallCount := 0
+					fakeHandler := &fakes.FakeHandler{}
+					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+						var responseText string
+						if currCallCount == stoppedCallCount {
+							responseText = "stopped"
+						} else if currCallCount == runningCallCount {
+							responseText = "running"
+						} else {
+							responseText = "pending"
+						}
+						currCallCount++
+						fmt.Fprintf(w, responseText)
+					}
+					endpointHandlers[i].StubEndpoint("/mysql_status", fakeHandler)
+				}
+			})
+
+			It("bootstraps", func() {
+				_, err := bootstrapper.Run()
+				Expect(err).ToNot(HaveOccurred())
+				for _, handler := range endpointHandlers {
+					Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+				}
+
+				for _, handler := range endpointHandlers {
+					Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", stoppedCallCount))
+				}
+
+				for _, handler := range endpointHandlers {
+					Expect(handler.GetFakeHandler("/sequence_number").ServeHTTPCallCount()).To(Equal(1))
+				}
+
+				Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
+
+				for i, handler := range endpointHandlers {
+					if i < (SERVER_COUNT - 1) {
+						Expect(handler.GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
+						Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
+					}
+				}
+			})
+		})
+
 	})
 
 	Context("when we get non-200 response for shutting down mariadb_ctrl from mysql node", func() {
@@ -135,8 +211,8 @@ var _ = Describe("Bootstrap", func() {
 				"fake-error")
 		})
 
-		It("returns the error", func() {
-			err := bootstrapper.Run()
+		It("returns error and quits", func() {
+			_, err := bootstrapper.Run()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("fake-error"))
 
