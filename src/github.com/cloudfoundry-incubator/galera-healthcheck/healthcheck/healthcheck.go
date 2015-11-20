@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-golang/lager"
@@ -38,10 +39,9 @@ func (h *Healthchecker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
-	body := fmt.Sprintf("Galera Cluster Node Status: %s", msg)
-	fmt.Fprint(w, body)
+	fmt.Fprint(w, msg)
 
-	h.logger.Debug(fmt.Sprintf("Healhcheck Response Body: %s", body))
+	h.logger.Debug(fmt.Sprintf("Healhcheck Response Body: %s", msg))
 }
 
 func (h *Healthchecker) Check() (bool, string) {
@@ -56,25 +56,32 @@ func (h *Healthchecker) Check() (bool, string) {
 	}
 
 	if err != nil {
+		if strings.Contains(err.Error(), "connection refused") {
+			return false, fmt.Sprintf("Cannot get status from galera: %s", err.Error())
+		}
 		return false, err.Error()
 	}
 
 	switch value {
 	case STATE_JOINING:
-		return false, "joining"
+		return false, h.formatStatusString("joining")
 	case STATE_DONOR_DESYNCED:
 		if h.config.AvailableWhenDonor {
 			return h.healthy(value)
 		}
-		return false, "not synced"
+		return false, h.formatStatusString("not synced")
 	case STATE_JOINED:
-		return false, "joined"
+		return false, h.formatStatusString("joined")
 	case STATE_SYNCED:
 		return h.healthy(value)
 	default:
 		return false, fmt.Sprintf("Unrecognized state: %d", value)
 	}
 
+}
+
+func (h *Healthchecker) formatStatusString(status string) string {
+	return fmt.Sprintf("Galera Cluster Node Status: %s", status)
 }
 
 func (h Healthchecker) healthy(value int) (bool, string) {
@@ -85,10 +92,10 @@ func (h Healthchecker) healthy(value int) (bool, string) {
 		}
 
 		if readOnly {
-			return false, "read-only"
+			return false, h.formatStatusString("read-only")
 		}
 	}
-	return true, "synced"
+	return true, h.formatStatusString("synced")
 }
 
 func (h Healthchecker) isReadOnly() (bool, error) {

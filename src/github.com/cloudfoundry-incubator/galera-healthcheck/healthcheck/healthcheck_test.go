@@ -27,7 +27,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				result, msg := healthcheckTestHelper(config)
 
 				Expect(result).To(BeFalse())
-				Expect(msg).To(Equal("joining"))
+				Expect(msg).To(ContainSubstring("joining"))
 			})
 		})
 
@@ -40,7 +40,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				result, msg := healthcheckTestHelper(config)
 
 				Expect(result).To(BeFalse())
-				Expect(msg).To(Equal("joined"))
+				Expect(msg).To(ContainSubstring("joined"))
 			})
 		})
 
@@ -54,7 +54,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					result, msg := healthcheckTestHelper(config)
 
 					Expect(result).To(BeFalse())
-					Expect(msg).To(Equal("not synced"))
+					Expect(msg).To(ContainSubstring("not synced"))
 				})
 			})
 
@@ -72,7 +72,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 							result, msg := healthcheckTestHelper(config)
 
 							Expect(result).To(BeTrue())
-							Expect(msg).To(Equal("synced"))
+							Expect(msg).To(ContainSubstring("synced"))
+							Expect(msg).ToNot(ContainSubstring("not synced"))
 						})
 					})
 
@@ -87,7 +88,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 							result, msg := healthcheckTestHelper(config)
 
 							Expect(result).To(BeFalse())
-							Expect(msg).To(Equal("read-only"))
+							Expect(msg).To(ContainSubstring("read-only"))
 						})
 					})
 				})
@@ -102,7 +103,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 						result, msg := healthcheckTestHelper(config)
 
 						Expect(result).To(BeTrue())
-						Expect(msg).To(Equal("synced"))
+						Expect(msg).To(ContainSubstring("synced"))
+						Expect(msg).ToNot(ContainSubstring("not synced"))
 					})
 				})
 			})
@@ -122,7 +124,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 						result, msg := healthcheckTestHelper(config)
 
 						Expect(result).To(BeTrue())
-						Expect(msg).To(Equal("synced"))
+						Expect(msg).To(ContainSubstring("synced"))
+						Expect(msg).ToNot(ContainSubstring("not synced"))
 					})
 				})
 
@@ -136,7 +139,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 						result, msg := healthcheckTestHelper(config)
 
 						Expect(result).To(BeFalse())
-						Expect(msg).To(Equal("read-only"))
+						Expect(msg).To(ContainSubstring("read-only"))
 					})
 				})
 			})
@@ -150,7 +153,8 @@ var _ = Describe("GaleraHealthChecker", func() {
 					result, msg := healthcheckTestHelper(config)
 
 					Expect(result).To(BeTrue())
-					Expect(msg).To(Equal("synced"))
+					Expect(msg).To(ContainSubstring("synced"))
+					Expect(msg).ToNot(ContainSubstring("not synced"))
 				})
 			})
 		})
@@ -203,6 +207,33 @@ var _ = Describe("GaleraHealthChecker", func() {
 				Expect(msg).To(Equal("another test error"))
 			})
 		})
+
+		Context("db is down", func() {
+			var healthchecker *healthcheck.Healthchecker
+
+			BeforeEach(func() {
+				db, _ := sql.Open("testdb", "")
+
+				config := config.Config{
+					AvailableWhenDonor:    false,
+					AvailableWhenReadOnly: false,
+				}
+
+				err := fmt.Errorf("connection refused")
+				testdb.StubQueryError("SHOW STATUS LIKE 'wsrep_local_state'", err)
+
+				logger := lagertest.NewTestLogger("healthcheck test")
+				healthchecker = healthcheck.New(db, config, logger)
+			})
+
+			It("returns false and an error message", func() {
+				res, msg := healthchecker.Check()
+				Expect(res).To(BeFalse())
+				Expect(msg).To(ContainSubstring("Cannot get status from galera"))
+			})
+
+		})
+
 	})
 })
 
