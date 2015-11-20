@@ -226,9 +226,9 @@ var _ = Describe("GaleraHealthChecker", func() {
 				healthchecker = healthcheck.New(db, config, logger)
 			})
 
-			It("returns false and an error message", func() {
+			It("returns true and a warning message", func() {
 				res, msg := healthchecker.Check()
-				Expect(res).To(BeFalse())
+				Expect(res).To(BeTrue())
 				Expect(msg).To(ContainSubstring("Cannot get status from galera"))
 			})
 

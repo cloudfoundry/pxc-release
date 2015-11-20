@@ -57,7 +57,7 @@ func (h *Healthchecker) Check() (bool, string) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
-			return false, fmt.Sprintf("Cannot get status from galera: %s", err.Error())
+			return true, fmt.Sprintf("Cannot get status from galera")
 		}
 		return false, err.Error()
 	}
