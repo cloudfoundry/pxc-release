@@ -76,10 +76,9 @@ func (b *Bootstrapper) bootstrapRequired() (string, bool, error) {
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		responseBody, err := b.sendRequest(url, "healthcheck")
-		if err != nil {
+		if err != nil && !strings.Contains(responseBody, "Cannot get status from galera") {
 			return "", false, err
-		}
-		if strings.Contains(responseBody, "synced") && !strings.Contains(responseBody, "not synced") {
+		} else if err == nil && strings.Contains(responseBody, "synced") && !strings.Contains(responseBody, "not synced") {
 			syncedNodes++
 		}
 	}

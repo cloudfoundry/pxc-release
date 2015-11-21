@@ -136,14 +136,14 @@ var _ = Describe("Bootstrap", func() {
 
 	})
 
-	Context("when mysql nodes need bootstrap because db is down on all of them and ", func() {
+	Context("when mysql nodes need bootstrap and ", func() {
 
 		BeforeEach(func() {
 			for i := 0; i < SERVER_COUNT; i++ {
 				fakeHandler := &fakes.FakeHandler{}
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
-					responseText = "Cannot get status from galera"
+					responseText = "not synced"
 					fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[i].StubEndpoint("/", fakeHandler)
