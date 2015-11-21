@@ -57,7 +57,7 @@ func (h *Healthchecker) Check() (bool, string) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
-			return true, fmt.Sprintf("Cannot get status from galera")
+			return false, fmt.Sprintf("Cannot get status from galera")
 		} else {
 			return false, err.Error()
 		}
@@ -82,7 +82,8 @@ func (h *Healthchecker) Check() (bool, string) {
 }
 
 func (h *Healthchecker) formatStatusString(status string) string {
-	return fmt.Sprintf("Galera Cluster Node Status: %s", status)
+	//return fmt.Sprintf("Galera Cluster Node Status: %s", status)
+	return fmt.Sprintf("%s", status)
 }
 
 func (h Healthchecker) healthy(value int) (bool, string) {
