@@ -13,6 +13,9 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+const PollingIntervalInSec = 5
+const TimeoutInSec = 60
+
 type Bootstrapper struct {
 	rootConfig *config.Config
 	clock      clock.Clock
@@ -47,23 +50,26 @@ func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, erro
 }
 
 func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse string) error {
-	pollingIntervalInSec := 5
-	timeoutInSec := 60
-	maxIterations := timeoutInSec / pollingIntervalInSec
+	maxIterations := TimeoutInSec / PollingIntervalInSec
 	sawResponse := false
 	for i := 0; i < maxIterations; i++ {
 		responseBody, err := b.sendRequest(endpoint, "mysql status")
+		b.rootConfig.Logger.Info("Received response from status endpoint", lager.Data{
+			"endpoint":     endpoint,
+			"responseBody": responseBody,
+		})
 		if err != nil {
-			return err
+			continue //keep checking for valid response until timeout
 		}
+
 		if responseBody == expectedResponse {
 			sawResponse = true
 			break
 		}
-		<-b.clock.After(time.Duration(pollingIntervalInSec) * time.Second)
+		<-b.clock.After(time.Duration(PollingIntervalInSec) * time.Second)
 	}
 	if sawResponse == false {
-		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, timeoutInSec)
+		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, TimeoutInSec)
 	} else {
 		b.rootConfig.Logger.Info(fmt.Sprintf("Successfully received %s response from mysql", expectedResponse), lager.Data{"url": endpoint})
 		return nil

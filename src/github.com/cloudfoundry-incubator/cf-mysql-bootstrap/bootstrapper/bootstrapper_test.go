@@ -197,7 +197,7 @@ var _ = Describe("Bootstrap", func() {
 
 	})
 
-	Context("when we get non-200 response for shutting down mariadb_ctrl from mysql node", func() {
+	Context("when shutdown request to mariadb_ctrl fails", func() {
 		BeforeEach(func() {
 			makeFailingCluster()
 			endpointHandlers[0].StubEndpointWithStatus("/stop_mysql",
@@ -205,12 +205,30 @@ var _ = Describe("Bootstrap", func() {
 				"fake-error")
 		})
 
-		It("returns error and quits", func() {
+		It("returns the error and quits", func() {
 			err := bootstrapper.Run()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("fake-error"))
 
 			Expect(endpointHandlers[0].GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+		})
+	})
+
+	Context("when we timeout waiting for mariadb_ctrl to shutdown", func() {
+		BeforeEach(func() {
+			makeFailingCluster()
+			endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
+				http.StatusInternalServerError,
+				"fake-error")
+		})
+
+		It("returns timeout error and quits", func() {
+			err := bootstrapper.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Timed out"))
+
+			expectedMaxIterations := bootstrapperPkg.TimeoutInSec / bootstrapperPkg.PollingIntervalInSec
+			Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(Equal(expectedMaxIterations))
 		})
 	})
 })
