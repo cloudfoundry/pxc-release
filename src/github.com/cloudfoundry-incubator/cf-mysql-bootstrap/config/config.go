@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Logger                    lager.Logger
 	HealthcheckURLs           []string `validate:"nonzero"`
+	DatabaseStartupTimeout    int      `validate:"nonzero"`
 	ShutDownMysql             string
 	MysqlStatus               string
 	GetSeqNumber              string

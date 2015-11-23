@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,7 +15,6 @@ import (
 )
 
 const PollingIntervalInSec = 5
-const TimeoutInSec = 60
 
 type Bootstrapper struct {
 	rootConfig *config.Config
@@ -50,7 +50,7 @@ func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, erro
 }
 
 func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse string) error {
-	maxIterations := TimeoutInSec / PollingIntervalInSec
+	maxIterations := int(math.Ceil(float64(b.rootConfig.DatabaseStartupTimeout) / float64(PollingIntervalInSec)))
 	sawResponse := false
 	for i := 0; i < maxIterations; i++ {
 		responseBody, err := b.sendRequest(endpoint, "mysql status")
@@ -69,7 +69,7 @@ func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse strin
 		<-b.clock.After(time.Duration(PollingIntervalInSec) * time.Second)
 	}
 	if sawResponse == false {
-		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, TimeoutInSec)
+		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, b.rootConfig.DatabaseStartupTimeout)
 	} else {
 		b.rootConfig.Logger.Info(fmt.Sprintf("Successfully received %s response from mysql", expectedResponse), lager.Data{"url": endpoint})
 		return nil

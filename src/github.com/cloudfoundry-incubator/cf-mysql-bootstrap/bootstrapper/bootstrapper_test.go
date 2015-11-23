@@ -18,7 +18,10 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
-const SERVER_COUNT = 3
+const (
+	ServerCount    = 3
+	StartupTimeout = 600
+)
 
 var (
 	testServers      []*httptest.Server
@@ -31,13 +34,13 @@ var _ = Describe("Bootstrap", func() {
 
 	BeforeEach(func() {
 		endpointHandlers = []*test_helpers.EndpointHandler{}
-		for i := 0; i < SERVER_COUNT; i++ {
+		for i := 0; i < ServerCount; i++ {
 			endpointHandler := test_helpers.NewEndpointHandler()
 			endpointHandler.StubEndpointWithStatus("/", http.StatusOK)
 			endpointHandler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
 			endpointHandler.StubEndpointWithStatus("/sequence_number", http.StatusOK, strconv.Itoa(i))
 			endpointHandler.StubEndpointWithStatus("/mysql_status", http.StatusOK, "running")
-			if i == SERVER_COUNT-1 {
+			if i == ServerCount-1 {
 				endpointHandler.StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
 			} else {
 				endpointHandler.StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
@@ -54,11 +57,12 @@ var _ = Describe("Bootstrap", func() {
 			GetSeqNumber:              "sequence_number",
 			StartMysqlInJoinMode:      "start_mysql_join",
 			StartMysqlInBootstrapMode: "start_mysql_bootstrap",
+			DatabaseStartupTimeout:    StartupTimeout,
 		}
 
 		rootConfig.Logger = lagertest.NewTestLogger("bootstrapper test")
 		testServers = []*httptest.Server{}
-		for i := 0; i < SERVER_COUNT; i++ {
+		for i := 0; i < ServerCount; i++ {
 			newServer := httptest.NewServer(endpointHandlers[i])
 			testServers = append(testServers, newServer)
 
@@ -81,7 +85,7 @@ var _ = Describe("Bootstrap", func() {
 	Context("when all mysql nodes are already synced", func() {
 
 		BeforeEach(func() {
-			for i := 0; i < SERVER_COUNT; i++ {
+			for i := 0; i < ServerCount; i++ {
 				fakeHandler := &fakes.FakeHandler{}
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
@@ -105,8 +109,8 @@ var _ = Describe("Bootstrap", func() {
 	Context("when some mysql nodes are synced but some are unhealthy", func() {
 
 		BeforeEach(func() {
-			for i := 0; i < SERVER_COUNT; i++ {
-				if i < SERVER_COUNT-1 {
+			for i := 0; i < ServerCount; i++ {
+				if i < ServerCount-1 {
 					fakeHandler := &fakes.FakeHandler{}
 					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 						var responseText string
@@ -150,7 +154,7 @@ var _ = Describe("Bootstrap", func() {
 			const runningCallCount = 10
 
 			BeforeEach(func() {
-				for i := 0; i < SERVER_COUNT; i++ {
+				for i := 0; i < ServerCount; i++ {
 					currCallCount := 0
 					fakeHandler := &fakes.FakeHandler{}
 					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
@@ -184,11 +188,11 @@ var _ = Describe("Bootstrap", func() {
 					Expect(handler.GetFakeHandler("/sequence_number").ServeHTTPCallCount()).To(Equal(1))
 				}
 
-				Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
-				Expect(endpointHandlers[SERVER_COUNT-1].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
+				Expect(endpointHandlers[ServerCount-1].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[ServerCount-1].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
 
 				for i, handler := range endpointHandlers {
-					if i < (SERVER_COUNT - 1) {
+					if i < (ServerCount - 1) {
 						Expect(handler.GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
 						Expect(handler.GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", runningCallCount))
 					}
@@ -228,7 +232,7 @@ var _ = Describe("Bootstrap", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Timed out"))
 
-			expectedMaxIterations := bootstrapperPkg.TimeoutInSec / bootstrapperPkg.PollingIntervalInSec
+			expectedMaxIterations := StartupTimeout / bootstrapperPkg.PollingIntervalInSec
 			Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", expectedMaxIterations))
 		})
 	})
@@ -256,7 +260,7 @@ var _ = Describe("Bootstrap", func() {
 })
 
 func makeFailingCluster() {
-	for i := 0; i < SERVER_COUNT; i++ {
+	for i := 0; i < ServerCount; i++ {
 		fakeHandler := &fakes.FakeHandler{}
 		fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(http.StatusServiceUnavailable)
