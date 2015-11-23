@@ -98,9 +98,7 @@ func (b *Bootstrapper) isClusterHealthy() error {
 	}
 
 	if syncedNodes > 0 && syncedNodes != allNodes {
-		err := errors.New(`Cluster healthy but one or more nodes are failing. Bootstrap not required.\n
-		Reference the docs for more information: \n 
-		https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md`)
+		err := errors.New("Cluster healthy but one or more nodes are failing. Bootstrap not required.")
 		b.rootConfig.Logger.Error("Bootstrap not required", err)
 		return err
 	}
@@ -153,6 +151,10 @@ func (b *Bootstrapper) Run() error {
 		if err != nil {
 			return fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
 		}
+
+		logger.Info(fmt.Sprintf("Retrieved sequence number of %s from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
+			"url": getSeqNumberUrl,
+		})
 
 		sequenceNumberMap[url] = sequenceNumber
 	}

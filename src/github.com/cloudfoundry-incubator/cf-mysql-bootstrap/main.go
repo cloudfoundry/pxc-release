@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	bootstrapperPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper"
@@ -23,10 +24,22 @@ func main() {
 	err = bootstrapper.Run()
 
 	if err != nil {
-		logger.Fatal("Failed to bootstrap cluster", err, lager.Data{
+		logger.Error("Failed to bootstrap cluster", err, lager.Data{
 			"config": rootConfig,
 		})
+		printHumanReadableErr(err)
+		os.Exit(1)
 	}
 
 	logger.Info("Successfully bootstrapped cluster")
+}
+
+func printHumanReadableErr(err error) {
+	fmt.Printf(`
+		###############################################################
+		%s
+		Reference the docs for more information: \n
+		https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md
+		###############################################################
+		`, err)
 }
