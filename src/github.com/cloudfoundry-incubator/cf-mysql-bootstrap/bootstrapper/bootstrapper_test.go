@@ -91,9 +91,10 @@ var _ = Describe("Bootstrap", func() {
 			}
 		})
 
-		It("quits gracefully without bootstrapping", func() {
-			_, err := bootstrapper.Run()
-			Expect(err).ToNot(HaveOccurred())
+		It("errors without bootstrapping", func() {
+			err := bootstrapper.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("All nodes are synced. Bootstrap not required."))
 			for _, handler := range endpointHandlers {
 				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(0))
 			}
@@ -125,10 +126,10 @@ var _ = Describe("Bootstrap", func() {
 			}
 		})
 
-		It("quits gracefully without bootstrapping", func() {
-			msg, err := bootstrapper.Run()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(msg).To(ContainSubstring("one or more nodes are failing"))
+		It("returns an error without bootstrapping", func() {
+			err := bootstrapper.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
 			for _, handler := range endpointHandlers {
 				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(0))
 			}
@@ -176,7 +177,7 @@ var _ = Describe("Bootstrap", func() {
 			})
 
 			It("bootstraps", func() {
-				_, err := bootstrapper.Run()
+				err := bootstrapper.Run()
 				Expect(err).ToNot(HaveOccurred())
 				for _, handler := range endpointHandlers {
 					Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
@@ -212,7 +213,7 @@ var _ = Describe("Bootstrap", func() {
 		})
 
 		It("returns error and quits", func() {
-			_, err := bootstrapper.Run()
+			err := bootstrapper.Run()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("fake-error"))
 

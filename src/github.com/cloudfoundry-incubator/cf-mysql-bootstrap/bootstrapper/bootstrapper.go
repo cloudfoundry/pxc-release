@@ -1,6 +1,7 @@
 package bootstrapper
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -70,54 +71,49 @@ func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse strin
 	}
 }
 
-func (b *Bootstrapper) bootstrapRequired() (string, bool, error) {
+func (b *Bootstrapper) bootstrapRequired() error {
 	allNodes := len(b.rootConfig.HealthcheckURLs)
 	syncedNodes := 0
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		responseBody, err := b.sendRequest(url, "healthcheck")
 		if err != nil && !strings.Contains(responseBody, "Cannot get status from galera") {
-			return "", false, err
+			return err
 		} else if err == nil && strings.Contains(responseBody, "synced") && !strings.Contains(responseBody, "not synced") {
 			syncedNodes++
 		}
 	}
 
 	if syncedNodes == allNodes {
-		msg := "All nodes are synced. Bootstrap not required."
-		b.rootConfig.Logger.Info(msg)
-		return msg, false, nil
+		err := errors.New("All nodes are synced. Bootstrap not required.")
+		b.rootConfig.Logger.Error("Bootstrap not required", err)
+		return err
 	}
 
 	if syncedNodes > 0 && syncedNodes != allNodes {
-		msg := `Cluster healthy but one or more nodes are failing. \n
+		err := errors.New(`Cluster healthy but one or more nodes are failing. Bootstrap not required.\n
 		Reference the docs for more information: \n 
-		https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md`
-		b.rootConfig.Logger.Info(msg)
-		return msg, false, nil
+		https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md`)
+		b.rootConfig.Logger.Error("Bootstrap not required", err)
+		return err
 	}
 
-	return "", true, nil
+	return nil
 }
 
-func (b *Bootstrapper) Run() (string, error) {
+func (b *Bootstrapper) Run() error {
 	logger := b.rootConfig.Logger
 
-	msg, bootstrapRequired, err := b.bootstrapRequired()
-
+	err := b.bootstrapRequired()
 	if err != nil {
-		return "", err
-	}
-
-	if bootstrapRequired == false {
-		return msg, nil
+		return err
 	}
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
 		_, err := b.sendRequest(stopMysqlUrl, "stop mysql")
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -125,7 +121,7 @@ func (b *Bootstrapper) Run() (string, error) {
 		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
 		err := b.pollUntilResponse(statusUrl, "stopped")
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -135,12 +131,12 @@ func (b *Bootstrapper) Run() (string, error) {
 		getSeqNumberUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.GetSeqNumber)
 		responseBody, err := b.sendRequest(getSeqNumberUrl, "get sequence number")
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		sequenceNumber, err := strconv.Atoi(responseBody)
 		if err != nil {
-			return "", fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
+			return fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
 		}
 
 		sequenceNumberMap[url] = sequenceNumber
@@ -150,14 +146,14 @@ func (b *Bootstrapper) Run() (string, error) {
 	bootstrapReqURL := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.StartMysqlInBootstrapMode)
 	_, err = b.sendRequest(bootstrapReqURL, "bootstrap mysql node")
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	statusUrl := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.MysqlStatus)
 
 	err = b.pollUntilResponse(statusUrl, "running")
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	for _, joinNode := range joinNodes {
@@ -165,7 +161,7 @@ func (b *Bootstrapper) Run() (string, error) {
 		_, err := b.sendRequest(joinReqURL, "join mysql")
 
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -173,13 +169,13 @@ func (b *Bootstrapper) Run() (string, error) {
 		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
 		err = b.pollUntilResponse(statusUrl, "running")
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
-	successMsg := "Successfully started mysql process on all joining nodes"
-	logger.Info(successMsg)
 
-	return successMsg, nil
+	logger.Info("Successfully started mysql process on all joining nodes")
+
+	return nil
 }
 
 func largestSequenceNumber(seqMap map[string]int) (string, []string) {
