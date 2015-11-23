@@ -36,10 +36,11 @@ func main() {
 
 func printHumanReadableErr(err error) {
 	fmt.Printf(`
-		###############################################################
-		%s
-		Reference the docs for more information: \n
+		##################################################################################
+		Error: %s
+
+		Reference the docs for more information:
 		https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md
-		###############################################################
+		##################################################################################
 		`, err)
 }

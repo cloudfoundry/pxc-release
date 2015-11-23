@@ -152,7 +152,7 @@ func (b *Bootstrapper) Run() error {
 			return fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
 		}
 
-		logger.Info(fmt.Sprintf("Retrieved sequence number of %s from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
+		logger.Info(fmt.Sprintf("Retrieved sequence number of %d from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
 			"url": getSeqNumberUrl,
 		})
 
