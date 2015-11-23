@@ -117,6 +117,14 @@ func (b *Bootstrapper) Run() error {
 	}
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
+		statusMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
+		_, err := b.sendRequest(statusMysqlUrl, "mysql status")
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, url := range b.rootConfig.HealthcheckURLs {
 		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
 		_, err := b.sendRequest(stopMysqlUrl, "stop mysql")
 		if err != nil {

@@ -36,6 +36,7 @@ var _ = Describe("Bootstrap", func() {
 			endpointHandler.StubEndpointWithStatus("/", http.StatusOK)
 			endpointHandler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
 			endpointHandler.StubEndpointWithStatus("/sequence_number", http.StatusOK, strconv.Itoa(i))
+			endpointHandler.StubEndpointWithStatus("/mysql_status", http.StatusOK, "running")
 			if i == SERVER_COUNT-1 {
 				endpointHandler.StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
 			} else {
@@ -218,8 +219,8 @@ var _ = Describe("Bootstrap", func() {
 		BeforeEach(func() {
 			makeFailingCluster()
 			endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
-				http.StatusInternalServerError,
-				"fake-error")
+				http.StatusOK,
+				"pending")
 		})
 
 		It("returns timeout error and quits", func() {
@@ -228,9 +229,30 @@ var _ = Describe("Bootstrap", func() {
 			Expect(err.Error()).To(ContainSubstring("Timed out"))
 
 			expectedMaxIterations := bootstrapperPkg.TimeoutInSec / bootstrapperPkg.PollingIntervalInSec
-			Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(Equal(expectedMaxIterations))
+			Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", expectedMaxIterations))
 		})
 	})
+
+	Context("when we cannot get a response from healthcheck", func() {
+		BeforeEach(func() {
+			makeFailingCluster()
+			endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
+				http.StatusInternalServerError,
+				"fake-error")
+		})
+
+		It("returns an error and does not call stop", func() {
+			err := bootstrapper.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("fake-error"))
+
+			Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(Equal(1))
+			for _, handler := range endpointHandlers {
+				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(0))
+			}
+		})
+	})
+
 })
 
 func makeFailingCluster() {
