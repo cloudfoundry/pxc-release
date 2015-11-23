@@ -18,16 +18,16 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
+const SERVER_COUNT = 3
+
+var (
+	testServers      []*httptest.Server
+	endpointHandlers []*test_helpers.EndpointHandler
+	rootConfig       *config.Config
+	bootstrapper     *bootstrapperPkg.Bootstrapper
+)
+
 var _ = Describe("Bootstrap", func() {
-
-	const SERVER_COUNT = 3
-
-	var (
-		testServers      []*httptest.Server
-		endpointHandlers []*test_helpers.EndpointHandler
-		rootConfig       *config.Config
-		bootstrapper     *bootstrapperPkg.Bootstrapper
-	)
 
 	BeforeEach(func() {
 		endpointHandlers = []*test_helpers.EndpointHandler{}
@@ -99,7 +99,6 @@ var _ = Describe("Bootstrap", func() {
 				Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(0))
 			}
 		})
-
 	})
 
 	Context("when some mysql nodes are synced but some are unhealthy", func() {
@@ -117,6 +116,7 @@ var _ = Describe("Bootstrap", func() {
 				} else {
 					fakeHandler := &fakes.FakeHandler{}
 					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusServiceUnavailable)
 						var responseText string
 						responseText = "not synced"
 						fmt.Fprintf(w, responseText)
@@ -140,15 +140,7 @@ var _ = Describe("Bootstrap", func() {
 	Context("when mysql nodes need bootstrap and ", func() {
 
 		BeforeEach(func() {
-			for i := 0; i < SERVER_COUNT; i++ {
-				fakeHandler := &fakes.FakeHandler{}
-				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-					var responseText string
-					responseText = "not synced"
-					fmt.Fprintf(w, responseText)
-				}
-				endpointHandlers[i].StubEndpoint("/", fakeHandler)
-			}
+			makeFailingCluster()
 		})
 
 		Context("when we get 200 response for shutting down mariadb_ctrl from a mysql node", func() {
@@ -207,6 +199,7 @@ var _ = Describe("Bootstrap", func() {
 
 	Context("when we get non-200 response for shutting down mariadb_ctrl from mysql node", func() {
 		BeforeEach(func() {
+			makeFailingCluster()
 			endpointHandlers[0].StubEndpointWithStatus("/stop_mysql",
 				http.StatusInternalServerError,
 				"fake-error")
@@ -221,3 +214,16 @@ var _ = Describe("Bootstrap", func() {
 		})
 	})
 })
+
+func makeFailingCluster() {
+	for i := 0; i < SERVER_COUNT; i++ {
+		fakeHandler := &fakes.FakeHandler{}
+		fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			var responseText string
+			responseText = "not synced"
+			fmt.Fprintf(w, responseText)
+		}
+		endpointHandlers[i].StubEndpoint("/", fakeHandler)
+	}
+}

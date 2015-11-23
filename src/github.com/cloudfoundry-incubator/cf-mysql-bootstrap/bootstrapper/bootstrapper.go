@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
@@ -71,15 +70,17 @@ func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse strin
 	}
 }
 
-func (b *Bootstrapper) bootstrapRequired() error {
+func (b *Bootstrapper) isClusterHealthy() error {
 	allNodes := len(b.rootConfig.HealthcheckURLs)
 	syncedNodes := 0
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		responseBody, err := b.sendRequest(url, "healthcheck")
-		if err != nil && !strings.Contains(responseBody, "Cannot get status from galera") {
-			return err
-		} else if err == nil && strings.Contains(responseBody, "synced") && !strings.Contains(responseBody, "not synced") {
+		b.rootConfig.Logger.Info("Received response from node", lager.Data{
+			"url":          url,
+			"responseBody": responseBody,
+		})
+		if err == nil {
 			syncedNodes++
 		}
 	}
@@ -104,7 +105,7 @@ func (b *Bootstrapper) bootstrapRequired() error {
 func (b *Bootstrapper) Run() error {
 	logger := b.rootConfig.Logger
 
-	err := b.bootstrapRequired()
+	err := b.isClusterHealthy()
 	if err != nil {
 		return err
 	}
