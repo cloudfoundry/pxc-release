@@ -65,25 +65,20 @@ func (h *Healthchecker) Check() (bool, string) {
 
 	switch value {
 	case STATE_JOINING:
-		return false, h.formatStatusString("joining")
+		return false, "joining"
 	case STATE_DONOR_DESYNCED:
 		if h.config.AvailableWhenDonor {
 			return h.healthy(value)
 		}
-		return false, h.formatStatusString("not synced")
+		return false, "not synced"
 	case STATE_JOINED:
-		return false, h.formatStatusString("joined")
+		return false, "joined"
 	case STATE_SYNCED:
 		return h.healthy(value)
 	default:
 		return false, fmt.Sprintf("Unrecognized state: %d", value)
 	}
 
-}
-
-func (h *Healthchecker) formatStatusString(status string) string {
-	//return fmt.Sprintf("Galera Cluster Node Status: %s", status)
-	return fmt.Sprintf("%s", status)
 }
 
 func (h Healthchecker) healthy(value int) (bool, string) {
@@ -94,10 +89,10 @@ func (h Healthchecker) healthy(value int) (bool, string) {
 		}
 
 		if readOnly {
-			return false, h.formatStatusString("read-only")
+			return false, "read-only"
 		}
 	}
-	return true, h.formatStatusString("synced")
+	return true, "synced"
 }
 
 func (h Healthchecker) isReadOnly() (bool, error) {
