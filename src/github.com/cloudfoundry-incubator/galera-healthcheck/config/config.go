@@ -19,8 +19,9 @@ type Config struct {
 	AvailableWhenDonor    bool
 	AvailableWhenReadOnly bool
 	PidFile               string `validate:"nonzero"`
-	logger                lager.Logger
-	MysqldPath            string `validate:"nonzero"`
+	Logger                lager.Logger
+	MysqldPath            string                  `validate:"nonzero"`
+	BootstrapEndpoint     BootstrapEndpointConfig `validate:"nonzero"`
 }
 
 type DBConfig struct {
@@ -37,6 +38,11 @@ type MonitConfig struct {
 	Password           string `validate:"nonzero"`
 	MysqlStateFilePath string `validate:"nonzero"`
 	ServiceName        string `validate:"nonzero"`
+}
+
+type BootstrapEndpointConfig struct {
+	Username string `validate:"nonzero"`
+	Password string `validate:"nonzero"`
 }
 
 func defaultConfig() *Config {
@@ -70,7 +76,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig.AddDefaults(defaultConfig())
 	flags.Parse(configurationOptions)
 
-	rootConfig.logger, _ = cf_lager.New("Galera Healthcheck")
+	rootConfig.Logger, _ = cf_lager.New("Galera Healthcheck")
 
 	err := serviceConfig.Read(&rootConfig)
 	return &rootConfig, err
@@ -87,10 +93,6 @@ func (c Config) Validate() error {
 		return errors.New(fmt.Sprintf("Validation errors: %s\n", errString))
 	}
 	return nil
-}
-
-func (c Config) Logger() lager.Logger {
-	return c.logger
 }
 
 func formatErrorString(err error, keyPrefix string) string {

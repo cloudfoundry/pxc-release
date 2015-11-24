@@ -40,7 +40,11 @@ var _ = Describe("Config", func() {
 					"MysqlStateFilePath": "/var/vcap/store/mysql/state.txt",
 					"ServiceName": "mariadb_ctrl"
 				},
-				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld"				
+				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld",
+				"BootstrapEndpoint": {
+					"Username": "username",
+					"Password": "password"
+				}
 			}`
 
 			osArgs := []string{
@@ -138,9 +142,18 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("returns an error if BootstrapEndpoint.Username is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "BootstrapEndpoint.Username")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if BootstrapEndpoint.Password is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "BootstrapEndpoint.Password")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 		It("returns a valid logger", func() {
-			Expect(rootConfig.Logger()).ToNot(BeNil())
+			Expect(rootConfig.Logger).ToNot(BeNil())
 		})
 	})
-
 })

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/bootstrap_api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
@@ -16,7 +17,6 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_cmd"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -27,7 +27,7 @@ func main() {
 
 	rootConfig, err := config.NewConfig(os.Args)
 
-	logger := rootConfig.Logger()
+	logger := rootConfig.Logger
 
 	err = rootConfig.Validate()
 	if err != nil {
@@ -58,24 +58,14 @@ func main() {
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
 	monit_client := monit_client.New(rootConfig.Monit, logger)
 
+	mux := bootstrap_api.NewHandler(rootConfig, monit_client)
+
 	healthchecker = healthcheck.New(db, *rootConfig, logger)
-	http.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier
-	http.Handle("/galera_status", healthchecker)
+	mux.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier
+	mux.Handle("/galera_status", healthchecker)
 
 	sequence_number_checker = sequence_number.New(db, mysqldCmd, *rootConfig, logger)
-	http.Handle("/sequence_number", sequence_number_checker)
-
-	mysql_status_cmd := monit_cmd.NewGetStatusCmd(monit_client)
-	http.Handle("/mysql_status", mysql_status_cmd)
-
-	stop_mysql_cmd := monit_cmd.NewStopMysqlCmd(monit_client)
-	http.Handle("/stop_mysql", stop_mysql_cmd)
-
-	start_mysql_cmd_join := monit_cmd.NewStartMysqlCmd(monit_client, "join")
-	http.Handle("/start_mysql_join", start_mysql_cmd_join)
-
-	start_mysql_cmd_bs := monit_cmd.NewStartMysqlCmd(monit_client, "bootstrap")
-	http.Handle("/start_mysql_bootstrap", start_mysql_cmd_bs)
+	mux.Handle("/sequence_number", sequence_number_checker)
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)
