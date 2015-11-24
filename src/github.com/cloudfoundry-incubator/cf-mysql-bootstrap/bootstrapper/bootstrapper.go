@@ -106,6 +106,28 @@ func (b *Bootstrapper) isClusterHealthy() error {
 	return nil
 }
 
+func (b *Bootstrapper) waitForClusterShutdown() error {
+	shutdownClusters := make(chan error, len(b.rootConfig.HealthcheckURLs))
+
+	for _, url := range b.rootConfig.HealthcheckURLs {
+		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
+		go func() {
+			err := b.pollUntilResponse(statusUrl, "stopped")
+			shutdownClusters <- err
+		}()
+	}
+
+	for _ = range b.rootConfig.HealthcheckURLs {
+		err := <-shutdownClusters
+		if err != nil {
+			return err
+		}
+	}
+
+	b.rootConfig.Logger.Info("Successfully stopped mysql process on all vms")
+	return nil
+}
+
 func (b *Bootstrapper) Run() error {
 	logger := b.rootConfig.Logger
 
@@ -130,15 +152,11 @@ func (b *Bootstrapper) Run() error {
 		}
 	}
 
-	for _, url := range b.rootConfig.HealthcheckURLs {
-		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
-		err := b.pollUntilResponse(statusUrl, "stopped")
-		if err != nil {
-			return err
-		}
+	err = b.waitForClusterShutdown()
+	if err != nil {
+		return err
 	}
 
-	logger.Info("Successfully stopped mysql process on all vms")
 	sequenceNumberMap := make(map[string]int)
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		getSeqNumberUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.GetSeqNumber)
