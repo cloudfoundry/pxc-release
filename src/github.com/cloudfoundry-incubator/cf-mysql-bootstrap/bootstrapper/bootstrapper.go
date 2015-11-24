@@ -76,7 +76,7 @@ func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse strin
 	}
 }
 
-func (b *Bootstrapper) isClusterHealthy() error {
+func (b *Bootstrapper) verifyClusterIsUnhealthy() error {
 	allNodes := len(b.rootConfig.HealthcheckURLs)
 	syncedNodes := 0
 
@@ -128,14 +128,7 @@ func (b *Bootstrapper) waitForClusterShutdown() error {
 	return nil
 }
 
-func (b *Bootstrapper) Run() error {
-	logger := b.rootConfig.Logger
-
-	err := b.isClusterHealthy()
-	if err != nil {
-		return err
-	}
-
+func (b *Bootstrapper) verifyAllNodesAreReachable() error {
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		statusMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
 		_, err := b.sendRequest(statusMysqlUrl, "mysql status")
@@ -143,13 +136,25 @@ func (b *Bootstrapper) Run() error {
 			return err
 		}
 	}
+	return nil
+}
 
-	for _, url := range b.rootConfig.HealthcheckURLs {
-		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
-		_, err := b.sendRequest(stopMysqlUrl, "stop mysql")
-		if err != nil {
-			return err
-		}
+func (b *Bootstrapper) Run() error {
+	logger := b.rootConfig.Logger
+
+	err := b.verifyClusterIsUnhealthy()
+	if err != nil {
+		return err
+	}
+
+	err = b.verifyAllNodesAreReachable()
+	if err != nil {
+		return err
+	}
+
+	err = b.stopAllNodes()
+	if err != nil {
+		return err
 	}
 
 	err = b.waitForClusterShutdown()
@@ -157,58 +162,86 @@ func (b *Bootstrapper) Run() error {
 		return err
 	}
 
+	sequenceNumberMap, err := b.getSequenceNumbers()
+	if err != nil {
+		return err
+	}
+
+	bootstrapNodeURL, joinNodes := largestSequenceNumber(sequenceNumberMap)
+	err = b.bootstrapNode(bootstrapNodeURL)
+	if err != nil {
+		return err
+	}
+
+	// galera recommends joining nodes one at a time
+	for _, url := range joinNodes {
+		err = b.joinNode(url)
+		if err != nil {
+			return err
+		}
+	}
+
+	logger.Info("Successfully started mysql process on all nodes")
+
+	return nil
+}
+
+func (b *Bootstrapper) stopAllNodes() error {
+	for _, url := range b.rootConfig.HealthcheckURLs {
+		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
+		_, err := b.sendRequest(stopMysqlUrl, "stop mysql")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Bootstrapper) getSequenceNumbers() (map[string]int, error) {
 	sequenceNumberMap := make(map[string]int)
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		getSeqNumberUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.GetSeqNumber)
 		responseBody, err := b.sendRequest(getSeqNumberUrl, "get sequence number")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		sequenceNumber, err := strconv.Atoi(responseBody)
 		if err != nil {
-			return fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
+			return nil, fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
 		}
 
-		logger.Info(fmt.Sprintf("Retrieved sequence number of %d from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
+		b.rootConfig.Logger.Info(fmt.Sprintf("Retrieved sequence number of %d from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
 			"url": getSeqNumberUrl,
 		})
 
 		sequenceNumberMap[url] = sequenceNumber
 	}
+	return sequenceNumberMap, nil
+}
 
-	bootstrapNode, joinNodes := largestSequenceNumber(sequenceNumberMap)
-	bootstrapReqURL := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.StartMysqlInBootstrapMode)
-	_, err = b.sendRequest(bootstrapReqURL, "bootstrap mysql node")
+func (b *Bootstrapper) bootstrapNode(baseURL string) error {
+	expectedResponse := "bootstrap mysql node"
+	return b.startNodeWithURL(baseURL, b.rootConfig.StartMysqlInBootstrapMode, expectedResponse)
+}
+
+func (b *Bootstrapper) joinNode(baseURL string) error {
+	expectedResponse := "join mysql"
+	return b.startNodeWithURL(baseURL, b.rootConfig.StartMysqlInJoinMode, expectedResponse)
+}
+
+func (b *Bootstrapper) startNodeWithURL(baseURL string, startEndpoint string, expectedResponse string) error {
+	startURL := fmt.Sprintf("%s/%s", baseURL, startEndpoint)
+	_, err := b.sendRequest(startURL, expectedResponse)
 	if err != nil {
 		return err
 	}
 
-	statusUrl := fmt.Sprintf("%s/%s", bootstrapNode, b.rootConfig.MysqlStatus)
-
+	statusUrl := fmt.Sprintf("%s/%s", baseURL, b.rootConfig.MysqlStatus)
 	err = b.pollUntilResponse(statusUrl, "running")
 	if err != nil {
 		return err
 	}
-
-	for _, joinNode := range joinNodes {
-		joinReqURL := fmt.Sprintf("%s/%s", joinNode, b.rootConfig.StartMysqlInJoinMode)
-		_, err := b.sendRequest(joinReqURL, "join mysql")
-
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, url := range joinNodes {
-		statusUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
-		err = b.pollUntilResponse(statusUrl, "running")
-		if err != nil {
-			return err
-		}
-	}
-
-	logger.Info("Successfully started mysql process on all joining nodes")
 
 	return nil
 }
