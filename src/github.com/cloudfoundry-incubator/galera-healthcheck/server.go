@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cloudfoundry-incubator/galera-healthcheck/bootstrap_api"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
@@ -19,9 +19,6 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	_ "github.com/go-sql-driver/mysql"
 )
-
-var healthchecker *healthcheck.Healthchecker
-var sequence_number_checker *sequence_number.SequenceNumberchecker
 
 func main() {
 
@@ -56,16 +53,16 @@ func main() {
 	}
 
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
-	monit_client := monit_client.New(rootConfig.Monit, logger)
+	monitClient := monit_client.New(rootConfig.Monit, logger)
+	healthchecker := healthcheck.New(db, *rootConfig, logger)
+	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 
-	mux := bootstrap_api.NewHandler(rootConfig, monit_client)
-
-	healthchecker = healthcheck.New(db, *rootConfig, logger)
-	mux.Handle("/", healthchecker) //ensures backwards compatability with v24 and earlier
-	mux.Handle("/galera_status", healthchecker)
-
-	sequence_number_checker = sequence_number.New(db, mysqldCmd, *rootConfig, logger)
-	mux.Handle("/sequence_number", sequence_number_checker)
+	mux := api.NewHandler(api.ApiParameters{
+		RootConfig:            rootConfig,
+		SequenceNumberChecker: sequenceNumberchecker,
+		Healthchecker:         healthchecker,
+		MonitClient:           monitClient,
+	})
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)
@@ -134,6 +131,9 @@ func main() {
 		logger.Info("Healthcheck Started")
 	}()
 
-	server := &http.Server{Addr: address}
-	server.ListenAndServe()
+	err = http.ListenAndServe(address, mux)
+	if err != nil {
+		logger.Fatal("Galera healthcheck stopped unexpectedly", err)
+	}
+	logger.Info("Galera healthcheck has stopped gracefully")
 }

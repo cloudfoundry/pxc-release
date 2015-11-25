@@ -4,23 +4,27 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/http"
+
+	"strconv"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/pivotal-golang/lager"
-	"strconv"
 )
 
-type SequenceNumberchecker struct {
+type SequenceNumberChecker interface {
+	Check() (string, error)
+}
+
+type sequenceNumberChecker struct {
 	db        *sql.DB
 	config    config.Config
 	logger    lager.Logger
 	mysqldCmd mysqld_cmd.MysqldCmd
 }
 
-func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logger lager.Logger) *SequenceNumberchecker {
-	return &SequenceNumberchecker{
+func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logger lager.Logger) SequenceNumberChecker {
+	return &sequenceNumberChecker{
 		db:        db,
 		config:    config,
 		logger:    logger,
@@ -28,21 +32,7 @@ func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logge
 	}
 }
 
-func (s *SequenceNumberchecker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	seqno, err := s.check()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		errMsg := fmt.Sprintf("Failed to determine sequence number: %s", err.Error())
-		s.logger.Error(errMsg, err)
-		w.Write([]byte(errMsg))
-		return
-	}
-
-	s.logger.Debug(fmt.Sprintf("Response body: %s", seqno))
-	w.Write([]byte(seqno))
-}
-
-func (s *SequenceNumberchecker) check() (string, error) {
+func (s *sequenceNumberChecker) Check() (string, error) {
 	s.logger.Info("Checking sequence number of mariadb node...")
 
 	if s.dbReachable() {
@@ -66,7 +56,7 @@ func (s *SequenceNumberchecker) check() (string, error) {
 	}
 }
 
-func (s *SequenceNumberchecker) readSeqNoFromRecoverCmd() (string, error) {
+func (s *sequenceNumberChecker) readSeqNoFromRecoverCmd() (string, error) {
 	s.logger.Info("Reading seqno from logs")
 	seqno, err := s.mysqldCmd.RecoverSeqno()
 	if err != nil {
@@ -77,7 +67,7 @@ func (s *SequenceNumberchecker) readSeqNoFromRecoverCmd() (string, error) {
 	return seqno, nil
 }
 
-func (s *SequenceNumberchecker) dbReachable() bool {
+func (s *sequenceNumberChecker) dbReachable() bool {
 	_, err := s.db.Exec("SHOW VARIABLES")
 	if err != nil {
 		s.logger.Info(fmt.Sprintf("Database not reachable, continuing: %s", err.Error()))
