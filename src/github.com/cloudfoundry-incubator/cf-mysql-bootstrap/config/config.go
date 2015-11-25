@@ -13,6 +13,8 @@ type Config struct {
 	Logger                    lager.Logger
 	HealthcheckURLs           []string `validate:"nonzero"`
 	DatabaseStartupTimeout    int      `validate:"nonzero"`
+	Username                  string   `validate:"nonzero"`
+	Password                  string   `validate:"nonzero"`
 	ShutDownMysql             string
 	MysqlStatus               string
 	GetSeqNumber              string

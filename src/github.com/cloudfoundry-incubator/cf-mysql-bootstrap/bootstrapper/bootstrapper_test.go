@@ -46,7 +46,6 @@ var _ = Describe("Bootstrap", func() {
 				endpointHandler.StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
 			}
 			endpointHandlers = append(endpointHandlers, endpointHandler)
-
 		}
 	})
 

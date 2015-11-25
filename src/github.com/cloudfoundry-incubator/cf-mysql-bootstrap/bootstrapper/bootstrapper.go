@@ -29,7 +29,13 @@ func New(rootConfig *config.Config, clock clock.Clock) *Bootstrapper {
 }
 
 func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, error) {
-	resp, err := http.Get(endpoint)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	req.SetBasicAuth(b.rootConfig.Username, b.rootConfig.Password)
+
+	resp, err := http.DefaultClient.Do(req)
 	responseBody := ""
 	if err != nil {
 		return responseBody, fmt.Errorf("Failed to %s: %s", action, err.Error())

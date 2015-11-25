@@ -25,7 +25,9 @@ var _ = Describe("Config", func() {
 					"11.11.11.11:9200",
 					"12.12.12.12:9200"
 				],
-				"DatabaseStartupTimeout": 100
+				"DatabaseStartupTimeout": 100,
+				"Username": "fake-username",
+				"Password": "fake-password"
 			}`
 
 			osArgs := []string{
@@ -52,5 +54,16 @@ var _ = Describe("Config", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "DatabaseStartupTimeout")
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("returns an error if Username is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Username")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if Password is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "Password")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 	})
 })
