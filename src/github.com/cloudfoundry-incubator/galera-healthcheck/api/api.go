@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/api/middleware"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
-	"github.com/pivotal-golang/lager"
 )
 
 type ApiParameters struct {
@@ -19,43 +19,55 @@ type ApiParameters struct {
 }
 
 func NewHandler(apiParams ApiParameters) *http.ServeMux {
+
 	mux := http.NewServeMux()
 
-	mux.Handle("/mysql_status", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/mysql_status", getSecureHandler(func() (string, error) {
 		return apiParams.MonitClient.GetStatus()
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
-	mux.Handle("/stop_mysql", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/stop_mysql", getSecureHandler(func() (string, error) {
 		_, err := apiParams.MonitClient.StopService()
 		return "", err
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
-	mux.Handle("/start_mysql_bootstrap", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/start_mysql_bootstrap", getSecureHandler(func() (string, error) {
 		_, err := apiParams.MonitClient.StartService("bootstrap")
 		return "", err
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
-	mux.Handle("/start_mysql_join", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/start_mysql_join", getSecureHandler(func() (string, error) {
 		_, err := apiParams.MonitClient.StartService("join")
 		return "", err
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
-	mux.Handle("/sequence_number", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/sequence_number", getSecureHandler(func() (string, error) {
 		return apiParams.SequenceNumberChecker.Check()
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
-	mux.Handle("/galera_status", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/galera_status", getInsecureHandler(func() (string, error) {
 		return apiParams.Healthchecker.Check()
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
-	mux.Handle("/", getHandlerFromFunc(func() (string, error) {
+	mux.Handle("/", getInsecureHandler(func() (string, error) {
 		return apiParams.Healthchecker.Check()
-	}, apiParams.RootConfig.Logger))
+	}, apiParams))
 
 	return mux
 }
 
-func getHandlerFromFunc(getResponse func() (string, error), logger lager.Logger) http.Handler {
+func getSecureHandler(getResponse func() (string, error), apiParams ApiParameters) http.Handler {
+	basicAuth := middleware.NewBasicAuth(
+		apiParams.RootConfig.BootstrapEndpoint.Username,
+		apiParams.RootConfig.BootstrapEndpoint.Password,
+	)
+
+	handler := getInsecureHandler(getResponse, apiParams)
+	return basicAuth.Wrap(handler)
+}
+
+func getInsecureHandler(getResponse func() (string, error), apiParams ApiParameters) http.Handler {
+	logger := apiParams.RootConfig.Logger
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := getResponse()
 		if err != nil {

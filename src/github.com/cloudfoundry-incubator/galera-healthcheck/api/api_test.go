@@ -19,6 +19,8 @@ import (
 const (
 	ExpectedSeqno             = "4"
 	ExpectedHealthCheckStatus = "synced"
+	ApiUsername               = "fake-username"
+	ApiPassword               = "fake-password"
 )
 
 var _ = Describe("Bootstrap API", func() {
@@ -42,8 +44,8 @@ var _ = Describe("Bootstrap API", func() {
 
 		testConfig := &config.Config{
 			BootstrapEndpoint: config.BootstrapEndpointConfig{
-				Username: "fake-username",
-				Password: "fake-password",
+				Username: ApiUsername,
+				Password: ApiPassword,
 			},
 			Logger: testLogger,
 		}
@@ -65,78 +67,138 @@ var _ = Describe("Bootstrap API", func() {
 		ts.Close()
 	})
 
-	var getEndpoint = func(endpoint string) string {
-		return fmt.Sprintf("%s/%s", ts.URL, endpoint)
-	}
+	Context("when request has basic auth", func() {
 
-	It("Calls StopService on the monit client when a stop command is sent", func() {
-		resp, err := http.Get(getEndpoint("/stop_mysql"))
-		Expect(err).ToNot(HaveOccurred())
+		var getReq = func(endpoint string) *http.Request {
+			url := fmt.Sprintf("%s/%s", ts.URL, endpoint)
+			req, err := http.NewRequest("GET", url, nil)
+			Expect(err).ToNot(HaveOccurred())
 
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(monitClient.StopServiceCallCount()).To(Equal(1))
+			req.SetBasicAuth(ApiUsername, ApiPassword)
+			return req
+		}
+
+		It("Calls StopService on the monit client when a stop command is sent", func() {
+			req := getReq("stop_mysql")
+			resp, err := http.DefaultClient.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(monitClient.StopServiceCallCount()).To(Equal(1))
+		})
+
+		It("Calls StartService(join) on the monit client when a start command is sent in join mode", func() {
+			resp, err := http.DefaultClient.Do(getReq("start_mysql_join"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			Expect(monitClient.StartServiceCallCount()).To(Equal(1))
+			Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("join"))
+		})
+
+		It("Calls StartService(bootstrap) on the monit client when a start command is sent in bootstrap mode", func() {
+			resp, err := http.DefaultClient.Do(getReq("start_mysql_bootstrap"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			Expect(monitClient.StartServiceCallCount()).To(Equal(1))
+			Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("bootstrap"))
+		})
+
+		It("Calls GetStatus on the monit client when a new GetStatusCmd is created", func() {
+			resp, err := http.DefaultClient.Do(getReq("mysql_status"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			Expect(monitClient.GetStatusCallCount()).To(Equal(1))
+		})
+
+		It("Calls Checker on the SequenceNumberchecker when a new sequence_number is created", func() {
+			resp, err := http.DefaultClient.Do(getReq("sequence_number"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(responseBody).To(ContainSubstring(ExpectedSeqno))
+			Expect(sequenceNumber.CheckCallCount()).To(Equal(1))
+		})
 	})
 
-	It("Calls StartService(join) on the monit client when a start command is sent in join mode", func() {
-		resp, err := http.Get(getEndpoint("/start_mysql_join"))
-		Expect(err).ToNot(HaveOccurred())
+	Context("when request does not have basic auth", func() {
+		var getReq = func(endpoint string) *http.Request {
+			url := fmt.Sprintf("%s/%s", ts.URL, endpoint)
+			req, err := http.NewRequest("GET", url, nil)
+			Expect(err).ToNot(HaveOccurred())
+			return req
+		}
 
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		It("requires authentication for /stop_mysql", func() {
+			resp, err := http.DefaultClient.Do(getReq("stop_mysql"))
+			Expect(err).ToNot(HaveOccurred())
 
-		Expect(monitClient.StartServiceCallCount()).To(Equal(1))
-		Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("join"))
+			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+			Expect(monitClient.StopServiceCallCount()).To(Equal(0))
+		})
+
+		It("requires authentication for /start_mysql_bootstrap", func() {
+			resp, err := http.DefaultClient.Do(getReq("start_mysql_bootstrap"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+			Expect(monitClient.StartServiceCallCount()).To(Equal(0))
+		})
+
+		It("requires authentication for /start_mysql_join", func() {
+			resp, err := http.DefaultClient.Do(getReq("start_mysql_join"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+			Expect(monitClient.StartServiceCallCount()).To(Equal(0))
+		})
+
+		It("requires authentication for /mysql_status", func() {
+			resp, err := http.DefaultClient.Do(getReq("mysql_status"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+			Expect(monitClient.GetStatusCallCount()).To(Equal(0))
+		})
+
+		It("requires authentication for /sequence_number", func() {
+			resp, err := http.DefaultClient.Do(getReq("sequence_number"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(responseBody).ToNot(ContainSubstring(ExpectedSeqno))
+			Expect(sequenceNumber.CheckCallCount()).To(Equal(0))
+		})
+
+		It("Calls Check on the Healthchecker at the root endpoint", func() {
+			resp, err := http.DefaultClient.Do(getReq(""))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
+			Expect(healthchecker.CheckCallCount()).To(Equal(1))
+		})
+
+		It("Calls Check on the Healthchecker at /galera_status", func() {
+			resp, err := http.DefaultClient.Do(getReq("galera_status"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
+			Expect(healthchecker.CheckCallCount()).To(Equal(1))
+		})
 	})
-
-	It("Calls StartService(bootstrap) on the monit client when a start command is sent in bootstrap mode", func() {
-		resp, err := http.Get(getEndpoint("/start_mysql_bootstrap"))
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-		Expect(monitClient.StartServiceCallCount()).To(Equal(1))
-		Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("bootstrap"))
-	})
-
-	It("Calls GetStatus on the monit client when a new GetStatusCmd is created", func() {
-		resp, err := http.Get(getEndpoint("/mysql_status"))
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-		Expect(monitClient.GetStatusCallCount()).To(Equal(1))
-	})
-
-	It("Calls Checker on the SequenceNumberchecker when a new sequence_number is created", func() {
-		resp, err := http.Get(getEndpoint("/sequence_number"))
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(responseBody).To(ContainSubstring(ExpectedSeqno))
-		Expect(sequenceNumber.CheckCallCount()).To(Equal(1))
-	})
-
-	It("Calls Check on the Healthchecker at the root endpoint", func() {
-		resp, err := http.Get(getEndpoint("/"))
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-		Expect(healthchecker.CheckCallCount()).To(Equal(1))
-	})
-
-	It("Calls Check on the Healthchecker at /galera_status", func() {
-		resp, err := http.Get(getEndpoint("/galera_status"))
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-		Expect(healthchecker.CheckCallCount()).To(Equal(1))
-	})
-
 })

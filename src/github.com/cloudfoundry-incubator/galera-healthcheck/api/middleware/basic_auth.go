@@ -17,7 +17,7 @@ func NewBasicAuth(username, password string) Middleware {
 }
 
 func (b BasicAuth) Wrap(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	handler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		username, password, ok := req.BasicAuth()
 		if ok &&
 			secureCompare(username, b.Username) &&
@@ -28,6 +28,7 @@ func (b BasicAuth) Wrap(next http.Handler) http.Handler {
 			http.Error(rw, "Not Authorized", http.StatusUnauthorized)
 		}
 	})
+	return handler
 }
 
 func secureCompare(a, b string) bool {
