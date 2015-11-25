@@ -17,14 +17,22 @@ import (
 const PollingIntervalInSec = 5
 
 type Bootstrapper struct {
-	rootConfig *config.Config
-	clock      clock.Clock
+	rootConfig                *config.Config
+	clock                     clock.Clock
+	expectedEndpointResponses map[string]string
 }
 
 func New(rootConfig *config.Config, clock clock.Clock) *Bootstrapper {
+
+	expectedEndpointResponses := map[string]string{}
+	expectedEndpointResponses[rootConfig.StartMysqlInJoinMode] = "join mysql"
+	expectedEndpointResponses[rootConfig.StartMysqlInBootstrapMode] = "bootstrap mysql node"
+	expectedEndpointResponses[rootConfig.ShutDownMysql] = "stop mysql"
+
 	return &Bootstrapper{
 		rootConfig: rootConfig,
 		clock:      clock,
+		expectedEndpointResponses: expectedEndpointResponses,
 	}
 }
 
@@ -195,7 +203,8 @@ func (b *Bootstrapper) Run() error {
 func (b *Bootstrapper) stopAllNodes() error {
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
-		_, err := b.sendRequest(stopMysqlUrl, "stop mysql")
+		expectedResponse := b.expectedEndpointResponses[b.rootConfig.ShutDownMysql]
+		_, err := b.sendRequest(stopMysqlUrl, expectedResponse)
 		if err != nil {
 			return err
 		}
@@ -227,17 +236,16 @@ func (b *Bootstrapper) getSequenceNumbers() (map[string]int, error) {
 }
 
 func (b *Bootstrapper) bootstrapNode(baseURL string) error {
-	expectedResponse := "bootstrap mysql node"
-	return b.startNodeWithURL(baseURL, b.rootConfig.StartMysqlInBootstrapMode, expectedResponse)
+	return b.startNodeWithURL(baseURL, b.rootConfig.StartMysqlInBootstrapMode)
 }
 
 func (b *Bootstrapper) joinNode(baseURL string) error {
-	expectedResponse := "join mysql"
-	return b.startNodeWithURL(baseURL, b.rootConfig.StartMysqlInJoinMode, expectedResponse)
+	return b.startNodeWithURL(baseURL, b.rootConfig.StartMysqlInJoinMode)
 }
 
-func (b *Bootstrapper) startNodeWithURL(baseURL string, startEndpoint string, expectedResponse string) error {
+func (b *Bootstrapper) startNodeWithURL(baseURL string, startEndpoint string) error {
 	startURL := fmt.Sprintf("%s/%s", baseURL, startEndpoint)
+	expectedResponse := b.expectedEndpointResponses[startEndpoint]
 	_, err := b.sendRequest(startURL, expectedResponse)
 	if err != nil {
 		return err
