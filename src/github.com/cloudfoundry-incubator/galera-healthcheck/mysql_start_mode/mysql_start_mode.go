@@ -17,7 +17,7 @@ func NewMysqlStartMode(stateFilePath string, mode string) *MysqlStartMode {
 	}
 }
 
-func (ms *MysqlStartMode) Start() (bool, error) {
+func (ms *MysqlStartMode) Start() error {
 	var err error
 	switch ms.mode {
 	case "bootstrap":
@@ -29,9 +29,9 @@ func (ms *MysqlStartMode) Start() (bool, error) {
 	}
 
 	if err != nil {
-		return false, err
+		return fmt.Errorf("Failed to write state file in mode '%s' to location '%s': %s", ms.mode, ms.stateFilePath, err.Error())
 	}
-	return true, err
+	return nil
 }
 
 func (ms *MysqlStartMode) mysqlStartModeInBootstrap() error {

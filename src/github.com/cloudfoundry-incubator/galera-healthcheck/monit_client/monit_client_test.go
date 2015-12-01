@@ -77,7 +77,7 @@ var _ = Describe("monitClient", func() {
 			It("returns http response 200 and process has stopped", func() {
 				st, err := monitClient.StopService()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(st).To(BeTrue())
+				Expect(st).To(ContainSubstring("stop"))
 			})
 		})
 
@@ -90,10 +90,9 @@ var _ = Describe("monitClient", func() {
 			})
 
 			It("returns http response non-200 and process has not stopped", func() {
-				st, err := monitClient.StopService()
+				_, err := monitClient.StopService()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
-				Expect(st).To(BeFalse())
 			})
 		})
 
@@ -106,10 +105,9 @@ var _ = Describe("monitClient", func() {
 			})
 
 			It("returns http response 200 and process has not stopped", func() {
-				st, err := monitClient.StopService()
+				_, err := monitClient.StopService()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to stop"))
-				Expect(st).To(BeFalse())
 			})
 		})
 	})
@@ -126,10 +124,9 @@ var _ = Describe("monitClient", func() {
 			})
 
 			It("returns http response non-200 and process has not started", func() {
-				st, err := monitClient.StartService("join")
+				_, err := monitClient.StartServiceJoin()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
-				Expect(st).To(BeFalse())
 			})
 		})
 
@@ -142,9 +139,9 @@ var _ = Describe("monitClient", func() {
 			})
 
 			It("returns http response 200 and process has started", func() {
-				st, err := monitClient.StartService("join")
+				st, err := monitClient.StartServiceJoin()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(st).To(BeTrue())
+				Expect(st).To(ContainSubstring("join"))
 			})
 		})
 
@@ -157,10 +154,9 @@ var _ = Describe("monitClient", func() {
 			})
 
 			It("returns http response 200 and process has not started", func() {
-				st, err := monitClient.StartService("join")
+				_, err := monitClient.StartServiceJoin()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to start"))
-				Expect(st).To(BeFalse())
 			})
 		})
 	})

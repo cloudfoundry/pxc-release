@@ -14,8 +14,9 @@ import (
 )
 
 type MonitClient interface {
-	StartService(startMode string) (bool, error)
-	StopService() (bool, error)
+	StartServiceBootstrap() (string, error)
+	StartServiceJoin() (string, error)
+	StopService() (string, error)
 	GetStatus() (string, error)
 	GetLogger() lager.Logger
 }
@@ -32,45 +33,56 @@ func New(monitConfig config.MonitConfig, logger lager.Logger) *monitClient {
 	}
 }
 
-func (monitClient *monitClient) GetLogger() lager.Logger {
-	return monitClient.logger
+func (m *monitClient) GetLogger() lager.Logger {
+	return m.logger
 }
 
-func (monitClient *monitClient) StartService(startMode string) (bool, error) {
+func (m *monitClient) StartServiceBootstrap() (string, error) {
+	return m.startService("bootstrap")
+}
 
-	mySqlStartMode := mysql_start_mode.NewMysqlStartMode(monitClient.monitConfig.MysqlStateFilePath, startMode)
-	_, err := mySqlStartMode.Start()
+func (m *monitClient) StartServiceJoin() (string, error) {
+	return m.startService("join")
+}
+
+func (m *monitClient) startService(startMode string) (string, error) {
+	mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
+	err := mySqlStartMode.Start()
 	if err != nil {
-		monitClient.logger.Error("Failed to write state file", err)
-		monitClient.logger.Info("mySqlStartMode info", lager.Data{
-			"startMode":          startMode,
-			"MysqlStateFilePath": monitClient.monitConfig.MysqlStateFilePath,
-		})
-		return false, err
+		m.logger.Error("Failed to start mysql node", err)
+		return "", err
 	}
 
-	resp, err := monitClient.runServiceCmd("start")
-	return resp, err
+	err = m.runServiceCmd("start")
+	msg := ""
+	if err == nil {
+		msg = fmt.Sprintf("Successfully sent start request in %s mode", startMode)
+	}
+	return msg, err
 }
 
-func (monitClient *monitClient) StopService() (bool, error) {
-	resp, err := monitClient.runServiceCmd("stop")
-	return resp, err
+func (m *monitClient) StopService() (string, error) {
+	err := m.runServiceCmd("stop")
+	msg := ""
+	if err == nil {
+		msg = "Successfully sent stop request"
+	}
+	return msg, err
 }
 
-func (monitClient *monitClient) statusLookup(s MonitStatus) (string, error) {
+func (m *monitClient) statusLookup(s MonitStatus) (string, error) {
 
 	var tagForService ServiceTag
 	foundService := false
 	for _, serviceTag := range s.Services {
-		if serviceTag.Name == monitClient.monitConfig.ServiceName {
+		if serviceTag.Name == m.monitConfig.ServiceName {
 			tagForService = serviceTag
 			foundService = true
 			break
 		}
 	}
 	if foundService == false {
-		return "", fmt.Errorf("Could not find process %s", monitClient.monitConfig.ServiceName)
+		return "", fmt.Errorf("Could not find process %s", m.monitConfig.ServiceName)
 	}
 
 	switch {
@@ -87,9 +99,9 @@ func (monitClient *monitClient) statusLookup(s MonitStatus) (string, error) {
 	}
 }
 
-func (monitClient *monitClient) GetStatus() (string, error) {
+func (m *monitClient) GetStatus() (string, error) {
 
-	statusResponse, err := monitClient.runStatusCmd()
+	statusResponse, err := m.runStatusCmd()
 	if err != nil {
 		return "", err
 	}
@@ -99,7 +111,7 @@ func (monitClient *monitClient) GetStatus() (string, error) {
 		return "", err
 	}
 
-	status, err := monitClient.statusLookup(monitStatus)
+	status, err := m.statusLookup(monitStatus)
 	if err != nil {
 		return "", err
 	}
@@ -107,14 +119,14 @@ func (monitClient *monitClient) GetStatus() (string, error) {
 	return status, nil
 }
 
-func (monitClient *monitClient) newUrl(endpoint string, queryParams ...url.Values) (*url.URL, error) {
+func (m *monitClient) newUrl(endpoint string, queryParams ...url.Values) (*url.URL, error) {
 
-	config := monitClient.monitConfig
+	config := m.monitConfig
 
 	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/%s", config.Host, config.Port, endpoint))
 	if err != nil {
-		monitClient.logger.Error("Failed to parse URL", err)
-		monitClient.logger.Info("URL info", lager.Data{
+		m.logger.Error("Failed to parse URL", err)
+		m.logger.Info("URL info", lager.Data{
 			"URL": statusURL,
 		})
 		return nil, err
@@ -127,13 +139,13 @@ func (monitClient *monitClient) newUrl(endpoint string, queryParams ...url.Value
 	return statusURL, nil
 }
 
-func (monitClient *monitClient) runStatusCmd() (io.Reader, error) {
+func (m *monitClient) runStatusCmd() (io.Reader, error) {
 
-	statusURL, err := monitClient.newUrl("_status", url.Values{
+	statusURL, err := m.newUrl("_status", url.Values{
 		"format": []string{"xml"},
 	})
 
-	resp, err := monitClient.sendRequest(statusURL, "GET")
+	resp, err := m.sendRequest(statusURL, "GET")
 	if err != nil {
 		return nil, err
 	}
@@ -141,34 +153,34 @@ func (monitClient *monitClient) runStatusCmd() (io.Reader, error) {
 	return resp, err
 }
 
-func (monitClient *monitClient) runServiceCmd(command string) (bool, error) {
+func (m *monitClient) runServiceCmd(command string) error {
 	serviceAction := fmt.Sprintf("action=%s", command)
 	pendingStatusMsg := fmt.Sprintf("%s pending", command)
-	statusURL, err := monitClient.newUrl(monitClient.monitConfig.ServiceName)
+	statusURL, err := m.newUrl(m.monitConfig.ServiceName)
 
-	respBody, err := monitClient.sendRequest(statusURL, "POST", serviceAction)
+	respBody, err := m.sendRequest(statusURL, "POST", serviceAction)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 	responseBytes, _ := ioutil.ReadAll(respBody)
 	responseStr := string(responseBytes)
 
 	if !strings.Contains(responseStr, pendingStatusMsg) {
-		monitFailure := fmt.Errorf("Monit failed to %s %s successfully", command, monitClient.monitConfig.ServiceName)
-		monitClient.logger.Error("Monit failure:", monitFailure)
-		monitClient.logger.Info("request info", lager.Data{
+		monitFailure := fmt.Errorf("Monit failed to %s %s successfully", command, m.monitConfig.ServiceName)
+		m.logger.Error("Monit failure:", monitFailure)
+		m.logger.Info("request info", lager.Data{
 			"response_body": string(responseBytes),
 		})
 
-		return false, monitFailure
+		return monitFailure
 	}
 
-	return true, nil
+	return nil
 }
 
-func (monitClient *monitClient) sendRequest(statusURL *url.URL, reqMethod string, params ...string) (io.Reader, error) {
-	config := monitClient.monitConfig
+func (m *monitClient) sendRequest(statusURL *url.URL, reqMethod string, params ...string) (io.Reader, error) {
+	config := m.monitConfig
 	client := &http.Client{}
 
 	var err error
@@ -180,7 +192,7 @@ func (monitClient *monitClient) sendRequest(statusURL *url.URL, reqMethod string
 	}
 
 	if err != nil {
-		monitClient.logger.Error("Failed to create http request", err)
+		m.logger.Error("Failed to create http request", err)
 		return nil, err
 	}
 
@@ -188,7 +200,7 @@ func (monitClient *monitClient) sendRequest(statusURL *url.URL, reqMethod string
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	monitClient.logger.Info("Forwarding request to monit API", lager.Data{
+	m.logger.Info("Forwarding request to monit API", lager.Data{
 		"url": req.URL,
 	})
 
@@ -197,8 +209,8 @@ func (monitClient *monitClient) sendRequest(statusURL *url.URL, reqMethod string
 	resp, err := client.Do(req)
 	if err != nil {
 		errMsg := fmt.Errorf("Error sending http request: %s", err.Error())
-		monitClient.logger.Error(errMsg.Error(), err)
-		monitClient.logger.Info("request info", lager.Data{
+		m.logger.Error(errMsg.Error(), err)
+		m.logger.Info("request info", lager.Data{
 			"request": req.URL,
 		})
 		return nil, errMsg
@@ -207,14 +219,14 @@ func (monitClient *monitClient) sendRequest(statusURL *url.URL, reqMethod string
 	if resp.StatusCode != 200 {
 		responseBytes, _ := ioutil.ReadAll(resp.Body)
 		non200Error := fmt.Errorf("Received %d response from monit: %s", resp.StatusCode, responseBytes)
-		monitClient.logger.Error("Failed with non-200 response", non200Error)
-		monitClient.logger.Info("", lager.Data{
+		m.logger.Error("Failed with non-200 response", non200Error)
+		m.logger.Info("", lager.Data{
 			"status_code":   resp.StatusCode,
 			"response_body": string(responseBytes),
 		})
 		return nil, non200Error
 	}
 
-	monitClient.logger.Info("Made successful request to monit API")
+	m.logger.Info("Made successful request to monit API")
 	return resp.Body, nil
 }

@@ -50,16 +50,18 @@ var _ = Describe("Bootstrap API", func() {
 			Logger: testLogger,
 		}
 
-		monitClient.StopServiceReturns(true, nil)
-		monitClient.StartServiceReturns(true, nil)
+		monitClient.StopServiceReturns("Successfully sent stop request", nil)
+		monitClient.StartServiceBootstrapReturns("Successfully sent bootstrap request", nil)
+		monitClient.StartServiceJoinReturns("Successfully sent join request", nil)
 		monitClient.GetStatusReturns("running", nil)
 
-		handler := api.NewRouter(api.ApiParameters{
+		handler, err := api.NewRouter(api.ApiParameters{
 			RootConfig:            testConfig,
 			MonitClient:           monitClient,
 			SequenceNumberChecker: sequenceNumber,
 			Healthchecker:         healthchecker,
 		})
+		Expect(err).ToNot(HaveOccurred())
 		ts = httptest.NewServer(handler)
 	})
 
@@ -94,8 +96,7 @@ var _ = Describe("Bootstrap API", func() {
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-			Expect(monitClient.StartServiceCallCount()).To(Equal(1))
-			Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("join"))
+			Expect(monitClient.StartServiceJoinCallCount()).To(Equal(1))
 		})
 
 		It("Calls StartService(bootstrap) on the monit client when a start command is sent in bootstrap mode", func() {
@@ -105,8 +106,7 @@ var _ = Describe("Bootstrap API", func() {
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-			Expect(monitClient.StartServiceCallCount()).To(Equal(1))
-			Expect(monitClient.StartServiceArgsForCall(0)).To(Equal("bootstrap"))
+			Expect(monitClient.StartServiceBootstrapCallCount()).To(Equal(1))
 		})
 
 		It("Calls GetStatus on the monit client when a new GetStatusCmd is created", func() {
@@ -162,7 +162,7 @@ var _ = Describe("Bootstrap API", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-			Expect(monitClient.StartServiceCallCount()).To(Equal(0))
+			Expect(monitClient.StartServiceBootstrapCallCount()).To(Equal(0))
 		})
 
 		It("requires authentication for /start_mysql_join", func() {
@@ -171,7 +171,7 @@ var _ = Describe("Bootstrap API", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-			Expect(monitClient.StartServiceCallCount()).To(Equal(0))
+			Expect(monitClient.StartServiceJoinCallCount()).To(Equal(0))
 		})
 
 		It("requires authentication for /mysql_status", func() {

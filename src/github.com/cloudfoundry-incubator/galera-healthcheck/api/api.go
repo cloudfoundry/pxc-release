@@ -12,6 +12,8 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+type RunFunc func() (string, error)
+
 type ApiParameters struct {
 	RootConfig            *config.Config
 	MonitClient           monit_client.MonitClient
@@ -19,7 +21,15 @@ type ApiParameters struct {
 	Healthchecker         healthcheck.HealthChecker
 }
 
-func NewRouter(apiParams ApiParameters) http.Handler {
+type router struct {
+	apiParams ApiParameters
+}
+
+func NewRouter(apiParams ApiParameters) (http.Handler, error) {
+
+	r := router{
+		apiParams: apiParams,
+	}
 
 	routes := rata.Routes{
 		{Name: "mysql_status", Method: "GET", Path: "/mysql_status"},
@@ -31,55 +41,42 @@ func NewRouter(apiParams ApiParameters) http.Handler {
 		{Name: "root", Method: "GET", Path: "/"},
 	}
 
+	client := r.apiParams.MonitClient
+	seqnoChecker := r.apiParams.SequenceNumberChecker
+	healthchecker := r.apiParams.Healthchecker
 	handlers := rata.Handlers{
-		"mysql_status": getSecureHandler(func() (string, error) {
-			return apiParams.MonitClient.GetStatus()
-		}, apiParams),
-		"stop_mysql": getSecureHandler(func() (string, error) {
-			_, err := apiParams.MonitClient.StopService()
-			return "", err
-		}, apiParams),
-		"start_mysql_bootstrap": getSecureHandler(func() (string, error) {
-			_, err := apiParams.MonitClient.StartService("bootstrap")
-			return "", err
-		}, apiParams),
-		"start_mysql_join": getSecureHandler(func() (string, error) {
-			_, err := apiParams.MonitClient.StartService("join")
-			return "", err
-		}, apiParams),
-		"sequence_number": getSecureHandler(func() (string, error) {
-			return apiParams.SequenceNumberChecker.Check()
-		}, apiParams),
-		"galera_status": getInsecureHandler(func() (string, error) {
-			return apiParams.Healthchecker.Check()
-		}, apiParams),
-		"root": getInsecureHandler(func() (string, error) {
-			return apiParams.Healthchecker.Check()
-		}, apiParams),
+		"mysql_status":          r.getSecureHandler(client.GetStatus),
+		"stop_mysql":            r.getSecureHandler(client.StopService),
+		"start_mysql_bootstrap": r.getSecureHandler(client.StartServiceBootstrap),
+		"start_mysql_join":      r.getSecureHandler(client.StartServiceJoin),
+		"sequence_number":       r.getSecureHandler(seqnoChecker.Check),
+		"galera_status":         r.getInsecureHandler(healthchecker.Check),
+		"root":                  r.getInsecureHandler(healthchecker.Check),
 	}
 
-	router, err := rata.NewRouter(routes, handlers)
+	handler, err := rata.NewRouter(routes, handlers)
 	if err != nil {
 		apiParams.RootConfig.Logger.Error("Error initializing router", err)
+		return nil, err
 	}
 
-	return router
+	return handler, nil
 }
 
-func getSecureHandler(getResponse func() (string, error), apiParams ApiParameters) http.Handler {
+func (r router) getSecureHandler(run RunFunc) http.Handler {
 	basicAuth := middleware.NewBasicAuth(
-		apiParams.RootConfig.BootstrapEndpoint.Username,
-		apiParams.RootConfig.BootstrapEndpoint.Password,
+		r.apiParams.RootConfig.BootstrapEndpoint.Username,
+		r.apiParams.RootConfig.BootstrapEndpoint.Password,
 	)
 
-	handler := getInsecureHandler(getResponse, apiParams)
+	handler := r.getInsecureHandler(run)
 	return basicAuth.Wrap(handler)
 }
 
-func getInsecureHandler(getResponse func() (string, error), apiParams ApiParameters) http.Handler {
-	logger := apiParams.RootConfig.Logger
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := getResponse()
+func (r router) getInsecureHandler(run RunFunc) http.Handler {
+	logger := r.apiParams.RootConfig.Logger
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		body, err := run()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			logger.Error("Failed to process request", err)

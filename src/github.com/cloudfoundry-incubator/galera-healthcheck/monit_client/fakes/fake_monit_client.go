@@ -9,20 +9,25 @@ import (
 )
 
 type FakeMonitClient struct {
-	StartServiceStub        func(startMode string) (bool, error)
-	startServiceMutex       sync.RWMutex
-	startServiceArgsForCall []struct {
-		startMode string
-	}
-	startServiceReturns struct {
-		result1 bool
+	StartServiceBootstrapStub        func() (string, error)
+	startServiceBootstrapMutex       sync.RWMutex
+	startServiceBootstrapArgsForCall []struct{}
+	startServiceBootstrapReturns     struct {
+		result1 string
 		result2 error
 	}
-	StopServiceStub        func() (bool, error)
+	StartServiceJoinStub        func() (string, error)
+	startServiceJoinMutex       sync.RWMutex
+	startServiceJoinArgsForCall []struct{}
+	startServiceJoinReturns     struct {
+		result1 string
+		result2 error
+	}
+	StopServiceStub        func() (string, error)
 	stopServiceMutex       sync.RWMutex
 	stopServiceArgsForCall []struct{}
 	stopServiceReturns     struct {
-		result1 bool
+		result1 string
 		result2 error
 	}
 	GetStatusStub        func() (string, error)
@@ -40,40 +45,57 @@ type FakeMonitClient struct {
 	}
 }
 
-func (fake *FakeMonitClient) StartService(startMode string) (bool, error) {
-	fake.startServiceMutex.Lock()
-	fake.startServiceArgsForCall = append(fake.startServiceArgsForCall, struct {
-		startMode string
-	}{startMode})
-	fake.startServiceMutex.Unlock()
-	if fake.StartServiceStub != nil {
-		return fake.StartServiceStub(startMode)
+func (fake *FakeMonitClient) StartServiceBootstrap() (string, error) {
+	fake.startServiceBootstrapMutex.Lock()
+	fake.startServiceBootstrapArgsForCall = append(fake.startServiceBootstrapArgsForCall, struct{}{})
+	fake.startServiceBootstrapMutex.Unlock()
+	if fake.StartServiceBootstrapStub != nil {
+		return fake.StartServiceBootstrapStub()
 	} else {
-		return fake.startServiceReturns.result1, fake.startServiceReturns.result2
+		return fake.startServiceBootstrapReturns.result1, fake.startServiceBootstrapReturns.result2
 	}
 }
 
-func (fake *FakeMonitClient) StartServiceCallCount() int {
-	fake.startServiceMutex.RLock()
-	defer fake.startServiceMutex.RUnlock()
-	return len(fake.startServiceArgsForCall)
+func (fake *FakeMonitClient) StartServiceBootstrapCallCount() int {
+	fake.startServiceBootstrapMutex.RLock()
+	defer fake.startServiceBootstrapMutex.RUnlock()
+	return len(fake.startServiceBootstrapArgsForCall)
 }
 
-func (fake *FakeMonitClient) StartServiceArgsForCall(i int) string {
-	fake.startServiceMutex.RLock()
-	defer fake.startServiceMutex.RUnlock()
-	return fake.startServiceArgsForCall[i].startMode
-}
-
-func (fake *FakeMonitClient) StartServiceReturns(result1 bool, result2 error) {
-	fake.StartServiceStub = nil
-	fake.startServiceReturns = struct {
-		result1 bool
+func (fake *FakeMonitClient) StartServiceBootstrapReturns(result1 string, result2 error) {
+	fake.StartServiceBootstrapStub = nil
+	fake.startServiceBootstrapReturns = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMonitClient) StopService() (bool, error) {
+func (fake *FakeMonitClient) StartServiceJoin() (string, error) {
+	fake.startServiceJoinMutex.Lock()
+	fake.startServiceJoinArgsForCall = append(fake.startServiceJoinArgsForCall, struct{}{})
+	fake.startServiceJoinMutex.Unlock()
+	if fake.StartServiceJoinStub != nil {
+		return fake.StartServiceJoinStub()
+	} else {
+		return fake.startServiceJoinReturns.result1, fake.startServiceJoinReturns.result2
+	}
+}
+
+func (fake *FakeMonitClient) StartServiceJoinCallCount() int {
+	fake.startServiceJoinMutex.RLock()
+	defer fake.startServiceJoinMutex.RUnlock()
+	return len(fake.startServiceJoinArgsForCall)
+}
+
+func (fake *FakeMonitClient) StartServiceJoinReturns(result1 string, result2 error) {
+	fake.StartServiceJoinStub = nil
+	fake.startServiceJoinReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMonitClient) StopService() (string, error) {
 	fake.stopServiceMutex.Lock()
 	fake.stopServiceArgsForCall = append(fake.stopServiceArgsForCall, struct{}{})
 	fake.stopServiceMutex.Unlock()
@@ -90,10 +112,10 @@ func (fake *FakeMonitClient) StopServiceCallCount() int {
 	return len(fake.stopServiceArgsForCall)
 }
 
-func (fake *FakeMonitClient) StopServiceReturns(result1 bool, result2 error) {
+func (fake *FakeMonitClient) StopServiceReturns(result1 string, result2 error) {
 	fake.StopServiceStub = nil
 	fake.stopServiceReturns = struct {
-		result1 bool
+		result1 string
 		result2 error
 	}{result1, result2}
 }

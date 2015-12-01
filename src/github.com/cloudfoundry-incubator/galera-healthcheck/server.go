@@ -57,12 +57,15 @@ func main() {
 	healthchecker := healthcheck.New(db, *rootConfig, logger)
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 
-	router := api.NewRouter(api.ApiParameters{
+	router, err := api.NewRouter(api.ApiParameters{
 		RootConfig:            rootConfig,
 		SequenceNumberChecker: sequenceNumberchecker,
 		Healthchecker:         healthchecker,
 		MonitClient:           monitClient,
 	})
+	if err != nil {
+		logger.Fatal("Failed to create router", err)
+	}
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	url := fmt.Sprintf("http://%s/", address)
