@@ -17,27 +17,27 @@ import (
 const PollingIntervalInSec = 5
 
 type Bootstrapper struct {
-	rootConfig                *config.Config
-	clock                     clock.Clock
-	expectedEndpointResponses map[string]string
+	rootConfig *config.Config
+	clock      clock.Clock
 }
 
 func New(rootConfig *config.Config, clock clock.Clock) *Bootstrapper {
-
-	expectedEndpointResponses := map[string]string{}
-	expectedEndpointResponses[rootConfig.StartMysqlInJoinMode] = "join mysql"
-	expectedEndpointResponses[rootConfig.StartMysqlInBootstrapMode] = "bootstrap mysql node"
-	expectedEndpointResponses[rootConfig.ShutDownMysql] = "stop mysql"
-
 	return &Bootstrapper{
 		rootConfig: rootConfig,
 		clock:      clock,
-		expectedEndpointResponses: expectedEndpointResponses,
 	}
 }
 
-func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, error) {
-	req, err := http.NewRequest("GET", endpoint, nil)
+func (b *Bootstrapper) sendPostRequest(endpoint string) (string, error) {
+	return b.sendRequest(endpoint, "POST")
+}
+
+func (b *Bootstrapper) sendGetRequest(endpoint string) (string, error) {
+	return b.sendRequest(endpoint, "GET")
+}
+
+func (b *Bootstrapper) sendRequest(endpoint string, method string) (string, error) {
+	req, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +46,7 @@ func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, erro
 	resp, err := http.DefaultClient.Do(req)
 	responseBody := ""
 	if err != nil {
-		return responseBody, fmt.Errorf("Failed to %s: %s", action, err.Error())
+		return responseBody, fmt.Errorf("Failed to %s: %s", endpoint, err.Error())
 	}
 
 	if resp.Body != nil {
@@ -55,10 +55,10 @@ func (b *Bootstrapper) sendRequest(endpoint string, action string) (string, erro
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return responseBody, fmt.Errorf("Non 200 response from %s at %s: %s", action, endpoint, responseBody)
+		return responseBody, fmt.Errorf("Non 200 response from %s: %s", endpoint, responseBody)
 	}
 
-	b.rootConfig.Logger.Info(fmt.Sprintf("Successfully sent %s request to URL: %s", action, endpoint))
+	b.rootConfig.Logger.Info(fmt.Sprintf("Successfully sent %s request to URL", endpoint))
 
 	return responseBody, nil
 }
@@ -67,7 +67,7 @@ func (b *Bootstrapper) pollUntilResponse(endpoint string, expectedResponse strin
 	maxIterations := int(math.Ceil(float64(b.rootConfig.DatabaseStartupTimeout) / float64(PollingIntervalInSec)))
 	sawResponse := false
 	for i := 0; i < maxIterations; i++ {
-		responseBody, err := b.sendRequest(endpoint, "mysql status")
+		responseBody, err := b.sendGetRequest(endpoint)
 		b.rootConfig.Logger.Info("Received response from status endpoint", lager.Data{
 			"endpoint":     endpoint,
 			"responseBody": responseBody,
@@ -95,7 +95,7 @@ func (b *Bootstrapper) verifyClusterIsUnhealthy() error {
 	syncedNodes := 0
 
 	for _, url := range b.rootConfig.HealthcheckURLs {
-		responseBody, err := b.sendRequest(url, "healthcheck")
+		responseBody, err := b.sendGetRequest(url)
 		b.rootConfig.Logger.Info("Received response from node", lager.Data{
 			"url":          url,
 			"responseBody": responseBody,
@@ -145,7 +145,7 @@ func (b *Bootstrapper) waitForClusterShutdown() error {
 func (b *Bootstrapper) verifyAllNodesAreReachable() error {
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		statusMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.MysqlStatus)
-		_, err := b.sendRequest(statusMysqlUrl, "mysql status")
+		_, err := b.sendGetRequest(statusMysqlUrl)
 		if err != nil {
 			return err
 		}
@@ -203,8 +203,7 @@ func (b *Bootstrapper) Run() error {
 func (b *Bootstrapper) stopAllNodes() error {
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		stopMysqlUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.ShutDownMysql)
-		expectedResponse := b.expectedEndpointResponses[b.rootConfig.ShutDownMysql]
-		_, err := b.sendRequest(stopMysqlUrl, expectedResponse)
+		_, err := b.sendPostRequest(stopMysqlUrl)
 		if err != nil {
 			return err
 		}
@@ -216,7 +215,7 @@ func (b *Bootstrapper) getSequenceNumbers() (map[string]int, error) {
 	sequenceNumberMap := make(map[string]int)
 	for _, url := range b.rootConfig.HealthcheckURLs {
 		getSeqNumberUrl := fmt.Sprintf("%s/%s", url, b.rootConfig.GetSeqNumber)
-		responseBody, err := b.sendRequest(getSeqNumberUrl, "get sequence number")
+		responseBody, err := b.sendGetRequest(getSeqNumberUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -245,8 +244,7 @@ func (b *Bootstrapper) joinNode(baseURL string) error {
 
 func (b *Bootstrapper) startNodeWithURL(baseURL string, startEndpoint string) error {
 	startURL := fmt.Sprintf("%s/%s", baseURL, startEndpoint)
-	expectedResponse := b.expectedEndpointResponses[startEndpoint]
-	_, err := b.sendRequest(startURL, expectedResponse)
+	_, err := b.sendPostRequest(startURL)
 	if err != nil {
 		return err
 	}
