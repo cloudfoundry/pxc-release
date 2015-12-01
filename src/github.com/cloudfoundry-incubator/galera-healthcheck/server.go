@@ -57,7 +57,7 @@ func main() {
 	healthchecker := healthcheck.New(db, *rootConfig, logger)
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 
-	mux := api.NewHandler(api.ApiParameters{
+	router := api.NewRouter(api.ApiParameters{
 		RootConfig:            rootConfig,
 		SequenceNumberChecker: sequenceNumberchecker,
 		Healthchecker:         healthchecker,
@@ -131,7 +131,7 @@ func main() {
 		logger.Info("Healthcheck Started")
 	}()
 
-	err = http.ListenAndServe(address, mux)
+	err = http.ListenAndServe(address, router)
 	if err != nil {
 		logger.Fatal("Galera healthcheck stopped unexpectedly", err)
 	}

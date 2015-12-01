@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
+	"github.com/tedsuo/rata"
 )
 
 type ApiParameters struct {
@@ -18,42 +19,51 @@ type ApiParameters struct {
 	Healthchecker         healthcheck.HealthChecker
 }
 
-func NewHandler(apiParams ApiParameters) *http.ServeMux {
+func NewRouter(apiParams ApiParameters) http.Handler {
 
-	mux := http.NewServeMux()
+	routes := rata.Routes{
+		{Name: "mysql_status", Method: "GET", Path: "/mysql_status"},
+		{Name: "stop_mysql", Method: "POST", Path: "/stop_mysql"},
+		{Name: "start_mysql_bootstrap", Method: "POST", Path: "/start_mysql_bootstrap"},
+		{Name: "start_mysql_join", Method: "POST", Path: "/start_mysql_join"},
+		{Name: "sequence_number", Method: "GET", Path: "/sequence_number"},
+		{Name: "galera_status", Method: "GET", Path: "/galera_status"},
+		{Name: "root", Method: "GET", Path: "/"},
+	}
 
-	mux.Handle("/mysql_status", getSecureHandler(func() (string, error) {
-		return apiParams.MonitClient.GetStatus()
-	}, apiParams))
+	handlers := rata.Handlers{
+		"mysql_status": getSecureHandler(func() (string, error) {
+			return apiParams.MonitClient.GetStatus()
+		}, apiParams),
+		"stop_mysql": getSecureHandler(func() (string, error) {
+			_, err := apiParams.MonitClient.StopService()
+			return "", err
+		}, apiParams),
+		"start_mysql_bootstrap": getSecureHandler(func() (string, error) {
+			_, err := apiParams.MonitClient.StartService("bootstrap")
+			return "", err
+		}, apiParams),
+		"start_mysql_join": getSecureHandler(func() (string, error) {
+			_, err := apiParams.MonitClient.StartService("join")
+			return "", err
+		}, apiParams),
+		"sequence_number": getSecureHandler(func() (string, error) {
+			return apiParams.SequenceNumberChecker.Check()
+		}, apiParams),
+		"galera_status": getInsecureHandler(func() (string, error) {
+			return apiParams.Healthchecker.Check()
+		}, apiParams),
+		"root": getInsecureHandler(func() (string, error) {
+			return apiParams.Healthchecker.Check()
+		}, apiParams),
+	}
 
-	mux.Handle("/stop_mysql", getSecureHandler(func() (string, error) {
-		_, err := apiParams.MonitClient.StopService()
-		return "", err
-	}, apiParams))
+	router, err := rata.NewRouter(routes, handlers)
+	if err != nil {
+		apiParams.RootConfig.Logger.Error("Error initializing router", err)
+	}
 
-	mux.Handle("/start_mysql_bootstrap", getSecureHandler(func() (string, error) {
-		_, err := apiParams.MonitClient.StartService("bootstrap")
-		return "", err
-	}, apiParams))
-
-	mux.Handle("/start_mysql_join", getSecureHandler(func() (string, error) {
-		_, err := apiParams.MonitClient.StartService("join")
-		return "", err
-	}, apiParams))
-
-	mux.Handle("/sequence_number", getSecureHandler(func() (string, error) {
-		return apiParams.SequenceNumberChecker.Check()
-	}, apiParams))
-
-	mux.Handle("/galera_status", getInsecureHandler(func() (string, error) {
-		return apiParams.Healthchecker.Check()
-	}, apiParams))
-
-	mux.Handle("/", getInsecureHandler(func() (string, error) {
-		return apiParams.Healthchecker.Check()
-	}, apiParams))
-
-	return mux
+	return router
 }
 
 func getSecureHandler(getResponse func() (string, error), apiParams ApiParameters) http.Handler {

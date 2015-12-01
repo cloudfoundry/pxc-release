@@ -54,7 +54,7 @@ var _ = Describe("Bootstrap API", func() {
 		monitClient.StartServiceReturns(true, nil)
 		monitClient.GetStatusReturns("running", nil)
 
-		handler := api.NewHandler(api.ApiParameters{
+		handler := api.NewRouter(api.ApiParameters{
 			RootConfig:            testConfig,
 			MonitClient:           monitClient,
 			SequenceNumberChecker: sequenceNumber,
@@ -69,9 +69,9 @@ var _ = Describe("Bootstrap API", func() {
 
 	Context("when request has basic auth", func() {
 
-		var getReq = func(endpoint string) *http.Request {
+		var createReq = func(endpoint string, method string) *http.Request {
 			url := fmt.Sprintf("%s/%s", ts.URL, endpoint)
-			req, err := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest(method, url, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			req.SetBasicAuth(ApiUsername, ApiPassword)
@@ -79,7 +79,7 @@ var _ = Describe("Bootstrap API", func() {
 		}
 
 		It("Calls StopService on the monit client when a stop command is sent", func() {
-			req := getReq("stop_mysql")
+			req := createReq("stop_mysql", "POST")
 			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -88,7 +88,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("Calls StartService(join) on the monit client when a start command is sent in join mode", func() {
-			resp, err := http.DefaultClient.Do(getReq("start_mysql_join"))
+			req := createReq("start_mysql_join", "POST")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -98,7 +99,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("Calls StartService(bootstrap) on the monit client when a start command is sent in bootstrap mode", func() {
-			resp, err := http.DefaultClient.Do(getReq("start_mysql_bootstrap"))
+			req := createReq("start_mysql_bootstrap", "POST")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -108,7 +110,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("Calls GetStatus on the monit client when a new GetStatusCmd is created", func() {
-			resp, err := http.DefaultClient.Do(getReq("mysql_status"))
+			req := createReq("mysql_status", "GET")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -117,7 +120,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("Calls Checker on the SequenceNumberchecker when a new sequence_number is created", func() {
-			resp, err := http.DefaultClient.Do(getReq("sequence_number"))
+			req := createReq("sequence_number", "GET")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -126,18 +130,26 @@ var _ = Describe("Bootstrap API", func() {
 			Expect(responseBody).To(ContainSubstring(ExpectedSeqno))
 			Expect(sequenceNumber.CheckCallCount()).To(Equal(1))
 		})
+
+		It("returns 404 when a request is made to an unsupplied endpoint", func() {
+			req := createReq("nonexistent_endpoint", "GET")
+			resp, err := http.DefaultClient.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+		})
 	})
 
 	Context("when request does not have basic auth", func() {
-		var getReq = func(endpoint string) *http.Request {
+		var createReq = func(endpoint string, method string) *http.Request {
 			url := fmt.Sprintf("%s/%s", ts.URL, endpoint)
-			req, err := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest(method, url, nil)
 			Expect(err).ToNot(HaveOccurred())
 			return req
 		}
 
 		It("requires authentication for /stop_mysql", func() {
-			resp, err := http.DefaultClient.Do(getReq("stop_mysql"))
+			req := createReq("stop_mysql", "POST")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -145,7 +157,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("requires authentication for /start_mysql_bootstrap", func() {
-			resp, err := http.DefaultClient.Do(getReq("start_mysql_bootstrap"))
+			req := createReq("start_mysql_bootstrap", "POST")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -153,7 +166,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("requires authentication for /start_mysql_join", func() {
-			resp, err := http.DefaultClient.Do(getReq("start_mysql_join"))
+			req := createReq("start_mysql_join", "POST")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -161,7 +175,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("requires authentication for /mysql_status", func() {
-			resp, err := http.DefaultClient.Do(getReq("mysql_status"))
+			req := createReq("mysql_status", "GET")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -169,7 +184,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("requires authentication for /sequence_number", func() {
-			resp, err := http.DefaultClient.Do(getReq("sequence_number"))
+			req := createReq("sequence_number", "GET")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -180,7 +196,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("Calls Check on the Healthchecker at the root endpoint", func() {
-			resp, err := http.DefaultClient.Do(getReq(""))
+			req := createReq("", "GET")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -191,7 +208,8 @@ var _ = Describe("Bootstrap API", func() {
 		})
 
 		It("Calls Check on the Healthchecker at /galera_status", func() {
-			resp, err := http.DefaultClient.Do(getReq("galera_status"))
+			req := createReq("galera_status", "GET")
+			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
