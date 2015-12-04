@@ -36,8 +36,6 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) HealthChecker {
 }
 
 func (h *healthChecker) Check() (string, error) {
-	h.logger.Info("Checking state of galera...")
-
 	var unused string
 	var value int
 	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&unused, &value)
