@@ -23,6 +23,7 @@ var _ = Describe("Config", func() {
 				"StatusEndpoint": "fake",
 				"Host": "localhost",
 				"Port": "8080",
+				"ArbitratorNode": "false",
 				"AvailableWhenReadOnly": false,
 				"AvailableWhenDonor": true,
 				"PidFile": "fake-path",
@@ -149,6 +150,11 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if BootstrapEndpoint.Password is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "BootstrapEndpoint.Password")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if ArbitratorNode is blank", func() {
+			err := test_helpers.IsOptionalField(rootConfig, "ArbitratorNode")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

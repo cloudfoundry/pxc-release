@@ -18,6 +18,7 @@ import (
 
 const (
 	ExpectedSeqno             = "4"
+	ArbitratorSeqnoResponse   = "no sequence number - running on arbitrator node"
 	ExpectedHealthCheckStatus = "synced"
 	ApiUsername               = "fake-username"
 	ApiPassword               = "fake-password"

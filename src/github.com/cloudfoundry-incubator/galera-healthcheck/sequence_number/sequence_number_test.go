@@ -17,7 +17,10 @@ import (
 
 var _ = Describe("GaleraSequenceChecker", func() {
 
-	const expectedSeqNumber = "32"
+	const (
+		expectedSeqNumber       = "32"
+		arbitratorSeqnoResponse = "no sequence number - running on arbitrator node"
+	)
 
 	var (
 		sequenceChecker sequence_number.SequenceNumberChecker
@@ -92,6 +95,20 @@ var _ = Describe("GaleraSequenceChecker", func() {
 					_, err := sequenceChecker.Check()
 					Expect(err).To(MatchError("something went wrong"))
 				})
+			})
+		})
+
+		Context("running on an arbitrator node", func() {
+			BeforeEach(func() {
+				rootConfig = config.Config{
+					ArbitratorNode: true,
+				}
+			})
+
+			It("returns a message stating it is an arbitrator node", func() {
+				seq, err := sequenceChecker.Check()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(seq).To(ContainSubstring(arbitratorSeqnoResponse))
 			})
 		})
 	})
