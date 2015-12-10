@@ -27,7 +27,7 @@ var (
 	testServers      []*httptest.Server
 	endpointHandlers []*test_helpers.EndpointHandler
 	rootConfig       *config.Config
-	nodeManager      *node_manager.NodeManager
+	nodeManager      node_manager.NodeManager
 )
 
 var _ = Describe("Bootstrap", func() {

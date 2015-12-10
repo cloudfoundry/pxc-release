@@ -16,19 +16,28 @@ import (
 
 const PollingIntervalInSec = 5
 
-type NodeManager struct {
+type NodeManager interface {
+	VerifyClusterIsUnhealthy() error
+	VerifyAllNodesAreReachable() error
+	StopAllNodes() error
+	GetSequenceNumbers() (map[string]int, error)
+	BootstrapNode(baseURL string) error
+	JoinNode(baseURL string) error
+}
+
+type nodeManager struct {
 	rootConfig *config.Config
 	clock      clock.Clock
 }
 
-func New(rootConfig *config.Config, clock clock.Clock) *NodeManager {
-	return &NodeManager{
+func New(rootConfig *config.Config, clock clock.Clock) NodeManager {
+	return &nodeManager{
 		rootConfig: rootConfig,
 		clock:      clock,
 	}
 }
 
-func (nm *NodeManager) VerifyClusterIsUnhealthy() error {
+func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 	allNodes := len(nm.rootConfig.HealthcheckURLs)
 	syncedNodes := 0
 
@@ -58,7 +67,7 @@ func (nm *NodeManager) VerifyClusterIsUnhealthy() error {
 	return nil
 }
 
-func (nm *NodeManager) VerifyAllNodesAreReachable() error {
+func (nm *nodeManager) VerifyAllNodesAreReachable() error {
 	for _, url := range nm.rootConfig.HealthcheckURLs {
 		statusMysqlUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.MysqlStatus)
 		_, err := nm.sendGetRequest(statusMysqlUrl)
@@ -70,7 +79,7 @@ func (nm *NodeManager) VerifyAllNodesAreReachable() error {
 	return nil
 }
 
-func (nm *NodeManager) StopAllNodes() error {
+func (nm *nodeManager) StopAllNodes() error {
 	for _, url := range nm.rootConfig.HealthcheckURLs {
 		stopMysqlUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.ShutDownMysql)
 		_, err := nm.sendPostRequest(stopMysqlUrl)
@@ -82,7 +91,7 @@ func (nm *NodeManager) StopAllNodes() error {
 	return nm.waitForClusterShutdown()
 }
 
-func (nm *NodeManager) GetSequenceNumbers() (map[string]int, error) {
+func (nm *nodeManager) GetSequenceNumbers() (map[string]int, error) {
 	sequenceNumberMap := make(map[string]int)
 
 	for _, url := range nm.rootConfig.HealthcheckURLs {
@@ -107,15 +116,15 @@ func (nm *NodeManager) GetSequenceNumbers() (map[string]int, error) {
 	return sequenceNumberMap, nil
 }
 
-func (nm *NodeManager) BootstrapNode(baseURL string) error {
+func (nm *nodeManager) BootstrapNode(baseURL string) error {
 	return nm.startNodeWithURL(baseURL, nm.rootConfig.StartMysqlInBootstrapMode)
 }
 
-func (nm *NodeManager) JoinNode(baseURL string) error {
+func (nm *nodeManager) JoinNode(baseURL string) error {
 	return nm.startNodeWithURL(baseURL, nm.rootConfig.StartMysqlInJoinMode)
 }
 
-func (nm *NodeManager) startNodeWithURL(baseURL string, startEndpoint string) error {
+func (nm *nodeManager) startNodeWithURL(baseURL string, startEndpoint string) error {
 	startURL := fmt.Sprintf("%s/%s", baseURL, startEndpoint)
 	_, err := nm.sendPostRequest(startURL)
 	if err != nil {
@@ -131,7 +140,7 @@ func (nm *NodeManager) startNodeWithURL(baseURL string, startEndpoint string) er
 	return nil
 }
 
-func (nm *NodeManager) pollUntilResponse(endpoint string, expectedResponse string) error {
+func (nm *nodeManager) pollUntilResponse(endpoint string, expectedResponse string) error {
 	maxIterations := int(math.Ceil(float64(nm.rootConfig.DatabaseStartupTimeout) / float64(PollingIntervalInSec)))
 	sawResponse := false
 	for i := 0; i < maxIterations; i++ {
@@ -158,7 +167,7 @@ func (nm *NodeManager) pollUntilResponse(endpoint string, expectedResponse strin
 	}
 }
 
-func (nm *NodeManager) waitForClusterShutdown() error {
+func (nm *nodeManager) waitForClusterShutdown() error {
 	shutdownClusters := make(chan error, len(nm.rootConfig.HealthcheckURLs))
 
 	for _, url := range nm.rootConfig.HealthcheckURLs {
@@ -180,15 +189,15 @@ func (nm *NodeManager) waitForClusterShutdown() error {
 	return nil
 }
 
-func (nm *NodeManager) sendPostRequest(endpoint string) (string, error) {
+func (nm *nodeManager) sendPostRequest(endpoint string) (string, error) {
 	return nm.sendRequest(endpoint, "POST")
 }
 
-func (nm *NodeManager) sendGetRequest(endpoint string) (string, error) {
+func (nm *nodeManager) sendGetRequest(endpoint string) (string, error) {
 	return nm.sendRequest(endpoint, "GET")
 }
 
-func (nm *NodeManager) sendRequest(endpoint string, method string) (string, error) {
+func (nm *nodeManager) sendRequest(endpoint string, method string) (string, error) {
 	req, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
 		return "", err

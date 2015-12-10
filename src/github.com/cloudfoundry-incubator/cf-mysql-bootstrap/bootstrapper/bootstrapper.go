@@ -2,64 +2,54 @@ package bootstrapper
 
 import (
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
-	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
-	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 )
 
 const PollingIntervalInSec = 5
 
 type Bootstrapper struct {
-	rootConfig *config.Config
-	clock      clock.Clock
+	nodeManager node_manager.NodeManager
 }
 
-func New(rootConfig *config.Config, clock clock.Clock) *Bootstrapper {
+func New(nodeManager node_manager.NodeManager) *Bootstrapper {
 	return &Bootstrapper{
-		rootConfig: rootConfig,
-		clock:      clock,
+		nodeManager: nodeManager,
 	}
 }
 
-func (b *Bootstrapper) Run() error {
-	logger := b.rootConfig.Logger
-
-	nodeManager := node_manager.New(b.rootConfig, b.clock)
-
-	err := nodeManager.VerifyClusterIsUnhealthy()
+func (b *Bootstrapper) Bootstrap() error {
+	err := b.nodeManager.VerifyClusterIsUnhealthy()
 	if err != nil {
 		return err
 	}
 
-	err = nodeManager.VerifyAllNodesAreReachable()
+	err = b.nodeManager.VerifyAllNodesAreReachable()
 	if err != nil {
 		return err
 	}
 
-	err = nodeManager.StopAllNodes()
+	err = b.nodeManager.StopAllNodes()
 	if err != nil {
 		return err
 	}
 
-	sequenceNumberMap, err := nodeManager.GetSequenceNumbers()
+	sequenceNumberMap, err := b.nodeManager.GetSequenceNumbers()
 	if err != nil {
 		return err
 	}
 
 	bootstrapNodeURL, joinNodes := largestSequenceNumber(sequenceNumberMap)
-	err = nodeManager.BootstrapNode(bootstrapNodeURL)
+	err = b.nodeManager.BootstrapNode(bootstrapNodeURL)
 	if err != nil {
 		return err
 	}
 
 	// galera recommends joining nodes one at a time
 	for _, url := range joinNodes {
-		err = nodeManager.JoinNode(url)
+		err = b.nodeManager.JoinNode(url)
 		if err != nil {
 			return err
 		}
 	}
-
-	logger.Info("Successfully started mysql process on all nodes")
 
 	return nil
 }

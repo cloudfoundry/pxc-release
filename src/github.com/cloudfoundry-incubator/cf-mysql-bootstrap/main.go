@@ -5,6 +5,7 @@ import (
 	"os"
 
 	bootstrapperPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper"
+	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 	"github.com/pivotal-golang/lager"
@@ -20,8 +21,9 @@ func main() {
 		})
 	}
 
-	bootstrapper := bootstrapperPkg.New(rootConfig, clock.DefaultClock())
-	err = bootstrapper.Run()
+	nodeManager := node_manager.New(rootConfig, clock.DefaultClock())
+	bootstrapper := bootstrapperPkg.New(nodeManager)
+	err = bootstrapper.Bootstrap()
 
 	if err != nil {
 		logger.Error("Failed to bootstrap cluster", err, lager.Data{
