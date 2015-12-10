@@ -2,11 +2,10 @@ package node_manager_test
 
 import (
 	"fmt"
-	"strconv"
-	"time"
-
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"time"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	clockPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock/fakes"
@@ -33,23 +32,7 @@ var (
 var _ = Describe("Bootstrap", func() {
 
 	BeforeEach(func() {
-		endpointHandlers = []*test_helpers.EndpointHandler{}
-		for i := 0; i < ServerCount; i++ {
-			endpointHandler := test_helpers.NewEndpointHandler()
-			endpointHandler.StubEndpointWithStatus("/", http.StatusOK)
-			endpointHandler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
-			endpointHandler.StubEndpointWithStatus("/sequence_number", http.StatusOK, strconv.Itoa(i))
-			endpointHandler.StubEndpointWithStatus("/mysql_status", http.StatusOK, "running")
-			if i == ServerCount-1 {
-				endpointHandler.StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
-			} else {
-				endpointHandler.StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
-			}
-			endpointHandlers = append(endpointHandlers, endpointHandler)
-		}
-	})
 
-	JustBeforeEach(func() {
 		rootConfig = &config.Config{
 			ShutDownMysql:             "stop_mysql",
 			MysqlStatus:               "mysql_status",
@@ -60,6 +43,14 @@ var _ = Describe("Bootstrap", func() {
 		}
 
 		rootConfig.Logger = lagertest.NewTestLogger("nodeManager test")
+
+		endpointHandlers = []*test_helpers.EndpointHandler{}
+		for i := 0; i < ServerCount; i++ {
+			endpointHandlers = append(endpointHandlers, test_helpers.NewEndpointHandler())
+		}
+	})
+
+	JustBeforeEach(func() {
 		testServers = []*httptest.Server{}
 		for i := 0; i < ServerCount; i++ {
 			newServer := httptest.NewServer(endpointHandlers[i])
@@ -86,15 +77,8 @@ var _ = Describe("Bootstrap", func() {
 		Context("when all mysql nodes are unhealthy", func() {
 
 			BeforeEach(func() {
-				for i := 0; i < ServerCount; i++ {
-					fakeHandler := &fakes.FakeHandler{}
-					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-						w.WriteHeader(http.StatusServiceUnavailable)
-						var responseText string
-						responseText = "not synced"
-						fmt.Fprintf(w, responseText)
-					}
-					endpointHandlers[i].StubEndpoint("/", fakeHandler)
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
 				}
 			})
 
@@ -110,14 +94,8 @@ var _ = Describe("Bootstrap", func() {
 		Context("when all mysql nodes are healthy", func() {
 
 			BeforeEach(func() {
-				for i := 0; i < ServerCount; i++ {
-					fakeHandler := &fakes.FakeHandler{}
-					fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-						var responseText string
-						responseText = "synced"
-						fmt.Fprintf(w, responseText)
-					}
-					endpointHandlers[i].StubEndpoint("/", fakeHandler)
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
 				}
 			})
 
@@ -134,26 +112,10 @@ var _ = Describe("Bootstrap", func() {
 		Context("when some mysql nodes are synced but some are unhealthy", func() {
 
 			BeforeEach(func() {
-				for i := 0; i < ServerCount; i++ {
-					if i < ServerCount-1 {
-						fakeHandler := &fakes.FakeHandler{}
-						fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-							var responseText string
-							responseText = "synced"
-							fmt.Fprintf(w, responseText)
-						}
-						endpointHandlers[i].StubEndpoint("/", fakeHandler)
-					} else {
-						fakeHandler := &fakes.FakeHandler{}
-						fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-							w.WriteHeader(http.StatusServiceUnavailable)
-							var responseText string
-							responseText = "not synced"
-							fmt.Fprintf(w, responseText)
-						}
-						endpointHandlers[i].StubEndpoint("/", fakeHandler)
-					}
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
 				}
+				endpointHandlers[ServerCount-1].StubEndpointWithStatus("/", http.StatusOK, "synced")
 			})
 
 			It("returns an error without bootstrapping", func() {
@@ -171,6 +133,13 @@ var _ = Describe("Bootstrap", func() {
 	Describe("#VerifyAllNodesAreReachable", func() {
 
 		Context("when all nodes are reachable", func() {
+
+			BeforeEach(func() {
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/mysql_status", http.StatusOK)
+				}
+			})
+
 			It("does not return an error", func() {
 				err := nodeManager.VerifyAllNodesAreReachable()
 				Expect(err).ToNot(HaveOccurred())
@@ -183,7 +152,6 @@ var _ = Describe("Bootstrap", func() {
 
 		Context("when any node returns a non-200 response", func() {
 			BeforeEach(func() {
-				makeFailingCluster()
 				endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
 					http.StatusInternalServerError,
 					"fake-error")
@@ -233,6 +201,9 @@ var _ = Describe("Bootstrap", func() {
 					}
 					endpointHandlers[i].StubEndpoint("/mysql_status", fakeHandler)
 				}
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
+				}
 			})
 
 			It("returns the error and quits", func() {
@@ -248,7 +219,6 @@ var _ = Describe("Bootstrap", func() {
 
 		Context("when any shutdown request to mariadb_ctrl fails", func() {
 			BeforeEach(func() {
-				makeFailingCluster()
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql",
 					http.StatusInternalServerError,
 					"fake-error")
@@ -265,7 +235,10 @@ var _ = Describe("Bootstrap", func() {
 
 		Context("when we timeout waiting for mariadb_ctrl to shutdown", func() {
 			BeforeEach(func() {
-				makeFailingCluster()
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
+					handler.StubEndpointWithStatus("/mysql_status", http.StatusOK)
+				}
 				endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
 					http.StatusOK,
 					"pending")
@@ -288,6 +261,12 @@ var _ = Describe("Bootstrap", func() {
 
 	Describe("#GetSequenceNumbers", func() {
 		Context("when all nodes return a valid seqno", func() {
+			BeforeEach(func() {
+				for i, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/sequence_number", http.StatusOK, strconv.Itoa(i))
+				}
+			})
+
 			It("returns a map from URL to seqno", func() {
 				urlToSeqno, err := nodeManager.GetSequenceNumbers()
 				Expect(err).ToNot(HaveOccurred())
@@ -306,14 +285,9 @@ var _ = Describe("Bootstrap", func() {
 
 		Context("when any node returns a non-valid sequence number", func() {
 			BeforeEach(func() {
-				fakeHandler := &fakes.FakeHandler{}
-				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-					w.WriteHeader(http.StatusServiceUnavailable)
-					responseText := "fake-error"
-					fmt.Fprintf(w, responseText)
-				}
-				endpointHandlers[0].StubEndpoint("/sequence_number", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/sequence_number", http.StatusServiceUnavailable, "fake-error")
 			})
+
 			It("returns an error", func() {
 				_, err := nodeManager.GetSequenceNumbers()
 				Expect(err).To(HaveOccurred())
@@ -361,12 +335,7 @@ var _ = Describe("Bootstrap", func() {
 		Context("when the bootstrap endpoint returns a non-200 response", func() {
 
 			BeforeEach(func() {
-				fakeHandler := &fakes.FakeHandler{}
-				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, "fake-error")
-				}
-				endpointHandlers[0].StubEndpoint("/start_mysql_bootstrap", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusServiceUnavailable, "fake-error")
 			})
 
 			It("returns an error", func() {
@@ -440,12 +409,7 @@ var _ = Describe("Bootstrap", func() {
 		Context("when the join endpoint returns a non-200 response", func() {
 
 			BeforeEach(func() {
-				fakeHandler := &fakes.FakeHandler{}
-				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, "fake-error")
-				}
-				endpointHandlers[0].StubEndpoint("/start_mysql_join", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusInternalServerError, "fake-error")
 			})
 
 			It("returns an error", func() {
@@ -482,16 +446,3 @@ var _ = Describe("Bootstrap", func() {
 		})
 	})
 })
-
-func makeFailingCluster() {
-	for i := 0; i < ServerCount; i++ {
-		fakeHandler := &fakes.FakeHandler{}
-		fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			var responseText string
-			responseText = "not synced"
-			fmt.Fprintf(w, responseText)
-		}
-		endpointHandlers[i].StubEndpoint("/", fakeHandler)
-	}
-}
