@@ -133,11 +133,6 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if Monit.MysqlStateFilePath is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Monit.MysqlStateFilePath")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("returns an error if Monit.ServiceName is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "Monit.ServiceName")
 			Expect(err).ToNot(HaveOccurred())

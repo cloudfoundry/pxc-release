@@ -37,7 +37,7 @@ type MonitConfig struct {
 	User               string `validate:"nonzero"`
 	Port               int    `validate:"nonzero"`
 	Password           string `validate:"nonzero"`
-	MysqlStateFilePath string `validate:"nonzero"`
+	MysqlStateFilePath string
 	ServiceName        string `validate:"nonzero"`
 }
 

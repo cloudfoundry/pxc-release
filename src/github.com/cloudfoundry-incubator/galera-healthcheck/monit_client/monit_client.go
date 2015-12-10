@@ -1,6 +1,7 @@
 package monit_client
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,7 +39,11 @@ func (m *monitClient) GetLogger() lager.Logger {
 }
 
 func (m *monitClient) StartServiceBootstrap() (string, error) {
-	return m.startService("bootstrap")
+	if m.monitConfig.ServiceName == "mariadb_ctrl" {
+		return m.startService("bootstrap")
+	} else {
+		return "", errors.New("bootstrapping arbitrator not allowed")
+	}
 }
 
 func (m *monitClient) StartServiceJoin() (string, error) {
@@ -46,14 +51,16 @@ func (m *monitClient) StartServiceJoin() (string, error) {
 }
 
 func (m *monitClient) startService(startMode string) (string, error) {
-	mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
-	err := mySqlStartMode.Start()
-	if err != nil {
-		m.logger.Error("Failed to start mysql node", err)
-		return "", err
+	if m.monitConfig.ServiceName == "mariadb_ctrl" {
+		mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
+		err := mySqlStartMode.Start()
+		if err != nil {
+			m.logger.Error("Failed to start mysql node", err)
+			return "", err
+		}
 	}
 
-	err = m.runServiceCmd("start")
+	err := m.runServiceCmd("start")
 	msg := ""
 	if err == nil {
 		msg = fmt.Sprintf("Successfully sent start request in %s mode", startMode)
