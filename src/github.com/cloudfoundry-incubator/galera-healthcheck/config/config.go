@@ -16,7 +16,6 @@ type Config struct {
 	Monit                 MonitConfig `validate:"nonzero"`
 	Host                  string      `validate:"nonzero"`
 	Port                  int         `validate:"nonzero"`
-	ArbitratorNode        bool
 	AvailableWhenDonor    bool
 	AvailableWhenReadOnly bool
 	PidFile               string `validate:"nonzero"`

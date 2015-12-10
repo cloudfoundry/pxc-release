@@ -148,11 +148,6 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if ArbitratorNode is blank", func() {
-			err := test_helpers.IsOptionalField(rootConfig, "ArbitratorNode")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("returns a valid logger", func() {
 			Expect(rootConfig.Logger).ToNot(BeNil())
 		})

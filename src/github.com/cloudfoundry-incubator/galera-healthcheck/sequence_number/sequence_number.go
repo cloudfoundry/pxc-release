@@ -35,7 +35,7 @@ func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logge
 func (s *sequenceNumberChecker) Check() (string, error) {
 	s.logger.Info("Checking sequence number of mariadb node...")
 
-	if s.config.ArbitratorNode == true {
+	if s.config.Monit.ServiceName == "garbd" {
 		return "no sequence number - running on arbitrator node", nil
 	} else if s.dbReachable() {
 		return "", errors.New("can't determine sequence number when database is running")
