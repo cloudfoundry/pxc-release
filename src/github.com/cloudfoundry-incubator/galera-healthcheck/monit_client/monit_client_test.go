@@ -256,10 +256,11 @@ var _ = Describe("monitClient", func() {
 
 	Context("when running on a arbitrator node", func() {
 		BeforeEach(func() {
+			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
+			stateFile.Chmod(0777)
 			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			})
-
 			processName = "garbd"
 		})
 
@@ -327,8 +328,9 @@ var _ = Describe("monitClient", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
 
-					_, err = os.Stat(stateFile.Name())
-					Expect(err).To(HaveOccurred())
+					f, err := os.Open(stateFile.Name())
+					fstat, err := f.Stat()
+					Expect(int(fstat.Size())).To(Equal(0))
 				})
 			})
 
@@ -345,8 +347,9 @@ var _ = Describe("monitClient", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("join"))
 
-					_, err = os.Stat(stateFile.Name())
-					Expect(err).To(HaveOccurred())
+					f, err := os.Open(stateFile.Name())
+					fstat, err := f.Stat()
+					Expect(int(fstat.Size())).To(Equal(0))
 				})
 			})
 
@@ -363,8 +366,9 @@ var _ = Describe("monitClient", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("failed to start"))
 
-					_, err = os.Stat(stateFile.Name())
-					Expect(err).To(HaveOccurred())
+					f, err := os.Open(stateFile.Name())
+					fstat, err := f.Stat()
+					Expect(int(fstat.Size())).To(Equal(0))
 				})
 			})
 
