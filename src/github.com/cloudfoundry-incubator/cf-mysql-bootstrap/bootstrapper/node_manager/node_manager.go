@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
@@ -49,6 +50,8 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 		})
 		if err == nil {
 			syncedNodes++
+		} else if strings.Contains(responseBody, "arbitrator") {
+			allNodes--
 		}
 	}
 
@@ -102,16 +105,20 @@ func (nm *nodeManager) GetSequenceNumbers() (map[string]int, error) {
 			return nil, err
 		}
 
-		sequenceNumber, err := strconv.Atoi(responseBody)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
+		if strings.Contains(responseBody, "arbitrator") {
+			sequenceNumberMap[url] = -1
+		} else {
+			sequenceNumber, err := strconv.Atoi(responseBody)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
+			}
+
+			nm.rootConfig.Logger.Info(fmt.Sprintf("Retrieved sequence number of %d from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
+				"url": getSeqNumberUrl,
+			})
+
+			sequenceNumberMap[url] = sequenceNumber
 		}
-
-		nm.rootConfig.Logger.Info(fmt.Sprintf("Retrieved sequence number of %d from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
-			"url": getSeqNumberUrl,
-		})
-
-		sequenceNumberMap[url] = sequenceNumber
 	}
 	return sequenceNumberMap, nil
 }
