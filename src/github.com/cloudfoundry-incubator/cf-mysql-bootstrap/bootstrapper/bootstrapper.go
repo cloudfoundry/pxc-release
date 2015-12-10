@@ -1,9 +1,9 @@
 package bootstrapper
 
 import (
+	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
-	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 )
 
 const PollingIntervalInSec = 5
@@ -23,7 +23,7 @@ func New(rootConfig *config.Config, clock clock.Clock) *Bootstrapper {
 func (b *Bootstrapper) Run() error {
 	logger := b.rootConfig.Logger
 
-	nodeManager := node_manager.NewNodeManager(b.rootConfig, b.clock)
+	nodeManager := node_manager.New(b.rootConfig, b.clock)
 
 	err := nodeManager.VerifyClusterIsUnhealthy()
 	if err != nil {
@@ -36,11 +36,6 @@ func (b *Bootstrapper) Run() error {
 	}
 
 	err = nodeManager.StopAllNodes()
-	if err != nil {
-		return err
-	}
-
-	err = nodeManager.WaitForClusterShutdown()
 	if err != nil {
 		return err
 	}

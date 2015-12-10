@@ -3,11 +3,11 @@ package node_manager
 import (
 	"errors"
 	"fmt"
-	"math"
 	"io/ioutil"
-	"time"
-	"strconv"
+	"math"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
@@ -18,13 +18,13 @@ const PollingIntervalInSec = 5
 
 type NodeManager struct {
 	rootConfig *config.Config
-	clock clock.Clock
+	clock      clock.Clock
 }
 
-func NewNodeManager(rootConfig *config.Config, clock clock.Clock) *NodeManager {
+func New(rootConfig *config.Config, clock clock.Clock) *NodeManager {
 	return &NodeManager{
 		rootConfig: rootConfig,
-		clock: clock,
+		clock:      clock,
 	}
 }
 
@@ -63,6 +63,7 @@ func (nm *NodeManager) VerifyAllNodesAreReachable() error {
 		statusMysqlUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.MysqlStatus)
 		_, err := nm.sendGetRequest(statusMysqlUrl)
 		if err != nil {
+			err = fmt.Errorf("Could not reach node: %s, received: %s", url, err.Error())
 			return err
 		}
 	}
@@ -77,35 +78,16 @@ func (nm *NodeManager) StopAllNodes() error {
 			return err
 		}
 	}
-	return nil
-}
 
-func (nm *NodeManager) WaitForClusterShutdown() error {
-	shutdownClusters := make(chan error, len(nm.rootConfig.HealthcheckURLs))
-
-	for _, url := range nm.rootConfig.HealthcheckURLs {
-		statusUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.MysqlStatus)
-		go func() {
-			err := nm.pollUntilResponse(statusUrl, "stopped")
-			shutdownClusters <- err
-		}()
-	}
-
-	for _ = range nm.rootConfig.HealthcheckURLs {
-		err := <-shutdownClusters
-		if err != nil {
-			return err
-		}
-	}
-
-	nm.rootConfig.Logger.Info("Successfully stopped mysql process on all vms")
-	return nil
+	return nm.waitForClusterShutdown()
 }
 
 func (nm *NodeManager) GetSequenceNumbers() (map[string]int, error) {
 	sequenceNumberMap := make(map[string]int)
+
 	for _, url := range nm.rootConfig.HealthcheckURLs {
 		getSeqNumberUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.GetSeqNumber)
+
 		responseBody, err := nm.sendGetRequest(getSeqNumberUrl)
 		if err != nil {
 			return nil, err
@@ -174,6 +156,28 @@ func (nm *NodeManager) pollUntilResponse(endpoint string, expectedResponse strin
 		nm.rootConfig.Logger.Info(fmt.Sprintf("Successfully received %s response from mysql", expectedResponse), lager.Data{"url": endpoint})
 		return nil
 	}
+}
+
+func (nm *NodeManager) waitForClusterShutdown() error {
+	shutdownClusters := make(chan error, len(nm.rootConfig.HealthcheckURLs))
+
+	for _, url := range nm.rootConfig.HealthcheckURLs {
+		statusUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.MysqlStatus)
+		go func() {
+			err := nm.pollUntilResponse(statusUrl, "stopped")
+			shutdownClusters <- err
+		}()
+	}
+
+	for _ = range nm.rootConfig.HealthcheckURLs {
+		err := <-shutdownClusters
+		if err != nil {
+			return err
+		}
+	}
+
+	nm.rootConfig.Logger.Info("Successfully stopped mysql process on all vms")
+	return nil
 }
 
 func (nm *NodeManager) sendPostRequest(endpoint string) (string, error) {
