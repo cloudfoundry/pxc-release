@@ -36,15 +36,17 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) HealthChecker {
 }
 
 func (h *healthChecker) Check() (string, error) {
+	if h.config.Monit.ServiceName == "garbd" {
+		return "arbitrator node", nil
+	}
+
 	var unused string
 	var value int
 	err := h.db.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&unused, &value)
 
 	if err == sql.ErrNoRows {
 		return "", errors.New("wsrep_local_state variable not set (possibly not a galera db)")
-	}
-
-	if err != nil {
+	} else if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
 			return "", errors.New("Cannot get status from galera")
 		} else {
