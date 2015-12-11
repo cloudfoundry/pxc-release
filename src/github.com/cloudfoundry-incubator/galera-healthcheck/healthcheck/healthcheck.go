@@ -37,7 +37,7 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) HealthChecker {
 
 func (h *healthChecker) Check() (string, error) {
 	if h.config.Monit.ServiceName == "garbd" {
-		return "arbitrator node", nil
+		return "", errors.New("arbitrator node")
 	}
 
 	var unused string

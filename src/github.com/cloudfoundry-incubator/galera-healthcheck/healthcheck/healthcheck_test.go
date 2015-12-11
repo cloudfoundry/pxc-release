@@ -247,8 +247,9 @@ var _ = Describe("GaleraHealthChecker", func() {
 					},
 				}
 
-				result, _ := healthcheckTestHelper(config)
-				Expect(result).To(ContainSubstring("arbitrator node"))
+				_, err := healthcheckTestHelper(config)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("arbitrator node"))
 			})
 		})
 	})
