@@ -237,7 +237,7 @@ var _ = Describe("Bootstrap", func() {
 			BeforeEach(func() {
 				for _, handler := range endpointHandlers {
 					handler.StubEndpointWithStatus("/stop_mysql", http.StatusOK)
-					handler.StubEndpointWithStatus("/mysql_status", http.StatusOK)
+					handler.StubEndpointWithStatus("/mysql_status", http.StatusOK, "stopped")
 				}
 				endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
 					http.StatusOK,
