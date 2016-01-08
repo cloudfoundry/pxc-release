@@ -187,42 +187,22 @@ func (m MariaDBHelper) Seed() error {
 			return err
 		}
 
-		rows, err := db.Query(fmt.Sprintf(
-			"SELECT User FROM mysql.user WHERE User = '%s'",
-			dbToCreate.User))
+		userAlreadyExists, err := m.isExistingUser(db, dbToCreate)
 		if err != nil {
-			m.logger.Error("Error getting list of users", err, lager.Data{
-				"dbName": dbToCreate.DBName,
-			})
 			return err
 		}
-		userAlreadyExists := rows.Next()
 
 		if userAlreadyExists == false {
-			_, err = db.Exec(fmt.Sprintf(
-				"CREATE USER `%s` IDENTIFIED BY '%s'",
-				dbToCreate.User,
-				dbToCreate.Password))
+			err = m.createUser(db, dbToCreate)
 			if err != nil {
-				m.logger.Error("Error creating user", err, lager.Data{
-					"user": dbToCreate.User,
-				})
 				return err
 			}
 		}
 
-		_, err = db.Exec(fmt.Sprintf(
-			"GRANT ALL ON `%s`.* TO `%s`",
-			dbToCreate.DBName,
-			dbToCreate.User))
+		err = m.grantUserAllPriveleges(db, dbToCreate)
 		if err != nil {
-			m.logger.Error("Error granting user privileges", err, lager.Data{
-				"dbName": dbToCreate.DBName,
-				"user":   dbToCreate.User,
-			})
 			return err
 		}
-
 	}
 
 	_, err = db.Exec("FLUSH PRIVILEGES")
@@ -231,5 +211,48 @@ func (m MariaDBHelper) Seed() error {
 		return err
 	}
 
+	return nil
+}
+
+func (m MariaDBHelper) isExistingUser(db *sql.DB, dbToCreate config.PreseededDatabase) (bool, error) {
+	rows, err := db.Query(fmt.Sprintf(
+		"SELECT User FROM mysql.user WHERE User = '%s'",
+		dbToCreate.User))
+	if err != nil {
+		m.logger.Error("Error getting list of users", err, lager.Data{
+			"dbName": dbToCreate.DBName,
+		})
+		return false, err
+	}
+
+	return rows.Next(), nil
+}
+
+func (m MariaDBHelper) createUser(db *sql.DB, dbToCreate config.PreseededDatabase) error {
+	_, err := db.Exec(fmt.Sprintf(
+		"CREATE USER `%s` IDENTIFIED BY '%s'",
+		dbToCreate.User,
+		dbToCreate.Password))
+	if err != nil {
+		m.logger.Error("Error creating user", err, lager.Data{
+			"user": dbToCreate.User,
+		})
+		return err
+	}
+	return nil
+}
+
+func (m MariaDBHelper) grantUserAllPriveleges(db *sql.DB, dbToCreate config.PreseededDatabase) error {
+	_, err := db.Exec(fmt.Sprintf(
+		"GRANT ALL ON `%s`.* TO `%s`",
+		dbToCreate.DBName,
+		dbToCreate.User))
+	if err != nil {
+		m.logger.Error("Error granting user privileges", err, lager.Data{
+			"dbName": dbToCreate.DBName,
+			"user":   dbToCreate.User,
+		})
+		return err
+	}
 	return nil
 }
