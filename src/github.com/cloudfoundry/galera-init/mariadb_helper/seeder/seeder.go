@@ -16,18 +16,21 @@ type Seeder struct {
 	logger lager.Logger
 }
 
-type DBSeeder interface {
-	IsExistingUser()
-	CreateUser()
-	GrantUserAllPrivileges()
-}
-
 func NewSeeder(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) *Seeder {
 	return &Seeder{
 		db:     db,
 		config: config,
 		logger: logger,
 	}
+}
+
+func (s Seeder) CreateDBIfNeeded() error {
+	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", s.config.DBName))
+	if err != nil {
+		s.logger.Error("Error creating preseeded database", err, lager.Data{"dbName": s.config.DBName})
+		return err
+	}
+	return nil
 }
 
 func (s Seeder) IsExistingUser() (bool, error) {

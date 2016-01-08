@@ -182,13 +182,11 @@ func (m MariaDBHelper) Seed() error {
 	defer CloseDBConnection(db)
 
 	for _, dbToCreate := range m.config.PreseededDatabases {
-		_, err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", dbToCreate.DBName))
-		if err != nil {
-			m.logger.Error("Error creating preseeded database", err, lager.Data{"dbName": dbToCreate.DBName})
+		seeder := s.NewSeeder(db, dbToCreate, m.logger)
+
+		if err := seeder.CreateDBIfNeeded(); err != nil {
 			return err
 		}
-
-		seeder := s.NewSeeder(db, dbToCreate, m.logger)
 
 		userAlreadyExists, err := seeder.IsExistingUser()
 		if err != nil {
@@ -196,14 +194,12 @@ func (m MariaDBHelper) Seed() error {
 		}
 
 		if userAlreadyExists == false {
-			err = seeder.CreateUser()
-			if err != nil {
+			if err := seeder.CreateUser(); err != nil {
 				return err
 			}
 		}
 
-		err = seeder.GrantUserAllPrivileges()
-		if err != nil {
+		if err := seeder.GrantUserAllPrivileges(); err != nil {
 			return err
 		}
 	}
