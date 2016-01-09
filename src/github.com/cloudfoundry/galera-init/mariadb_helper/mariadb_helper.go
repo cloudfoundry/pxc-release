@@ -7,6 +7,7 @@ import (
 	"database/sql"
 
 	"github.com/cloudfoundry/mariadb_ctrl/config"
+	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-golang/lager"
@@ -187,19 +188,21 @@ func (m MariaDBHelper) Seed() error {
 			return err
 		}
 
-		userAlreadyExists, err := m.isExistingUser(db, dbToCreate)
+		seeder := s.NewSeeder(db, dbToCreate, m.logger)
+
+		userAlreadyExists, err := seeder.IsExistingUser()
 		if err != nil {
 			return err
 		}
 
 		if userAlreadyExists == false {
-			err = m.createUser(db, dbToCreate)
+			err = seeder.CreateUser()
 			if err != nil {
 				return err
 			}
 		}
 
-		err = m.grantUserAllPriveleges(db, dbToCreate)
+		err = seeder.GrantUserAllPrivileges()
 		if err != nil {
 			return err
 		}
@@ -211,48 +214,5 @@ func (m MariaDBHelper) Seed() error {
 		return err
 	}
 
-	return nil
-}
-
-func (m MariaDBHelper) isExistingUser(db *sql.DB, dbToCreate config.PreseededDatabase) (bool, error) {
-	rows, err := db.Query(fmt.Sprintf(
-		"SELECT User FROM mysql.user WHERE User = '%s'",
-		dbToCreate.User))
-	if err != nil {
-		m.logger.Error("Error getting list of users", err, lager.Data{
-			"dbName": dbToCreate.DBName,
-		})
-		return false, err
-	}
-
-	return rows.Next(), nil
-}
-
-func (m MariaDBHelper) createUser(db *sql.DB, dbToCreate config.PreseededDatabase) error {
-	_, err := db.Exec(fmt.Sprintf(
-		"CREATE USER `%s` IDENTIFIED BY '%s'",
-		dbToCreate.User,
-		dbToCreate.Password))
-	if err != nil {
-		m.logger.Error("Error creating user", err, lager.Data{
-			"user": dbToCreate.User,
-		})
-		return err
-	}
-	return nil
-}
-
-func (m MariaDBHelper) grantUserAllPriveleges(db *sql.DB, dbToCreate config.PreseededDatabase) error {
-	_, err := db.Exec(fmt.Sprintf(
-		"GRANT ALL ON `%s`.* TO `%s`",
-		dbToCreate.DBName,
-		dbToCreate.User))
-	if err != nil {
-		m.logger.Error("Error granting user privileges", err, lager.Data{
-			"dbName": dbToCreate.DBName,
-			"user":   dbToCreate.User,
-		})
-		return err
-	}
 	return nil
 }
