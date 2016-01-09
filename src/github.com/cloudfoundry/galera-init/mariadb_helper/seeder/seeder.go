@@ -1,4 +1,4 @@
-package mariadb_helper
+package seeder
 
 import (
 	"fmt"
