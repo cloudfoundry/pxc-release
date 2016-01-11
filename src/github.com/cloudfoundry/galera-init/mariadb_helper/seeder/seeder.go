@@ -10,21 +10,30 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type Seeder struct {
+//go:generate counterfeiter . Seeder
+
+type Seeder interface {
+	CreateDBIfNeeded() error
+	IsExistingUser() (bool, error)
+	CreateUser() error
+	GrantUserAllPrivileges() error
+}
+
+type seeder struct {
 	db     *sql.DB
 	config config.PreseededDatabase
 	logger lager.Logger
 }
 
-func NewSeeder(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) *Seeder {
-	return &Seeder{
+func NewSeeder(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) Seeder {
+	return &seeder{
 		db:     db,
 		config: config,
 		logger: logger,
 	}
 }
 
-func (s Seeder) CreateDBIfNeeded() error {
+func (s seeder) CreateDBIfNeeded() error {
 	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", s.config.DBName))
 	if err != nil {
 		s.logger.Error("Error creating preseeded database", err, lager.Data{"dbName": s.config.DBName})
@@ -33,7 +42,7 @@ func (s Seeder) CreateDBIfNeeded() error {
 	return nil
 }
 
-func (s Seeder) IsExistingUser() (bool, error) {
+func (s seeder) IsExistingUser() (bool, error) {
 	rows, err := s.db.Query(fmt.Sprintf(
 		"SELECT User FROM mysql.user WHERE User = '%s'",
 		s.config.User))
@@ -47,7 +56,7 @@ func (s Seeder) IsExistingUser() (bool, error) {
 	return rows.Next(), nil
 }
 
-func (s Seeder) CreateUser() error {
+func (s seeder) CreateUser() error {
 	_, err := s.db.Exec(fmt.Sprintf(
 		"CREATE USER `%s` IDENTIFIED BY '%s'",
 		s.config.User,
@@ -61,7 +70,7 @@ func (s Seeder) CreateUser() error {
 	return nil
 }
 
-func (s Seeder) GrantUserAllPrivileges() error {
+func (s seeder) GrantUserAllPrivileges() error {
 	_, err := s.db.Exec(fmt.Sprintf(
 		"GRANT ALL ON `%s`.* TO `%s`",
 		s.config.DBName,

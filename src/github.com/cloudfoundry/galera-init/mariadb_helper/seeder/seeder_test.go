@@ -18,7 +18,7 @@ var _ = Describe("Seeder", func() {
 		testLogger lagertest.TestLogger
 		dbConfig   config.PreseededDatabase
 		fakeDB     *sql.DB
-		seeder     *s.Seeder
+		seeder     s.Seeder
 	)
 
 	BeforeEach(func() {
