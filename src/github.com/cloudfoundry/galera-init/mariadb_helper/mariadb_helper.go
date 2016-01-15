@@ -33,6 +33,7 @@ type DBHelper interface {
 
 type MariaDBHelper struct {
 	osHelper        os_helper.OsHelper
+	dbSeeder        s.Seeder
 	logFileLocation string
 	logger          lager.Logger
 	config          config.DBHelper
@@ -49,6 +50,10 @@ func NewMariaDBHelper(
 		logFileLocation: logFileLocation,
 		logger:          logger,
 	}
+}
+
+var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
+	return s.NewSeeder(db, config, logger)
 }
 
 // Overridable methods to allow mocking DB connections in tests
@@ -182,7 +187,7 @@ func (m MariaDBHelper) Seed() error {
 	defer CloseDBConnection(db)
 
 	for _, dbToCreate := range m.config.PreseededDatabases {
-		seeder := s.NewSeeder(db, dbToCreate, m.logger)
+		seeder := BuildSeeder(db, dbToCreate, m.logger)
 
 		if err := seeder.CreateDBIfNeeded(); err != nil {
 			return err

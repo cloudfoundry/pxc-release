@@ -8,10 +8,13 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
+	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
+	seeder_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
@@ -19,6 +22,7 @@ var _ = Describe("MariaDBHelper", func() {
 	var (
 		helper     *mariadb_helper.MariaDBHelper
 		fakeOs     *os_fakes.FakeOsHelper
+		fakeSeeder *seeder_fakes.FakeSeeder
 		testLogger lagertest.TestLogger
 		logFile    string
 		dbConfig   config.DBHelper
@@ -28,6 +32,7 @@ var _ = Describe("MariaDBHelper", func() {
 	BeforeEach(func() {
 		var err error
 		fakeOs = new(os_fakes.FakeOsHelper)
+		fakeSeeder = new(seeder_fakes.FakeSeeder)
 		testLogger = *lagertest.NewTestLogger("mariadb_helper")
 
 		fakeDB, err = sqlmock.New()
@@ -38,6 +43,10 @@ var _ = Describe("MariaDBHelper", func() {
 		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
 			// fakeDB is closed in AfterEach to allow assertions against mock expectations
 			return nil
+		}
+
+		mariadb_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
+			return fakeSeeder
 		}
 
 		logFile = "/log-file.log"
@@ -173,47 +182,67 @@ var _ = Describe("MariaDBHelper", func() {
 		const lastInsertId = -1
 		const rowsAffected = 1
 
-		It("creates the specified databases", func() {
+		Context("when there are pre-seeded databases", func() {
 
-			for _, preseedDb := range dbConfig.PreseededDatabases {
+			Context("if the users already exist", func() {
+				BeforeEach(func() {
+					fakeSeeder.IsExistingUserReturns(true, nil)
+				})
 
-				createDbExec := fmt.Sprintf(
-					"CREATE DATABASE IF NOT EXISTS `%s`",
-					preseedDb.DBName)
-				sqlmock.ExpectExec(createDbExec).
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+				It("creates the specified databases without creating users", func() {
+					sqlmock.ExpectExec("FLUSH PRIVILEGES").
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-				selectUsersQuery := fmt.Sprintf(
-					"SELECT User FROM mysql\\.user WHERE User = '%s'",
-					preseedDb.User)
-				sqlmock.ExpectQuery(selectUsersQuery).
-					WithArgs().
-					WillReturnRows(sqlmock.NewRows([]string{"User"}))
+					helper.Seed()
 
-				createUserExec := fmt.Sprintf(
-					"CREATE USER `%s` IDENTIFIED BY '%s'",
-					preseedDb.User,
-					preseedDb.Password)
-				sqlmock.ExpectExec(createUserExec).
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
+					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
+					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
+					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
+				})
+			})
 
-				grantExec := fmt.Sprintf(
-					"GRANT ALL ON `%s`\\.\\* TO `%s`",
-					preseedDb.DBName,
-					preseedDb.User)
-				sqlmock.ExpectExec(grantExec).
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+			Context("if the users do not exist", func() {
+				BeforeEach(func() {
+					fakeSeeder.IsExistingUserReturns(false, nil)
+				})
 
-			}
+				It("creates the specified databases and creates users", func() {
+					sqlmock.ExpectExec("FLUSH PRIVILEGES").
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-			sqlmock.ExpectExec("FLUSH PRIVILEGES").
-				WithArgs().
-				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+					helper.Seed()
 
-			helper.Seed()
+					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
+					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
+					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(2))
+					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
+				})
+			})
+
+			Context("if a seeder function call returns an error", func() {
+				It("returns an error back", func() {
+
+					fakeSeeder.CreateDBIfNeededReturns(errors.New("Error"))
+					err := helper.Seed()
+					Expect(err).To(HaveOccurred())
+
+					fakeSeeder.IsExistingUserReturns(false, errors.New("Error"))
+					err = helper.Seed()
+					Expect(err).To(HaveOccurred())
+
+					fakeSeeder.CreateUserReturns(errors.New("Error"))
+					err = helper.Seed()
+					Expect(err).To(HaveOccurred())
+
+					fakeSeeder.GrantUserAllPrivilegesReturns(errors.New("Error"))
+					err = helper.Seed()
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
 		})
 
 		Context("when there are no seeded databases", func() {
@@ -226,6 +255,10 @@ var _ = Describe("MariaDBHelper", func() {
 				err := helper.Seed()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(testLogger.Buffer()).To(Say("No preseeded databases specified, skipping seeding."))
+				Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(0))
+				Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(0))
+				Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
+				Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(0))
 			})
 		})
 	})
