@@ -183,17 +183,16 @@ var _ = Describe("MariaDBHelper", func() {
 		const rowsAffected = 1
 
 		Context("when there are pre-seeded databases", func() {
-
 			Context("if the users already exist", func() {
 				BeforeEach(func() {
 					fakeSeeder.IsExistingUserReturns(true, nil)
-				})
 
-				It("creates the specified databases without creating users", func() {
 					sqlmock.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+				})
 
+				It("creates the specified databases without creating users", func() {
 					helper.Seed()
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
@@ -206,13 +205,13 @@ var _ = Describe("MariaDBHelper", func() {
 			Context("if the users do not exist", func() {
 				BeforeEach(func() {
 					fakeSeeder.IsExistingUserReturns(false, nil)
-				})
 
-				It("creates the specified databases and creates users", func() {
 					sqlmock.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+				})
 
+				It("creates the specified databases and creates users", func() {
 					helper.Seed()
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
@@ -222,8 +221,8 @@ var _ = Describe("MariaDBHelper", func() {
 				})
 			})
 
-			Context("if a seeder function call returns an error", func() {
-				It("returns an error back", func() {
+			Context("when a seeder function call returns an error", func() {
+				It("returns the error back", func() {
 
 					fakeSeeder.CreateDBIfNeededReturns(errors.New("Error"))
 					err := helper.Seed()
@@ -251,7 +250,6 @@ var _ = Describe("MariaDBHelper", func() {
 			})
 
 			It("does not make any queries", func() {
-				//expect no queries or execs
 				err := helper.Seed()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(testLogger.Buffer()).To(Say("No preseeded databases specified, skipping seeding."))

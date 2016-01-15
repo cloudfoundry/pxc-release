@@ -19,6 +19,8 @@ const (
 	StatusCommand         = "status"
 )
 
+//go:generate counterfeiter . DBHelper
+
 type DBHelper interface {
 	StartMysqldInMode(command string) error
 	StartMysqlInJoin() (*exec.Cmd, error)
