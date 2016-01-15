@@ -12,26 +12,43 @@ type FakeSeeder struct {
 	CreateDBIfNeededStub        func() error
 	createDBIfNeededMutex       sync.RWMutex
 	createDBIfNeededArgsForCall []struct{}
-	createDBIfNeededReturns     struct {
+	createDBIfNeededReturns struct {
 		result1 error
 	}
 	IsExistingUserStub        func() (bool, error)
 	isExistingUserMutex       sync.RWMutex
 	isExistingUserArgsForCall []struct{}
-	isExistingUserReturns     struct {
+	isExistingUserReturns struct {
 		result1 bool
 		result2 error
 	}
-	CreateUserStub        func() error
+	CreateUserForDBStub        func() error
+	createUserForDBMutex       sync.RWMutex
+	createUserForDBArgsForCall []struct{}
+	createUserForDBReturns struct {
+		result1 error
+	}
+	CreateUserStub        func(string, string) error
 	createUserMutex       sync.RWMutex
-	createUserArgsForCall []struct{}
-	createUserReturns     struct {
+	createUserArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	createUserReturns struct {
 		result1 error
 	}
 	GrantUserAllPrivilegesStub        func() error
 	grantUserAllPrivilegesMutex       sync.RWMutex
 	grantUserAllPrivilegesArgsForCall []struct{}
-	grantUserAllPrivilegesReturns     struct {
+	grantUserAllPrivilegesReturns struct {
+		result1 error
+	}
+	GrantUserSuperROPrivilegesStub        func(string) error
+	grantUserSuperROPrivilegesMutex       sync.RWMutex
+	grantUserSuperROPrivilegesArgsForCall []struct {
+		arg1 string
+	}
+	grantUserSuperROPrivilegesReturns struct {
 		result1 error
 	}
 }
@@ -85,12 +102,39 @@ func (fake *FakeSeeder) IsExistingUserReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeSeeder) CreateUser() error {
+func (fake *FakeSeeder) CreateUserForDB() error {
+	fake.createUserForDBMutex.Lock()
+	fake.createUserForDBArgsForCall = append(fake.createUserForDBArgsForCall, struct{}{})
+	fake.createUserForDBMutex.Unlock()
+	if fake.CreateUserForDBStub != nil {
+		return fake.CreateUserForDBStub()
+	} else {
+		return fake.createUserForDBReturns.result1
+	}
+}
+
+func (fake *FakeSeeder) CreateUserForDBCallCount() int {
+	fake.createUserForDBMutex.RLock()
+	defer fake.createUserForDBMutex.RUnlock()
+	return len(fake.createUserForDBArgsForCall)
+}
+
+func (fake *FakeSeeder) CreateUserForDBReturns(result1 error) {
+	fake.CreateUserForDBStub = nil
+	fake.createUserForDBReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSeeder) CreateUser(arg1 string, arg2 string) error {
 	fake.createUserMutex.Lock()
-	fake.createUserArgsForCall = append(fake.createUserArgsForCall, struct{}{})
+	fake.createUserArgsForCall = append(fake.createUserArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
 	fake.createUserMutex.Unlock()
 	if fake.CreateUserStub != nil {
-		return fake.CreateUserStub()
+		return fake.CreateUserStub(arg1, arg2)
 	} else {
 		return fake.createUserReturns.result1
 	}
@@ -100,6 +144,12 @@ func (fake *FakeSeeder) CreateUserCallCount() int {
 	fake.createUserMutex.RLock()
 	defer fake.createUserMutex.RUnlock()
 	return len(fake.createUserArgsForCall)
+}
+
+func (fake *FakeSeeder) CreateUserArgsForCall(i int) (string, string) {
+	fake.createUserMutex.RLock()
+	defer fake.createUserMutex.RUnlock()
+	return fake.createUserArgsForCall[i].arg1, fake.createUserArgsForCall[i].arg2
 }
 
 func (fake *FakeSeeder) CreateUserReturns(result1 error) {
@@ -129,6 +179,38 @@ func (fake *FakeSeeder) GrantUserAllPrivilegesCallCount() int {
 func (fake *FakeSeeder) GrantUserAllPrivilegesReturns(result1 error) {
 	fake.GrantUserAllPrivilegesStub = nil
 	fake.grantUserAllPrivilegesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSeeder) GrantUserSuperROPrivileges(arg1 string) error {
+	fake.grantUserSuperROPrivilegesMutex.Lock()
+	fake.grantUserSuperROPrivilegesArgsForCall = append(fake.grantUserSuperROPrivilegesArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.grantUserSuperROPrivilegesMutex.Unlock()
+	if fake.GrantUserSuperROPrivilegesStub != nil {
+		return fake.GrantUserSuperROPrivilegesStub(arg1)
+	} else {
+		return fake.grantUserSuperROPrivilegesReturns.result1
+	}
+}
+
+func (fake *FakeSeeder) GrantUserSuperROPrivilegesCallCount() int {
+	fake.grantUserSuperROPrivilegesMutex.RLock()
+	defer fake.grantUserSuperROPrivilegesMutex.RUnlock()
+	return len(fake.grantUserSuperROPrivilegesArgsForCall)
+}
+
+func (fake *FakeSeeder) GrantUserSuperROPrivilegesArgsForCall(i int) string {
+	fake.grantUserSuperROPrivilegesMutex.RLock()
+	defer fake.grantUserSuperROPrivilegesMutex.RUnlock()
+	return fake.grantUserSuperROPrivilegesArgsForCall[i].arg1
+}
+
+func (fake *FakeSeeder) GrantUserSuperROPrivilegesReturns(result1 error) {
+	fake.GrantUserSuperROPrivilegesStub = nil
+	fake.grantUserSuperROPrivilegesReturns = struct {
 		result1 error
 	}{result1}
 }

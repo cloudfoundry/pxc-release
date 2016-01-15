@@ -15,8 +15,10 @@ import (
 type Seeder interface {
 	CreateDBIfNeeded() error
 	IsExistingUser() (bool, error)
-	CreateUser() error
+	CreateUserForDB() error
+	CreateUser(string, string) error
 	GrantUserAllPrivileges() error
+	GrantUserSuperROPrivileges(string) error
 }
 
 type seeder struct {
@@ -56,14 +58,25 @@ func (s seeder) IsExistingUser() (bool, error) {
 	return rows.Next(), nil
 }
 
-func (s seeder) CreateUser() error {
-	_, err := s.db.Exec(fmt.Sprintf(
-		"CREATE USER `%s` IDENTIFIED BY '%s'",
-		s.config.User,
-		s.config.Password))
+func (s seeder) CreateUserForDB() error {
+	err := s.CreateUser(s.config.User, s.config.Password)
 	if err != nil {
 		s.logger.Error("Error creating user", err, lager.Data{
 			"user": s.config.User,
+		})
+		return err
+	}
+	return nil
+}
+
+func (s seeder) CreateUser(username, password string) error {
+	_, err := s.db.Exec(fmt.Sprintf(
+		"CREATE USER `%s` IDENTIFIED BY '%s'",
+		username,
+		password))
+	if err != nil {
+		s.logger.Error("Error creating user", err, lager.Data{
+			"user": username,
 		})
 		return err
 	}
@@ -79,6 +92,20 @@ func (s seeder) GrantUserAllPrivileges() error {
 		s.logger.Error("Error granting user privileges", err, lager.Data{
 			"dbName": s.config.DBName,
 			"user":   s.config.User,
+		})
+		return err
+	}
+	return nil
+}
+
+func (s seeder) GrantUserSuperROPrivileges(username string) error {
+	_, err := s.db.Exec(fmt.Sprintf(
+		"GRANT SELECT ON `%s`.* TO `%s`",
+		"*",
+		username))
+	if err != nil {
+		s.logger.Error("Error granting super-user RO privileges", err, lager.Data{
+			"user": username,
 		})
 		return err
 	}

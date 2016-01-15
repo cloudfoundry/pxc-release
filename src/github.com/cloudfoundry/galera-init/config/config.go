@@ -19,7 +19,9 @@ type DBHelper struct {
 	DaemonPath         string `validate:"nonzero"`
 	UpgradePath        string `validate:"nonzero"`
 	User               string `validate:"nonzero"`
+	ROUser             string `validate:"nonzero"`
 	Password           string
+	ROPassword         string
 	PreseededDatabases []PreseededDatabase
 }
 

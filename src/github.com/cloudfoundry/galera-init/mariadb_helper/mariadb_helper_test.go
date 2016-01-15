@@ -198,7 +198,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
+					Expect(fakeSeeder.CreateUserForDBCallCount()).To(Equal(0))
 					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
 				})
 			})
@@ -217,7 +217,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(2))
+					Expect(fakeSeeder.CreateUserForDBCallCount()).To(Equal(2))
 					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
 				})
 			})
@@ -233,7 +233,7 @@ var _ = Describe("MariaDBHelper", func() {
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 
-					fakeSeeder.CreateUserReturns(errors.New("Error"))
+					fakeSeeder.CreateUserForDBReturns(errors.New("Error"))
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 
@@ -257,9 +257,34 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(testLogger.Buffer()).To(Say("No preseeded databases specified, skipping seeding."))
 				Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(0))
 				Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(0))
-				Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
+				Expect(fakeSeeder.CreateUserForDBCallCount()).To(Equal(0))
 				Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(0))
 			})
 		})
 	})
+
+	Describe("CreateSuperROUser", func() {
+		It("creates a read-only user successfully", func() {
+			err := helper.CreateSuperROUser()
+			Expect(fakeSeeder.CreateUserCallCount()).To(Equal(1))
+			//TODO: Check args for above call
+			Expect(fakeSeeder.GrantUserSuperROPrivilegesCallCount()).To(Equal(1))
+			//TODO: Check args for above call
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("if a seeder function call returns an error", func() {
+			It("returns an error back", func() {
+
+				fakeSeeder.CreateUserReturns(errors.New("Error"))
+				err := helper.CreateSuperROUser()
+				Expect(err).To(HaveOccurred())
+
+				fakeSeeder.GrantUserSuperROPrivilegesReturns(errors.New("Error"))
+				err = helper.CreateSuperROUser()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
 })

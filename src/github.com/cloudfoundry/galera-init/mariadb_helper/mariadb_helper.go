@@ -29,6 +29,7 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
+	CreateSuperROUser() error
 }
 
 type MariaDBHelper struct {
@@ -199,7 +200,7 @@ func (m MariaDBHelper) Seed() error {
 		}
 
 		if userAlreadyExists == false {
-			if err := seeder.CreateUser(); err != nil {
+			if err := seeder.CreateUserForDB(); err != nil {
 				return err
 			}
 		}
@@ -215,5 +216,31 @@ func (m MariaDBHelper) Seed() error {
 		return err
 	}
 
+	return nil
+}
+
+func (m MariaDBHelper) CreateSuperROUser() error {
+	db, err := OpenDBConnection(m.config)
+	if err != nil {
+		m.logger.Error("database not reachable", err)
+		return err
+	}
+	defer CloseDBConnection(db)
+	blankPreSeededDB := &config.PreseededDatabase{
+		DBName:   "",
+		User:     "",
+		Password: "",
+	}
+
+	seeder := BuildSeeder(db, *blankPreSeededDB, m.logger)
+	err = seeder.CreateUser(m.config.ROUser, m.config.ROPassword)
+	if err != nil {
+		m.logger.Error("cannot create super RO user", err)
+		return err
+	}
+	err = seeder.GrantUserSuperROPrivileges(m.config.ROUser)
+	if err != nil {
+		return err
+	}
 	return nil
 }
