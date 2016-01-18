@@ -22,7 +22,6 @@ const (
 type DBHelper interface {
 	StartMysqldInMode(command string) error
 	StartMysqlInJoin() (*exec.Cmd, error)
-	StartMysqlInJoinMonitored() error
 	StartMysqlInBootstrap() (*exec.Cmd, error)
 	StopMysql() error
 	StopStandaloneMysql() error
@@ -90,7 +89,7 @@ func (m MariaDBHelper) StartMysqldInMode(command string) error {
 
 func (m MariaDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
-	cmd, err := m.forkMysqlProcess()
+	cmd, err := m.startMysqlAsChildProcess()
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
@@ -99,21 +98,9 @@ func (m MariaDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StartMysqlInJoinMonitored() error {
-	m.logger.Info("Starting mysqld with 'join'. Will error out if the process fails...")
-	err := m.forkMysqlProcessAndWait()
-
-	if err != nil {
-		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
-		return err
-	}
-
-	return nil
-}
-
 func (m MariaDBHelper) StartMysqlInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
-	cmd, err := m.forkMysqlProcess("--wsrep-new-cluster")
+	cmd, err := m.startMysqlAsChildProcess("--wsrep-new-cluster")
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
@@ -149,29 +136,11 @@ func (m MariaDBHelper) runMysqlDaemon(mode string) error {
 		mode)
 }
 
-func (m MariaDBHelper) forkMysqlProcess(mysqlArgs ...string) (*exec.Cmd, error) {
+func (m MariaDBHelper) startMysqlAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
 		"/var/vcap/packages/mariadb/bin/mysqld_safe",
 		mysqlArgs...)
-}
-
-func (m MariaDBHelper) forkMysqlProcessAndWait(mysqlArgs ...string) error {
-	out, err := m.osHelper.RunCommand(
-		"/var/vcap/packages/mariadb/bin/mysqld_safe",
-		mysqlArgs...)
-
-	writeErr := m.osHelper.WriteStringToFile(m.logFileLocation, out)
-	if writeErr != nil {
-		m.logger.Error("Could not write to mysql log file", writeErr)
-		return writeErr
-	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (m MariaDBHelper) Upgrade() (output string, err error) {
