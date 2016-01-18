@@ -97,7 +97,7 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(args).To(Equal([]string{dbConfig.DaemonPath, "bootstrap"}))
 		})
 
-		Context("when an error occurs", func() {
+		Context("when an error occurs in Run()", func() {
 			BeforeEach(func() {
 				fakeOs.RunCommandWithTimeoutReturns(errors.New("some error"))
 			})
@@ -107,6 +107,73 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		It("calls mysqld_safe in bootstrap mode", func() {
+			helper.StartMysqlInBootstrap()
+			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+			_, cmd, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(cmd).To(ContainSubstring("mysqld_safe"))
+			Expect(args).To(ContainElement("--wsrep-new-cluster"))
+		})
+
+		Context("when an error occurs in Start()", func() {
+			BeforeEach(func() {
+				fakeOs.StartCommandReturns(nil, errors.New("some error"))
+			})
+
+			It("returns the error", func() {
+				_, err := helper.StartMysqlInBootstrap()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		It("calls mysqld_safe in join mode", func() {
+			helper.StartMysqlInJoin()
+			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+			_, cmd, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(cmd).To(ContainSubstring("mysqld_safe"))
+			Expect(args).ToNot(ContainElement("--wsrep-new-cluster"))
+		})
+
+		Context("when an error occurs in Start()", func() {
+			BeforeEach(func() {
+				fakeOs.StartCommandReturns(nil, errors.New("some error"))
+			})
+
+			It("returns the error", func() {
+				_, err := helper.StartMysqlInJoin()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		It("calls mysqld_safe in join mode (for pre-start)", func() {
+			fakeOs.RunCommandReturns("some output", nil)
+			helper.StartMysqlInJoinMonitored()
+			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
+			cmd, _ := fakeOs.RunCommandArgsForCall(0)
+			Expect(cmd).To(ContainSubstring("mysqld_safe"))
+			Expect(fakeOs.WriteStringToFileCallCount()).To(Equal(1))
+			execLogFile, output := fakeOs.WriteStringToFileArgsForCall(0)
+			Expect(execLogFile).To(Equal(logFile))
+			Expect(output).To(Equal("some output"))
+		})
+
+		Context("when an error occurs in running mysql", func() {
+			It("returns the error", func() {
+				fakeOs.RunCommandReturns("", errors.New("some error"))
+				err := helper.StartMysqlInJoinMonitored()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when an error occurs in writing stdout", func() {
+			It("returns the error", func() {
+				fakeOs.WriteStringToFileReturns(errors.New("some error"))
+				err := helper.StartMysqlInJoinMonitored()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
 	})
 
 	Describe("Stop", func() {
