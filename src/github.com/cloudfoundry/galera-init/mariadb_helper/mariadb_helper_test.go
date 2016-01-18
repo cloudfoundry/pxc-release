@@ -19,6 +19,9 @@ import (
 )
 
 var _ = Describe("MariaDBHelper", func() {
+	const lastInsertId = -1
+	const rowsAffected = 1
+
 	var (
 		helper     *mariadb_helper.MariaDBHelper
 		fakeOs     *os_fakes.FakeOsHelper
@@ -67,6 +70,8 @@ var _ = Describe("MariaDBHelper", func() {
 					Password: "password2",
 				},
 			},
+			ReadOnlyUser:     "fake-read-only-user",
+			ReadOnlyPassword: "fake-read-only-password",
 		}
 	})
 
@@ -178,10 +183,6 @@ var _ = Describe("MariaDBHelper", func() {
 	})
 
 	Describe("Seed", func() {
-
-		const lastInsertId = -1
-		const rowsAffected = 1
-
 		Context("when there are pre-seeded databases", func() {
 			Context("if the users already exist", func() {
 				BeforeEach(func() {
@@ -197,7 +198,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.CreateUserForDBCallCount()).To(Equal(0))
+					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
 					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
 				})
 			})
@@ -216,14 +217,13 @@ var _ = Describe("MariaDBHelper", func() {
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.CreateUserForDBCallCount()).To(Equal(2))
+					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(2))
 					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
 				})
 			})
 
 			Context("when a seeder function call returns an error", func() {
 				It("returns the error back", func() {
-
 					fakeSeeder.CreateDBIfNeededReturns(errors.New("Error"))
 					err := helper.Seed()
 					Expect(err).To(HaveOccurred())
@@ -232,7 +232,7 @@ var _ = Describe("MariaDBHelper", func() {
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 
-					fakeSeeder.CreateUserForDBReturns(errors.New("Error"))
+					fakeSeeder.CreateUserReturns(errors.New("Error"))
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 
@@ -241,7 +241,6 @@ var _ = Describe("MariaDBHelper", func() {
 					Expect(err).To(HaveOccurred())
 				})
 			})
-
 		})
 
 		Context("when there are no seeded databases", func() {
@@ -255,34 +254,60 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(testLogger.Buffer()).To(Say("No preseeded databases specified, skipping seeding."))
 				Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(0))
 				Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(0))
-				Expect(fakeSeeder.CreateUserForDBCallCount()).To(Equal(0))
+				Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
 				Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(0))
 			})
 		})
 	})
 
-	Describe("CreateSuperROUser", func() {
-		It("creates a read-only user successfully", func() {
-			err := helper.CreateSuperROUser()
-			Expect(fakeSeeder.CreateUserCallCount()).To(Equal(1))
-			//TODO: Check args for above call
-			Expect(fakeSeeder.GrantUserSuperROPrivilegesCallCount()).To(Equal(1))
-			//TODO: Check args for above call
-			Expect(err).NotTo(HaveOccurred())
+	Describe("CreateReadOnlyUser", func() {
+		var (
+			grantUserPrivilegesExec string
+			createUserExec          string
+		)
+
+		Context("a password is provided for the read only user", func() {
+			BeforeEach(func() {
+				dbConfig.ReadOnlyPassword = "random-password"
+				createUserExec = fmt.Sprintf(
+					"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
+					dbConfig.ReadOnlyUser,
+					dbConfig.ReadOnlyPassword,
+				)
+			})
+
+			It("creates a read only user named roadmin", func() {
+				sqlmock.ExpectExec(createUserExec).
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+				err := helper.CreateReadOnlyUser()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("creating the read only user errors", func() {
+				It("returns the error back", func() {
+					sqlmock.ExpectExec(grantUserPrivilegesExec).
+						WithArgs().
+						WillReturnError(errors.New("some error"))
+
+					err := helper.CreateReadOnlyUser()
+					Expect(err).To(HaveOccurred())
+				})
+			})
 		})
 
-		Context("if a seeder function call returns an error", func() {
-			It("returns an error back", func() {
+		Context("a password is not provided for the read only user", func() {
+			BeforeEach(func() {
+				dbConfig.ReadOnlyPassword = ""
+			})
 
-				fakeSeeder.CreateUserReturns(errors.New("Error"))
-				err := helper.CreateSuperROUser()
-				Expect(err).To(HaveOccurred())
+			It("does not create a read only user and returns a helpful error", func() {
+				err := helper.CreateReadOnlyUser()
 
-				fakeSeeder.GrantUserSuperROPrivilegesReturns(errors.New("Error"))
-				err = helper.CreateSuperROUser()
 				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("requires password"))
 			})
 		})
 	})
-
 })

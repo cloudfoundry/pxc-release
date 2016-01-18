@@ -130,37 +130,6 @@ var _ = Describe("Seeder", func() {
 		})
 	})
 
-	Describe("CreateUserForDB", func() {
-		var createUserExec string
-
-		BeforeEach(func() {
-			createUserExec = fmt.Sprintf(
-				"CREATE USER `%s` IDENTIFIED BY '%s'",
-				dbConfig.User,
-				dbConfig.Password,
-			)
-		})
-
-		It("creates the user", func() {
-			sqlmock.ExpectExec(createUserExec).
-				WithArgs().
-				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-
-			seeder.CreateUserForDB()
-		})
-
-		Context("when creating the user returns an error", func() {
-			It("bubbles the error up", func() {
-				sqlmock.ExpectExec(createUserExec).
-					WithArgs().
-					WillReturnError(fmt.Errorf("some error"))
-
-				err := seeder.CreateUserForDB()
-				Expect(err).To(HaveOccurred())
-			})
-		})
-	})
-
 	Describe("CreateUser", func() {
 		var createUserExec string
 
@@ -177,7 +146,7 @@ var _ = Describe("Seeder", func() {
 				WithArgs().
 				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-			seeder.CreateUser("foo", "bar")
+			seeder.CreateUser()
 		})
 
 		Context("when creating the user returns an error", func() {
@@ -186,71 +155,9 @@ var _ = Describe("Seeder", func() {
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 
-				err := seeder.CreateUser("foo", "bar")
+				err := seeder.CreateUser()
 				Expect(err).To(HaveOccurred())
 			})
 		})
 	})
-
-	Describe("GrantUserAllPrivileges", func() {
-		var grantUserPrivilegesExec string
-
-		BeforeEach(func() {
-			grantUserPrivilegesExec = fmt.Sprintf(
-				"GRANT ALL ON `%s`.* TO `%s`",
-				dbConfig.DBName,
-				dbConfig.User)
-		})
-
-		It("grants the user all privileges", func() {
-			sqlmock.ExpectExec(grantUserPrivilegesExec).
-				WithArgs().
-				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-
-			seeder.GrantUserAllPrivileges()
-		})
-
-		Context("when creating the database returns an error", func() {
-			It("bubbles the error up", func() {
-				sqlmock.ExpectExec(grantUserPrivilegesExec).
-					WithArgs().
-					WillReturnError(fmt.Errorf("some error"))
-
-				err := seeder.GrantUserAllPrivileges()
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-	})
-
-	Describe("GrantUserSuperROPrivileges", func() {
-		var grantUserPrivilegesExec string
-
-		BeforeEach(func() {
-			grantUserPrivilegesExec = fmt.Sprintf(
-				"GRANT SELECT ON `%s`.* TO `%s`",
-				"*",
-				"foo")
-		})
-
-		It("grants the user read-only privileges", func() {
-			sqlmock.ExpectExec(grantUserPrivilegesExec).
-				WithArgs().
-				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-
-			seeder.GrantUserSuperROPrivileges("foo")
-		})
-
-		Context("when creating the database returns an error", func() {
-			It("bubbles the error up", func() {
-				sqlmock.ExpectExec(grantUserPrivilegesExec).
-					WithArgs().
-					WillReturnError(fmt.Errorf("some error"))
-
-				err := seeder.GrantUserSuperROPrivileges("foo")
-				Expect(err).To(HaveOccurred())
-			})
-		})
-	})
-
 })

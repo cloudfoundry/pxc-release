@@ -21,7 +21,7 @@ type FakeDBHelper struct {
 	StartMysqlInJoinStub        func() (*exec.Cmd, error)
 	startMysqlInJoinMutex       sync.RWMutex
 	startMysqlInJoinArgsForCall []struct{}
-	startMysqlInJoinReturns struct {
+	startMysqlInJoinReturns     struct {
 		result1 *exec.Cmd
 		result2 error
 	}
@@ -35,51 +35,51 @@ type FakeDBHelper struct {
 	StartMysqlInBootstrapStub        func() (*exec.Cmd, error)
 	startMysqlInBootstrapMutex       sync.RWMutex
 	startMysqlInBootstrapArgsForCall []struct{}
-	startMysqlInBootstrapReturns struct {
+	startMysqlInBootstrapReturns     struct {
 		result1 *exec.Cmd
 		result2 error
 	}
 	StopMysqlStub        func() error
 	stopMysqlMutex       sync.RWMutex
 	stopMysqlArgsForCall []struct{}
-	stopMysqlReturns struct {
+	stopMysqlReturns     struct {
 		result1 error
 	}
 	StopStandaloneMysqlStub        func() error
 	stopStandaloneMysqlMutex       sync.RWMutex
 	stopStandaloneMysqlArgsForCall []struct{}
-	stopStandaloneMysqlReturns struct {
+	stopStandaloneMysqlReturns     struct {
 		result1 error
 	}
 	UpgradeStub        func() (output string, err error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct{}
-	upgradeReturns struct {
+	upgradeReturns     struct {
 		result1 string
 		result2 error
 	}
 	IsDatabaseReachableStub        func() bool
 	isDatabaseReachableMutex       sync.RWMutex
 	isDatabaseReachableArgsForCall []struct{}
-	isDatabaseReachableReturns struct {
+	isDatabaseReachableReturns     struct {
 		result1 bool
 	}
 	IsProcessRunningStub        func() bool
 	isProcessRunningMutex       sync.RWMutex
 	isProcessRunningArgsForCall []struct{}
-	isProcessRunningReturns struct {
+	isProcessRunningReturns     struct {
 		result1 bool
 	}
 	SeedStub        func() error
 	seedMutex       sync.RWMutex
 	seedArgsForCall []struct{}
-	seedReturns struct {
+	seedReturns     struct {
 		result1 error
 	}
-	CreateSuperROUserStub        func() error
-	createSuperROUserMutex       sync.RWMutex
-	createSuperROUserArgsForCall []struct{}
-	createSuperROUserReturns struct {
+	CreateReadOnlyUserStub        func() error
+	createReadOnlyUserMutex       sync.RWMutex
+	createReadOnlyUserArgsForCall []struct{}
+	createReadOnlyUserReturns     struct {
 		result1 error
 	}
 }
@@ -336,26 +336,26 @@ func (fake *FakeDBHelper) SeedReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDBHelper) CreateSuperROUser() error {
-	fake.createSuperROUserMutex.Lock()
-	fake.createSuperROUserArgsForCall = append(fake.createSuperROUserArgsForCall, struct{}{})
-	fake.createSuperROUserMutex.Unlock()
-	if fake.CreateSuperROUserStub != nil {
-		return fake.CreateSuperROUserStub()
+func (fake *FakeDBHelper) CreateReadOnlyUser() error {
+	fake.createReadOnlyUserMutex.Lock()
+	fake.createReadOnlyUserArgsForCall = append(fake.createReadOnlyUserArgsForCall, struct{}{})
+	fake.createReadOnlyUserMutex.Unlock()
+	if fake.CreateReadOnlyUserStub != nil {
+		return fake.CreateReadOnlyUserStub()
 	} else {
-		return fake.createSuperROUserReturns.result1
+		return fake.createReadOnlyUserReturns.result1
 	}
 }
 
-func (fake *FakeDBHelper) CreateSuperROUserCallCount() int {
-	fake.createSuperROUserMutex.RLock()
-	defer fake.createSuperROUserMutex.RUnlock()
-	return len(fake.createSuperROUserArgsForCall)
+func (fake *FakeDBHelper) CreateReadOnlyUserCallCount() int {
+	fake.createReadOnlyUserMutex.RLock()
+	defer fake.createReadOnlyUserMutex.RUnlock()
+	return len(fake.createReadOnlyUserArgsForCall)
 }
 
-func (fake *FakeDBHelper) CreateSuperROUserReturns(result1 error) {
-	fake.CreateSuperROUserStub = nil
-	fake.createSuperROUserReturns = struct {
+func (fake *FakeDBHelper) CreateReadOnlyUserReturns(result1 error) {
+	fake.CreateReadOnlyUserStub = nil
+	fake.createReadOnlyUserReturns = struct {
 		result1 error
 	}{result1}
 }

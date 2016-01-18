@@ -36,12 +36,12 @@ var _ = Describe("Config", func() {
 					DatabaseStartupTimeout: 600,
 				},
 				Db: config.DBHelper{
-					DaemonPath:  "testDaemonPath",
-					UpgradePath: "testUpgradePath",
-					User:        "testUser",
-					Password:    "",
-					ROUser:      "testROUser",
-					ROPassword:  "testROPassword",
+					DaemonPath:       "testDaemonPath",
+					UpgradePath:      "testUpgradePath",
+					User:             "testUser",
+					Password:         "",
+					ReadOnlyUser:     "testROUser",
+					ReadOnlyPassword: "testROPassword",
 					PreseededDatabases: []config.PreseededDatabase{
 						config.PreseededDatabase{
 							DBName:   "testDbName1",
@@ -137,11 +137,11 @@ var _ = Describe("Config", func() {
 			It("returns an error if Db.DaemonPath is blank", isRequiredField("Db.DaemonPath"))
 			It("returns an error if Db.UpgradePath is blank", isRequiredField("Db.UpgradePath"))
 			It("returns an error if Db.User is blank", isRequiredField("Db.User"))
-			It("returns an error if Db.ROUser is blank", isRequiredField("Db.ROUser"))
+			It("returns an error if Db.ReadOnlyUser is blank", isRequiredField("Db.ReadOnlyUser"))
 
 			It("does not return an error if Db.Password is blank", isOptionalField("Db.Password"))
 			It("does not return an error if Db.PreseededDatabases is blank", isOptionalField("Db.PreseededDatabases"))
-			It("does not return an error if Db.ROPassword is blank", isOptionalField("Db.ROPassword"))
+			It("does not return an error if Db.ReadOnlyPassword is blank", isOptionalField("Db.ReadOnlyPassword"))
 
 			Describe("PreseededDatabase", func() {
 				It("returns an error if Db.PreseededDatabases.DBName is blank", isRequiredField("Db.PreseededDatabases.DBName"))

@@ -1,6 +1,7 @@
 package mariadb_helper
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -32,7 +33,7 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
-	CreateSuperROUser() error
+	CreateReadOnlyUser() error
 }
 
 type MariaDBHelper struct {
@@ -224,7 +225,7 @@ func (m MariaDBHelper) Seed() error {
 		}
 
 		if userAlreadyExists == false {
-			if err := seeder.CreateUserForDB(); err != nil {
+			if err := seeder.CreateUser(); err != nil {
 				return err
 			}
 		}
@@ -243,28 +244,27 @@ func (m MariaDBHelper) Seed() error {
 	return nil
 }
 
-func (m MariaDBHelper) CreateSuperROUser() error {
+func (m MariaDBHelper) CreateReadOnlyUser() error {
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Error("database not reachable", err)
 		return err
 	}
 	defer CloseDBConnection(db)
-	blankPreSeededDB := &config.PreseededDatabase{
-		DBName:   "",
-		User:     "",
-		Password: "",
+
+	if m.config.ReadOnlyPassword == "" {
+		return errors.New("Read only user (roadmin) requires password")
 	}
 
-	seeder := BuildSeeder(db, *blankPreSeededDB, m.logger)
-	err = seeder.CreateUser(m.config.ROUser, m.config.ROPassword)
-	if err != nil {
-		m.logger.Error("cannot create super RO user", err)
+	createUserQuery := fmt.Sprintf(
+		"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
+		m.config.ReadOnlyUser,
+		m.config.ReadOnlyPassword,
+	)
+
+	if _, err := db.Exec(createUserQuery); err != nil {
 		return err
 	}
-	err = seeder.GrantUserSuperROPrivileges(m.config.ROUser)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
