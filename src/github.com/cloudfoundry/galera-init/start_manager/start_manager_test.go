@@ -25,6 +25,7 @@ var _ = Describe("StartManager", func() {
 	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
+	var monitorJoin bool
 
 	const stateFileLocation = "/stateFileLocation"
 	const databaseStartupTimeout = 10
@@ -60,6 +61,11 @@ var _ = Describe("StartManager", func() {
 		ensureStateFileContentIs(Clustered)
 	}
 
+	ensureJoinMonitored := func() {
+		Expect(fakeDBHelper.StartMysqlInJoinMonitoredCallCount()).To(Equal(1))
+		ensureStateFileContentIs(Clustered)
+	}
+
 	createManager := func(args managerArgs) StartManager {
 
 		clusterIps := []string{}
@@ -79,10 +85,12 @@ var _ = Describe("StartManager", func() {
 			fakeUpgrader,
 			testLogger,
 			fakeClusterHealthChecker,
+			monitorJoin,
 		)
 	}
 
 	BeforeEach(func() {
+		monitorJoin = false
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
@@ -369,6 +377,20 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureJoin()
 					ensureSeedDatabases()
+				})
+
+				Context("and is running with monitorJoin turned on", func() {
+					BeforeEach(func() {
+						monitorJoin = true
+						mgr = createManager(managerArgs{NodeCount: 3})
+					})
+
+					It("joins the cluster in a monitored way and seeds the database", func() {
+						err := mgr.Execute()
+						Expect(err).ToNot(HaveOccurred())
+						ensureJoinMonitored()
+						ensureSeedDatabases()
+					})
 				})
 			})
 

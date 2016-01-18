@@ -75,6 +75,7 @@ func main() {
 		upgrader,
 		logger,
 		galeraHelper,
+		false,
 	)
 
 	runner := start_manager.NewRunner(mgr, logger)
