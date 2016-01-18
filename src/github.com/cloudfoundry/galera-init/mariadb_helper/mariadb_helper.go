@@ -265,7 +265,17 @@ func (m MariaDBHelper) createReadOnlyUser() error {
 		m.config.ReadOnlyPassword,
 	)
 
+	setPasswordQuery := fmt.Sprintf(
+		"SET PASSWORD FOR '%s'@'%%' = PASSWORD('%s')",
+		m.config.ReadOnlyUser,
+		m.config.ReadOnlyPassword,
+	)
+
 	if _, err := db.Exec(createUserQuery); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(setPasswordQuery); err != nil {
 		return err
 	}
 

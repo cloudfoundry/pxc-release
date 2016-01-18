@@ -184,8 +184,8 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("Seed", func() {
 		var (
-			grantUserPrivilegesExec string
-			createUserExec          string
+			grantReadPrivilegesExec string
+			setReadOnlyUserPassword string
 		)
 
 		Context("when there are pre-seeded databases", func() {
@@ -269,15 +269,24 @@ var _ = Describe("MariaDBHelper", func() {
 			BeforeEach(func() {
 				dbConfig.ReadOnlyPassword = "random-password"
 
-				createUserExec = fmt.Sprintf(
+				grantReadPrivilegesExec = fmt.Sprintf(
 					"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
 					dbConfig.ReadOnlyUser,
 					dbConfig.ReadOnlyPassword,
 				)
+
+				setReadOnlyUserPassword = fmt.Sprintf(
+					"SET PASSWORD FOR '%s'@'%%'",
+					dbConfig.ReadOnlyUser,
+				)
 			})
 
 			It("creates a read only user named roadmin", func() {
-				sqlmock.ExpectExec(createUserExec).
+				sqlmock.ExpectExec(grantReadPrivilegesExec).
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+				sqlmock.ExpectExec(setReadOnlyUserPassword).
 					WithArgs().
 					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
@@ -289,15 +298,30 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("creating the read only user errors", func() {
+			Context("granting select to the read only user errors", func() {
 				It("returns the error back", func() {
-					sqlmock.ExpectExec(grantUserPrivilegesExec).
+					sqlmock.ExpectExec(grantReadPrivilegesExec).
 						WithArgs().
 						WillReturnError(errors.New("some error"))
 
 					err := helper.Seed()
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("some error"))
+				})
+			})
+
+			Context("setting the read only user password errors", func() {
+				It("returns the error back", func() {
+					sqlmock.ExpectExec(grantReadPrivilegesExec).
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+					sqlmock.ExpectExec(setReadOnlyUserPassword).
+						WillReturnError(errors.New("another error"))
+
+					err := helper.Seed()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("another error"))
 				})
 			})
 		})
