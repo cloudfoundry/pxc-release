@@ -40,7 +40,6 @@ type startManager struct {
 	upgrader             upgrader.Upgrader
 	logger               lager.Logger
 	mysqlCmd             *exec.Cmd
-	monitorJoin          bool
 }
 
 func New(
@@ -49,8 +48,7 @@ func New(
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	logger lager.Logger,
-	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
-	monitorJoin bool) StartManager {
+	clusterHealthChecker cluster_health_checker.ClusterHealthChecker) StartManager {
 	return &startManager{
 		osHelper:             osHelper,
 		config:               config,
@@ -58,7 +56,6 @@ func New(
 		clusterHealthChecker: clusterHealthChecker,
 		mariaDBHelper:        mariaDBHelper,
 		upgrader:             upgrader,
-		monitorJoin:          monitorJoin,
 	}
 }
 
@@ -225,25 +222,15 @@ func (m *startManager) bootstrapCluster() error {
 func (m *startManager) joinCluster() (err error) {
 
 	m.logger.Info("Joining a multi-node cluster")
-	if !m.monitorJoin {
-		cmd, err := m.mariaDBHelper.StartMysqlInJoin()
+	cmd, err := m.mariaDBHelper.StartMysqlInJoin()
 
-		if err != nil {
-			return err
-		}
-
-		m.mysqlCmd = cmd
-
-		return nil
-	} else {
-		err := m.mariaDBHelper.StartMysqlInJoinMonitored()
-		if err != nil {
-			return err
-		}
-
-		return nil
-
+	if err != nil {
+		return err
 	}
+
+	m.mysqlCmd = cmd
+
+	return nil
 }
 
 func (m *startManager) writeStringToFile(contents string) {
