@@ -33,7 +33,6 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
-	CreateReadOnlyUser() error
 }
 
 type MariaDBHelper struct {
@@ -235,6 +234,10 @@ func (m MariaDBHelper) Seed() error {
 		}
 	}
 
+	if err := m.createReadOnlyUser(); err != nil {
+		return err
+	}
+
 	_, err = db.Exec("FLUSH PRIVILEGES")
 	if err != nil {
 		m.logger.Error("Error flushing privileges", err)
@@ -244,7 +247,7 @@ func (m MariaDBHelper) Seed() error {
 	return nil
 }
 
-func (m MariaDBHelper) CreateReadOnlyUser() error {
+func (m MariaDBHelper) createReadOnlyUser() error {
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Error("database not reachable", err)

@@ -183,6 +183,11 @@ var _ = Describe("MariaDBHelper", func() {
 	})
 
 	Describe("Seed", func() {
+		var (
+			grantUserPrivilegesExec string
+			createUserExec          string
+		)
+
 		Context("when there are pre-seeded databases", func() {
 			Context("if the users already exist", func() {
 				BeforeEach(func() {
@@ -241,6 +246,7 @@ var _ = Describe("MariaDBHelper", func() {
 					Expect(err).To(HaveOccurred())
 				})
 			})
+
 		})
 
 		Context("when there are no seeded databases", func() {
@@ -258,17 +264,11 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(0))
 			})
 		})
-	})
 
-	Describe("CreateReadOnlyUser", func() {
-		var (
-			grantUserPrivilegesExec string
-			createUserExec          string
-		)
-
-		Context("a password is provided for the read only user", func() {
+		Context("when a password is provided for the read only user", func() {
 			BeforeEach(func() {
 				dbConfig.ReadOnlyPassword = "random-password"
+
 				createUserExec = fmt.Sprintf(
 					"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
 					dbConfig.ReadOnlyUser,
@@ -281,7 +281,11 @@ var _ = Describe("MariaDBHelper", func() {
 					WithArgs().
 					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-				err := helper.CreateReadOnlyUser()
+				sqlmock.ExpectExec("FLUSH PRIVILEGES").
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+				err := helper.Seed()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -291,8 +295,9 @@ var _ = Describe("MariaDBHelper", func() {
 						WithArgs().
 						WillReturnError(errors.New("some error"))
 
-					err := helper.CreateReadOnlyUser()
+					err := helper.Seed()
 					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("some error"))
 				})
 			})
 		})
@@ -303,7 +308,7 @@ var _ = Describe("MariaDBHelper", func() {
 			})
 
 			It("does not create a read only user and returns a helpful error", func() {
-				err := helper.CreateReadOnlyUser()
+				err := helper.Seed()
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("requires password"))
