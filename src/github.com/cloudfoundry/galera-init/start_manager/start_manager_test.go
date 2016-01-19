@@ -3,7 +3,6 @@ package start_manager_test
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
@@ -26,7 +25,6 @@ var _ = Describe("StartManager", func() {
 	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
-	var prestartStage bool
 
 	const stateFileLocation = "/stateFileLocation"
 	const databaseStartupTimeout = 10
@@ -81,12 +79,10 @@ var _ = Describe("StartManager", func() {
 			fakeUpgrader,
 			testLogger,
 			fakeClusterHealthChecker,
-			prestartStage,
 		)
 	}
 
 	BeforeEach(func() {
-		prestartStage = false
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
@@ -139,131 +135,65 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Context("When pre-start mode is set to true", func() {
-
-		var retryAttempts int
+	Context("When mysql starts in less than configured DatabaseStartupTimeout", func() {
+		var expectedRetryAttempts int
 
 		BeforeEach(func() {
-			prestartStage = true
+			mgr = createManager(managerArgs{
+				NodeIndex: 1,
+				NodeCount: 3,
+			})
+
 			numTries := 0
-			retryAttempts = 40
+			expectedRetryAttempts = 2
+
 			fakeDBHelper.IsDatabaseReachableStub = func() bool {
-				//Simulate trying to reach a database, we make it reachable after
-				//retryAttempts
 				numTries++
-				if numTries < retryAttempts {
+				if numTries < expectedRetryAttempts {
 					return false
 				} else {
 					return true
 				}
 			}
+		})
 
+		It("retries pinging the database until it is reachable", func() {
+			err := mgr.Execute()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
+		})
+	})
+
+	Context("When mysql does not start in less than configured DatabaseStartupTimeout", func() {
+		var maxRetryAttempts int
+
+		BeforeEach(func() {
 			mgr = createManager(managerArgs{
 				NodeIndex: 1,
 				NodeCount: 3,
 			})
+
+			maxRetryAttempts = databaseStartupTimeout / StartupPollingFrequencyInSeconds
+			fakeDBHelper.IsDatabaseReachableReturns(false)
 		})
 
-		It("starts mysql and monitors the call", func() {
+		It("returns a timeout error", func() {
 			err := mgr.Execute()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fakeDBHelper.StartMysqlInJoinMonitoredCallCount()).To(Equal(1))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Timeout"))
+			Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
 		})
 
-		It("pings the database until it is reachable, then shuts down", func() {
+		It("does not attempt to seed the database", func() {
 			err := mgr.Execute()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fakeDBHelper.StartMysqlInJoinMonitoredCallCount()).To(Equal(1))
-			Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(retryAttempts))
-			Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
+			Expect(err).To(HaveOccurred())
+			Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
 		})
 
-		FContext("When start mysql quits with error", func() {
-
-			BeforeEach(func() {
-				fakeDBHelper.StartMysqlInJoinMonitoredStub = func() (*exec.Cmd, chan error) {
-					//Simulating joining a cluster in the background
-					fakeErrChannel := make(chan error)
-					go func() {
-						//fmt.Println("Putting error on channel")
-						fakeErrChannel <- errors.New("Some error")
-					}()
-					return nil, fakeErrChannel
-				}
-			})
-
-			It("stops pinging the database and quits", func() {
-				err := mgr.Execute()
-				Expect(err).To(HaveOccurred())
-				Expect(fakeDBHelper.StartMysqlInJoinMonitoredCallCount()).To(Equal(1))
-				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(BeNumerically("<", retryAttempts))
-			})
-		})
-
-	})
-
-	Context("When pre-start mode is set to false", func() {
-
-		Context("When mysql starts in less than configured DatabaseStartupTimeout", func() {
-			var expectedRetryAttempts int
-
-			BeforeEach(func() {
-				mgr = createManager(managerArgs{
-					NodeIndex: 1,
-					NodeCount: 3,
-				})
-
-				numTries := 0
-				expectedRetryAttempts = 2
-
-				fakeDBHelper.IsDatabaseReachableStub = func() bool {
-					numTries++
-					if numTries < expectedRetryAttempts {
-						return false
-					} else {
-						return true
-					}
-				}
-			})
-
-			It("retries pinging the database until it is reachable", func() {
-				err := mgr.Execute()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
-			})
-		})
-
-		Context("When mysql does not start in less than configured DatabaseStartupTimeout", func() {
-			var maxRetryAttempts int
-
-			BeforeEach(func() {
-				mgr = createManager(managerArgs{
-					NodeIndex: 1,
-					NodeCount: 3,
-				})
-
-				maxRetryAttempts = databaseStartupTimeout / StartupPollingFrequencyInSeconds
-				fakeDBHelper.IsDatabaseReachableReturns(false)
-			})
-
-			It("returns a timeout error", func() {
-				err := mgr.Execute()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Timeout"))
-				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
-			})
-
-			It("does not attempt to seed the database", func() {
-				err := mgr.Execute()
-				Expect(err).To(HaveOccurred())
-				Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
-			})
-
-			It("does not write to the state file", func() {
-				err := mgr.Execute()
-				Expect(err).To(HaveOccurred())
-				ensureNoWriteToStateFile()
-			})
+		It("does not write to the state file", func() {
+			err := mgr.Execute()
+			Expect(err).To(HaveOccurred())
+			ensureNoWriteToStateFile()
 		})
 	})
 

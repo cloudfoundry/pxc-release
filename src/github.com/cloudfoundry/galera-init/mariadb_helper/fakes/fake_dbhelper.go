@@ -21,65 +21,58 @@ type FakeDBHelper struct {
 	StartMysqlInJoinStub        func() (*exec.Cmd, error)
 	startMysqlInJoinMutex       sync.RWMutex
 	startMysqlInJoinArgsForCall []struct{}
-	startMysqlInJoinReturns     struct {
+	startMysqlInJoinReturns struct {
 		result1 *exec.Cmd
 		result2 error
-	}
-	StartMysqlInJoinMonitoredStub        func() (*exec.Cmd, chan error)
-	startMysqlInJoinMonitoredMutex       sync.RWMutex
-	startMysqlInJoinMonitoredArgsForCall []struct{}
-	startMysqlInJoinMonitoredReturns     struct {
-		result1 *exec.Cmd
-		result2 chan error
 	}
 	StartMysqlInBootstrapStub        func() (*exec.Cmd, error)
 	startMysqlInBootstrapMutex       sync.RWMutex
 	startMysqlInBootstrapArgsForCall []struct{}
-	startMysqlInBootstrapReturns     struct {
+	startMysqlInBootstrapReturns struct {
 		result1 *exec.Cmd
 		result2 error
 	}
 	StopMysqlStub        func() error
 	stopMysqlMutex       sync.RWMutex
 	stopMysqlArgsForCall []struct{}
-	stopMysqlReturns     struct {
+	stopMysqlReturns struct {
 		result1 error
 	}
 	StopStandaloneMysqlStub        func() error
 	stopStandaloneMysqlMutex       sync.RWMutex
 	stopStandaloneMysqlArgsForCall []struct{}
-	stopStandaloneMysqlReturns     struct {
+	stopStandaloneMysqlReturns struct {
 		result1 error
 	}
 	UpgradeStub        func() (output string, err error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct{}
-	upgradeReturns     struct {
+	upgradeReturns struct {
 		result1 string
 		result2 error
 	}
 	IsDatabaseReachableStub        func() bool
 	isDatabaseReachableMutex       sync.RWMutex
 	isDatabaseReachableArgsForCall []struct{}
-	isDatabaseReachableReturns     struct {
+	isDatabaseReachableReturns struct {
 		result1 bool
 	}
 	IsProcessRunningStub        func() bool
 	isProcessRunningMutex       sync.RWMutex
 	isProcessRunningArgsForCall []struct{}
-	isProcessRunningReturns     struct {
+	isProcessRunningReturns struct {
 		result1 bool
 	}
 	SeedStub        func() error
 	seedMutex       sync.RWMutex
 	seedArgsForCall []struct{}
-	seedReturns     struct {
+	seedReturns struct {
 		result1 error
 	}
 	CreateReadOnlyUserStub        func() error
 	createReadOnlyUserMutex       sync.RWMutex
 	createReadOnlyUserArgsForCall []struct{}
-	createReadOnlyUserReturns     struct {
+	createReadOnlyUserReturns struct {
 		result1 error
 	}
 }
@@ -138,31 +131,6 @@ func (fake *FakeDBHelper) StartMysqlInJoinReturns(result1 *exec.Cmd, result2 err
 	fake.startMysqlInJoinReturns = struct {
 		result1 *exec.Cmd
 		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDBHelper) StartMysqlInJoinMonitored() (*exec.Cmd, chan error) {
-	fake.startMysqlInJoinMonitoredMutex.Lock()
-	fake.startMysqlInJoinMonitoredArgsForCall = append(fake.startMysqlInJoinMonitoredArgsForCall, struct{}{})
-	fake.startMysqlInJoinMonitoredMutex.Unlock()
-	if fake.StartMysqlInJoinMonitoredStub != nil {
-		return fake.StartMysqlInJoinMonitoredStub()
-	} else {
-		return fake.startMysqlInJoinMonitoredReturns.result1, fake.startMysqlInJoinMonitoredReturns.result2
-	}
-}
-
-func (fake *FakeDBHelper) StartMysqlInJoinMonitoredCallCount() int {
-	fake.startMysqlInJoinMonitoredMutex.RLock()
-	defer fake.startMysqlInJoinMonitoredMutex.RUnlock()
-	return len(fake.startMysqlInJoinMonitoredArgsForCall)
-}
-
-func (fake *FakeDBHelper) StartMysqlInJoinMonitoredReturns(result1 *exec.Cmd, result2 chan error) {
-	fake.StartMysqlInJoinMonitoredStub = nil
-	fake.startMysqlInJoinMonitoredReturns = struct {
-		result1 *exec.Cmd
-		result2 chan error
 	}{result1, result2}
 }
 

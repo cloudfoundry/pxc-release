@@ -25,7 +25,6 @@ const (
 type DBHelper interface {
 	StartMysqldInMode(command string) error
 	StartMysqlInJoin() (*exec.Cmd, error)
-	StartMysqlInJoinMonitored() (*exec.Cmd, chan error)
 	StartMysqlInBootstrap() (*exec.Cmd, error)
 	StopMysql() error
 	StopStandaloneMysql() error
@@ -102,10 +101,6 @@ func (m MariaDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StartMysqlInJoinMonitored() (*exec.Cmd, chan error) {
-	return nil, nil
-}
-
 func (m MariaDBHelper) StartMysqlInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
 	cmd, err := m.startMysqlAsChildProcess("--wsrep-new-cluster")
@@ -158,23 +153,6 @@ func (m MariaDBHelper) Upgrade() (output string, err error) {
 		fmt.Sprintf("-p%s", m.config.Password),
 	)
 }
-
-/*
-* func (m ) startMysqlAndWait() (error){
-	outChannel := make(chan string, 1)
-	errChannel := make(chan error, 1)
-	 go func() {
-		 outChannel, errChannel -> RunCommand(m.logFileLocation, "/var/vcap/packages/mariadb/bin/mysqld_safe", mysqlArgs...)
-	 }
-	 select {
-	 case <-errChannel:
-		 return errors.New("Error!!)
-	 case <-outChannel:
-		 //write to logfile
-		 return nil
-	 }
-	}
-*/
 
 func (m MariaDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
