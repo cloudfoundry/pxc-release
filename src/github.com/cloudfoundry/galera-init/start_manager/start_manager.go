@@ -40,6 +40,7 @@ type startManager struct {
 	upgrader             upgrader.Upgrader
 	logger               lager.Logger
 	mysqlCmd             *exec.Cmd
+	prestartStage        bool
 }
 
 func New(
@@ -48,7 +49,8 @@ func New(
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	logger lager.Logger,
-	clusterHealthChecker cluster_health_checker.ClusterHealthChecker) StartManager {
+	clusterHealthChecker cluster_health_checker.ClusterHealthChecker,
+	prestartStage bool) StartManager {
 	return &startManager{
 		osHelper:             osHelper,
 		config:               config,
@@ -56,11 +58,13 @@ func New(
 		clusterHealthChecker: clusterHealthChecker,
 		mariaDBHelper:        mariaDBHelper,
 		upgrader:             upgrader,
+		prestartStage:        prestartStage,
 	}
 }
 
 func (m *startManager) Execute() error {
 
+	errChannel := make(chan error)
 	if m.mariaDBHelper.IsProcessRunning() {
 		m.logger.Info("MySQL process is already running, shutting down before continuing")
 		err := m.Shutdown()
@@ -102,28 +106,37 @@ func (m *startManager) Execute() error {
 		err = m.bootstrapCluster()
 		newNodeState = Clustered
 	case Clustered:
-		err = m.joinCluster()
+		err, errChannel = m.joinCluster()
 		newNodeState = Clustered
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", currentState)
 	}
+
 	if err != nil {
 		return err
 	}
 
-	err = m.waitForDatabaseToAcceptConnections()
+	err = m.waitForDatabaseToAcceptConnections(errChannel, m.prestartStage)
 	if err != nil {
 		return err
+	}
+
+	if m.prestartStage {
+		m.writeStringToFile(newNodeState)
+		err = m.Shutdown()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	err = m.seedDatabases()
 	if err != nil {
 		return err
 	}
-
 	m.writeStringToFile(newNodeState)
 
-	return err
+	return nil
 }
 
 func (m *startManager) getCurrentNodeState() (string, error) {
@@ -219,18 +232,23 @@ func (m *startManager) bootstrapCluster() error {
 	return nil
 }
 
-func (m *startManager) joinCluster() (err error) {
+func (m *startManager) joinCluster() (error, chan error) {
 
 	m.logger.Info("Joining a multi-node cluster")
-	cmd, err := m.mariaDBHelper.StartMysqlInJoin()
+	var err error
+	var cmd *exec.Cmd
+	errChannel := make(chan error)
 
-	if err != nil {
-		return err
+	if !m.prestartStage {
+		cmd, err = m.mariaDBHelper.StartMysqlInJoin()
+		errChannel <- err
+	} else {
+		cmd, errChannel = m.mariaDBHelper.StartMysqlInJoinMonitored()
 	}
 
 	m.mysqlCmd = cmd
+	return err, errChannel
 
-	return nil
 }
 
 func (m *startManager) writeStringToFile(contents string) {
@@ -238,20 +256,50 @@ func (m *startManager) writeStringToFile(contents string) {
 	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }
 
-func (m *startManager) waitForDatabaseToAcceptConnections() error {
-	m.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", m.config.DatabaseStartupTimeout))
-	for numTries := 0; numTries < m.maxDatabaseSeedTries(); numTries++ {
-		if m.mariaDBHelper.IsDatabaseReachable() {
-			m.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
-			return nil
+func (m *startManager) waitForDatabaseToAcceptConnections(startChan <-chan error, prestartStage bool) error {
+	var numTries int
+
+	if !prestartStage {
+		m.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", m.config.DatabaseStartupTimeout))
+		for numTries = 0; numTries < m.maxDatabaseSeedTries(); numTries++ {
+			if m.mariaDBHelper.IsDatabaseReachable() {
+				m.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
+				return nil
+			}
+			m.logger.Info("Database not reachable, retrying...")
+			m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
 		}
-		m.logger.Info("Database not reachable, retrying...")
-		m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
+
+		err := fmt.Errorf("Timeout: Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
+		m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
+		return err
+	} else {
+
+		var joinErr error
+		go func() {
+			joinErr = <-startChan
+			//	fmt.Println("Saw error on channel")
+		}()
+
+		numTries = 0
+		for m.mariaDBHelper.IsDatabaseReachable() == false && joinErr == nil {
+			/*if joinErr == nil {
+				fmt.Println("No error on channel")
+			}*/
+			m.logger.Info("Database not reachable, retrying...")
+			m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
+			numTries++
+		}
+		if joinErr != nil {
+			m.logger.Error(fmt.Sprintf("Failed to join database cluster"), joinErr)
+			return joinErr
+		}
+		fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds)
+		m.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
+
 	}
 
-	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
-	m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
-	return err
+	return nil
 }
 
 func (m *startManager) seedDatabases() error {

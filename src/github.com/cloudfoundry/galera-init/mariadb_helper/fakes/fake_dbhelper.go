@@ -25,6 +25,13 @@ type FakeDBHelper struct {
 		result1 *exec.Cmd
 		result2 error
 	}
+	StartMysqlInJoinMonitoredStub        func() (*exec.Cmd, chan error)
+	startMysqlInJoinMonitoredMutex       sync.RWMutex
+	startMysqlInJoinMonitoredArgsForCall []struct{}
+	startMysqlInJoinMonitoredReturns struct {
+		result1 *exec.Cmd
+		result2 chan error
+	}
 	StartMysqlInBootstrapStub        func() (*exec.Cmd, error)
 	startMysqlInBootstrapMutex       sync.RWMutex
 	startMysqlInBootstrapArgsForCall []struct{}
@@ -67,6 +74,12 @@ type FakeDBHelper struct {
 	seedMutex       sync.RWMutex
 	seedArgsForCall []struct{}
 	seedReturns struct {
+		result1 error
+	}
+	CreateSuperROUserStub        func() error
+	createSuperROUserMutex       sync.RWMutex
+	createSuperROUserArgsForCall []struct{}
+	createSuperROUserReturns struct {
 		result1 error
 	}
 }
@@ -125,6 +138,31 @@ func (fake *FakeDBHelper) StartMysqlInJoinReturns(result1 *exec.Cmd, result2 err
 	fake.startMysqlInJoinReturns = struct {
 		result1 *exec.Cmd
 		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartMysqlInJoinMonitored() (*exec.Cmd, chan error) {
+	fake.startMysqlInJoinMonitoredMutex.Lock()
+	fake.startMysqlInJoinMonitoredArgsForCall = append(fake.startMysqlInJoinMonitoredArgsForCall, struct{}{})
+	fake.startMysqlInJoinMonitoredMutex.Unlock()
+	if fake.StartMysqlInJoinMonitoredStub != nil {
+		return fake.StartMysqlInJoinMonitoredStub()
+	} else {
+		return fake.startMysqlInJoinMonitoredReturns.result1, fake.startMysqlInJoinMonitoredReturns.result2
+	}
+}
+
+func (fake *FakeDBHelper) StartMysqlInJoinMonitoredCallCount() int {
+	fake.startMysqlInJoinMonitoredMutex.RLock()
+	defer fake.startMysqlInJoinMonitoredMutex.RUnlock()
+	return len(fake.startMysqlInJoinMonitoredArgsForCall)
+}
+
+func (fake *FakeDBHelper) StartMysqlInJoinMonitoredReturns(result1 *exec.Cmd, result2 chan error) {
+	fake.StartMysqlInJoinMonitoredStub = nil
+	fake.startMysqlInJoinMonitoredReturns = struct {
+		result1 *exec.Cmd
+		result2 chan error
 	}{result1, result2}
 }
 
@@ -294,6 +332,30 @@ func (fake *FakeDBHelper) SeedCallCount() int {
 func (fake *FakeDBHelper) SeedReturns(result1 error) {
 	fake.SeedStub = nil
 	fake.seedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) CreateSuperROUser() error {
+	fake.createSuperROUserMutex.Lock()
+	fake.createSuperROUserArgsForCall = append(fake.createSuperROUserArgsForCall, struct{}{})
+	fake.createSuperROUserMutex.Unlock()
+	if fake.CreateSuperROUserStub != nil {
+		return fake.CreateSuperROUserStub()
+	} else {
+		return fake.createSuperROUserReturns.result1
+	}
+}
+
+func (fake *FakeDBHelper) CreateSuperROUserCallCount() int {
+	fake.createSuperROUserMutex.RLock()
+	defer fake.createSuperROUserMutex.RUnlock()
+	return len(fake.createSuperROUserArgsForCall)
+}
+
+func (fake *FakeDBHelper) CreateSuperROUserReturns(result1 error) {
+	fake.CreateSuperROUserStub = nil
+	fake.createSuperROUserReturns = struct {
 		result1 error
 	}{result1}
 }
