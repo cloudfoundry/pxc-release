@@ -76,6 +76,12 @@ type FakeDBHelper struct {
 	seedReturns     struct {
 		result1 error
 	}
+	CreateReadOnlyUserStub        func() error
+	createReadOnlyUserMutex       sync.RWMutex
+	createReadOnlyUserArgsForCall []struct{}
+	createReadOnlyUserReturns     struct {
+		result1 error
+	}
 }
 
 func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
@@ -326,6 +332,30 @@ func (fake *FakeDBHelper) SeedCallCount() int {
 func (fake *FakeDBHelper) SeedReturns(result1 error) {
 	fake.SeedStub = nil
 	fake.seedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) CreateReadOnlyUser() error {
+	fake.createReadOnlyUserMutex.Lock()
+	fake.createReadOnlyUserArgsForCall = append(fake.createReadOnlyUserArgsForCall, struct{}{})
+	fake.createReadOnlyUserMutex.Unlock()
+	if fake.CreateReadOnlyUserStub != nil {
+		return fake.CreateReadOnlyUserStub()
+	} else {
+		return fake.createReadOnlyUserReturns.result1
+	}
+}
+
+func (fake *FakeDBHelper) CreateReadOnlyUserCallCount() int {
+	fake.createReadOnlyUserMutex.RLock()
+	defer fake.createReadOnlyUserMutex.RUnlock()
+	return len(fake.createReadOnlyUserArgsForCall)
+}
+
+func (fake *FakeDBHelper) CreateReadOnlyUserReturns(result1 error) {
+	fake.CreateReadOnlyUserStub = nil
+	fake.createReadOnlyUserReturns = struct {
 		result1 error
 	}{result1}
 }

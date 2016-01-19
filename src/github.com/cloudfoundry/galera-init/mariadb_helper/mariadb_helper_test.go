@@ -183,11 +183,6 @@ var _ = Describe("MariaDBHelper", func() {
 	})
 
 	Describe("Seed", func() {
-		var (
-			grantReadPrivilegesExec string
-			setReadOnlyUserPassword string
-		)
-
 		Context("when there are pre-seeded databases", func() {
 			Context("if the users already exist", func() {
 				BeforeEach(func() {
@@ -264,6 +259,13 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(0))
 			})
 		})
+	})
+
+	Describe("CreateReadOnlyUser", func() {
+		var (
+			grantReadPrivilegesExec string
+			setReadOnlyUserPassword string
+		)
 
 		Context("when a password is provided for the read only user", func() {
 			BeforeEach(func() {
@@ -294,7 +296,7 @@ var _ = Describe("MariaDBHelper", func() {
 					WithArgs().
 					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-				err := helper.Seed()
+				err := helper.CreateReadOnlyUser()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -304,7 +306,7 @@ var _ = Describe("MariaDBHelper", func() {
 						WithArgs().
 						WillReturnError(errors.New("some error"))
 
-					err := helper.Seed()
+					err := helper.CreateReadOnlyUser()
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("some error"))
 				})
@@ -319,7 +321,7 @@ var _ = Describe("MariaDBHelper", func() {
 					sqlmock.ExpectExec(setReadOnlyUserPassword).
 						WillReturnError(errors.New("another error"))
 
-					err := helper.Seed()
+					err := helper.CreateReadOnlyUser()
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("another error"))
 				})
@@ -332,7 +334,7 @@ var _ = Describe("MariaDBHelper", func() {
 			})
 
 			It("does not create a read only user and returns a helpful error", func() {
-				err := helper.Seed()
+				err := helper.CreateReadOnlyUser()
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("requires password"))

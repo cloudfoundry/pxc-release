@@ -134,6 +134,12 @@ func (m *startManager) Execute() error {
 	if err != nil {
 		return err
 	}
+
+	err = m.createReadOnlyUser()
+	if err != nil {
+		return err
+	}
+
 	m.writeStringToFile(newNodeState)
 
 	return nil
@@ -310,5 +316,16 @@ func (m *startManager) seedDatabases() error {
 	}
 
 	m.logger.Info("Seeding databases succeeded.")
+	return nil
+}
+
+func (m *startManager) createReadOnlyUser() error {
+	err := m.mariaDBHelper.CreateReadOnlyUser()
+	if err != nil {
+		m.logger.Info(fmt.Sprintf("There was a problem creating the read only user: '%s'", err.Error()))
+		return err
+	}
+
+	m.logger.Info("Creating read only user succeeded.")
 	return nil
 }

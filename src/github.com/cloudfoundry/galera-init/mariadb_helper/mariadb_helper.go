@@ -33,6 +33,7 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
+	CreateReadOnlyUser() error
 }
 
 type MariaDBHelper struct {
@@ -234,20 +235,14 @@ func (m MariaDBHelper) Seed() error {
 		}
 	}
 
-	if err := m.createReadOnlyUser(); err != nil {
-		return err
-	}
-
-	_, err = db.Exec("FLUSH PRIVILEGES")
-	if err != nil {
-		m.logger.Error("Error flushing privileges", err)
+	if err := m.flushPrivileges(db); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m MariaDBHelper) createReadOnlyUser() error {
+func (m MariaDBHelper) CreateReadOnlyUser() error {
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Error("database not reachable", err)
@@ -259,23 +254,56 @@ func (m MariaDBHelper) createReadOnlyUser() error {
 		return errors.New("Read only user (roadmin) requires password")
 	}
 
+	if err := m.grantUserReadOnly(db); err != nil {
+		return err
+	}
+
+	if err := m.setReadOnlyUserPassword(db); err != nil {
+		return err
+	}
+
+	if err := m.flushPrivileges(db); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m MariaDBHelper) grantUserReadOnly(db *sql.DB) error {
 	createUserQuery := fmt.Sprintf(
 		"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
 		m.config.ReadOnlyUser,
 		m.config.ReadOnlyPassword,
 	)
 
+	if _, err := db.Exec(createUserQuery); err != nil {
+		m.logger.Error("Unable to create Read Only user", err)
+
+		return err
+	}
+
+	return nil
+}
+
+func (m MariaDBHelper) setReadOnlyUserPassword(db *sql.DB) error {
 	setPasswordQuery := fmt.Sprintf(
 		"SET PASSWORD FOR '%s'@'%%' = PASSWORD('%s')",
 		m.config.ReadOnlyUser,
 		m.config.ReadOnlyPassword,
 	)
 
-	if _, err := db.Exec(createUserQuery); err != nil {
+	if _, err := db.Exec(setPasswordQuery); err != nil {
+		m.logger.Error("Unable to set password for Read Only user", err)
+
 		return err
 	}
 
-	if _, err := db.Exec(setPasswordQuery); err != nil {
+	return nil
+}
+
+func (m MariaDBHelper) flushPrivileges(db *sql.DB) error {
+	if _, err := db.Exec("FLUSH PRIVILEGES"); err != nil {
+		m.logger.Error("Error flushing privileges", err)
 		return err
 	}
 

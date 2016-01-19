@@ -345,6 +345,12 @@ var _ = Describe("StartManager", func() {
 				ensureBootstrapWithStateFileContents(SingleNode)
 				ensureSeedDatabases()
 			})
+
+			It("sets the read only user", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
+			})
 		})
 
 		Context("And it's a redeploy", func() {
@@ -358,6 +364,12 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureBootstrapWithStateFileContents(SingleNode)
 				ensureSeedDatabases()
+			})
+
+			It("sets the read only user", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
 			})
 		})
 	})
@@ -384,6 +396,12 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureBootstrapWithStateFileContents(Clustered)
 					ensureSeedDatabases()
+				})
+
+				It("sets the read only user", func() {
+					err := mgr.Execute()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
 				})
 			})
 
@@ -563,6 +581,12 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureBootstrapWithStateFileContents(Clustered)
 				ensureSeedDatabases()
+			})
+
+			It("sets the read only user", func() {
+				err := mgr.Execute()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
 			})
 		})
 	})
