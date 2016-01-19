@@ -28,7 +28,7 @@ type FakeDBHelper struct {
 	StartMysqlInJoinMonitoredStub        func() (*exec.Cmd, chan error)
 	startMysqlInJoinMonitoredMutex       sync.RWMutex
 	startMysqlInJoinMonitoredArgsForCall []struct{}
-	startMysqlInJoinMonitoredReturns struct {
+	startMysqlInJoinMonitoredReturns     struct {
 		result1 *exec.Cmd
 		result2 chan error
 	}
