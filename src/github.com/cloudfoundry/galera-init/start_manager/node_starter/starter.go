@@ -19,6 +19,8 @@ const (
 	StartupPollingFrequencyInSeconds = 5
 )
 
+//go:generate counterfeiter . Starter
+
 type Starter interface {
 	StartNodeFromState(string) (string, error)
 }

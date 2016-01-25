@@ -20,6 +20,8 @@ const (
 	JoinCommand      = "start"
 )
 
+//go:generate counterfeiter . StartManager
+
 type StartManager interface {
 	Execute() error
 	GetMysqlCmd() (*exec.Cmd, error)
