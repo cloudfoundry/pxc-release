@@ -4,6 +4,9 @@ result=0
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+echo -e "\nGenerating fakes..."
+go generate github.com/cloudfoundry/mariadb_ctrl/...
+
 echo -e "\nFormatting packages..."
 go fmt github.com/cloudfoundry/mariadb_ctrl/...
 
