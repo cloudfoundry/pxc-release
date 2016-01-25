@@ -147,6 +147,14 @@ var _ = Describe("Starter", func() {
 		})
 
 		Context("error handling", func() {
+			Context("when passed a an invalid state", func() {
+				It("forwards the error", func() {
+					_, err := starter.StartNodeFromState("INVALID_STATE")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("Unsupported state file contents"))
+				})
+			})
+
 			Context("starting cluster returns an error", func() {
 				BeforeEach(func() {
 					fakeDBHelper.StartMysqlInBootstrapReturns(nil, errors.New("some errors"))
