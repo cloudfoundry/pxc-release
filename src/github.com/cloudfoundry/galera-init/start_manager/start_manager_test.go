@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -57,7 +58,7 @@ var _ = Describe("StartManager", func() {
 
 	ensureJoin := func() {
 		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
-		ensureStateFileContentIs(Clustered)
+		ensureStateFileContentIs(node_starter.Clustered)
 	}
 
 	createManager := func(args managerArgs) StartManager {
@@ -173,7 +174,7 @@ var _ = Describe("StartManager", func() {
 				NodeCount: 3,
 			})
 
-			maxRetryAttempts = databaseStartupTimeout / StartupPollingFrequencyInSeconds
+			maxRetryAttempts = databaseStartupTimeout / node_starter.StartupPollingFrequencyInSeconds
 			fakeDBHelper.IsDatabaseReachableReturns(false)
 		})
 
@@ -269,10 +270,10 @@ var _ = Describe("StartManager", func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			It("bootstraps, seeds databases and writes '"+SingleNode+"' to file", func() {
+			It("bootstraps, seeds databases and writes '"+node_starter.SingleNode+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(SingleNode)
+				ensureBootstrapWithStateFileContents(node_starter.SingleNode)
 				ensureSeedDatabases()
 			})
 
@@ -286,13 +287,13 @@ var _ = Describe("StartManager", func() {
 		Context("And it's a redeploy", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(SingleNode, nil)
+				fakeOs.ReadFileReturns(node_starter.SingleNode, nil)
 			})
 
-			It("bootstraps, seeds databases and writes '"+SingleNode+"' to file", func() {
+			It("bootstraps, seeds databases and writes '"+node_starter.SingleNode+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(SingleNode)
+				ensureBootstrapWithStateFileContents(node_starter.SingleNode)
 				ensureSeedDatabases()
 			})
 
@@ -321,10 +322,10 @@ var _ = Describe("StartManager", func() {
 					fakeClusterHealthChecker.HealthyClusterReturns(false)
 				})
 
-				It("bootstraps, seeds databases and writes "+Clustered+" to file", func() {
+				It("bootstraps, seeds databases and writes "+node_starter.Clustered+" to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
-					ensureBootstrapWithStateFileContents(Clustered)
+					ensureBootstrapWithStateFileContents(node_starter.Clustered)
 					ensureSeedDatabases()
 				})
 
@@ -346,7 +347,7 @@ var _ = Describe("StartManager", func() {
 					fakeClusterHealthChecker.HealthyClusterReturns(false)
 				})
 
-				It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
+				It("joins cluster, seeds databases, and writes '"+node_starter.Clustered+"' to file", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
 					ensureJoin()
@@ -366,7 +367,7 @@ var _ = Describe("StartManager", func() {
 
 			Context("And contains extra whitespace characters as well as a valid state", func() {
 				BeforeEach(func() {
-					fakeOs.ReadFileReturns(fmt.Sprintf("\n\n     %s \n", Clustered), nil)
+					fakeOs.ReadFileReturns(fmt.Sprintf("\n\n     %s \n", node_starter.Clustered), nil)
 				})
 
 				It("joins the cluster and seeds the databases", func() {
@@ -377,9 +378,9 @@ var _ = Describe("StartManager", func() {
 				})
 			})
 
-			Context("And reads '"+Clustered+"'", func() {
+			Context("And reads '"+node_starter.Clustered+"'", func() {
 				BeforeEach(func() {
-					fakeOs.ReadFileReturns(Clustered, nil)
+					fakeOs.ReadFileReturns(node_starter.Clustered, nil)
 				})
 
 				It("joins the cluster and seeds the databases", func() {
@@ -390,15 +391,15 @@ var _ = Describe("StartManager", func() {
 				})
 			})
 
-			Context("And reads '"+NeedsBootstrap+"'", func() {
+			Context("And reads '"+node_starter.NeedsBootstrap+"'", func() {
 				BeforeEach(func() {
-					fakeOs.ReadFileReturns(NeedsBootstrap, nil)
+					fakeOs.ReadFileReturns(node_starter.NeedsBootstrap, nil)
 				})
 
-				It("joins cluster, seeds databases, and writes '"+Clustered+"' to file", func() {
+				It("joins cluster, seeds databases, and writes '"+node_starter.Clustered+"' to file", func() {
 					err := mgr.Execute()
 					Expect(err).NotTo(HaveOccurred())
-					ensureBootstrapWithStateFileContents(Clustered)
+					ensureBootstrapWithStateFileContents(node_starter.Clustered)
 					ensureSeedDatabases()
 				})
 
@@ -427,10 +428,10 @@ var _ = Describe("StartManager", func() {
 						})
 					})
 
-					It("bootstraps, seeds databases, and writes '"+Clustered+"' to file", func() {
+					It("bootstraps, seeds databases, and writes '"+node_starter.Clustered+"' to file", func() {
 						err := mgr.Execute()
 						Expect(err).NotTo(HaveOccurred())
-						ensureBootstrapWithStateFileContents(Clustered)
+						ensureBootstrapWithStateFileContents(node_starter.Clustered)
 						ensureSeedDatabases()
 					})
 				})
@@ -485,13 +486,13 @@ var _ = Describe("StartManager", func() {
 				})
 
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(Clustered, nil)
+				fakeOs.ReadFileReturns(node_starter.Clustered, nil)
 			})
 
-			It("seeds databases, bootstraps node 0 and writes '"+SingleNode+"' to file", func() {
+			It("seeds databases, bootstraps node 0 and writes '"+node_starter.SingleNode+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(SingleNode)
+				ensureBootstrapWithStateFileContents(node_starter.SingleNode)
 				ensureSeedDatabases()
 			})
 		})
@@ -503,13 +504,13 @@ var _ = Describe("StartManager", func() {
 				})
 
 				fakeOs.FileExistsReturns(true)
-				fakeOs.ReadFileReturns(SingleNode, nil)
+				fakeOs.ReadFileReturns(node_starter.SingleNode, nil)
 			})
 
-			It("seeds databases, bootstraps node 0 and writes '"+Clustered+"' to file", func() {
+			It("seeds databases, bootstraps node 0 and writes '"+node_starter.Clustered+"' to file", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(Clustered)
+				ensureBootstrapWithStateFileContents(node_starter.Clustered)
 				ensureSeedDatabases()
 			})
 

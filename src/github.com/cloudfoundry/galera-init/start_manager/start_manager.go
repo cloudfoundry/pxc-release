@@ -5,25 +5,19 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-golang/lager"
 )
 
 const (
-	Clustered      = "CLUSTERED"
-	NeedsBootstrap = "NEEDS_BOOTSTRAP"
-	SingleNode     = "SINGLE_NODE"
-
 	BootstrapCommand = "bootstrap"
 	JoinCommand      = "start"
-
-	StartupPollingFrequencyInSeconds = 5
 )
 
 type StartManager interface {
@@ -60,7 +54,6 @@ func New(
 }
 
 func (m *startManager) Execute() error {
-
 	if m.mariaDBHelper.IsProcessRunning() {
 		m.logger.Info("MySQL process is already running, shutting down before continuing")
 		err := m.Shutdown()
@@ -93,35 +86,15 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	var newNodeState string
-	switch currentState {
-	case SingleNode:
-		err = m.bootstrapSingleNode()
-		newNodeState = SingleNode
-	case NeedsBootstrap:
-		err = m.bootstrapCluster()
-		newNodeState = Clustered
-	case Clustered:
-		err = m.joinCluster()
-		newNodeState = Clustered
-	default:
-		err = fmt.Errorf("Unsupported state file contents: %s", currentState)
-	}
-	if err != nil {
-		return err
-	}
+	starter := node_starter.New(
+		m.mariaDBHelper,
+		m.osHelper,
+		m.config,
+		m.logger,
+		m.clusterHealthChecker,
+	)
 
-	err = m.waitForDatabaseToAcceptConnections()
-	if err != nil {
-		return err
-	}
-
-	err = m.seedDatabases()
-	if err != nil {
-		return err
-	}
-
-	err = m.createReadOnlyUser()
+	newNodeState, err := starter.StartNodeFromState(currentState)
 	if err != nil {
 		return err
 	}
@@ -135,15 +108,15 @@ func (m *startManager) getCurrentNodeState() (string, error) {
 
 	// Single-node deploy always requires bootstraping of new cluster
 	if len(m.config.ClusterIps) == 1 {
-		return SingleNode, nil
+		return node_starter.SingleNode, nil
 	}
 
 	if m.firstTimeDeploy() {
 		if m.config.MyIP == m.config.ClusterIps[0] {
-			return NeedsBootstrap, nil
+			return node_starter.NeedsBootstrap, nil
 		}
 
-		return Clustered, nil
+		return node_starter.Clustered, nil
 	}
 
 	// If we are not a first time deploy we must already have a state file
@@ -153,16 +126,12 @@ func (m *startManager) getCurrentNodeState() (string, error) {
 		return "", err
 	}
 
-	if state == SingleNode && len(m.config.ClusterIps) > 1 {
+	if state == node_starter.SingleNode && len(m.config.ClusterIps) > 1 {
 		// Upgrading from a single-node cluster means we have to re-bootstrap
-		return NeedsBootstrap, nil
+		return node_starter.NeedsBootstrap, nil
 	}
 
 	return state, nil
-}
-
-func (m *startManager) maxDatabaseSeedTries() int {
-	return m.config.DatabaseStartupTimeout / StartupPollingFrequencyInSeconds
 }
 
 func (m *startManager) readStateFromFile() (string, error) {
@@ -191,92 +160,7 @@ func (m *startManager) Shutdown() error {
 	return m.mariaDBHelper.StopMysql()
 }
 
-func (m *startManager) bootstrapSingleNode() error {
-
-	m.logger.Info("Bootstrapping a single node cluster")
-	cmd, err := m.mariaDBHelper.StartMysqlInBootstrap()
-	if err != nil {
-		return err
-	}
-	m.mysqlCmd = cmd
-
-	return nil
-}
-
-func (m *startManager) bootstrapCluster() error {
-
-	m.logger.Info("Bootstrapping a multi-node cluster")
-	var cmd *exec.Cmd
-	var err error
-	// We do not condone bootstrapping if a cluster already exists and is healthy
-	if m.clusterHealthChecker.HealthyCluster() {
-		cmd, err = m.mariaDBHelper.StartMysqlInJoin()
-	} else {
-		cmd, err = m.mariaDBHelper.StartMysqlInBootstrap()
-	}
-
-	if err != nil {
-		return err
-	}
-
-	m.mysqlCmd = cmd
-
-	return nil
-}
-
-func (m *startManager) joinCluster() (err error) {
-
-	m.logger.Info("Joining a multi-node cluster")
-	cmd, err := m.mariaDBHelper.StartMysqlInJoin()
-
-	if err != nil {
-		return err
-	}
-
-	m.mysqlCmd = cmd
-
-	return nil
-}
-
 func (m *startManager) writeStringToFile(contents string) {
 	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
 	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
-}
-
-func (m *startManager) waitForDatabaseToAcceptConnections() error {
-	m.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", m.config.DatabaseStartupTimeout))
-	for numTries := 0; numTries < m.maxDatabaseSeedTries(); numTries++ {
-		if m.mariaDBHelper.IsDatabaseReachable() {
-			m.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
-			return nil
-		}
-		m.logger.Info("Database not reachable, retrying...")
-		m.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
-	}
-
-	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", m.config.DatabaseStartupTimeout)
-	m.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
-	return err
-}
-
-func (m *startManager) seedDatabases() error {
-	err := m.mariaDBHelper.Seed()
-	if err != nil {
-		m.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
-		return err
-	}
-
-	m.logger.Info("Seeding databases succeeded.")
-	return nil
-}
-
-func (m *startManager) createReadOnlyUser() error {
-	err := m.mariaDBHelper.CreateReadOnlyUser()
-	if err != nil {
-		m.logger.Info(fmt.Sprintf("There was a problem creating the read only user: '%s'", err.Error()))
-		return err
-	}
-
-	m.logger.Info("Creating read only user succeeded.")
-	return nil
 }
