@@ -29,13 +29,14 @@ type StartManager interface {
 }
 
 type startManager struct {
-	osHelper             os_helper.OsHelper
-	config               config.StartManager
-	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
-	mariaDBHelper        mariadb_helper.DBHelper
-	upgrader             upgrader.Upgrader
-	logger               lager.Logger
-	mysqlCmd             *exec.Cmd
+	osHelper      os_helper.OsHelper
+	config        config.StartManager
+	mariaDBHelper mariadb_helper.DBHelper
+	upgrader      upgrader.Upgrader
+	starter       node_starter.Starter
+	logger        lager.Logger
+	healthChecker cluster_health_checker.ClusterHealthChecker
+	mysqlCmd      *exec.Cmd
 }
 
 func New(
@@ -43,15 +44,18 @@ func New(
 	config config.StartManager,
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
+	starter node_starter.Starter,
 	logger lager.Logger,
-	clusterHealthChecker cluster_health_checker.ClusterHealthChecker) StartManager {
+	healthChecker cluster_health_checker.ClusterHealthChecker,
+) StartManager {
 	return &startManager{
-		osHelper:             osHelper,
-		config:               config,
-		logger:               logger,
-		clusterHealthChecker: clusterHealthChecker,
-		mariaDBHelper:        mariaDBHelper,
-		upgrader:             upgrader,
+		osHelper:      osHelper,
+		config:        config,
+		logger:        logger,
+		mariaDBHelper: mariaDBHelper,
+		upgrader:      upgrader,
+		starter:       starter,
+		healthChecker: healthChecker,
 	}
 }
 
@@ -88,15 +92,7 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	starter := node_starter.New(
-		m.mariaDBHelper,
-		m.osHelper,
-		m.config,
-		m.logger,
-		m.clusterHealthChecker,
-	)
-
-	newNodeState, err := starter.StartNodeFromState(currentState)
+	newNodeState, err := m.starter.StartNodeFromState(currentState)
 	if err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
@@ -68,11 +69,20 @@ func main() {
 		logger,
 	)
 
+	starter := node_starter.New(
+		mariaDBHelper,
+		osHelper,
+		rootConfig.Manager,
+		logger,
+		galeraHelper,
+	)
+
 	mgr := start_manager.New(
 		osHelper,
 		rootConfig.Manager,
 		mariaDBHelper,
 		upgrader,
+		starter,
 		logger,
 		galeraHelper,
 	)

@@ -9,6 +9,7 @@ import (
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
+	node_starter_fakes "github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -23,9 +24,12 @@ var _ = Describe("StartManager", func() {
 
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_fakes.FakeOsHelper
-	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
+	var fakeStarter *node_starter_fakes.FakeStarter
+	var fakeHealthChecker *health_checker_fakes.FakeClusterHealthChecker
+	var startNodeReturn string
+	var startNodeReturnError error
 
 	const stateFileLocation = "/stateFileLocation"
 	const databaseStartupTimeout = 10
@@ -33,10 +37,6 @@ var _ = Describe("StartManager", func() {
 	type managerArgs struct {
 		NodeIndex int
 		NodeCount int
-	}
-
-	ensureSeedDatabases := func() {
-		Expect(fakeDBHelper.SeedCallCount()).To(BeNumerically(">=", 1))
 	}
 
 	ensureStateFileContentIs := func(expected string) {
@@ -51,14 +51,9 @@ var _ = Describe("StartManager", func() {
 		Expect(count).To(Equal(0))
 	}
 
-	ensureBootstrapWithStateFileContents := func(contents string) {
-		Expect(fakeDBHelper.StartMysqlInBootstrapCallCount()).To(Equal(1))
-		ensureStateFileContentIs(contents)
-	}
-
-	ensureJoin := func() {
-		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
-		ensureStateFileContentIs(node_starter.Clustered)
+	ensureStartNodeWithMode := func(state string) {
+		Expect(fakeStarter.StartNodeFromStateCallCount()).To(Equal(1))
+		Expect(fakeStarter.StartNodeFromStateArgsForCall(0)).To(Equal(state))
 	}
 
 	createManager := func(args managerArgs) StartManager {
@@ -78,20 +73,28 @@ var _ = Describe("StartManager", func() {
 			},
 			fakeDBHelper,
 			fakeUpgrader,
+			fakeStarter,
 			testLogger,
-			fakeClusterHealthChecker,
+			fakeHealthChecker,
 		)
 	}
 
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
+		fakeStarter = new(node_starter_fakes.FakeStarter)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
+		fakeHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 
 		fakeDBHelper.IsProcessRunningReturns(false)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
+		startNodeReturn = "CLUSTERED"
+		startNodeReturnError = nil
+	})
+
+	JustBeforeEach(func() {
+		fakeStarter.StartNodeFromStateReturns(startNodeReturn, startNodeReturnError)
 	})
 
 	Context("When a mysql process is already running", func() {
@@ -109,96 +112,7 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Context("When StartMysqlInBootstrap exits with an error", func() {
-		BeforeEach(func() {
-			mgr = createManager(managerArgs{
-				NodeCount: 3,
-			})
-			fakeDBHelper.StartMysqlInBootstrapReturns(nil, errors.New("some errors"))
-		})
-		It("forwards the error", func() {
-			err := mgr.Execute()
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("When StartMysqlInJoin exits with an error", func() {
-		BeforeEach(func() {
-			mgr = createManager(managerArgs{
-				NodeIndex: 1,
-				NodeCount: 3,
-			})
-			fakeDBHelper.StartMysqlInJoinReturns(nil, errors.New("some errors"))
-		})
-		It("forwards the error", func() {
-			err := mgr.Execute()
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("When mysql starts in less than configured DatabaseStartupTimeout", func() {
-		var expectedRetryAttempts int
-
-		BeforeEach(func() {
-			mgr = createManager(managerArgs{
-				NodeIndex: 1,
-				NodeCount: 3,
-			})
-
-			numTries := 0
-			expectedRetryAttempts = 2
-
-			fakeDBHelper.IsDatabaseReachableStub = func() bool {
-				numTries++
-				if numTries < expectedRetryAttempts {
-					return false
-				} else {
-					return true
-				}
-			}
-		})
-
-		It("retries pinging the database until it is reachable", func() {
-			err := mgr.Execute()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
-		})
-	})
-
-	Context("When mysql does not start in less than configured DatabaseStartupTimeout", func() {
-		var maxRetryAttempts int
-
-		BeforeEach(func() {
-			mgr = createManager(managerArgs{
-				NodeIndex: 1,
-				NodeCount: 3,
-			})
-
-			maxRetryAttempts = databaseStartupTimeout / node_starter.StartupPollingFrequencyInSeconds
-			fakeDBHelper.IsDatabaseReachableReturns(false)
-		})
-
-		It("returns a timeout error", func() {
-			err := mgr.Execute()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Timeout"))
-			Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
-		})
-
-		It("does not attempt to seed the database", func() {
-			err := mgr.Execute()
-			Expect(err).To(HaveOccurred())
-			Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
-		})
-
-		It("does not write to the state file", func() {
-			err := mgr.Execute()
-			Expect(err).To(HaveOccurred())
-			ensureNoWriteToStateFile()
-		})
-	})
-
-	Describe("Upgrade", func() {
+	Describe("Upgrading the cluster", func() {
 		Context("When determining whether an upgrade is required exits with an error", func() {
 			BeforeEach(func() {
 				mgr = createManager(managerArgs{
@@ -216,7 +130,6 @@ var _ = Describe("StartManager", func() {
 
 		Context("When upgrade is required", func() {
 			Context("And performing the upgrade exits with an error", func() {
-
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
 						NodeCount: 3,
@@ -234,35 +147,12 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Describe("SeedDatabases", func() {
-		BeforeEach(func() {
-			mgr = createManager(managerArgs{
-				NodeCount: 1,
-			})
-
-			fakeDBHelper.IsDatabaseReachableReturns(true)
-		})
-
-		Context("when database seeding fails", func() {
-			var expectedErr error
-			BeforeEach(func() {
-				expectedErr = errors.New("seeding databases failed")
-				fakeDBHelper.SeedReturns(expectedErr)
-			})
-
-			It("forwards the error", func() {
-				err := mgr.Execute()
-				Expect(err).To(Equal(expectedErr))
-			})
-		})
-	})
-
 	Context("When starting in single-node deployment", func() {
-
 		BeforeEach(func() {
 			mgr = createManager(managerArgs{
 				NodeCount: 1,
 			})
+			startNodeReturn = "SINGLE_NODE"
 		})
 
 		Context("And it's an initial deploy", func() {
@@ -270,17 +160,11 @@ var _ = Describe("StartManager", func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			It("bootstraps, seeds databases and writes '"+node_starter.SingleNode+"' to file", func() {
+			It("starts the node in SingleNode mode", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(node_starter.SingleNode)
-				ensureSeedDatabases()
-			})
-
-			It("sets the read only user", func() {
-				err := mgr.Execute()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
+				ensureStartNodeWithMode("SINGLE_NODE")
+				ensureStateFileContentIs("SINGLE_NODE")
 			})
 		})
 
@@ -290,68 +174,49 @@ var _ = Describe("StartManager", func() {
 				fakeOs.ReadFileReturns(node_starter.SingleNode, nil)
 			})
 
-			It("bootstraps, seeds databases and writes '"+node_starter.SingleNode+"' to file", func() {
+			It("starts the node in SingleNode mode", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(node_starter.SingleNode)
-				ensureSeedDatabases()
-			})
-
-			It("sets the read only user", func() {
-				err := mgr.Execute()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
+				ensureStartNodeWithMode("SINGLE_NODE")
+				ensureStateFileContentIs("SINGLE_NODE")
 			})
 		})
 	})
 
 	Context("When starting in multi-node deployment", func() {
-
 		Context("And it's an initial deploy, so there's no state file", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
 			Context("And the IP of the current node is the first in the cluster", func() {
-
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
 						NodeCount: 3,
 					})
-
-					fakeClusterHealthChecker.HealthyClusterReturns(false)
 				})
 
-				It("bootstraps, seeds databases and writes "+node_starter.Clustered+" to file", func() {
+				It("starts the node in NeedsBootstrap mode", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
-					ensureBootstrapWithStateFileContents(node_starter.Clustered)
-					ensureSeedDatabases()
-				})
-
-				It("sets the read only user", func() {
-					err := mgr.Execute()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
+					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
+					ensureStateFileContentIs("CLUSTERED")
 				})
 			})
 
 			Context("And the IP of the current node is not the first in the cluster", func() {
-
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
 						NodeIndex: 1,
 						NodeCount: 3,
 					})
-
-					fakeClusterHealthChecker.HealthyClusterReturns(false)
 				})
 
-				It("joins cluster, seeds databases, and writes '"+node_starter.Clustered+"' to file", func() {
+				It("starts the node in Clustered mode", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
-					ensureJoin()
-					ensureSeedDatabases()
+					ensureStartNodeWithMode("CLUSTERED")
+					ensureStateFileContentIs("CLUSTERED")
 				})
 			})
 		})
@@ -361,7 +226,6 @@ var _ = Describe("StartManager", func() {
 				mgr = createManager(managerArgs{
 					NodeCount: 3,
 				})
-
 				fakeOs.FileExistsReturns(true)
 			})
 
@@ -370,11 +234,11 @@ var _ = Describe("StartManager", func() {
 					fakeOs.ReadFileReturns(fmt.Sprintf("\n\n     %s \n", node_starter.Clustered), nil)
 				})
 
-				It("joins the cluster and seeds the databases", func() {
+				It("joins the cluster", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
-					ensureJoin()
-					ensureSeedDatabases()
+					ensureStartNodeWithMode("CLUSTERED")
+					ensureStateFileContentIs("CLUSTERED")
 				})
 			})
 
@@ -383,11 +247,11 @@ var _ = Describe("StartManager", func() {
 					fakeOs.ReadFileReturns(node_starter.Clustered, nil)
 				})
 
-				It("joins the cluster and seeds the databases", func() {
+				It("joins the cluster", func() {
 					err := mgr.Execute()
 					Expect(err).ToNot(HaveOccurred())
-					ensureJoin()
-					ensureSeedDatabases()
+					ensureStartNodeWithMode("CLUSTERED")
+					ensureStateFileContentIs("CLUSTERED")
 				})
 			})
 
@@ -396,28 +260,11 @@ var _ = Describe("StartManager", func() {
 					fakeOs.ReadFileReturns(node_starter.NeedsBootstrap, nil)
 				})
 
-				It("joins cluster, seeds databases, and writes '"+node_starter.Clustered+"' to file", func() {
+				It("starts the node in bootstrap mode", func() {
 					err := mgr.Execute()
-					Expect(err).NotTo(HaveOccurred())
-					ensureBootstrapWithStateFileContents(node_starter.Clustered)
-					ensureSeedDatabases()
-				})
-
-				Context("And one or more other nodes is reachable", func() {
-					BeforeEach(func() {
-						fakeClusterHealthChecker.HealthyClusterReturns(true)
-
-						mgr = createManager(managerArgs{
-							NodeCount: 3,
-						})
-					})
-
-					It("joins the cluster and seeds databases", func() {
-						err := mgr.Execute()
-						Expect(err).ToNot(HaveOccurred())
-						ensureJoin()
-						ensureSeedDatabases()
-					})
+					Expect(err).ToNot(HaveOccurred())
+					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
+					ensureStateFileContentIs("CLUSTERED")
 				})
 
 				Context("And the IP of the current node is not the first in the cluster", func() {
@@ -428,11 +275,11 @@ var _ = Describe("StartManager", func() {
 						})
 					})
 
-					It("bootstraps, seeds databases, and writes '"+node_starter.Clustered+"' to file", func() {
+					It("starts the node in join mode", func() {
 						err := mgr.Execute()
-						Expect(err).NotTo(HaveOccurred())
-						ensureBootstrapWithStateFileContents(node_starter.Clustered)
-						ensureSeedDatabases()
+						Expect(err).ToNot(HaveOccurred())
+						ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
+						ensureStateFileContentIs("CLUSTERED")
 					})
 				})
 			})
@@ -440,6 +287,8 @@ var _ = Describe("StartManager", func() {
 			Context("And contains an invalid state", func() {
 				BeforeEach(func() {
 					fakeOs.ReadFileReturns("INVALID_STATE", nil)
+					startNodeReturn = ""
+					startNodeReturnError = errors.New("some error")
 				})
 
 				It("Forwards the error", func() {
@@ -447,10 +296,9 @@ var _ = Describe("StartManager", func() {
 					Expect(actualErr).To(HaveOccurred())
 				})
 
-				It("does not join the cluster or seed the databases", func() {
-					mgr.Execute()
-					Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(0))
-					Expect(fakeDBHelper.SeedCallCount()).To(BeZero())
+				It("does not write the state file", func() {
+					err := mgr.Execute()
+					Expect(err).To(HaveOccurred())
 					ensureNoWriteToStateFile()
 				})
 			})
@@ -470,8 +318,7 @@ var _ = Describe("StartManager", func() {
 
 				It("does not join the cluster or seed the databases", func() {
 					mgr.Execute()
-					Expect(fakeDBHelper.StartMysqldInModeCallCount()).To(Equal(0))
-					Expect(fakeDBHelper.SeedCallCount()).To(BeZero())
+					Expect(fakeStarter.StartNodeFromStateCallCount()).To(Equal(0))
 					ensureNoWriteToStateFile()
 				})
 			})
@@ -484,16 +331,16 @@ var _ = Describe("StartManager", func() {
 				mgr = createManager(managerArgs{
 					NodeCount: 1,
 				})
-
 				fakeOs.FileExistsReturns(true)
 				fakeOs.ReadFileReturns(node_starter.Clustered, nil)
+				startNodeReturn = "SINGLE_NODE"
 			})
 
-			It("seeds databases, bootstraps node 0 and writes '"+node_starter.SingleNode+"' to file", func() {
+			It("starts the cluster in single node mode", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(node_starter.SingleNode)
-				ensureSeedDatabases()
+				ensureStartNodeWithMode("SINGLE_NODE")
+				ensureStateFileContentIs("SINGLE_NODE")
 			})
 		})
 
@@ -507,17 +354,11 @@ var _ = Describe("StartManager", func() {
 				fakeOs.ReadFileReturns(node_starter.SingleNode, nil)
 			})
 
-			It("seeds databases, bootstraps node 0 and writes '"+node_starter.Clustered+"' to file", func() {
+			It("starts the cluster in needs bootstrap mode", func() {
 				err := mgr.Execute()
 				Expect(err).ToNot(HaveOccurred())
-				ensureBootstrapWithStateFileContents(node_starter.Clustered)
-				ensureSeedDatabases()
-			})
-
-			It("sets the read only user", func() {
-				err := mgr.Execute()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
+				ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
+				ensureStateFileContentIs("CLUSTERED")
 			})
 		})
 	})
