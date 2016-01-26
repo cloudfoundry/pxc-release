@@ -96,13 +96,11 @@ var _ = Describe("Starter", func() {
 					fakeClusterHealthChecker.HealthyClusterReturns(true)
 				})
 
-				It("joins, seeds databases and sets read only user", func() {
+				It("joins the cluster", func() {
 					newNodeState, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
-					ensureSeedDatabases()
-					ensureCreateReadOnlyUser()
 				})
 			})
 		})
@@ -112,13 +110,11 @@ var _ = Describe("Starter", func() {
 				fakeClusterHealthChecker.HealthyClusterReturns(false)
 			})
 
-			It("joins, seeds databases and sets read only user", func() {
+			It("joins the cluster", func() {
 				newNodeState, err := starter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
-				ensureSeedDatabases()
-				ensureCreateReadOnlyUser()
 			})
 		})
 
@@ -195,14 +191,14 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("returns a timeout error", func() {
-					_, err := starter.StartNodeFromState("CLUSTERED")
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Timeout"))
 					Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
 				})
 
 				It("does not attempt to seed the database", func() {
-					_, err := starter.StartNodeFromState("CLUSTERED")
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
 				})
@@ -216,7 +212,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("CLUSTERED")
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(expectedErr))
 				})
@@ -228,7 +224,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("CLUSTERED")
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("some error"))
 				})

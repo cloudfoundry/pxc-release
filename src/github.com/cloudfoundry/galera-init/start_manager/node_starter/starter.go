@@ -53,17 +53,26 @@ func New(
 func (s starter) StartNodeFromState(state string) (string, error) {
 	var newNodeState string
 	var err error
+	var bootStrapNode bool
 
 	switch state {
 	case SingleNode:
-		err = s.bootstrapSingleNode()
+		err = s.bootstrapNode()
 		newNodeState = SingleNode
+		bootStrapNode = true
 	case NeedsBootstrap:
-		err = s.bootstrapCluster()
+		if s.clusterHealthChecker.HealthyCluster() {
+			err = s.startNodeAsJoiner()
+			bootStrapNode = false
+		} else {
+			err = s.bootstrapNode()
+			bootStrapNode = true
+		}
 		newNodeState = Clustered
 	case Clustered:
 		err = s.joinCluster()
 		newNodeState = Clustered
+		bootStrapNode = false
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
@@ -76,21 +85,23 @@ func (s starter) StartNodeFromState(state string) (string, error) {
 		return "", err
 	}
 
-	err = s.seedDatabases()
-	if err != nil {
-		return "", err
-	}
+	if bootStrapNode {
+		err = s.seedDatabases()
+		if err != nil {
+			return "", err
+		}
 
-	err = s.createReadOnlyUser()
-	if err != nil {
-		return "", err
+		err = s.createReadOnlyUser()
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return newNodeState, nil
 }
 
-func (s *starter) bootstrapSingleNode() error {
-	s.logger.Info("Bootstrapping a single node cluster")
+func (s *starter) bootstrapNode() error {
+	s.logger.Info("Bootstrapping node")
 	cmd, err := s.mariaDBHelper.StartMysqlInBootstrap()
 	if err != nil {
 		return err
@@ -101,17 +112,9 @@ func (s *starter) bootstrapSingleNode() error {
 	return nil
 }
 
-func (s *starter) bootstrapCluster() error {
-	s.logger.Info("Bootstrapping a multi-node cluster")
-	var cmd *exec.Cmd
-	var err error
-	// We do not condone bootstrapping if a cluster already exists and is healthy
-	if s.clusterHealthChecker.HealthyCluster() {
-		cmd, err = s.mariaDBHelper.StartMysqlInJoin()
-	} else {
-		cmd, err = s.mariaDBHelper.StartMysqlInBootstrap()
-	}
-
+func (s *starter) startNodeAsJoiner() error {
+	s.logger.Info("Joining an existing cluster")
+	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
 	if err != nil {
 		return err
 	}
