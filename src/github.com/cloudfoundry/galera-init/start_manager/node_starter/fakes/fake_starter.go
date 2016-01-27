@@ -2,6 +2,7 @@
 package fakes
 
 import (
+	"os/exec"
 	"sync"
 
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
@@ -15,6 +16,13 @@ type FakeStarter struct {
 	}
 	startNodeFromStateReturns struct {
 		result1 string
+		result2 error
+	}
+	GetMysqlCmdStub        func() (*exec.Cmd, error)
+	getMysqlCmdMutex       sync.RWMutex
+	getMysqlCmdArgsForCall []struct{}
+	getMysqlCmdReturns     struct {
+		result1 *exec.Cmd
 		result2 error
 	}
 }
@@ -48,6 +56,31 @@ func (fake *FakeStarter) StartNodeFromStateReturns(result1 string, result2 error
 	fake.StartNodeFromStateStub = nil
 	fake.startNodeFromStateReturns = struct {
 		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStarter) GetMysqlCmd() (*exec.Cmd, error) {
+	fake.getMysqlCmdMutex.Lock()
+	fake.getMysqlCmdArgsForCall = append(fake.getMysqlCmdArgsForCall, struct{}{})
+	fake.getMysqlCmdMutex.Unlock()
+	if fake.GetMysqlCmdStub != nil {
+		return fake.GetMysqlCmdStub()
+	} else {
+		return fake.getMysqlCmdReturns.result1, fake.getMysqlCmdReturns.result2
+	}
+}
+
+func (fake *FakeStarter) GetMysqlCmdCallCount() int {
+	fake.getMysqlCmdMutex.RLock()
+	defer fake.getMysqlCmdMutex.RUnlock()
+	return len(fake.getMysqlCmdArgsForCall)
+}
+
+func (fake *FakeStarter) GetMysqlCmdReturns(result1 *exec.Cmd, result2 error) {
+	fake.GetMysqlCmdStub = nil
+	fake.getMysqlCmdReturns = struct {
+		result1 *exec.Cmd
 		result2 error
 	}{result1, result2}
 }

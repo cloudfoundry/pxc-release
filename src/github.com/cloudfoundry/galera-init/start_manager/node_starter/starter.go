@@ -1,6 +1,7 @@
 package node_starter
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"time"
@@ -23,6 +24,7 @@ const (
 
 type Starter interface {
 	StartNodeFromState(string) (string, error)
+	GetMysqlCmd() (*exec.Cmd, error)
 }
 
 type starter struct {
@@ -50,7 +52,7 @@ func New(
 	}
 }
 
-func (s starter) StartNodeFromState(state string) (string, error) {
+func (s *starter) StartNodeFromState(state string) (string, error) {
 	var newNodeState string
 	var err error
 	var bootStrapNode bool
@@ -100,13 +102,19 @@ func (s starter) StartNodeFromState(state string) (string, error) {
 	return newNodeState, nil
 }
 
+func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
+	if s.mysqlCmd != nil {
+		return s.mysqlCmd, nil
+	}
+	return nil, errors.New("Mysql has not been started")
+}
+
 func (s *starter) bootstrapNode() error {
 	s.logger.Info("Bootstrapping node")
 	cmd, err := s.mariaDBHelper.StartMysqlInBootstrap()
 	if err != nil {
 		return err
 	}
-
 	s.mysqlCmd = cmd
 
 	return nil

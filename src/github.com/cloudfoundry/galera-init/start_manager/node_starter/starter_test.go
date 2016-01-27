@@ -2,6 +2,7 @@ package node_starter_test
 
 import (
 	"errors"
+	"os/exec"
 
 	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
@@ -21,6 +22,10 @@ var _ = Describe("Starter", func() {
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
+	var fakeCommandBootstrapStr string
+	var fakeCommandBootstrap *exec.Cmd
+	var fakeCommandJoinStr string
+	var fakeCommandJoin *exec.Cmd
 
 	const databaseStartupTimeout = 10
 
@@ -40,12 +45,17 @@ var _ = Describe("Starter", func() {
 		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
 	}
 
+	ensureMysqlCmdMatches := func(cmd string) {
+		runCmd, err := starter.GetMysqlCmd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(runCmd.Path).To(Equal(cmd))
+	}
+
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
-
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
 		starter = node_starter.New(
@@ -60,6 +70,15 @@ var _ = Describe("Starter", func() {
 	})
 
 	Describe("StartNodeFromState", func() {
+		BeforeEach(func() {
+			fakeCommandBootstrapStr = "fake-command-bootstrap"
+			fakeCommandBootstrap = exec.Command(fakeCommandBootstrapStr)
+			fakeDBHelper.StartMysqlInBootstrapReturns(fakeCommandBootstrap, nil)
+			fakeCommandJoinStr = "fake-command-join"
+			fakeCommandJoin = exec.Command(fakeCommandJoinStr)
+			fakeDBHelper.StartMysqlInJoinReturns(fakeCommandJoin, nil)
+		})
+
 		Context("starting with state SINGLE_NODE", func() {
 			BeforeEach(func() {
 				fakeClusterHealthChecker.HealthyClusterReturns(false)
@@ -72,6 +91,7 @@ var _ = Describe("Starter", func() {
 				ensureBootstrap()
 				ensureSeedDatabases()
 				ensureCreateReadOnlyUser()
+				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
 		})
 
@@ -88,6 +108,7 @@ var _ = Describe("Starter", func() {
 					ensureBootstrap()
 					ensureSeedDatabases()
 					ensureCreateReadOnlyUser()
+					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 				})
 			})
 
@@ -101,6 +122,7 @@ var _ = Describe("Starter", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
+					ensureMysqlCmdMatches(fakeCommandJoinStr)
 				})
 			})
 		})
@@ -115,6 +137,7 @@ var _ = Describe("Starter", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
+				ensureMysqlCmdMatches(fakeCommandJoinStr)
 			})
 		})
 

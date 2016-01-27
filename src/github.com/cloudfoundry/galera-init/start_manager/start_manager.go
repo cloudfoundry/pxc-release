@@ -1,7 +1,6 @@
 package start_manager
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -147,10 +146,7 @@ func (m *startManager) firstTimeDeploy() bool {
 }
 
 func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
-	if m.mysqlCmd != nil {
-		return m.mysqlCmd, nil
-	}
-	return nil, errors.New("Mysql has not been started")
+	return m.starter.GetMysqlCmd()
 }
 
 func (m *startManager) Shutdown() error {
