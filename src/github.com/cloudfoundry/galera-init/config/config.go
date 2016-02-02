@@ -8,11 +8,11 @@ import (
 )
 
 type Config struct {
-	LogFileLocation string   `yaml:"LogFileLocation" validate:"nonzero"`
-	PidFile         string   `yaml:"PidFile" validate:"nonzero"`
-	Db              DBHelper `yaml:"Db"`
-	Manager         StartManager
-	Upgrader        Upgrader
+	LogFileLocation string       `yaml:"LogFileLocation" validate:"nonzero"`
+	PidFile         string       `yaml:"PidFile" validate:"nonzero"`
+	Db              DBHelper     `yaml:"Db"`
+	Manager         StartManager `yaml:"Manager"`
+	Upgrader        Upgrader     `yaml:"Upgrader"`
 }
 
 type DBHelper struct {
