@@ -8,39 +8,39 @@ import (
 )
 
 type Config struct {
-	LogFileLocation string `validate:"nonzero"`
-	PidFile         string `validate:"nonzero"`
-	Db              DBHelper
+	LogFileLocation string   `yaml:"LogFileLocation" validate:"nonzero"`
+	PidFile         string   `yaml:"PidFile" validate:"nonzero"`
+	Db              DBHelper `yaml:"Db"`
 	Manager         StartManager
 	Upgrader        Upgrader
 }
 
 type DBHelper struct {
-	DaemonPath         string `validate:"nonzero"`
-	UpgradePath        string `validate:"nonzero"`
-	User               string `validate:"nonzero"`
-	Password           string
-	ReadOnlyUser       string `validate:"nonzero"`
-	ReadOnlyPassword   string
-	PreseededDatabases []PreseededDatabase
+	DaemonPath         string              `yaml:"DaemonPath" validate:"nonzero"`
+	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
+	User               string              `yaml:"User" validate:"nonzero"`
+	Password           string              `yaml:"Password"`
+	ReadOnlyUser       string              `validate:"nonzero"`
+	ReadOnlyPassword   string              `yaml:"ReadOnlyPassword"`
+	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
 }
 
 type StartManager struct {
-	StateFileLocation      string   `validate:"nonzero"`
-	DatabaseStartupTimeout int      `validate:"nonzero"`
-	ClusterIps             []string `validate:"nonzero"`
-	MyIP                   string   `validate:"nonzero"`
+	StateFileLocation      string   `yaml:"StateFileLocation" validate:"nonzero"`
+	DatabaseStartupTimeout int      `yaml:"DatabaseStartupTimeout" validate:"nonzero"`
+	ClusterIps             []string `yaml:"ClusterIps" validate:"nonzero"`
+	MyIP                   string   `yaml:"MyIP" validate:"nonzero"`
 }
 
 type Upgrader struct {
-	PackageVersionFile      string `validate:"nonzero"`
-	LastUpgradedVersionFile string `validate:"nonzero"`
+	PackageVersionFile      string `yaml:"PackageVersionFile" validate:"nonzero"`
+	LastUpgradedVersionFile string `yaml:"LastUpgradedVersionFile" validate:"nonzero"`
 }
 
 type PreseededDatabase struct {
-	DBName   string `validate:"nonzero"`
-	User     string `validate:"nonzero"`
-	Password string
+	DBName   string `yaml:"DBName" validate:"nonzero"`
+	User     string `yaml:"User" validate:"nonzero"`
+	Password string `yaml:"Password"`
 }
 
 func (c Config) Validate() error {
