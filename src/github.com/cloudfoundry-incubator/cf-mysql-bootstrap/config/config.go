@@ -11,10 +11,10 @@ import (
 
 type Config struct {
 	Logger                    lager.Logger
-	HealthcheckURLs           []string `validate:"nonzero"`
-	DatabaseStartupTimeout    int      `validate:"nonzero"`
-	Username                  string   `validate:"nonzero"`
-	Password                  string   `validate:"nonzero"`
+	HealthcheckURLs           []string `yaml:"HealthcheckURLs" validate:"nonzero"`
+	DatabaseStartupTimeout    int      `yaml:"DatabaseStartupTimeout" validate:"nonzero"`
+	Username                  string   `yaml:"Username" validate:"nonzero"`
+	Password                  string   `yaml:"Password" validate:"nonzero"`
 	ShutDownMysql             string
 	MysqlStatus               string
 	GetSeqNumber              string
