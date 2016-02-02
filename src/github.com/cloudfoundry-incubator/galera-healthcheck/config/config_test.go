@@ -22,7 +22,7 @@ var _ = Describe("Config", func() {
 			rawConfig = `{
 				"StatusEndpoint": "fake",
 				"Host": "localhost",
-				"Port": "8080",
+				"Port": 8080,
 				"ArbitratorNode": "false",
 				"AvailableWhenReadOnly": false,
 				"AvailableWhenDonor": true,

@@ -12,37 +12,37 @@ import (
 )
 
 type Config struct {
-	DB                    DBConfig    `validate:"nonzero"`
-	Monit                 MonitConfig `validate:"nonzero"`
-	Host                  string      `validate:"nonzero"`
-	Port                  int         `validate:"nonzero"`
-	AvailableWhenDonor    bool
-	AvailableWhenReadOnly bool
-	PidFile               string `validate:"nonzero"`
+	DB                    DBConfig    `yaml:"DB" validate:"nonzero"`
+	Monit                 MonitConfig `yaml:"Monit" validate:"nonzero"`
+	Host                  string      `yaml:"Host" validate:"nonzero"`
+	Port                  int         `yaml:"Port" validate:"nonzero"`
+	AvailableWhenDonor    bool        `yaml:"AvailableWhenDonor"`
+	AvailableWhenReadOnly bool        `yaml:"AvailableWhenReadOnly"`
+	PidFile               string      `yaml:"PidFile" validate:"nonzero"`
 	Logger                lager.Logger
-	MysqldPath            string                  `validate:"nonzero"`
-	BootstrapEndpoint     BootstrapEndpointConfig `validate:"nonzero"`
+	MysqldPath            string                  `yaml:"MysqldPath" validate:"nonzero"`
+	BootstrapEndpoint     BootstrapEndpointConfig `yaml:"BootstrapEndpoint" validate:"nonzero"`
 }
 
 type DBConfig struct {
-	Host     string `validate:"nonzero"`
-	User     string `validate:"nonzero"`
-	Port     int    `validate:"nonzero"`
-	Password string `validate:"nonzero"`
+	Host     string `yaml:"Host" validate:"nonzero"`
+	User     string `yaml:"User" validate:"nonzero"`
+	Port     int    `yaml:"Port" validate:"nonzero"`
+	Password string `yaml:"Password" validate:"nonzero"`
 }
 
 type MonitConfig struct {
-	Host               string `validate:"nonzero"`
-	User               string `validate:"nonzero"`
-	Port               int    `validate:"nonzero"`
-	Password           string `validate:"nonzero"`
-	MysqlStateFilePath string
-	ServiceName        string `validate:"nonzero"`
+	Host               string `yaml:"Host" validate:"nonzero"`
+	User               string `yaml:"User" validate:"nonzero"`
+	Port               int    `yaml:"Port" validate:"nonzero"`
+	Password           string `yaml:"Password" validate:"nonzero"`
+	MysqlStateFilePath string `yaml:"MysqlStateFilePath"`
+	ServiceName        string `yaml:"ServiceName" validate:"nonzero"`
 }
 
 type BootstrapEndpointConfig struct {
-	Username string `validate:"nonzero"`
-	Password string `validate:"nonzero"`
+	Username string `yaml:"Username" validate:"nonzero"`
+	Password string `yaml:"Password" validate:"nonzero"`
 }
 
 func defaultConfig() *Config {
