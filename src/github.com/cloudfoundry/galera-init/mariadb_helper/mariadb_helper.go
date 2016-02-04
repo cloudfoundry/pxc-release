@@ -293,14 +293,27 @@ func (m MariaDBHelper) flushPrivileges(db *sql.DB) error {
 
 func (m MariaDBHelper) deleteReadOnlyUser(db *sql.DB) error {
 	deleteUserQuery := fmt.Sprintf(
-		"DROP USER IF EXISTS %s",
+		"DROP USER %s",
+		m.config.ReadOnlyUser,
+	)
+	existingUserQuery := fmt.Sprintf(
+		"SELECT User FROM mysql.user WHERE User = '%s'",
 		m.config.ReadOnlyUser,
 	)
 
-	if _, err := db.Exec(deleteUserQuery); err != nil {
-		m.logger.Error("Unable to delete Read Only user", err)
-
+	rows, err := db.Query(existingUserQuery)
+	if err != nil {
+		m.logger.Error("Error checking if read only user exists", err)
 		return err
+	}
+
+	userExists := rows.Next()
+
+	if userExists {
+		if _, err := db.Exec(deleteUserQuery); err != nil {
+			m.logger.Error("Unable to delete Read Only user", err)
+			return err
+		}
 	}
 
 	return nil

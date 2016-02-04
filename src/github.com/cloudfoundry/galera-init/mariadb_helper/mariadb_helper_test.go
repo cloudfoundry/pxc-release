@@ -267,6 +267,7 @@ var _ = Describe("MariaDBHelper", func() {
 			grantReadPrivilegesExec string
 			setReadOnlyUserPassword string
 			deleteUserExec          string
+			existingUserQuery       string
 		)
 
 		Context("when ReadOnlyUserEnabled is set to true", func() {
@@ -340,18 +341,45 @@ var _ = Describe("MariaDBHelper", func() {
 				BeforeEach(func() {
 					dbConfig.ReadOnlyPassword = ""
 					deleteUserExec = fmt.Sprintf(
-						"DROP USER IF EXISTS %s",
+						"DROP USER %s",
+						dbConfig.ReadOnlyUser,
+					)
+					existingUserQuery = fmt.Sprintf(
+						"SELECT User FROM mysql.user WHERE User = '%s'",
 						dbConfig.ReadOnlyUser,
 					)
 				})
 
-				It("deletes the read only user if exists", func() {
-					sqlmock.ExpectExec(deleteUserExec).
-						WithArgs().
-						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-					err := helper.ManageReadOnlyUser()
-					Expect(err).ToNot(HaveOccurred())
+				Context("if the read only user exists", func() {
+					BeforeEach(func() {
+						sqlmock.ExpectQuery(existingUserQuery).
+							WithArgs().
+							WillReturnRows(sqlmock.NewRows([]string{"User"}).
+							AddRow(dbConfig.ReadOnlyUser))
+					})
+
+					It("deletes the read only user", func() {
+						sqlmock.ExpectExec(deleteUserExec).
+							WithArgs().
+							WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+						err := helper.ManageReadOnlyUser()
+						Expect(err).ToNot(HaveOccurred())
+					})
 				})
+
+				Context("if the read only user does not exist", func() {
+					BeforeEach(func() {
+						sqlmock.ExpectQuery(existingUserQuery).
+							WithArgs().
+							WillReturnRows(sqlmock.NewRows([]string{"User"}))
+					})
+
+					It("does nothing", func() {
+						err := helper.ManageReadOnlyUser()
+						Expect(err).ToNot(HaveOccurred())
+					})
+				})
+
 			})
 		})
 
@@ -359,17 +387,43 @@ var _ = Describe("MariaDBHelper", func() {
 			BeforeEach(func() {
 				dbConfig.ReadOnlyUserEnabled = false
 				deleteUserExec = fmt.Sprintf(
-					"DROP USER IF EXISTS %s",
+					"DROP USER %s",
+					dbConfig.ReadOnlyUser,
+				)
+				existingUserQuery = fmt.Sprintf(
+					"SELECT User FROM mysql.user WHERE User = '%s'",
 					dbConfig.ReadOnlyUser,
 				)
 			})
 
-			It("deletes the read only user if exists", func() {
-				sqlmock.ExpectExec(deleteUserExec).
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-				err := helper.ManageReadOnlyUser()
-				Expect(err).ToNot(HaveOccurred())
+			Context("if the read only user exists", func() {
+				BeforeEach(func() {
+					sqlmock.ExpectQuery(existingUserQuery).
+						WithArgs().
+						WillReturnRows(sqlmock.NewRows([]string{"User"}).
+						AddRow(dbConfig.ReadOnlyUser))
+				})
+
+				It("deletes the read only user", func() {
+					sqlmock.ExpectExec(deleteUserExec).
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+					err := helper.ManageReadOnlyUser()
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("if the read only user does not exist", func() {
+				BeforeEach(func() {
+					sqlmock.ExpectQuery(existingUserQuery).
+						WithArgs().
+						WillReturnRows(sqlmock.NewRows([]string{"User"}))
+				})
+
+				It("does nothing", func() {
+					err := helper.ManageReadOnlyUser()
+					Expect(err).ToNot(HaveOccurred())
+				})
 			})
 		})
 
