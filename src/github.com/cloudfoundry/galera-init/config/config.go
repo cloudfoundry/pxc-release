@@ -20,7 +20,7 @@ type DBHelper struct {
 	UpgradePath         string              `yaml:"UpgradePath" validate:"nonzero"`
 	User                string              `yaml:"User" validate:"nonzero"`
 	Password            string              `yaml:"Password"`
-	ReadOnlyUserEnabled bool                `yaml:"ReadOnlyUserEnabled" validate:"nonzero"`
+	ReadOnlyUserEnabled bool                `yaml:"ReadOnlyUserEnabled"`
 	ReadOnlyUser        string              `yaml:"ReadOnlyUser" validate:"nonzero"`
 	ReadOnlyPassword    string              `yaml:"ReadOnlyPassword"`
 	PreseededDatabases  []PreseededDatabase `yaml:"PreseededDatabases"`
