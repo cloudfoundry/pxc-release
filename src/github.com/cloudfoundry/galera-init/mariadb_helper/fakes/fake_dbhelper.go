@@ -69,10 +69,10 @@ type FakeDBHelper struct {
 	seedReturns     struct {
 		result1 error
 	}
-	CreateReadOnlyUserStub        func() error
-	createReadOnlyUserMutex       sync.RWMutex
-	createReadOnlyUserArgsForCall []struct{}
-	createReadOnlyUserReturns     struct {
+	ManageReadOnlyUserStub        func() error
+	manageReadOnlyUserMutex       sync.RWMutex
+	manageReadOnlyUserArgsForCall []struct{}
+	manageReadOnlyUserReturns     struct {
 		result1 error
 	}
 }
@@ -304,26 +304,26 @@ func (fake *FakeDBHelper) SeedReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDBHelper) CreateReadOnlyUser() error {
-	fake.createReadOnlyUserMutex.Lock()
-	fake.createReadOnlyUserArgsForCall = append(fake.createReadOnlyUserArgsForCall, struct{}{})
-	fake.createReadOnlyUserMutex.Unlock()
-	if fake.CreateReadOnlyUserStub != nil {
-		return fake.CreateReadOnlyUserStub()
+func (fake *FakeDBHelper) ManageReadOnlyUser() error {
+	fake.manageReadOnlyUserMutex.Lock()
+	fake.manageReadOnlyUserArgsForCall = append(fake.manageReadOnlyUserArgsForCall, struct{}{})
+	fake.manageReadOnlyUserMutex.Unlock()
+	if fake.ManageReadOnlyUserStub != nil {
+		return fake.ManageReadOnlyUserStub()
 	} else {
-		return fake.createReadOnlyUserReturns.result1
+		return fake.manageReadOnlyUserReturns.result1
 	}
 }
 
-func (fake *FakeDBHelper) CreateReadOnlyUserCallCount() int {
-	fake.createReadOnlyUserMutex.RLock()
-	defer fake.createReadOnlyUserMutex.RUnlock()
-	return len(fake.createReadOnlyUserArgsForCall)
+func (fake *FakeDBHelper) ManageReadOnlyUserCallCount() int {
+	fake.manageReadOnlyUserMutex.RLock()
+	defer fake.manageReadOnlyUserMutex.RUnlock()
+	return len(fake.manageReadOnlyUserArgsForCall)
 }
 
-func (fake *FakeDBHelper) CreateReadOnlyUserReturns(result1 error) {
-	fake.CreateReadOnlyUserStub = nil
-	fake.createReadOnlyUserReturns = struct {
+func (fake *FakeDBHelper) ManageReadOnlyUserReturns(result1 error) {
+	fake.ManageReadOnlyUserStub = nil
+	fake.manageReadOnlyUserReturns = struct {
 		result1 error
 	}{result1}
 }

@@ -1,7 +1,6 @@
 package mariadb_helper
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 
@@ -32,7 +31,7 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
-	CreateReadOnlyUser() error
+	ManageReadOnlyUser() error
 }
 
 type MariaDBHelper struct {
@@ -220,7 +219,7 @@ func (m MariaDBHelper) Seed() error {
 	return nil
 }
 
-func (m MariaDBHelper) CreateReadOnlyUser() error {
+func (m MariaDBHelper) ManageReadOnlyUser() error {
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Error("database not reachable", err)
@@ -228,23 +227,27 @@ func (m MariaDBHelper) CreateReadOnlyUser() error {
 	}
 	defer CloseDBConnection(db)
 
-	if m.config.ReadOnlyPassword == "" {
-		return errors.New("Read only user (roadmin) requires password")
-	}
+	if m.config.ReadOnlyPassword == "" || !m.config.ReadOnlyUserEnabled {
+		m.logger.Info("Read Only User is disabled or password is not provided, deleting Read Only User if exists")
+		if err := m.deleteReadOnlyUser(db); err != nil {
+			return err
+		}
+	} else {
 
-	if err := m.grantUserReadOnly(db); err != nil {
-		return err
-	}
+		if err := m.grantUserReadOnly(db); err != nil {
+			return err
+		}
 
-	if err := m.setReadOnlyUserPassword(db); err != nil {
-		return err
-	}
+		if err := m.setReadOnlyUserPassword(db); err != nil {
+			return err
+		}
 
-	if err := m.flushPrivileges(db); err != nil {
-		return err
+		if err := m.flushPrivileges(db); err != nil {
+			return err
+		}
 	}
-
 	return nil
+
 }
 
 func (m MariaDBHelper) grantUserReadOnly(db *sql.DB) error {
@@ -282,6 +285,21 @@ func (m MariaDBHelper) setReadOnlyUserPassword(db *sql.DB) error {
 func (m MariaDBHelper) flushPrivileges(db *sql.DB) error {
 	if _, err := db.Exec("FLUSH PRIVILEGES"); err != nil {
 		m.logger.Error("Error flushing privileges", err)
+		return err
+	}
+
+	return nil
+}
+
+func (m MariaDBHelper) deleteReadOnlyUser(db *sql.DB) error {
+	deleteUserQuery := fmt.Sprintf(
+		"DROP USER IF EXISTS %s",
+		m.config.ReadOnlyUser,
+	)
+
+	if _, err := db.Exec(deleteUserQuery); err != nil {
+		m.logger.Error("Unable to delete Read Only user", err)
+
 		return err
 	}
 

@@ -36,12 +36,13 @@ var _ = Describe("Config", func() {
 					DatabaseStartupTimeout: 600,
 				},
 				Db: config.DBHelper{
-					DaemonPath:       "testDaemonPath",
-					UpgradePath:      "testUpgradePath",
-					User:             "testUser",
-					Password:         "",
-					ReadOnlyUser:     "testROUser",
-					ReadOnlyPassword: "testROPassword",
+					DaemonPath:          "testDaemonPath",
+					UpgradePath:         "testUpgradePath",
+					User:                "testUser",
+					Password:            "",
+					ReadOnlyUserEnabled: true,
+					ReadOnlyUser:        "testROUser",
+					ReadOnlyPassword:    "testROPassword",
 					PreseededDatabases: []config.PreseededDatabase{
 						config.PreseededDatabase{
 							DBName:   "testDbName1",
@@ -137,6 +138,7 @@ var _ = Describe("Config", func() {
 			It("returns an error if Db.DaemonPath is blank", isRequiredField("Db.DaemonPath"))
 			It("returns an error if Db.UpgradePath is blank", isRequiredField("Db.UpgradePath"))
 			It("returns an error if Db.User is blank", isRequiredField("Db.User"))
+			It("returns an error if Db.ReadOnlyUserEnabled is blank", isRequiredField("Db.ReadOnlyUserEnabled"))
 			It("returns an error if Db.ReadOnlyUser is blank", isRequiredField("Db.ReadOnlyUser"))
 
 			It("does not return an error if Db.Password is blank", isOptionalField("Db.Password"))

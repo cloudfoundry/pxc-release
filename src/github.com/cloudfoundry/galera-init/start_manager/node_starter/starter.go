@@ -177,7 +177,7 @@ func (s *starter) seedDatabases() error {
 }
 
 func (s *starter) createReadOnlyUser() error {
-	err := s.mariaDBHelper.CreateReadOnlyUser()
+	err := s.mariaDBHelper.ManageReadOnlyUser()
 	if err != nil {
 		s.logger.Info(fmt.Sprintf("There was a problem creating the read only user: '%s'", err.Error()))
 		return err

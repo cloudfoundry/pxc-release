@@ -16,13 +16,14 @@ type Config struct {
 }
 
 type DBHelper struct {
-	DaemonPath         string              `yaml:"DaemonPath" validate:"nonzero"`
-	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
-	User               string              `yaml:"User" validate:"nonzero"`
-	Password           string              `yaml:"Password"`
-	ReadOnlyUser       string              `yaml:"ReadOnlyUser" validate:"nonzero"`
-	ReadOnlyPassword   string              `yaml:"ReadOnlyPassword"`
-	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
+	DaemonPath          string              `yaml:"DaemonPath" validate:"nonzero"`
+	UpgradePath         string              `yaml:"UpgradePath" validate:"nonzero"`
+	User                string              `yaml:"User" validate:"nonzero"`
+	Password            string              `yaml:"Password"`
+	ReadOnlyUserEnabled bool                `yaml:"ReadOnlyUserEnabled" validate:"nonzero"`
+	ReadOnlyUser        string              `yaml:"ReadOnlyUser" validate:"nonzero"`
+	ReadOnlyPassword    string              `yaml:"ReadOnlyPassword"`
+	PreseededDatabases  []PreseededDatabase `yaml:"PreseededDatabases"`
 }
 
 type StartManager struct {

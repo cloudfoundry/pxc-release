@@ -70,8 +70,9 @@ var _ = Describe("MariaDBHelper", func() {
 					Password: "password2",
 				},
 			},
-			ReadOnlyUser:     "fake-read-only-user",
-			ReadOnlyPassword: "fake-read-only-password",
+			ReadOnlyUserEnabled: true,
+			ReadOnlyUser:        "fake-read-only-user",
+			ReadOnlyPassword:    "fake-read-only-password",
 		}
 	})
 
@@ -261,84 +262,116 @@ var _ = Describe("MariaDBHelper", func() {
 		})
 	})
 
-	Describe("CreateReadOnlyUser", func() {
+	Describe("ManageReadOnlyUser", func() {
 		var (
 			grantReadPrivilegesExec string
 			setReadOnlyUserPassword string
+			deleteUserExec          string
 		)
 
-		Context("when a password is provided for the read only user", func() {
+		Context("when ReadOnlyUserEnabled is set to true", func() {
+
 			BeforeEach(func() {
-				dbConfig.ReadOnlyPassword = "random-password"
-
-				grantReadPrivilegesExec = fmt.Sprintf(
-					"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
-					dbConfig.ReadOnlyUser,
-					dbConfig.ReadOnlyPassword,
-				)
-
-				setReadOnlyUserPassword = fmt.Sprintf(
-					"SET PASSWORD FOR '%s'@'%%'",
-					dbConfig.ReadOnlyUser,
-				)
+				dbConfig.ReadOnlyUserEnabled = true
 			})
 
-			It("creates a read only user named roadmin", func() {
-				sqlmock.ExpectExec(grantReadPrivilegesExec).
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+			Context("when a password is provided for the read only user", func() {
+				BeforeEach(func() {
+					dbConfig.ReadOnlyPassword = "random-password"
 
-				sqlmock.ExpectExec(setReadOnlyUserPassword).
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+					grantReadPrivilegesExec = fmt.Sprintf(
+						"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
+						dbConfig.ReadOnlyUser,
+						dbConfig.ReadOnlyPassword,
+					)
 
-				sqlmock.ExpectExec("FLUSH PRIVILEGES").
-					WithArgs().
-					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-
-				err := helper.CreateReadOnlyUser()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("granting select to the read only user errors", func() {
-				It("returns the error back", func() {
-					sqlmock.ExpectExec(grantReadPrivilegesExec).
-						WithArgs().
-						WillReturnError(errors.New("some error"))
-
-					err := helper.CreateReadOnlyUser()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("some error"))
+					setReadOnlyUserPassword = fmt.Sprintf(
+						"SET PASSWORD FOR '%s'@'%%'",
+						dbConfig.ReadOnlyUser,
+					)
 				})
-			})
 
-			Context("setting the read only user password errors", func() {
-				It("returns the error back", func() {
+				It("creates a read only user named roadmin", func() {
 					sqlmock.ExpectExec(grantReadPrivilegesExec).
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
 					sqlmock.ExpectExec(setReadOnlyUserPassword).
-						WillReturnError(errors.New("another error"))
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-					err := helper.CreateReadOnlyUser()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("another error"))
+					sqlmock.ExpectExec("FLUSH PRIVILEGES").
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+					err := helper.ManageReadOnlyUser()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("granting select to the read only user errors", func() {
+					It("returns the error back", func() {
+						sqlmock.ExpectExec(grantReadPrivilegesExec).
+							WithArgs().
+							WillReturnError(errors.New("some error"))
+
+						err := helper.ManageReadOnlyUser()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("some error"))
+					})
+				})
+
+				Context("setting the read only user password errors", func() {
+					It("returns the error back", func() {
+						sqlmock.ExpectExec(grantReadPrivilegesExec).
+							WithArgs().
+							WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+						sqlmock.ExpectExec(setReadOnlyUserPassword).
+							WillReturnError(errors.New("another error"))
+
+						err := helper.ManageReadOnlyUser()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("another error"))
+					})
+				})
+			})
+
+			Context("a password is not provided for the read only user", func() {
+				BeforeEach(func() {
+					dbConfig.ReadOnlyPassword = ""
+					deleteUserExec = fmt.Sprintf(
+						"DROP USER IF EXISTS %s",
+						dbConfig.ReadOnlyUser,
+					)
+				})
+
+				It("deletes the read only user if exists", func() {
+					sqlmock.ExpectExec(deleteUserExec).
+						WithArgs().
+						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+					err := helper.ManageReadOnlyUser()
+					Expect(err).ToNot(HaveOccurred())
 				})
 			})
 		})
 
-		Context("a password is not provided for the read only user", func() {
+		Context("when ReadOnlyUserEnabled is set to false", func() {
 			BeforeEach(func() {
-				dbConfig.ReadOnlyPassword = ""
+				dbConfig.ReadOnlyUserEnabled = false
+				deleteUserExec = fmt.Sprintf(
+					"DROP USER IF EXISTS %s",
+					dbConfig.ReadOnlyUser,
+				)
 			})
 
-			It("does not create a read only user and returns a helpful error", func() {
-				err := helper.CreateReadOnlyUser()
-
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("requires password"))
+			It("deletes the read only user if exists", func() {
+				sqlmock.ExpectExec(deleteUserExec).
+					WithArgs().
+					WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+				err := helper.ManageReadOnlyUser()
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
+
 	})
 })

@@ -29,8 +29,8 @@ var _ = Describe("Starter", func() {
 
 	const databaseStartupTimeout = 10
 
-	ensureCreateReadOnlyUser := func() {
-		Expect(fakeDBHelper.CreateReadOnlyUserCallCount()).To(Equal(1))
+	ensureManageReadOnlyUser := func() {
+		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
 	}
 
 	ensureSeedDatabases := func() {
@@ -90,7 +90,7 @@ var _ = Describe("Starter", func() {
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
 				ensureBootstrap()
 				ensureSeedDatabases()
-				ensureCreateReadOnlyUser()
+				ensureManageReadOnlyUser()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
 		})
@@ -107,7 +107,7 @@ var _ = Describe("Starter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureBootstrap()
 					ensureSeedDatabases()
-					ensureCreateReadOnlyUser()
+					ensureManageReadOnlyUser()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 				})
 			})
@@ -243,7 +243,7 @@ var _ = Describe("Starter", func() {
 
 			Context("when creating read only user fails", func() {
 				BeforeEach(func() {
-					fakeDBHelper.CreateReadOnlyUserReturns(errors.New("some error"))
+					fakeDBHelper.ManageReadOnlyUserReturns(errors.New("some error"))
 				})
 
 				It("forwards the error", func() {
