@@ -137,6 +137,7 @@ var _ = Describe("Starter", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
+				ensureManageReadOnlyUser()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
 			})
 		})

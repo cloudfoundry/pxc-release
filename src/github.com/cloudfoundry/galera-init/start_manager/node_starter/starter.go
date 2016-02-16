@@ -92,11 +92,11 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+	}
 
-		err = s.createReadOnlyUser()
-		if err != nil {
-			return "", err
-		}
+	err = s.createReadOnlyUser()
+	if err != nil {
+		return "", err
 	}
 
 	return newNodeState, nil
