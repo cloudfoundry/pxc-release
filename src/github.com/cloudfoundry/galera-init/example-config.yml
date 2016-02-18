@@ -1,28 +1,36 @@
 ---
 # Specifies the location of the log file mysql sends logs to
-LogFileLocation:
+LogFileLocation: testPath
 # Specifies the file where the startup manager will write its PID
-PidFile:
+PidFile: testPidFile
 Db:
   # Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server
-  DaemonPath:
+  DaemonPath: testDaemonPath
   # Specifies the location of the script that performs the MySQL upgrade
-  UpgradePath:
+  UpgradePath: testUpgradePath
   # Specifies the user name for MySQL
-  User: root
+  User: testUser
   # Specifies the password for connecting to MySQL
-  Password:
+  Password: 
+  ReadOnlyUserEnabled: true
+  ReadOnlyUser: testROUser
+  ReadOnlyPassword: testROPassword
+  PreseededDatabases:
+  - DBName: testDbName1
+    User: testUser1
+    Password:   
 Upgrader:
   # Specifies the location of the file containing the MySQL version as deployed
-  PackageVersionFile:
+  PackageVersionFile: testPackageVersionFile
   # Specifies the location of the file MySQL upgrade writes.
-  LastUpgradedVersionFile:
+  LastUpgradedVersionFile: testLastUpgradedVersionFile
 Manager:
   # Specifies the location to store the statefile for MySQL boot
-  StateFileLocation:
+  StateFileLocation: testStateFileLocation
   # Specifies the job index of the MySQL node
-  MyIP: 10.10.0.1
+  MyIP: "1.1.1.1"
   # Comma-delimited list of IPs in the galera cluster
-  ClusterIps: []
+  ClusterIps: ["1.1.1.1", "1.1.1.2", "1.1.1.3"]
   # How many times to attempt database seeding before it fails
   MaxDatabaseSeedTries: 1
+  DatabaseStartupTimeout: 600  

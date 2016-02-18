@@ -2,12 +2,14 @@ package config_test
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"reflect"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf-experimental/service-config"
 
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 )
@@ -16,41 +18,26 @@ var _ = Describe("Config", func() {
 
 	Describe("Validate", func() {
 		var rootConfig config.Config
+		var serviceConfig *service_config.ServiceConfig
 
 		BeforeEach(func() {
-			rootConfig = config.Config{
-				LogFileLocation: "testPath",
-				PidFile:         "testPidFile",
-				Upgrader: config.Upgrader{
-					PackageVersionFile:      "testPackageVersionFile",
-					LastUpgradedVersionFile: "testLastUpgradedVersionFile",
-				},
-				Manager: config.StartManager{
-					StateFileLocation: "testStateFileLocation",
-					MyIP:              "1.1.1.1",
-					ClusterIps: []string{
-						"1.1.1.1",
-						"1.1.1.2",
-						"1.1.1.3",
-					},
-					DatabaseStartupTimeout: 600,
-				},
+			serviceConfig = service_config.New()
+			flags := flag.NewFlagSet("mariadb_ctrl", flag.ExitOnError)
+			serviceConfig.AddFlags(flags)
+
+			serviceConfig.AddDefaults(config.Config{
 				Db: config.DBHelper{
-					DaemonPath:          "testDaemonPath",
-					UpgradePath:         "testUpgradePath",
-					User:                "testUser",
-					Password:            "",
-					ReadOnlyUserEnabled: true,
-					ReadOnlyUser:        "testROUser",
-					ReadOnlyPassword:    "testROPassword",
-					PreseededDatabases: []config.PreseededDatabase{
-						config.PreseededDatabase{
-							DBName:   "testDbName1",
-							User:     "testUser1",
-							Password: "",
-						},
-					},
+					User: "root",
 				},
+			})
+
+			flags.Parse([]string{
+				fmt.Sprintf("-configPath=%s", "../example-config.yml"),
+			})
+
+			err := serviceConfig.Read(&rootConfig)
+			if err != nil {
+				fmt.Errorf("Error reading config file", err)
 			}
 		})
 
