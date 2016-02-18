@@ -32,13 +32,11 @@ var _ = Describe("Config", func() {
 			})
 
 			flags.Parse([]string{
-				fmt.Sprintf("-configPath=%s", "../example-config.yml"),
+				"-configPath=../example-config.yml",
 			})
 
 			err := serviceConfig.Read(&rootConfig)
-			if err != nil {
-				fmt.Errorf("Error reading config file", err)
-			}
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		var setNestedFieldToEmpty func(obj interface{}, nestedFieldNames []string) error
