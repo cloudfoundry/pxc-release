@@ -94,7 +94,7 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 		}
 	}
 
-	err = s.createReadOnlyUser()
+	err = s.createOrDeleteReadOnlyUser()
 	if err != nil {
 		return "", err
 	}
@@ -176,7 +176,7 @@ func (s *starter) seedDatabases() error {
 	return nil
 }
 
-func (s *starter) createReadOnlyUser() error {
+func (s *starter) createOrDeleteReadOnlyUser() error {
 	err := s.mariaDBHelper.ManageReadOnlyUser()
 	if err != nil {
 		s.logger.Info(fmt.Sprintf("There was a problem creating the read only user: '%s'", err.Error()))
