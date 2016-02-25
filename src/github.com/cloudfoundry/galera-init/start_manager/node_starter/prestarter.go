@@ -1,4 +1,4 @@
-package node_prestarter
+package node_starter
 
 import (
 	"errors"
@@ -13,20 +13,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const (
-	Clustered                        = "CLUSTERED"
-	NeedsBootstrap                   = "NEEDS_BOOTSTRAP"
-	SingleNode                       = "SINGLE_NODE"
-	StartupPollingFrequencyInSeconds = 5
-)
-
-//go:generate counterfeiter . PreStarter
-
-type PreStarter interface {
-	PreStartNodeFromState(string) (string, error)
-	GetMysqlCmd() (*exec.Cmd, error)
-}
-
 type prestarter struct {
 	mariaDBHelper        mariadb_helper.DBHelper
 	osHelper             os_helper.OsHelper
@@ -36,13 +22,13 @@ type prestarter struct {
 	mysqlCmd             *exec.Cmd
 }
 
-func New(
+func NewPreStarter(
 	mariaDBHelper mariadb_helper.DBHelper,
 	osHelper os_helper.OsHelper,
 	config config.StartManager,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
-) PreStarter {
+) Starter {
 	return &prestarter{
 		mariaDBHelper:        mariaDBHelper,
 		osHelper:             osHelper,
@@ -52,7 +38,7 @@ func New(
 	}
 }
 
-func (s *prestarter) PreStartNodeFromState(state string) (string, error) {
+func (s *prestarter) StartNodeFromState(state string) (string, error) {
 	var err error
 	var newNodeState string
 

@@ -1,4 +1,4 @@
-package node_prestarter_test
+package node_starter_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_prestarter"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -16,7 +16,7 @@ import (
 )
 
 var _ = Describe("PreStarter", func() {
-	var prestarter node_prestarter.PreStarter
+	var prestarter node_starter.Starter
 
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_fakes.FakeOsHelper
@@ -48,7 +48,7 @@ var _ = Describe("PreStarter", func() {
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
-		prestarter = node_prestarter.New(
+		prestarter = node_starter.NewPreStarter(
 			fakeDBHelper,
 			fakeOs,
 			config.StartManager{
@@ -59,7 +59,7 @@ var _ = Describe("PreStarter", func() {
 		)
 	})
 
-	Describe("PreStartNodeFromState", func() {
+	Describe("StartNodeFromState", func() {
 		BeforeEach(func() {
 			fakeCommandJoinStr = "fake-command-join"
 			fakeCommandJoin = exec.Command(fakeCommandJoinStr)
@@ -68,7 +68,7 @@ var _ = Describe("PreStarter", func() {
 
 		Context("prestarting with state SINGLE_NODE", func() {
 			It("does nothing and returns", func() {
-				newNodeState, err := prestarter.PreStartNodeFromState("SINGLE_NODE")
+				newNodeState, err := prestarter.StartNodeFromState("SINGLE_NODE")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
 				ensureNoJoin()
@@ -82,7 +82,7 @@ var _ = Describe("PreStarter", func() {
 				})
 
 				It("does nothing and returns", func() {
-					newNodeState, err := prestarter.PreStartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, err := prestarter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("NEEDS_BOOTSTRAP"))
 					ensureNoJoin()
@@ -95,7 +95,7 @@ var _ = Describe("PreStarter", func() {
 				})
 
 				It("joins the cluster", func() {
-					newNodeState, err := prestarter.PreStartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, err := prestarter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
@@ -110,7 +110,7 @@ var _ = Describe("PreStarter", func() {
 			})
 
 			It("joins the cluster", func() {
-				newNodeState, err := prestarter.PreStartNodeFromState("CLUSTERED")
+				newNodeState, err := prestarter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
@@ -136,7 +136,7 @@ var _ = Describe("PreStarter", func() {
 			})
 
 			It("retries pinging the database until it is reachable", func() {
-				_, err := prestarter.PreStartNodeFromState("CLUSTERED")
+				_, err := prestarter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
 			})
@@ -145,7 +145,7 @@ var _ = Describe("PreStarter", func() {
 		Context("error handling", func() {
 			Context("when passed a an invalid state", func() {
 				It("forwards the error", func() {
-					_, err := prestarter.PreStartNodeFromState("INVALID_STATE")
+					_, err := prestarter.StartNodeFromState("INVALID_STATE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Unsupported state file contents"))
 					ensureNoJoin()
@@ -160,7 +160,7 @@ var _ = Describe("PreStarter", func() {
 				Context("NEEDS_BOOTSTRAP", func() {
 					It("forwards the error", func() {
 						fakeClusterHealthChecker.HealthyClusterReturns(true)
-						_, err := prestarter.PreStartNodeFromState("NEEDS_BOOTSTRAP")
+						_, err := prestarter.StartNodeFromState("NEEDS_BOOTSTRAP")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -168,7 +168,7 @@ var _ = Describe("PreStarter", func() {
 
 				Context("CLUSTERED", func() {
 					It("forwards the error", func() {
-						_, err := prestarter.PreStartNodeFromState("CLUSTERED")
+						_, err := prestarter.StartNodeFromState("CLUSTERED")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -179,12 +179,12 @@ var _ = Describe("PreStarter", func() {
 				var maxRetryAttempts int
 
 				BeforeEach(func() {
-					maxRetryAttempts = databaseStartupTimeout / node_prestarter.StartupPollingFrequencyInSeconds
+					maxRetryAttempts = databaseStartupTimeout / node_starter.StartupPollingFrequencyInSeconds
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 				})
 
 				It("returns a timeout error", func() {
-					_, err := prestarter.PreStartNodeFromState("SINGLE_NODE")
+					_, err := prestarter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Timeout"))
 					Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))

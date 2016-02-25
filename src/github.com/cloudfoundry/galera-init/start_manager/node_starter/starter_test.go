@@ -58,7 +58,7 @@ var _ = Describe("Starter", func() {
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
-		starter = node_starter.New(
+		starter = node_starter.NewStarter(
 			fakeDBHelper,
 			fakeOs,
 			config.StartManager{

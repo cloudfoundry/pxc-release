@@ -8,7 +8,6 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
 	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
-	node_prestarter_fakes "github.com/cloudfoundry/mariadb_ctrl/start_manager/node_prestarter/fakes"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	node_starter_fakes "github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter/fakes"
 	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
@@ -28,7 +27,7 @@ var _ = Describe("StartManager", func() {
 	var fakeUpgrader *upgrader_fakes.FakeUpgrader
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
 	var fakeStarter *node_starter_fakes.FakeStarter
-	var fakePreStarter *node_prestarter_fakes.FakePreStarter
+	var fakePreStarter *node_starter_fakes.FakeStarter
 	var fakeHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var startNodeReturn string
 	var startNodeReturnError error
@@ -61,8 +60,8 @@ var _ = Describe("StartManager", func() {
 	}
 
 	ensurePreStartNodeWithMode := func(state string) {
-		Expect(fakePreStarter.PreStartNodeFromStateCallCount()).To(Equal(1))
-		Expect(fakePreStarter.PreStartNodeFromStateArgsForCall(0)).To(Equal(state))
+		Expect(fakePreStarter.StartNodeFromStateCallCount()).To(Equal(1))
+		Expect(fakePreStarter.StartNodeFromStateArgsForCall(0)).To(Equal(state))
 	}
 
 	createManager := func(args managerArgs) StartManager {
@@ -94,7 +93,7 @@ var _ = Describe("StartManager", func() {
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
 		fakeStarter = new(node_starter_fakes.FakeStarter)
-		fakePreStarter = new(node_prestarter_fakes.FakePreStarter)
+		fakePreStarter = new(node_starter_fakes.FakeStarter)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 		fakeHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 
@@ -108,7 +107,7 @@ var _ = Describe("StartManager", func() {
 
 	JustBeforeEach(func() {
 		fakeStarter.StartNodeFromStateReturns(startNodeReturn, startNodeReturnError)
-		fakePreStarter.PreStartNodeFromStateReturns(preStartNodeReturn, preStartNodeReturnError)
+		fakePreStarter.StartNodeFromStateReturns(preStartNodeReturn, preStartNodeReturnError)
 	})
 
 	Context("When a mysql process is already running", func() {
@@ -454,7 +453,7 @@ var _ = Describe("StartManager", func() {
 
 				It("does not join the cluster", func() {
 					mgr.Execute("prestart")
-					Expect(fakePreStarter.PreStartNodeFromStateCallCount()).To(Equal(0))
+					Expect(fakePreStarter.StartNodeFromStateCallCount()).To(Equal(0))
 					ensureNoWriteToStateFile()
 				})
 			})
