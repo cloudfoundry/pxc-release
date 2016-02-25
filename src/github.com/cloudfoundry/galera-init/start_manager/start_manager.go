@@ -1,7 +1,6 @@
 package start_manager
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -23,7 +22,7 @@ const (
 //go:generate counterfeiter . StartManager
 
 type StartManager interface {
-	Execute(execMode string) error
+	Execute() error
 	GetMysqlCmd() (*exec.Cmd, error)
 	Shutdown() error
 }
@@ -33,8 +32,7 @@ type startManager struct {
 	config        config.StartManager
 	mariaDBHelper mariadb_helper.DBHelper
 	upgrader      upgrader.Upgrader
-	starter       node_starter.Starter
-	prestarter    node_starter.Starter
+	startCaller   node_starter.Starter
 	logger        lager.Logger
 	healthChecker cluster_health_checker.ClusterHealthChecker
 	mysqlCmd      *exec.Cmd
@@ -45,8 +43,7 @@ func New(
 	config config.StartManager,
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
-	starter node_starter.Starter,
-	prestarter node_starter.Starter,
+	startCaller node_starter.Starter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 ) StartManager {
@@ -56,13 +53,12 @@ func New(
 		logger:        logger,
 		mariaDBHelper: mariaDBHelper,
 		upgrader:      upgrader,
-		starter:       starter,
-		prestarter:    prestarter,
+		startCaller:   startCaller,
 		healthChecker: healthChecker,
 	}
 }
 
-func (m *startManager) Execute(execMode string) error {
+func (m *startManager) Execute() error {
 	var newNodeState string
 	var err error
 
@@ -98,18 +94,9 @@ func (m *startManager) Execute(execMode string) error {
 		return err
 	}
 
-	if execMode == "start" {
-		newNodeState, err = m.starter.StartNodeFromState(currentState)
-		if err != nil {
-			return err
-		}
-	} else if execMode == "prestart" {
-		newNodeState, err = m.prestarter.StartNodeFromState(currentState)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New(fmt.Sprintf("start_manager called with invalid execute mode %s", execMode))
+	newNodeState, err = m.startCaller.StartNodeFromState(currentState)
+	if err != nil {
+		return err
 	}
 
 	m.writeStringToFile(newNodeState)
@@ -162,7 +149,7 @@ func (m *startManager) firstTimeDeploy() bool {
 }
 
 func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
-	return m.starter.GetMysqlCmd()
+	return m.startCaller.GetMysqlCmd()
 }
 
 func (m *startManager) Shutdown() error {

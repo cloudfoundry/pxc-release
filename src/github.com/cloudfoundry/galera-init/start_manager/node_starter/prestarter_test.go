@@ -35,6 +35,10 @@ var _ = Describe("PreStarter", func() {
 		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(0))
 	}
 
+	ensureShutdown := func() {
+		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
+	}
+
 	ensureMysqlCmdMatches := func(cmd string) {
 		runCmd, err := prestarter.GetMysqlCmd()
 		Expect(err).ToNot(HaveOccurred())
@@ -100,6 +104,7 @@ var _ = Describe("PreStarter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
+					ensureShutdown()
 				})
 			})
 		})
@@ -115,6 +120,7 @@ var _ = Describe("PreStarter", func() {
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
+				ensureShutdown()
 			})
 		})
 
