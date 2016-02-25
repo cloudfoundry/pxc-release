@@ -9,33 +9,37 @@ import (
 )
 
 type FakeStartManager struct {
-	ExecuteStub        func() error
+	ExecuteStub        func(execMode string) error
 	executeMutex       sync.RWMutex
-	executeArgsForCall []struct{}
-	executeReturns     struct {
+	executeArgsForCall []struct {
+		execMode string
+	}
+	executeReturns struct {
 		result1 error
 	}
 	GetMysqlCmdStub        func() (*exec.Cmd, error)
 	getMysqlCmdMutex       sync.RWMutex
 	getMysqlCmdArgsForCall []struct{}
-	getMysqlCmdReturns     struct {
+	getMysqlCmdReturns struct {
 		result1 *exec.Cmd
 		result2 error
 	}
 	ShutdownStub        func() error
 	shutdownMutex       sync.RWMutex
 	shutdownArgsForCall []struct{}
-	shutdownReturns     struct {
+	shutdownReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeStartManager) Execute() error {
+func (fake *FakeStartManager) Execute(execMode string) error {
 	fake.executeMutex.Lock()
-	fake.executeArgsForCall = append(fake.executeArgsForCall, struct{}{})
+	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
+		execMode string
+	}{execMode})
 	fake.executeMutex.Unlock()
 	if fake.ExecuteStub != nil {
-		return fake.ExecuteStub()
+		return fake.ExecuteStub(execMode)
 	} else {
 		return fake.executeReturns.result1
 	}
@@ -45,6 +49,12 @@ func (fake *FakeStartManager) ExecuteCallCount() int {
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
 	return len(fake.executeArgsForCall)
+}
+
+func (fake *FakeStartManager) ExecuteArgsForCall(i int) string {
+	fake.executeMutex.RLock()
+	defer fake.executeMutex.RUnlock()
+	return fake.executeArgsForCall[i].execMode
 }
 
 func (fake *FakeStartManager) ExecuteReturns(result1 error) {

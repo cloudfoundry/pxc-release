@@ -21,7 +21,7 @@ type FakeStarter struct {
 	GetMysqlCmdStub        func() (*exec.Cmd, error)
 	getMysqlCmdMutex       sync.RWMutex
 	getMysqlCmdArgsForCall []struct{}
-	getMysqlCmdReturns     struct {
+	getMysqlCmdReturns struct {
 		result1 *exec.Cmd
 		result2 error
 	}

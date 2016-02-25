@@ -19,7 +19,7 @@ func NewRunner(mgr StartManager, logger lager.Logger) Runner {
 }
 
 func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := r.mgr.Execute()
+	err := r.mgr.Execute("start")
 	if err != nil {
 		r.logger.Error("Failed starting Maria with error:", err)
 		//database may have started but failed to accept connections

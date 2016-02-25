@@ -12,26 +12,26 @@ type FakeSeeder struct {
 	CreateDBIfNeededStub        func() error
 	createDBIfNeededMutex       sync.RWMutex
 	createDBIfNeededArgsForCall []struct{}
-	createDBIfNeededReturns     struct {
+	createDBIfNeededReturns struct {
 		result1 error
 	}
 	IsExistingUserStub        func() (bool, error)
 	isExistingUserMutex       sync.RWMutex
 	isExistingUserArgsForCall []struct{}
-	isExistingUserReturns     struct {
+	isExistingUserReturns struct {
 		result1 bool
 		result2 error
 	}
 	CreateUserStub        func() error
 	createUserMutex       sync.RWMutex
 	createUserArgsForCall []struct{}
-	createUserReturns     struct {
+	createUserReturns struct {
 		result1 error
 	}
 	GrantUserAllPrivilegesStub        func() error
 	grantUserAllPrivilegesMutex       sync.RWMutex
 	grantUserAllPrivilegesArgsForCall []struct{}
-	grantUserAllPrivilegesReturns     struct {
+	grantUserAllPrivilegesReturns struct {
 		result1 error
 	}
 }
