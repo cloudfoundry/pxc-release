@@ -118,4 +118,30 @@ var _ = Describe("StartManagerRunner", func() {
 			Expect(fakeManager.ShutdownCallCount()).To(Equal(1))
 		})
 	})
+
+	Context("When StartManager.Execute succeeds for prestart on bootstrap node", func() {
+
+		BeforeEach(func() {
+			fakeManager.GetMysqlCmdReturns(nil, nil)
+			fakeManager.ExecuteStub = func() error {
+				return nil
+			}
+		})
+
+		It("Closes the ready channel and exits", func() {
+			signals := make(chan os.Signal)
+			ready := make(chan struct{})
+
+			runErr := make(chan error)
+			go func() {
+				runErr <- runner.Run(signals, ready)
+			}()
+
+			Eventually(ready).Should(BeClosed())
+			Consistently(runErr).ShouldNot(Receive())
+			signals <- os.Kill
+			Eventually(runErr).Should(Receive(nil))
+		})
+
+	})
 })

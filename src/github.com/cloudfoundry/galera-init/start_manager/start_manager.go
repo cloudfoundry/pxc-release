@@ -79,7 +79,7 @@ func (m *startManager) Execute() error {
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.logger.Info("Failed to upgrade", lager.Data{"err": err.Error()})
+			m.logger.Info("Failed during upgrade", lager.Data{"err": err.Error()})
 			return err
 		}
 	}

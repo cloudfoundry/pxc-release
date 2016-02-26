@@ -20,6 +20,7 @@ type prestarter struct {
 	config               config.StartManager
 	logger               lager.Logger
 	mysqlCmd             *exec.Cmd
+	finalState           string
 }
 
 func NewPreStarter(
@@ -35,6 +36,7 @@ func NewPreStarter(
 		config:               config,
 		logger:               logger,
 		clusterHealthChecker: healthChecker,
+		finalState:           "",
 	}
 }
 
@@ -63,21 +65,25 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 		return "", err
 	}
 
-	err = s.waitForDatabaseToAcceptConnections()
-	if err != nil {
-		return "", err
+	if s.mysqlCmd != nil {
+		err = s.waitForDatabaseToAcceptConnections()
+		if err != nil {
+			return "", err
+		}
+
+		err = s.shutdownMysql()
+		if err != nil {
+			return "", err
+		}
 	}
 
-	err = s.shutdownMysql()
-	if err != nil {
-		return "", err
-	}
+	s.finalState = newNodeState
 
 	return newNodeState, nil
 }
 
 func (s *prestarter) GetMysqlCmd() (*exec.Cmd, error) {
-	if s.mysqlCmd != nil {
+	if s.mysqlCmd != nil || (s.mysqlCmd == nil && s.finalState != Clustered) {
 		return s.mysqlCmd, nil
 	}
 	return nil, errors.New("Mysql has not been started")

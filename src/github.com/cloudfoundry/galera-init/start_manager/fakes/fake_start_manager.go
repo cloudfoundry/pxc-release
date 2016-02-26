@@ -12,20 +12,20 @@ type FakeStartManager struct {
 	ExecuteStub        func() error
 	executeMutex       sync.RWMutex
 	executeArgsForCall []struct{}
-	executeReturns struct {
+	executeReturns     struct {
 		result1 error
 	}
 	GetMysqlCmdStub        func() (*exec.Cmd, error)
 	getMysqlCmdMutex       sync.RWMutex
 	getMysqlCmdArgsForCall []struct{}
-	getMysqlCmdReturns struct {
+	getMysqlCmdReturns     struct {
 		result1 *exec.Cmd
 		result2 error
 	}
 	ShutdownStub        func() error
 	shutdownMutex       sync.RWMutex
 	shutdownArgsForCall []struct{}
-	shutdownReturns struct {
+	shutdownReturns     struct {
 		result1 error
 	}
 }

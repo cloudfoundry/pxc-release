@@ -22,6 +22,10 @@ import (
 )
 
 func main() {
+
+	var prestartFlag string
+	var starter node_starter.Starter
+
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	serviceConfig := service_config.New()
@@ -33,6 +37,9 @@ func main() {
 		},
 	})
 	cf_lager.AddFlags(flags)
+
+	flags.StringVar(&prestartFlag, "prestart", "false", "Start mariadb_ctrl in prestart mode")
+
 	flags.Parse(os.Args[1:])
 
 	logger, _ := cf_lager.New("mariadb_ctrl")
@@ -69,13 +76,23 @@ func main() {
 		logger,
 	)
 
-	starter := node_starter.New(
-		mariaDBHelper,
-		osHelper,
-		rootConfig.Manager,
-		logger,
-		galeraHelper,
-	)
+	if prestartFlag == "true" {
+		starter = node_starter.NewPreStarter(
+			mariaDBHelper,
+			osHelper,
+			rootConfig.Manager,
+			logger,
+			galeraHelper,
+		)
+	} else {
+		starter = node_starter.NewStarter(
+			mariaDBHelper,
+			osHelper,
+			rootConfig.Manager,
+			logger,
+			galeraHelper,
+		)
+	}
 
 	mgr := start_manager.New(
 		osHelper,
