@@ -1,17 +1,18 @@
-package start_manager
+package node_runner
 
 import (
 	"os"
 
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/pivotal-golang/lager"
 )
 
 type Runner struct {
-	mgr    StartManager
+	mgr    start_manager.StartManager
 	logger lager.Logger
 }
 
-func NewRunner(mgr StartManager, logger lager.Logger) Runner {
+func NewRunner(mgr start_manager.StartManager, logger lager.Logger) Runner {
 	return Runner{
 		mgr:    mgr,
 		logger: logger,
@@ -40,12 +41,10 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
 	mariaExited := make(chan error)
-	if cmd != nil {
-		go func() {
-			err = cmd.Wait()
-			mariaExited <- err
-		}()
-	}
+	go func() {
+		err = cmd.Wait()
+		mariaExited <- err
+	}()
 
 	var shutdownErr error
 	select {
