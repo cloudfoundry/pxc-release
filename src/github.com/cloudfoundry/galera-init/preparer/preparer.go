@@ -29,13 +29,13 @@ type preparer struct {
 }
 
 type Preparer interface {
-	SetConfig(config.Config)
 	Prepare() ifrit.Runner
 }
 
-func New(logger lager.Logger) Preparer {
+func New(logger lager.Logger, rootConfig config.Config) Preparer {
 	return &preparer{
-		logger: logger,
+		rootConfig: rootConfig,
+		logger:     logger,
 	}
 }
 
@@ -78,10 +78,6 @@ func (p *preparer) Prepare() ifrit.Runner {
 	sigRunner := sigmon.New(p.runner, os.Kill)
 
 	return sigRunner
-}
-
-func (p *preparer) SetConfig(rootConfig config.Config) {
-	p.rootConfig = rootConfig
 }
 
 func (p *preparer) makeStarter() node_starter.Starter {
