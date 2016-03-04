@@ -1,7 +1,6 @@
 package start_manager
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_prestarter"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-golang/lager"
@@ -24,7 +22,7 @@ const (
 //go:generate counterfeiter . StartManager
 
 type StartManager interface {
-	Execute(execMode string) error
+	Execute() error
 	GetMysqlCmd() (*exec.Cmd, error)
 	Shutdown() error
 }
@@ -35,7 +33,6 @@ type startManager struct {
 	mariaDBHelper mariadb_helper.DBHelper
 	upgrader      upgrader.Upgrader
 	starter       node_starter.Starter
-	prestarter    node_prestarter.PreStarter
 	logger        lager.Logger
 	healthChecker cluster_health_checker.ClusterHealthChecker
 	mysqlCmd      *exec.Cmd
@@ -47,7 +44,6 @@ func New(
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	starter node_starter.Starter,
-	prestarter node_prestarter.PreStarter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 ) StartManager {
@@ -58,18 +54,14 @@ func New(
 		mariaDBHelper: mariaDBHelper,
 		upgrader:      upgrader,
 		starter:       starter,
-		prestarter:    prestarter,
 		healthChecker: healthChecker,
 	}
 }
 
-func (m *startManager) Execute(execMode string) error {
-	var newNodeState string
-	var err error
-
+func (m *startManager) Execute() error {
 	if m.mariaDBHelper.IsProcessRunning() {
 		m.logger.Info("MySQL process is already running, shutting down before continuing")
-		err = m.Shutdown()
+		err := m.Shutdown()
 		if err != nil {
 			m.logger.Error("Failed to shutdown mysql process", err)
 			return err
@@ -99,18 +91,9 @@ func (m *startManager) Execute(execMode string) error {
 		return err
 	}
 
-	if execMode == "start" {
-		newNodeState, err = m.starter.StartNodeFromState(currentState)
-		if err != nil {
-			return err
-		}
-	} else if execMode == "prestart" {
-		newNodeState, err = m.prestarter.PreStartNodeFromState(currentState)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New(fmt.Sprintf("start_manager called with invalid execute mode %s", execMode))
+	newNodeState, err := m.starter.StartNodeFromState(currentState)
+	if err != nil {
+		return err
 	}
 
 	m.writeStringToFile(newNodeState)

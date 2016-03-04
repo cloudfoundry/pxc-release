@@ -40,7 +40,7 @@ var _ = Describe("StartManagerRunner", func() {
 
 		BeforeEach(func() {
 			fakeManager.GetMysqlCmdReturns(longRunningCmd, nil)
-			fakeManager.ExecuteStub = func(execMode string) error {
+			fakeManager.ExecuteStub = func() error {
 				err := longRunningCmd.Start()
 				Expect(err).ToNot(HaveOccurred())
 				return nil

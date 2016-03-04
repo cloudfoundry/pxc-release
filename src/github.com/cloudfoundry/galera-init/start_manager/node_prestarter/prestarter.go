@@ -20,7 +20,7 @@ const (
 	StartupPollingFrequencyInSeconds = 5
 )
 
-//go:generate counterfeiter . PreStarter
+//go:generate counterfeiter . Starter
 
 type PreStarter interface {
 	PreStartNodeFromState(string) (string, error)
