@@ -40,12 +40,10 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
 	mariaExited := make(chan error)
-	if cmd != nil {
-		go func() {
-			err = cmd.Wait()
-			mariaExited <- err
-		}()
-	}
+	go func() {
+		err = cmd.Wait()
+		mariaExited <- err
+	}()
 
 	var shutdownErr error
 	select {
@@ -53,7 +51,7 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 		r.logger.Info("Received shutdown signal. Shutting down Maria.")
 		shutdownErr = r.mgr.Shutdown()
 	case err = <-mariaExited:
-		r.logger.Error("Maria process exited with error", err)
+		r.logger.Error("Maria process exited", err)
 		shutdownErr = err
 	}
 	return shutdownErr

@@ -21,58 +21,58 @@ type FakeDBHelper struct {
 	StartMysqlInJoinStub        func() (*exec.Cmd, error)
 	startMysqlInJoinMutex       sync.RWMutex
 	startMysqlInJoinArgsForCall []struct{}
-	startMysqlInJoinReturns     struct {
+	startMysqlInJoinReturns struct {
 		result1 *exec.Cmd
 		result2 error
 	}
 	StartMysqlInBootstrapStub        func() (*exec.Cmd, error)
 	startMysqlInBootstrapMutex       sync.RWMutex
 	startMysqlInBootstrapArgsForCall []struct{}
-	startMysqlInBootstrapReturns     struct {
+	startMysqlInBootstrapReturns struct {
 		result1 *exec.Cmd
 		result2 error
 	}
 	StopMysqlStub        func() error
 	stopMysqlMutex       sync.RWMutex
 	stopMysqlArgsForCall []struct{}
-	stopMysqlReturns     struct {
+	stopMysqlReturns struct {
 		result1 error
 	}
 	StopStandaloneMysqlStub        func() error
 	stopStandaloneMysqlMutex       sync.RWMutex
 	stopStandaloneMysqlArgsForCall []struct{}
-	stopStandaloneMysqlReturns     struct {
+	stopStandaloneMysqlReturns struct {
 		result1 error
 	}
 	UpgradeStub        func() (output string, err error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct{}
-	upgradeReturns     struct {
+	upgradeReturns struct {
 		result1 string
 		result2 error
 	}
 	IsDatabaseReachableStub        func() bool
 	isDatabaseReachableMutex       sync.RWMutex
 	isDatabaseReachableArgsForCall []struct{}
-	isDatabaseReachableReturns     struct {
+	isDatabaseReachableReturns struct {
 		result1 bool
 	}
 	IsProcessRunningStub        func() bool
 	isProcessRunningMutex       sync.RWMutex
 	isProcessRunningArgsForCall []struct{}
-	isProcessRunningReturns     struct {
+	isProcessRunningReturns struct {
 		result1 bool
 	}
 	SeedStub        func() error
 	seedMutex       sync.RWMutex
 	seedArgsForCall []struct{}
-	seedReturns     struct {
+	seedReturns struct {
 		result1 error
 	}
 	ManageReadOnlyUserStub        func() error
 	manageReadOnlyUserMutex       sync.RWMutex
 	manageReadOnlyUserArgsForCall []struct{}
-	manageReadOnlyUserReturns     struct {
+	manageReadOnlyUserReturns struct {
 		result1 error
 	}
 }

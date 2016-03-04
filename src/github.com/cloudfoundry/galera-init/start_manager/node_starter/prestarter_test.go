@@ -39,24 +39,10 @@ var _ = Describe("PreStarter", func() {
 		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
 	}
 
-	ensureDatabaseReachableCheck := func() {
-		Expect(fakeDBHelper.IsDatabaseReachableCallCount()).ToNot(Equal(0))
-	}
-
-	ensureNoDatabaseReachableCheck := func() {
-		Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(0))
-	}
-
 	ensureMysqlCmdMatches := func(cmd string) {
 		runCmd, err := prestarter.GetMysqlCmd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runCmd.Path).To(Equal(cmd))
-	}
-
-	ensureMysqlCmdNilNoError := func(cmd string) {
-		runCmd, err := prestarter.GetMysqlCmd()
-		Expect(runCmd).To(BeNil())
-		Expect(err).ToNot(HaveOccurred())
 	}
 
 	BeforeEach(func() {
@@ -90,8 +76,6 @@ var _ = Describe("PreStarter", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
 				ensureNoJoin()
-				ensureMysqlCmdNilNoError(fakeCommandJoinStr)
-				ensureNoDatabaseReachableCheck()
 			})
 		})
 
@@ -106,8 +90,6 @@ var _ = Describe("PreStarter", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("NEEDS_BOOTSTRAP"))
 					ensureNoJoin()
-					ensureMysqlCmdNilNoError(fakeCommandJoinStr)
-					ensureNoDatabaseReachableCheck()
 				})
 			})
 
@@ -122,7 +104,6 @@ var _ = Describe("PreStarter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
-					ensureDatabaseReachableCheck()
 					ensureShutdown()
 				})
 			})
@@ -139,7 +120,6 @@ var _ = Describe("PreStarter", func() {
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
-				ensureDatabaseReachableCheck()
 				ensureShutdown()
 			})
 		})
@@ -210,10 +190,11 @@ var _ = Describe("PreStarter", func() {
 				})
 
 				It("returns a timeout error", func() {
-					_, err := prestarter.StartNodeFromState("CLUSTERED")
+					_, err := prestarter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Timeout"))
 					Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
+					ensureNoJoin()
 				})
 			})
 		})
