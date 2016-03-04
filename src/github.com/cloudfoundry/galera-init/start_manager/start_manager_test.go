@@ -126,20 +126,6 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
-	Context("When start_manager is called with an invalid flag", func() {
-		BeforeEach(func() {
-			mgr = createManager(managerArgs{
-				NodeCount: 3,
-			})
-		})
-
-		It("returns error", func() {
-			err := mgr.Execute("chocolate")
-			Expect(err).To(HaveOccurred())
-			ensureNoWriteToStateFile()
-		})
-	})
-
 	Describe("Upgrading the cluster", func() {
 		Context("When determining whether an upgrade is required exits with an error", func() {
 			BeforeEach(func() {
