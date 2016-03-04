@@ -68,11 +68,6 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 		return "", err
 	}
 
-	err = s.shutdownMysql()
-	if err != nil {
-		return "", err
-	}
-
 	return newNodeState, nil
 }
 
@@ -126,9 +121,4 @@ func (s *prestarter) waitForDatabaseToAcceptConnections() error {
 	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", s.config.DatabaseStartupTimeout)
 	s.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
 	return err
-}
-
-func (s *prestarter) shutdownMysql() error {
-	s.logger.Info("Shutting down MariaDB after prestart")
-	return s.mariaDBHelper.StopMysql()
 }

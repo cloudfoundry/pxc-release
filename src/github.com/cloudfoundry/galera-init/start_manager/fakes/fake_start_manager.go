@@ -9,9 +9,11 @@ import (
 )
 
 type FakeStartManager struct {
-	ExecuteStub        func() error
+	ExecuteStub        func(execMode string) error
 	executeMutex       sync.RWMutex
-	executeArgsForCall []struct{}
+	executeArgsForCall []struct {
+		execMode string
+	}
 	executeReturns struct {
 		result1 error
 	}
@@ -30,12 +32,14 @@ type FakeStartManager struct {
 	}
 }
 
-func (fake *FakeStartManager) Execute() error {
+func (fake *FakeStartManager) Execute(execMode string) error {
 	fake.executeMutex.Lock()
-	fake.executeArgsForCall = append(fake.executeArgsForCall, struct{}{})
+	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
+		execMode string
+	}{execMode})
 	fake.executeMutex.Unlock()
 	if fake.ExecuteStub != nil {
-		return fake.ExecuteStub()
+		return fake.ExecuteStub(execMode)
 	} else {
 		return fake.executeReturns.result1
 	}
@@ -45,6 +49,12 @@ func (fake *FakeStartManager) ExecuteCallCount() int {
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
 	return len(fake.executeArgsForCall)
+}
+
+func (fake *FakeStartManager) ExecuteArgsForCall(i int) string {
+	fake.executeMutex.RLock()
+	defer fake.executeMutex.RUnlock()
+	return fake.executeArgsForCall[i].execMode
 }
 
 func (fake *FakeStartManager) ExecuteReturns(result1 error) {
