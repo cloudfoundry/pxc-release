@@ -8,34 +8,41 @@ import (
 	"strconv"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
+	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/preparer"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
+	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/sigmon"
 )
 
 func main() {
 
 	var prestartFlag string
-	var processErr error
+	var starter node_starter.Starter
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	serviceConfig := service_config.New()
 	serviceConfig.AddFlags(flags)
+
 	serviceConfig.AddDefaults(config.Config{
 		Db: config.DBHelper{
 			User: "root",
 		},
 	})
 	cf_lager.AddFlags(flags)
+
 	flags.StringVar(&prestartFlag, "prestart", "false", "Start mariadb_ctrl in prestart mode")
 
 	flags.Parse(os.Args[1:])
 
 	logger, _ := cf_lager.New("mariadb_ctrl")
-	procSetup := preparer.New(logger)
 
 	var rootConfig config.Config
 	err := serviceConfig.Read(&rootConfig)
@@ -43,21 +50,62 @@ func main() {
 		logger.Fatal("Error reading config file", err)
 	}
 
-	if prestartFlag == "true" {
-		rootConfig.Prestart = true
-	} else {
-		rootConfig.Prestart = false
-	}
-
 	err = rootConfig.Validate()
 	if err != nil {
 		logger.Fatal("Error validating config", err)
 	}
 
-	procSetup.SetConfig(rootConfig)
+	osHelper := os_helper.NewImpl()
 
-	sigRunner := procSetup.Prepare()
+	mariaDBHelper := mariadb_helper.NewMariaDBHelper(
+		osHelper,
+		rootConfig.Db,
+		rootConfig.LogFileLocation,
+		logger,
+	)
 
+	upgrader := upgrader.NewUpgrader(
+		osHelper,
+		rootConfig.Upgrader,
+		logger,
+		mariaDBHelper,
+	)
+
+	galeraHelper := cluster_health_checker.NewClusterHealthChecker(
+		rootConfig.Manager.ClusterIps,
+		logger,
+	)
+
+	if prestartFlag == "true" {
+		starter = node_starter.NewPreStarter(
+			mariaDBHelper,
+			osHelper,
+			rootConfig.Manager,
+			logger,
+			galeraHelper,
+		)
+	} else {
+		starter = node_starter.NewStarter(
+			mariaDBHelper,
+			osHelper,
+			rootConfig.Manager,
+			logger,
+			galeraHelper,
+		)
+	}
+
+	mgr := start_manager.New(
+		osHelper,
+		rootConfig.Manager,
+		mariaDBHelper,
+		upgrader,
+		starter,
+		logger,
+		galeraHelper,
+	)
+
+	runner := start_manager.NewRunner(mgr, logger)
+	sigRunner := sigmon.New(runner, os.Kill)
 	process := ifrit.Background(sigRunner)
 
 	select {
@@ -79,12 +127,7 @@ func main() {
 
 	logger.Info("mariadb_ctrl started")
 
-	if prestartFlag == "true" {
-		process.Signal(os.Kill)
-		<-process.Wait()
-	} else {
-		processErr = <-process.Wait()
-	}
+	processErr := <-process.Wait()
 
 	err = deletePidFile(rootConfig, logger)
 	if err != nil {

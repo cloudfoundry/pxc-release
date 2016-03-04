@@ -13,7 +13,6 @@ type Config struct {
 	Db              DBHelper     `yaml:"Db"`
 	Manager         StartManager `yaml:"Manager"`
 	Upgrader        Upgrader     `yaml:"Upgrader"`
-	Prestart        bool
 }
 
 type DBHelper struct {
