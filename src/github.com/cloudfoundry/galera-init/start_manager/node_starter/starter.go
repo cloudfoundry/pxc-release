@@ -36,7 +36,7 @@ type starter struct {
 	mysqlCmd             *exec.Cmd
 }
 
-func NewStarter(
+func New(
 	mariaDBHelper mariadb_helper.DBHelper,
 	osHelper os_helper.OsHelper,
 	config config.StartManager,

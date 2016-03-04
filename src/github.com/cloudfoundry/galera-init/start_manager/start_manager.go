@@ -10,6 +10,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_prestarter"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	"github.com/pivotal-golang/lager"
@@ -34,7 +35,7 @@ type startManager struct {
 	mariaDBHelper mariadb_helper.DBHelper
 	upgrader      upgrader.Upgrader
 	starter       node_starter.Starter
-	prestarter    node_starter.Starter
+	prestarter    node_prestarter.PreStarter
 	logger        lager.Logger
 	healthChecker cluster_health_checker.ClusterHealthChecker
 	mysqlCmd      *exec.Cmd
@@ -46,7 +47,7 @@ func New(
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	starter node_starter.Starter,
-	prestarter node_starter.Starter,
+	prestarter node_prestarter.PreStarter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 ) StartManager {
@@ -104,7 +105,7 @@ func (m *startManager) Execute(execMode string) error {
 			return err
 		}
 	} else if execMode == "prestart" {
-		newNodeState, err = m.prestarter.StartNodeFromState(currentState)
+		newNodeState, err = m.prestarter.PreStartNodeFromState(currentState)
 		if err != nil {
 			return err
 		}
