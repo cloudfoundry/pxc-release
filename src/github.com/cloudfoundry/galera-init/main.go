@@ -35,6 +35,7 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	logger, _ := cf_lager.New("mariadb_ctrl")
+	procSetup := preparer.New(logger)
 
 	var rootConfig config.Config
 	err := serviceConfig.Read(&rootConfig)
@@ -53,7 +54,8 @@ func main() {
 		logger.Fatal("Error validating config", err)
 	}
 
-	procSetup := preparer.New(logger, rootConfig)
+	procSetup.SetConfig(rootConfig)
+
 	sigRunner := procSetup.Prepare()
 
 	process := ifrit.Background(sigRunner)
