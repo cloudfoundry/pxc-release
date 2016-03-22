@@ -9,7 +9,6 @@ import (
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
