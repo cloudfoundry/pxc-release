@@ -282,6 +282,17 @@ var _ = Describe("StartManager", func() {
 						ensureStateFileContentIs("CLUSTERED")
 					})
 				})
+
+				Context("And writing the statefile fails", func() {
+					BeforeEach(func() {
+						fakeOs.WriteStringToFileReturns(errors.New("writing failed"))
+					})
+
+					It("returns the error", func() {
+						actualErr := mgr.Execute()
+						Expect(actualErr).To(HaveOccurred())
+					})
+				})
 			})
 
 			Context("And contains an invalid state", func() {

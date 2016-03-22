@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+//go:generate counterfeiter . OsHelper
+
 type OsHelper interface {
 	RunCommand(executable string, args ...string) (string, error)
 	RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error

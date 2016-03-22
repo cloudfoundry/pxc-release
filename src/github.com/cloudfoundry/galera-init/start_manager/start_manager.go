@@ -96,9 +96,12 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	m.writeStringToFile(newNodeState)
+	err = m.writeStringToFile(newNodeState)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (m *startManager) getCurrentNodeState() (string, error) {
@@ -154,7 +157,7 @@ func (m *startManager) Shutdown() error {
 	return m.mariaDBHelper.StopMysql()
 }
 
-func (m *startManager) writeStringToFile(contents string) {
+func (m *startManager) writeStringToFile(contents string) error {
 	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
-	m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
+	return m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }
