@@ -13,114 +13,83 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const (
-	Clustered                        = "CLUSTERED"
-	NeedsBootstrap                   = "NEEDS_BOOTSTRAP"
-	SingleNode                       = "SINGLE_NODE"
-	StartupPollingFrequencyInSeconds = 5
-)
-
-//go:generate counterfeiter . Starter
-
-type Starter interface {
-	StartNodeFromState(string) (string, error)
-	GetMysqlCmd() (*exec.Cmd, error)
-}
-
-type starter struct {
+type prestarter struct {
 	mariaDBHelper        mariadb_helper.DBHelper
 	osHelper             os_helper.OsHelper
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
 	config               config.StartManager
 	logger               lager.Logger
 	mysqlCmd             *exec.Cmd
+	finalState           string
 }
 
-func NewStarter(
+func NewPreStarter(
 	mariaDBHelper mariadb_helper.DBHelper,
 	osHelper os_helper.OsHelper,
 	config config.StartManager,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 ) Starter {
-	return &starter{
+	return &prestarter{
 		mariaDBHelper:        mariaDBHelper,
 		osHelper:             osHelper,
 		config:               config,
 		logger:               logger,
 		clusterHealthChecker: healthChecker,
+		finalState:           "",
 	}
 }
 
-func (s *starter) StartNodeFromState(state string) (string, error) {
-	var newNodeState string
+func (s *prestarter) StartNodeFromState(state string) (string, error) {
 	var err error
-	var bootStrapNode bool
+	var newNodeState string
 
 	switch state {
 	case SingleNode:
-		err = s.bootstrapNode()
 		newNodeState = SingleNode
-		bootStrapNode = true
 	case NeedsBootstrap:
 		if s.clusterHealthChecker.HealthyCluster() {
 			err = s.startNodeAsJoiner()
-			bootStrapNode = false
+			newNodeState = Clustered
 		} else {
-			err = s.bootstrapNode()
-			bootStrapNode = true
+			newNodeState = NeedsBootstrap
 		}
-		newNodeState = Clustered
 	case Clustered:
 		err = s.joinCluster()
 		newNodeState = Clustered
-		bootStrapNode = false
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
+
 	if err != nil {
 		return "", err
 	}
 
-	err = s.waitForDatabaseToAcceptConnections()
-	if err != nil {
-		return "", err
-	}
+	if s.mysqlCmd != nil {
+		err = s.waitForDatabaseToAcceptConnections()
+		if err != nil {
+			return "", err
+		}
 
-	if bootStrapNode {
-		err = s.seedDatabases()
+		err = s.shutdownMysql()
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = s.createOrDeleteReadOnlyUser()
-	if err != nil {
-		return "", err
-	}
+	s.finalState = newNodeState
 
 	return newNodeState, nil
 }
 
-func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
-	if s.mysqlCmd != nil {
+func (s *prestarter) GetMysqlCmd() (*exec.Cmd, error) {
+	if s.mysqlCmd != nil || (s.mysqlCmd == nil && s.finalState != Clustered) {
 		return s.mysqlCmd, nil
 	}
 	return nil, errors.New("Mysql has not been started")
 }
 
-func (s *starter) bootstrapNode() error {
-	s.logger.Info("Bootstrapping node")
-	cmd, err := s.mariaDBHelper.StartMysqlInBootstrap()
-	if err != nil {
-		return err
-	}
-	s.mysqlCmd = cmd
-
-	return nil
-}
-
-func (s *starter) startNodeAsJoiner() error {
+func (s *prestarter) startNodeAsJoiner() error {
 	s.logger.Info("Joining an existing cluster")
 	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
 	if err != nil {
@@ -132,7 +101,7 @@ func (s *starter) startNodeAsJoiner() error {
 	return nil
 }
 
-func (s *starter) joinCluster() (err error) {
+func (s *prestarter) joinCluster() (err error) {
 	s.logger.Info("Joining a multi-node cluster")
 	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
 
@@ -145,13 +114,13 @@ func (s *starter) joinCluster() (err error) {
 	return nil
 }
 
-func (s *starter) maxDatabaseSeedTries() int {
+func (s *prestarter) maxDatabasePolls() int {
 	return s.config.DatabaseStartupTimeout / StartupPollingFrequencyInSeconds
 }
 
-func (s *starter) waitForDatabaseToAcceptConnections() error {
+func (s *prestarter) waitForDatabaseToAcceptConnections() error {
 	s.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", s.config.DatabaseStartupTimeout))
-	for numTries := 0; numTries < s.maxDatabaseSeedTries(); numTries++ {
+	for numTries := 0; numTries < s.maxDatabasePolls(); numTries++ {
 		if s.mariaDBHelper.IsDatabaseReachable() {
 			s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
 			return nil
@@ -165,24 +134,7 @@ func (s *starter) waitForDatabaseToAcceptConnections() error {
 	return err
 }
 
-func (s *starter) seedDatabases() error {
-	err := s.mariaDBHelper.Seed()
-	if err != nil {
-		s.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
-		return err
-	}
-
-	s.logger.Info("Seeding databases succeeded.")
-	return nil
-}
-
-func (s *starter) createOrDeleteReadOnlyUser() error {
-	err := s.mariaDBHelper.ManageReadOnlyUser()
-	if err != nil {
-		s.logger.Info(fmt.Sprintf("There was a problem creating the read only user: '%s'", err.Error()))
-		return err
-	}
-
-	s.logger.Info("Creating read only user succeeded.")
-	return nil
+func (s *prestarter) shutdownMysql() error {
+	s.logger.Info("Shutting down MariaDB after prestart")
+	return s.mariaDBHelper.StopMysql()
 }

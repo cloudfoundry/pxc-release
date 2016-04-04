@@ -32,7 +32,7 @@ type startManager struct {
 	config        config.StartManager
 	mariaDBHelper mariadb_helper.DBHelper
 	upgrader      upgrader.Upgrader
-	starter       node_starter.Starter
+	startCaller   node_starter.Starter
 	logger        lager.Logger
 	healthChecker cluster_health_checker.ClusterHealthChecker
 	mysqlCmd      *exec.Cmd
@@ -43,7 +43,7 @@ func New(
 	config config.StartManager,
 	mariaDBHelper mariadb_helper.DBHelper,
 	upgrader upgrader.Upgrader,
-	starter node_starter.Starter,
+	startCaller node_starter.Starter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 ) StartManager {
@@ -53,15 +53,18 @@ func New(
 		logger:        logger,
 		mariaDBHelper: mariaDBHelper,
 		upgrader:      upgrader,
-		starter:       starter,
+		startCaller:   startCaller,
 		healthChecker: healthChecker,
 	}
 }
 
 func (m *startManager) Execute() error {
+	var newNodeState string
+	var err error
+
 	if m.mariaDBHelper.IsProcessRunning() {
 		m.logger.Info("MySQL process is already running, shutting down before continuing")
-		err := m.Shutdown()
+		err = m.Shutdown()
 		if err != nil {
 			m.logger.Error("Failed to shutdown mysql process", err)
 			return err
@@ -76,7 +79,7 @@ func (m *startManager) Execute() error {
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.logger.Info("Failed to upgrade", lager.Data{"err": err.Error()})
+			m.logger.Info("Failed during upgrade", lager.Data{"err": err.Error()})
 			return err
 		}
 	}
@@ -91,7 +94,7 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	newNodeState, err := m.starter.StartNodeFromState(currentState)
+	newNodeState, err = m.startCaller.StartNodeFromState(currentState)
 	if err != nil {
 		return err
 	}
@@ -149,7 +152,7 @@ func (m *startManager) firstTimeDeploy() bool {
 }
 
 func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
-	return m.starter.GetMysqlCmd()
+	return m.startCaller.GetMysqlCmd()
 }
 
 func (m *startManager) Shutdown() error {

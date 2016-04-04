@@ -15,50 +15,58 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Starter", func() {
-	var starter node_starter.Starter
+var _ = Describe("PreStarter", func() {
+	var prestarter node_starter.Starter
 
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_fakes.FakeOsHelper
 	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
 	var fakeDBHelper *db_helper_fakes.FakeDBHelper
-	var fakeCommandBootstrapStr string
-	var fakeCommandBootstrap *exec.Cmd
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
 
 	const databaseStartupTimeout = 10
 
-	ensureManageReadOnlyUser := func() {
-		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
-	}
-
-	ensureSeedDatabases := func() {
-		Expect(fakeDBHelper.SeedCallCount()).To(BeNumerically(">=", 1))
-	}
-
-	ensureBootstrap := func() {
-		Expect(fakeDBHelper.StartMysqlInBootstrapCallCount()).To(Equal(1))
-	}
-
 	ensureJoin := func() {
 		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
 	}
 
+	ensureNoJoin := func() {
+		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(0))
+	}
+
+	ensureShutdown := func() {
+		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
+	}
+
+	ensureDatabaseReachableCheck := func() {
+		Expect(fakeDBHelper.IsDatabaseReachableCallCount()).ToNot(Equal(0))
+	}
+
+	ensureNoDatabaseReachableCheck := func() {
+		Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(0))
+	}
+
 	ensureMysqlCmdMatches := func(cmd string) {
-		runCmd, err := starter.GetMysqlCmd()
+		runCmd, err := prestarter.GetMysqlCmd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runCmd.Path).To(Equal(cmd))
 	}
 
+	ensureMysqlCmdNilNoError := func(cmd string) {
+		runCmd, err := prestarter.GetMysqlCmd()
+		Expect(runCmd).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	BeforeEach(func() {
-		testLogger = lagertest.NewTestLogger("start_manager")
+		testLogger = lagertest.NewTestLogger("node_prestarter")
 		fakeOs = new(os_fakes.FakeOsHelper)
 		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
 		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
-		starter = node_starter.NewStarter(
+		prestarter = node_starter.NewPreStarter(
 			fakeDBHelper,
 			fakeOs,
 			config.StartManager{
@@ -71,27 +79,19 @@ var _ = Describe("Starter", func() {
 
 	Describe("StartNodeFromState", func() {
 		BeforeEach(func() {
-			fakeCommandBootstrapStr = "fake-command-bootstrap"
-			fakeCommandBootstrap = exec.Command(fakeCommandBootstrapStr)
-			fakeDBHelper.StartMysqlInBootstrapReturns(fakeCommandBootstrap, nil)
 			fakeCommandJoinStr = "fake-command-join"
 			fakeCommandJoin = exec.Command(fakeCommandJoinStr)
 			fakeDBHelper.StartMysqlInJoinReturns(fakeCommandJoin, nil)
 		})
 
-		Context("starting with state SINGLE_NODE", func() {
-			BeforeEach(func() {
-				fakeClusterHealthChecker.HealthyClusterReturns(false)
-			})
-
-			It("bootstraps, seeds databases and sets read only user", func() {
-				newNodeState, err := starter.StartNodeFromState("SINGLE_NODE")
+		Context("prestarting with state SINGLE_NODE", func() {
+			It("does nothing and returns", func() {
+				newNodeState, err := prestarter.StartNodeFromState("SINGLE_NODE")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
-				ensureBootstrap()
-				ensureSeedDatabases()
-				ensureManageReadOnlyUser()
-				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
+				ensureNoJoin()
+				ensureMysqlCmdNilNoError(fakeCommandJoinStr)
+				ensureNoDatabaseReachableCheck()
 			})
 		})
 
@@ -101,14 +101,13 @@ var _ = Describe("Starter", func() {
 					fakeClusterHealthChecker.HealthyClusterReturns(false)
 				})
 
-				It("bootstraps, seeds databases and sets read only user", func() {
-					newNodeState, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+				It("does nothing and returns", func() {
+					newNodeState, err := prestarter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
-					Expect(newNodeState).To(Equal("CLUSTERED"))
-					ensureBootstrap()
-					ensureSeedDatabases()
-					ensureManageReadOnlyUser()
-					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
+					Expect(newNodeState).To(Equal("NEEDS_BOOTSTRAP"))
+					ensureNoJoin()
+					ensureMysqlCmdNilNoError(fakeCommandJoinStr)
+					ensureNoDatabaseReachableCheck()
 				})
 			})
 
@@ -118,11 +117,13 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("joins the cluster", func() {
-					newNodeState, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, err := prestarter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
+					ensureDatabaseReachableCheck()
+					ensureShutdown()
 				})
 			})
 		})
@@ -133,12 +134,13 @@ var _ = Describe("Starter", func() {
 			})
 
 			It("joins the cluster", func() {
-				newNodeState, err := starter.StartNodeFromState("CLUSTERED")
+				newNodeState, err := prestarter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
-				ensureManageReadOnlyUser()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
+				ensureDatabaseReachableCheck()
+				ensureShutdown()
 			})
 		})
 
@@ -160,7 +162,7 @@ var _ = Describe("Starter", func() {
 			})
 
 			It("retries pinging the database until it is reachable", func() {
-				_, err := starter.StartNodeFromState("CLUSTERED")
+				_, err := prestarter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
 			})
@@ -169,29 +171,22 @@ var _ = Describe("Starter", func() {
 		Context("error handling", func() {
 			Context("when passed a an invalid state", func() {
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("INVALID_STATE")
+					_, err := prestarter.StartNodeFromState("INVALID_STATE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Unsupported state file contents"))
+					ensureNoJoin()
 				})
 			})
 
 			Context("starting cluster returns an error", func() {
 				BeforeEach(func() {
-					fakeDBHelper.StartMysqlInBootstrapReturns(nil, errors.New("some errors"))
 					fakeDBHelper.StartMysqlInJoinReturns(nil, errors.New("some errors"))
-				})
-
-				Context("SINGLE_NODE", func() {
-					It("forwards the error", func() {
-						_, err := starter.StartNodeFromState("SINGLE_NODE")
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("some errors"))
-					})
 				})
 
 				Context("NEEDS_BOOTSTRAP", func() {
 					It("forwards the error", func() {
-						_, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+						fakeClusterHealthChecker.HealthyClusterReturns(true)
+						_, err := prestarter.StartNodeFromState("NEEDS_BOOTSTRAP")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -199,7 +194,7 @@ var _ = Describe("Starter", func() {
 
 				Context("CLUSTERED", func() {
 					It("forwards the error", func() {
-						_, err := starter.StartNodeFromState("CLUSTERED")
+						_, err := prestarter.StartNodeFromState("CLUSTERED")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -215,42 +210,10 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("returns a timeout error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					_, err := prestarter.StartNodeFromState("CLUSTERED")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Timeout"))
 					Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
-				})
-
-				It("does not attempt to seed the database", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
-				})
-			})
-
-			Context("when database seeding fails", func() {
-				var expectedErr error
-				BeforeEach(func() {
-					expectedErr = errors.New("seeding databases failed")
-					fakeDBHelper.SeedReturns(expectedErr)
-				})
-
-				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(expectedErr))
-				})
-			})
-
-			Context("when creating read only user fails", func() {
-				BeforeEach(func() {
-					fakeDBHelper.ManageReadOnlyUserReturns(errors.New("some error"))
-				})
-
-				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("some error"))
 				})
 			})
 		})

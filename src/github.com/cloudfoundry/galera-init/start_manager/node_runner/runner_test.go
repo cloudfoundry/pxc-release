@@ -1,4 +1,4 @@
-package start_manager_test
+package node_runner_test
 
 import (
 	"errors"
@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_runner"
 )
 
 var _ = Describe("StartManagerRunner", func() {
@@ -18,16 +18,16 @@ var _ = Describe("StartManagerRunner", func() {
 	var (
 		fakeManager    *fakes.FakeStartManager
 		longRunningCmd *exec.Cmd
-		runner         start_manager.Runner
+		runner         node_runner.Runner
 	)
 
 	BeforeEach(func() {
-		testLogger := lagertest.NewTestLogger("start_manager")
+		testLogger := lagertest.NewTestLogger("node_runner")
 		longRunningCmd = exec.Command("yes")
 
 		fakeManager = &fakes.FakeStartManager{}
 
-		runner = start_manager.NewRunner(fakeManager, testLogger)
+		runner = node_runner.NewRunner(fakeManager, testLogger)
 	})
 
 	AfterEach(func() {
