@@ -30,6 +30,13 @@ type preparer struct {
 
 type Preparer interface {
 	Prepare() ifrit.Runner
+	GetOsHelper() os_helper.OsHelper
+	GetDBHelper() mariadb_helper.DBHelper
+	GetUpgrader() upgrader.Upgrader
+	GetHealthChecker() cluster_health_checker.ClusterHealthChecker
+	GetStarter() node_starter.Starter
+	GetStartManager() start_manager.StartManager
+	GetRunner() ifrit.Runner
 }
 
 func New(logger lager.Logger, rootConfig config.Config) Preparer {
@@ -114,4 +121,32 @@ func (p *preparer) makeRunner() ifrit.Runner {
 	}
 
 	return runner
+}
+
+func (p *preparer) GetOsHelper() os_helper.OsHelper {
+	return p.osHelper
+}
+
+func (p *preparer) GetDBHelper() mariadb_helper.DBHelper {
+	return p.mariaDBHelper
+}
+
+func (p *preparer) GetUpgrader() upgrader.Upgrader {
+	return p.upgrader
+}
+
+func (p *preparer) GetHealthChecker() cluster_health_checker.ClusterHealthChecker {
+	return p.galeraHelper
+}
+
+func (p *preparer) GetStarter() node_starter.Starter {
+	return p.starter
+}
+
+func (p *preparer) GetStartManager() start_manager.StartManager {
+	return p.mgr
+}
+
+func (p *preparer) GetRunner() ifrit.Runner {
+	return p.runner
 }
