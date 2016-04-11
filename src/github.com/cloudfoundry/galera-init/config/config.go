@@ -28,10 +28,9 @@ type DBHelper struct {
 }
 
 type StartManager struct {
-	StateFileLocation      string   `yaml:"StateFileLocation" validate:"nonzero"`
-	DatabaseStartupTimeout int      `yaml:"DatabaseStartupTimeout" validate:"nonzero"`
-	ClusterIps             []string `yaml:"ClusterIps" validate:"nonzero"`
-	MyIP                   string   `yaml:"MyIP" validate:"nonzero"`
+	StateFileLocation string   `yaml:"StateFileLocation" validate:"nonzero"`
+	ClusterIps        []string `yaml:"ClusterIps" validate:"nonzero"`
+	MyIP              string   `yaml:"MyIP" validate:"nonzero"`
 }
 
 type Upgrader struct {
