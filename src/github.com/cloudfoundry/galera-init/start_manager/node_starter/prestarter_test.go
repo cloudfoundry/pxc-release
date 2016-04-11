@@ -25,8 +25,6 @@ var _ = Describe("PreStarter", func() {
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
 
-	const databaseStartupTimeout = 10
-
 	ensureJoin := func() {
 		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
 	}
@@ -69,9 +67,7 @@ var _ = Describe("PreStarter", func() {
 		prestarter = node_starter.NewPreStarter(
 			fakeDBHelper,
 			fakeOs,
-			config.StartManager{
-				DatabaseStartupTimeout: databaseStartupTimeout,
-			},
+			config.StartManager{},
 			testLogger,
 			fakeClusterHealthChecker,
 		)
@@ -144,7 +140,7 @@ var _ = Describe("PreStarter", func() {
 			})
 		})
 
-		Context("When mysql starts in less than configured DatabaseStartupTimeout", func() {
+		Context("When mysql takes some time to start", func() {
 			var expectedRetryAttempts int
 
 			BeforeEach(func() {
@@ -161,7 +157,7 @@ var _ = Describe("PreStarter", func() {
 				}
 			})
 
-			It("retries pinging the database until it is reachable", func() {
+			It("retries forever pinging the database until it is reachable", func() {
 				_, err := prestarter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
@@ -198,22 +194,6 @@ var _ = Describe("PreStarter", func() {
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
-				})
-			})
-
-			Context("When mysql does not start in less than configured DatabaseStartupTimeout", func() {
-				var maxRetryAttempts int
-
-				BeforeEach(func() {
-					maxRetryAttempts = databaseStartupTimeout / node_starter.StartupPollingFrequencyInSeconds
-					fakeDBHelper.IsDatabaseReachableReturns(false)
-				})
-
-				It("returns a timeout error", func() {
-					_, err := prestarter.StartNodeFromState("CLUSTERED")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Timeout"))
-					Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
 				})
 			})
 		})

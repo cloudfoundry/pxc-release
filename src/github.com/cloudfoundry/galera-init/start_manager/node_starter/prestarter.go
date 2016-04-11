@@ -66,11 +66,7 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 	}
 
 	if s.mysqlCmd != nil {
-		err = s.waitForDatabaseToAcceptConnections()
-		if err != nil {
-			return "", err
-		}
-
+		s.waitForDatabaseToAcceptConnections()
 		err = s.shutdownMysql()
 		if err != nil {
 			return "", err
@@ -114,24 +110,18 @@ func (s *prestarter) joinCluster() (err error) {
 	return nil
 }
 
-func (s *prestarter) maxDatabasePolls() int {
-	return s.config.DatabaseStartupTimeout / StartupPollingFrequencyInSeconds
-}
-
-func (s *prestarter) waitForDatabaseToAcceptConnections() error {
-	s.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", s.config.DatabaseStartupTimeout))
-	for numTries := 0; numTries < s.maxDatabasePolls(); numTries++ {
+func (s *prestarter) waitForDatabaseToAcceptConnections() {
+	s.logger.Info("Attempting to reach database.")
+	numTries := 0
+	for {
 		if s.mariaDBHelper.IsDatabaseReachable() {
 			s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
-			return nil
+			return
 		}
 		s.logger.Info("Database not reachable, retrying...")
 		s.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
+		numTries++
 	}
-
-	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", s.config.DatabaseStartupTimeout)
-	s.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
-	return err
 }
 
 func (s *prestarter) shutdownMysql() error {
