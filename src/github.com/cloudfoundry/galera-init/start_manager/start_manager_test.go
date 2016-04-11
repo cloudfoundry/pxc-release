@@ -32,7 +32,6 @@ var _ = Describe("StartManager", func() {
 	var startNodeReturnError error
 
 	const stateFileLocation = "/stateFileLocation"
-	const databaseStartupTimeout = 10
 
 	type managerArgs struct {
 		NodeIndex int
@@ -66,10 +65,9 @@ var _ = Describe("StartManager", func() {
 		return New(
 			fakeOs,
 			config.StartManager{
-				StateFileLocation:      stateFileLocation,
-				MyIP:                   clusterIps[args.NodeIndex],
-				ClusterIps:             clusterIps,
-				DatabaseStartupTimeout: databaseStartupTimeout,
+				StateFileLocation: stateFileLocation,
+				MyIP:              clusterIps[args.NodeIndex],
+				ClusterIps:        clusterIps,
 			},
 			fakeDBHelper,
 			fakeUpgrader,

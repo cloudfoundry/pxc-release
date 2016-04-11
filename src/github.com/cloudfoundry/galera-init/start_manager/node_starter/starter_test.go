@@ -27,7 +27,9 @@ var _ = Describe("Starter", func() {
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
 
-	const databaseStartupTimeout = 10
+	node_starter.GetDatabaseStartTime = func() int {
+		return 10
+	}
 
 	ensureManageReadOnlyUser := func() {
 		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
@@ -61,9 +63,7 @@ var _ = Describe("Starter", func() {
 		starter = node_starter.NewStarter(
 			fakeDBHelper,
 			fakeOs,
-			config.StartManager{
-				DatabaseStartupTimeout: databaseStartupTimeout,
-			},
+			config.StartManager{},
 			testLogger,
 			fakeClusterHealthChecker,
 		)
@@ -142,7 +142,7 @@ var _ = Describe("Starter", func() {
 			})
 		})
 
-		Context("When mysql starts in less than configured DatabaseStartupTimeout", func() {
+		Context("When mysql starts in under the startup timeout", func() {
 			var expectedRetryAttempts int
 
 			BeforeEach(func() {
@@ -206,11 +206,11 @@ var _ = Describe("Starter", func() {
 				})
 			})
 
-			Context("When mysql does not start in less than configured DatabaseStartupTimeout", func() {
+			Context("When mysql does not start in less than configured start time", func() {
 				var maxRetryAttempts int
 
 				BeforeEach(func() {
-					maxRetryAttempts = databaseStartupTimeout / node_starter.StartupPollingFrequencyInSeconds
+					maxRetryAttempts = node_starter.GetDatabaseStartTime() / node_starter.StartupPollingFrequencyInSeconds
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 				})
 

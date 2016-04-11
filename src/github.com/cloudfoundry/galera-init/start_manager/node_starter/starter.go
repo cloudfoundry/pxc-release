@@ -18,7 +18,12 @@ const (
 	NeedsBootstrap                   = "NEEDS_BOOTSTRAP"
 	SingleNode                       = "SINGLE_NODE"
 	StartupPollingFrequencyInSeconds = 5
+	DatabaseStartTime                = 60
 )
+
+var GetDatabaseStartTime = func() int {
+	return DatabaseStartTime
+}
 
 //go:generate counterfeiter . Starter
 
@@ -146,11 +151,12 @@ func (s *starter) joinCluster() (err error) {
 }
 
 func (s *starter) maxDatabaseSeedTries() int {
-	return s.config.DatabaseStartupTimeout / StartupPollingFrequencyInSeconds
+	return GetDatabaseStartTime() / StartupPollingFrequencyInSeconds
 }
 
 func (s *starter) waitForDatabaseToAcceptConnections() error {
-	s.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", s.config.DatabaseStartupTimeout))
+	dbStartTime := GetDatabaseStartTime()
+	s.logger.Info(fmt.Sprintf("Attempting to reach database. Timeout is %d seconds", dbStartTime))
 	for numTries := 0; numTries < s.maxDatabaseSeedTries(); numTries++ {
 		if s.mariaDBHelper.IsDatabaseReachable() {
 			s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
@@ -160,7 +166,7 @@ func (s *starter) waitForDatabaseToAcceptConnections() error {
 		s.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
 	}
 
-	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", s.config.DatabaseStartupTimeout)
+	err := fmt.Errorf("Timeout: Database not reachable after %d seconds", dbStartTime)
 	s.logger.Info(fmt.Sprintf("Error reachable databases: '%s'", err.Error()))
 	return err
 }
