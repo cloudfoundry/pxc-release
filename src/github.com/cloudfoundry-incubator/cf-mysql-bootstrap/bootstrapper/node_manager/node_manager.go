@@ -15,7 +15,14 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const PollingIntervalInSec = 5
+const (
+	PollingIntervalInSec = 5
+	ShutDownTimeout      = 60
+)
+
+var GetShutDownTimeout = func() int {
+	return ShutDownTimeout
+}
 
 type NodeManager interface {
 	VerifyClusterIsUnhealthy() error
@@ -139,26 +146,43 @@ func (nm *nodeManager) startNodeWithURL(baseURL string, startEndpoint string) er
 	}
 
 	statusUrl := fmt.Sprintf("%s/%s", baseURL, nm.rootConfig.MysqlStatus)
-	err = nm.pollUntilResponse(statusUrl, "running")
-	if err != nil {
-		return err
+	for {
+		responseBody, err := nm.sendGetRequest(statusUrl)
+		if err != nil {
+			nm.rootConfig.Logger.Info("Sending status request failed", lager.Data{
+				"endpoint":     statusUrl,
+				"responseBody": responseBody,
+			})
+			return err
+		}
+		nm.rootConfig.Logger.Info("Received response from status endpoint", lager.Data{
+			"endpoint":     statusUrl,
+			"responseBody": responseBody,
+		})
+		if responseBody == "running" {
+			break
+		}
 	}
 
 	return nil
 }
 
 func (nm *nodeManager) pollUntilResponse(endpoint string, expectedResponse string) error {
-	maxIterations := int(math.Ceil(float64(nm.rootConfig.DatabaseStartupTimeout) / float64(PollingIntervalInSec)))
+	maxIterations := int(math.Ceil(float64(GetShutDownTimeout()) / float64(PollingIntervalInSec)))
 	sawResponse := false
 	for i := 0; i < maxIterations; i++ {
 		responseBody, err := nm.sendGetRequest(endpoint)
+		if err != nil {
+			nm.rootConfig.Logger.Info("Sending status request failed", lager.Data{
+				"endpoint":     endpoint,
+				"responseBody": responseBody,
+			})
+			return err
+		}
 		nm.rootConfig.Logger.Info("Received response from status endpoint", lager.Data{
 			"endpoint":     endpoint,
 			"responseBody": responseBody,
 		})
-		if err != nil {
-			continue //keep checking for valid response until timeout
-		}
 
 		if responseBody == expectedResponse {
 			sawResponse = true
@@ -167,7 +191,7 @@ func (nm *nodeManager) pollUntilResponse(endpoint string, expectedResponse strin
 		<-nm.clock.After(time.Duration(PollingIntervalInSec) * time.Second)
 	}
 	if sawResponse == false {
-		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, nm.rootConfig.DatabaseStartupTimeout)
+		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, GetShutDownTimeout())
 	} else {
 		nm.rootConfig.Logger.Info(fmt.Sprintf("Successfully received %s response from mysql", expectedResponse), lager.Data{"url": endpoint})
 		return nil

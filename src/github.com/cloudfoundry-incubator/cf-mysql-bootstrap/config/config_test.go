@@ -25,7 +25,6 @@ var _ = Describe("Config", func() {
 					"11.11.11.11:9200",
 					"12.12.12.12:9200"
 				],
-				"DatabaseStartupTimeout": 100,
 				"Username": "fake-username",
 				"Password": "fake-password"
 			}`
@@ -47,11 +46,6 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if HealthcheckURLs is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "HealthcheckURLs")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns an error if DatabaseStartupTimeout is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "DatabaseStartupTimeout")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

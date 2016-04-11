@@ -19,7 +19,6 @@ import (
 
 const (
 	ServerCount     = 3
-	StartupTimeout  = 600
 	ArbitratorIndex = 1
 )
 
@@ -31,6 +30,9 @@ var (
 )
 
 var _ = Describe("Bootstrap", func() {
+	node_manager.GetShutDownTimeout = func() int {
+		return 10
+	}
 
 	BeforeEach(func() {
 
@@ -40,7 +42,6 @@ var _ = Describe("Bootstrap", func() {
 			GetSeqNumber:              "sequence_number",
 			StartMysqlInJoinMode:      "start_mysql_join",
 			StartMysqlInBootstrapMode: "start_mysql_bootstrap",
-			DatabaseStartupTimeout:    StartupTimeout,
 		}
 
 		rootConfig.Logger = lagertest.NewTestLogger("nodeManager test")
@@ -250,9 +251,12 @@ var _ = Describe("Bootstrap", func() {
 	Describe("#StopAllNodes", func() {
 		Context("when all shutdown requests succeed", func() {
 
-			const pendingCallCount = 5
+			const pendingCallCount = 3
 
 			BeforeEach(func() {
+				node_manager.GetShutDownTimeout = func() int {
+					return 25
+				}
 				for i := 0; i < ServerCount; i++ {
 					currCallCount := 0
 					fakeHandler := &fakes.FakeHandler{}
@@ -320,7 +324,7 @@ var _ = Describe("Bootstrap", func() {
 					Expect(handler.GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
 				}
 
-				expectedMaxIterations := StartupTimeout / node_manager.PollingIntervalInSec
+				expectedMaxIterations := node_manager.GetShutDownTimeout() / node_manager.PollingIntervalInSec
 				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", expectedMaxIterations))
 			})
 		})
@@ -450,28 +454,6 @@ var _ = Describe("Bootstrap", func() {
 				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
 			})
 		})
-
-		Context("when we timeout waiting for the node to bootstrap", func() {
-			BeforeEach(func() {
-				endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
-					http.StatusOK,
-					"pending")
-				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
-			})
-
-			It("returns timeout error and quits", func() {
-				bootStrapNodeUrl := rootConfig.HealthcheckURLs[0]
-
-				err := nodeManager.BootstrapNode(bootStrapNodeUrl)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Timed out"))
-
-				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
-
-				expectedMaxIterations := StartupTimeout / node_manager.PollingIntervalInSec
-				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", expectedMaxIterations))
-			})
-		})
 	})
 
 	Describe("#JoinNode", func() {
@@ -522,28 +504,6 @@ var _ = Describe("Bootstrap", func() {
 				Expect(err.Error()).To(ContainSubstring("fake-error"))
 
 				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
-			})
-		})
-
-		Context("when we timeout waiting for the node to join", func() {
-			BeforeEach(func() {
-				endpointHandlers[0].StubEndpointWithStatus("/mysql_status",
-					http.StatusOK,
-					"pending")
-				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
-			})
-
-			It("returns timeout error and quits", func() {
-				joinNodeUrl := rootConfig.HealthcheckURLs[0]
-
-				err := nodeManager.JoinNode(joinNodeUrl)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Timed out"))
-
-				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
-
-				expectedMaxIterations := StartupTimeout / node_manager.PollingIntervalInSec
-				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", expectedMaxIterations))
 			})
 		})
 	})
