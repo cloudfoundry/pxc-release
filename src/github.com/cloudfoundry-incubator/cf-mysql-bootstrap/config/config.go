@@ -1,9 +1,11 @@
 package config
 
 import (
+	"errors"
 	"flag"
+	"fmt"
+	"os"
 
-	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pivotal-golang/lager"
 	"gopkg.in/validator.v2"
@@ -19,6 +21,7 @@ type Config struct {
 	GetSeqNumber              string
 	StartMysqlInJoinMode      string
 	StartMysqlInBootstrapMode string
+	LogFilePath               string `yaml:"LogFilePath" validate:"nonzero"`
 }
 
 func defaultConfig() *Config {
@@ -40,16 +43,24 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	cf_lager.AddFlags(flags)
-
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(defaultConfig())
 	flags.Parse(configurationOptions)
 
-	rootConfig.Logger, _ = cf_lager.New("BootStrap Errand")
-
 	err := serviceConfig.Read(&rootConfig)
 	return &rootConfig, err
+}
+
+func (c *Config) BuildLogger() error {
+	logFileHandle, err := os.Create(c.LogFilePath)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not open handle to logfile %s", err.Error()))
+	}
+
+	c.Logger = lager.NewLogger("BootStrap Errand")
+	writerSink := lager.NewWriterSink(logFileHandle, lager.DEBUG)
+	c.Logger.RegisterSink(writerSink)
+	return nil
 }
 
 func (c Config) Validate() error {

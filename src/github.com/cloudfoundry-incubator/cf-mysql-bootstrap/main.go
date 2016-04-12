@@ -13,6 +13,7 @@ import (
 
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
+	err = rootConfig.BuildLogger()
 	logger := rootConfig.Logger
 
 	if err != nil {
@@ -34,6 +35,7 @@ func main() {
 	}
 
 	logger.Info("Successfully bootstrapped cluster")
+	fmt.Println("Successfully bootstrapped cluster")
 }
 
 func printHumanReadableErr(err error) {

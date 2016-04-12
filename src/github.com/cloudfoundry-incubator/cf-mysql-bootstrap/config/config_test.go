@@ -2,6 +2,8 @@ package config_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	. "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
@@ -11,34 +13,55 @@ import (
 )
 
 var _ = Describe("Config", func() {
-	Describe("Validate", func() {
 
-		var (
-			rootConfig *Config
-			rawConfig  string
-		)
+	var (
+		rootConfig *Config
+		rawConfig  string
+		osArgs     []string
+		tmpFile    *os.File
+	)
 
-		BeforeEach(func() {
-			rawConfig = `{
+	BeforeEach(func() {
+		var err error
+		tmpFile, err = ioutil.TempFile("", "fake-logfile")
+		Expect(err).NotTo(HaveOccurred())
+
+		rawConfig = fmt.Sprintf(`{
 				"HealthcheckURLs": [
 					"10.10.10.10:9200",
 					"11.11.11.11:9200",
 					"12.12.12.12:9200"
 				],
 				"Username": "fake-username",
-				"Password": "fake-password"
-			}`
+				"Password": "fake-password",
+				"LogFilePath": "%s"
+			}`, tmpFile.Name())
 
-			osArgs := []string{
-				"bootstrap",
-				fmt.Sprintf("-config=%s", rawConfig),
-			}
+		osArgs = []string{
+			"bootstrap",
+			fmt.Sprintf("-config=%s", rawConfig),
+		}
+		rootConfig, err = NewConfig(osArgs)
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-			var err error
-			rootConfig, err = NewConfig(osArgs)
-			Expect(err).ToNot(HaveOccurred())
+	AfterEach(func() {
+		os.Remove(tmpFile.Name())
+	})
+
+	Describe("BuildLogger", func() {
+		It("creates a logger with the logfile as a sink", func() {
+			err := rootConfig.BuildLogger()
+			Expect(err).NotTo(HaveOccurred())
+			rootConfig.Logger.Info("fake log output")
+			logBytes, err := ioutil.ReadFile(tmpFile.Name())
+			Expect(err).NotTo(HaveOccurred())
+			logged := string(logBytes)
+			Expect(logged).To(ContainSubstring("fake log output"))
 		})
+	})
 
+	Describe("Validate", func() {
 		It("does not return error on valid config", func() {
 			err := rootConfig.Validate()
 			Expect(err).NotTo(HaveOccurred())
@@ -46,6 +69,11 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if HealthcheckURLs is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "HealthcheckURLs")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if LogFilePath is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "LogFilePath")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
