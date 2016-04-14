@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strings"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
@@ -56,6 +57,12 @@ func (m *monitClient) startService(startMode string) (string, error) {
 		err := mySqlStartMode.Start()
 		if err != nil {
 			m.logger.Error("Failed to start mysql node", err)
+			return "", err
+		}
+		prestartCmd := exec.Command("/bin/bash", m.monitConfig.MysqlPrestartBinaryPath)
+		err = prestartCmd.Run()
+		if err != nil {
+			m.logger.Error("Failed to pre-start mysql node", err)
 			return "", err
 		}
 	}

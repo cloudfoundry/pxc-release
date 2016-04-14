@@ -20,6 +20,7 @@ import (
 )
 
 var stateFile *os.File
+var fakePrestarterBinary *os.File
 
 var _ = Describe("monitClient", func() {
 
@@ -35,12 +36,13 @@ var _ = Describe("monitClient", func() {
 		ts = httptest.NewServer(fakeHandler)
 		testHost, testPort := splitHostandPort(ts.URL)
 		monitConfig := config.MonitConfig{
-			User:               "fake-user",
-			Password:           "fake-password",
-			Host:               testHost,
-			Port:               testPort,
-			MysqlStateFilePath: stateFile.Name(),
-			ServiceName:        processName,
+			User:                    "fake-user",
+			Password:                "fake-password",
+			Host:                    testHost,
+			Port:                    testPort,
+			MysqlStateFilePath:      stateFile.Name(),
+			ServiceName:             processName,
+			MysqlPrestartBinaryPath: fakePrestarterBinary.Name(),
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
@@ -51,12 +53,17 @@ var _ = Describe("monitClient", func() {
 	AfterEach(func() {
 		ts.Close()
 		os.Remove(stateFile.Name())
+		os.Remove(fakePrestarterBinary.Name())
 	})
 
 	Context("when running on a mysql node", func() {
 		BeforeEach(func() {
 			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
 			stateFile.Chmod(0777)
+
+			fakePrestarterBinary, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
+			fakePrestarterBinary.Chmod(0777)
+			fakePrestarterBinary.Write([]byte(fmt.Sprintf("rm %s", fakePrestarterBinary.Name())))
 
 			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
@@ -159,6 +166,13 @@ var _ = Describe("monitClient", func() {
 					Expect(err.Error()).To(ContainSubstring("failed to start"))
 				})
 			})
+
+			It("calls the prestart binary", func() {
+				Expect(fakePrestarterBinary.Name()).Should(BeAnExistingFile())
+				monitClient.StartServiceJoin()
+				Expect(fakePrestarterBinary.Name()).ShouldNot(BeAnExistingFile())
+			})
+
 		})
 
 		Describe("Status", func() {
@@ -262,6 +276,9 @@ var _ = Describe("monitClient", func() {
 				w.WriteHeader(http.StatusOK)
 			})
 			processName = "garbd"
+
+			fakePrestarterBinary, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
+			fakePrestarterBinary.Chmod(0777)
 		})
 
 		Describe("StopService", func() {
