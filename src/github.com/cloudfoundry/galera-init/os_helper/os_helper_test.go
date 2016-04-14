@@ -52,11 +52,27 @@ var _ = Describe("OsHelper", func() {
 	})
 
 	Describe("WaitForCommand", func() {
-		It("Sends the result to a channel when the process exits", func() {
-			h := OsHelperImpl{}
-			ch := h.WaitForCommand(exec.Command("non-existent-command"))
-			err := <-ch
-			Expect(err).NotTo(BeNil())
+
+		Context("When command is bad", func() {
+			It("Sends an error to a channel when the process exits", func() {
+				h := OsHelperImpl{}
+				cmd := exec.Command("non-existent-command")
+				cmd.Start()
+				ch := h.WaitForCommand(cmd)
+				err := <-ch
+				Expect(err).NotTo(BeNil())
+			})
+		})
+
+		Context("When command is good", func() {
+			It("Sends nil to a channel when the process exits", func() {
+				h := OsHelperImpl{}
+				cmd := exec.Command("ls")
+				cmd.Start()
+				ch := h.WaitForCommand(cmd)
+				err := <-ch
+				Expect(err).To(BeNil())
+			})
 		})
 	})
 })
