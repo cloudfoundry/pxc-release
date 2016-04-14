@@ -201,24 +201,7 @@ var _ = Describe("PreStarter", func() {
 				})
 			})
 
-			Context("when mysqld exits with error", func() {
-				BeforeEach(func() {
-					fakeOs.WaitForCommandStub = func(*exec.Cmd) chan error {
-						ch := make(chan error, 1)
-						ch <- errors.New("mysqld exit error")
-						return ch
-					}
-				})
-
-				It("forwards the error", func() {
-					_, err := prestarter.StartNodeFromState("CLUSTERED")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("mysqld exit error"))
-					ensureNoShutdown()
-				})
-			})
-
-			Context("when mysqld exits without error", func() {
+			Context("when mysqld exits", func() {
 				BeforeEach(func() {
 					fakeOs.WaitForCommandStub = func(*exec.Cmd) chan error {
 						ch := make(chan error, 1)
@@ -230,7 +213,7 @@ var _ = Describe("PreStarter", func() {
 				It("returns a new error", func() {
 					_, err := prestarter.StartNodeFromState("CLUSTERED")
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("mysqld stopped unexpectedly. Please check the logs"))
+					Expect(err.Error()).To(ContainSubstring("mysqld stopped. Please check mysql.err.log"))
 					ensureNoShutdown()
 				})
 			})

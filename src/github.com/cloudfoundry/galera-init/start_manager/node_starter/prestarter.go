@@ -75,10 +75,7 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 				return "", err
 			}
 		case err = <-cmch:
-			if err != nil {
-				return "", err
-			}
-			return "", errors.New("mysqld stopped unexpectedly. Please check the logs")
+			return "", errors.New("mysqld stopped. Please check mysql.err.log")
 		}
 	}
 
