@@ -14,6 +14,7 @@ type OsHelper interface {
 	RunCommand(executable string, args ...string) (string, error)
 	RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error
 	StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error)
+	WaitForCommand(cmd *exec.Cmd) chan error
 	FileExists(filename string) bool
 	ReadFile(filename string) (string, error)
 	WriteStringToFile(filename string, contents string) error
@@ -76,6 +77,14 @@ func (h OsHelperImpl) StartCommand(logFileName string, executable string, args .
 
 	cmd.Start()
 	return cmd, nil
+}
+
+func (h OsHelperImpl) WaitForCommand(cmd *exec.Cmd) chan error {
+	errChannel := make(chan error, 1)
+	go func() {
+		errChannel <- cmd.Wait()
+	}()
+	return errChannel
 }
 
 func (h OsHelperImpl) FileExists(filename string) bool {

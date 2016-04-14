@@ -42,6 +42,14 @@ type FakeOsHelper struct {
 		result1 *exec.Cmd
 		result2 error
 	}
+	WaitForCommandStub        func(cmd *exec.Cmd) chan error
+	waitForCommandMutex       sync.RWMutex
+	waitForCommandArgsForCall []struct {
+		cmd *exec.Cmd
+	}
+	waitForCommandReturns struct {
+		result1 chan error
+	}
 	FileExistsStub        func(filename string) bool
 	fileExistsMutex       sync.RWMutex
 	fileExistsArgsForCall []struct {
@@ -177,6 +185,38 @@ func (fake *FakeOsHelper) StartCommandReturns(result1 *exec.Cmd, result2 error) 
 		result1 *exec.Cmd
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeOsHelper) WaitForCommand(cmd *exec.Cmd) chan error {
+	fake.waitForCommandMutex.Lock()
+	fake.waitForCommandArgsForCall = append(fake.waitForCommandArgsForCall, struct {
+		cmd *exec.Cmd
+	}{cmd})
+	fake.waitForCommandMutex.Unlock()
+	if fake.WaitForCommandStub != nil {
+		return fake.WaitForCommandStub(cmd)
+	} else {
+		return fake.waitForCommandReturns.result1
+	}
+}
+
+func (fake *FakeOsHelper) WaitForCommandCallCount() int {
+	fake.waitForCommandMutex.RLock()
+	defer fake.waitForCommandMutex.RUnlock()
+	return len(fake.waitForCommandArgsForCall)
+}
+
+func (fake *FakeOsHelper) WaitForCommandArgsForCall(i int) *exec.Cmd {
+	fake.waitForCommandMutex.RLock()
+	defer fake.waitForCommandMutex.RUnlock()
+	return fake.waitForCommandArgsForCall[i].cmd
+}
+
+func (fake *FakeOsHelper) WaitForCommandReturns(result1 chan error) {
+	fake.WaitForCommandStub = nil
+	fake.waitForCommandReturns = struct {
+		result1 chan error
+	}{result1}
 }
 
 func (fake *FakeOsHelper) FileExists(filename string) bool {

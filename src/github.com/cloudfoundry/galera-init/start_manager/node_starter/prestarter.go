@@ -66,11 +66,19 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 	}
 
 	if s.mysqlCmd != nil {
-		ch := s.waitForDatabaseToAcceptConnections()
-		<-ch
-		err = s.shutdownMysql()
-		if err != nil {
-			return "", err
+		dbch := s.waitForDatabaseToAcceptConnections()
+		cmch := s.osHelper.WaitForCommand(s.mysqlCmd)
+		select {
+		case <-dbch:
+			err = s.shutdownMysql()
+			if err != nil {
+				return "", err
+			}
+		case err = <-cmch:
+			if err != nil {
+				return "", err
+			}
+			return "", errors.New("mysqld stopped unexpectedly. Please check the logs")
 		}
 	}
 

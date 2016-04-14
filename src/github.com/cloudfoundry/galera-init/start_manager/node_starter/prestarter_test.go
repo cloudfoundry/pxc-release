@@ -37,6 +37,10 @@ var _ = Describe("PreStarter", func() {
 		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
 	}
 
+	ensureNoShutdown := func() {
+		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(0))
+	}
+
 	ensureDatabaseReachableCheck := func() {
 		Expect(fakeDBHelper.IsDatabaseReachableCallCount()).ToNot(Equal(0))
 	}
@@ -196,6 +200,41 @@ var _ = Describe("PreStarter", func() {
 					})
 				})
 			})
+
+			Context("when mysqld exits with error", func() {
+				BeforeEach(func() {
+					fakeOs.WaitForCommandStub = func(*exec.Cmd) chan error {
+						ch := make(chan error, 1)
+						ch <- errors.New("mysqld exit error")
+						return ch
+					}
+				})
+
+				It("forwards the error", func() {
+					_, err := prestarter.StartNodeFromState("CLUSTERED")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("mysqld exit error"))
+					ensureNoShutdown()
+				})
+			})
+
+			Context("when mysqld exits without error", func() {
+				BeforeEach(func() {
+					fakeOs.WaitForCommandStub = func(*exec.Cmd) chan error {
+						ch := make(chan error, 1)
+						ch <- nil
+						return ch
+					}
+				})
+
+				It("returns a new error", func() {
+					_, err := prestarter.StartNodeFromState("CLUSTERED")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("mysqld stopped unexpectedly. Please check the logs"))
+					ensureNoShutdown()
+				})
+			})
+
 		})
 	})
 })

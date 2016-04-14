@@ -1,6 +1,8 @@
 package os_helper_test
 
 import (
+	"os/exec"
+
 	. "github.com/cloudfoundry/mariadb_ctrl/os_helper"
 
 	. "github.com/onsi/ginkgo"
@@ -46,6 +48,15 @@ var _ = Describe("OsHelper", func() {
 			contents, err := h.ReadFile(logFileName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(contents).To(Equal("cat: notthere: No such file or directory\n"))
+		})
+	})
+
+	Describe("WaitForCommand", func() {
+		It("Sends the result to a channel when the process exits", func() {
+			h := OsHelperImpl{}
+			ch := h.WaitForCommand(exec.Command("non-existent-command"))
+			err := <-ch
+			Expect(err).NotTo(BeNil())
 		})
 	})
 })
