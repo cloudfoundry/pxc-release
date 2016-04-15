@@ -20,7 +20,7 @@ import (
 )
 
 var stateFile *os.File
-var fakePrestarterBinary *os.File
+var fakePrestarterFile *os.File
 
 var _ = Describe("monitClient", func() {
 
@@ -36,13 +36,13 @@ var _ = Describe("monitClient", func() {
 		ts = httptest.NewServer(fakeHandler)
 		testHost, testPort := splitHostandPort(ts.URL)
 		monitConfig := config.MonitConfig{
-			User:                    "fake-user",
-			Password:                "fake-password",
-			Host:                    testHost,
-			Port:                    testPort,
-			MysqlStateFilePath:      stateFile.Name(),
-			ServiceName:             processName,
-			MysqlPrestartBinaryPath: fakePrestarterBinary.Name(),
+			User:                              "fake-user",
+			Password:                          "fake-password",
+			Host:                              testHost,
+			Port:                              testPort,
+			MysqlStateFilePath:                stateFile.Name(),
+			ServiceName:                       processName,
+			MysqlPrestartUnprivilegedFilePath: fakePrestarterFile.Name(),
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
@@ -53,7 +53,7 @@ var _ = Describe("monitClient", func() {
 	AfterEach(func() {
 		ts.Close()
 		os.Remove(stateFile.Name())
-		os.Remove(fakePrestarterBinary.Name())
+		os.Remove(fakePrestarterFile.Name())
 	})
 
 	Context("when running on a mysql node", func() {
@@ -61,9 +61,9 @@ var _ = Describe("monitClient", func() {
 			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
 			stateFile.Chmod(0777)
 
-			fakePrestarterBinary, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
-			fakePrestarterBinary.Chmod(0777)
-			fakePrestarterBinary.Write([]byte(fmt.Sprintf("rm %s", fakePrestarterBinary.Name())))
+			fakePrestarterFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
+			fakePrestarterFile.Chmod(0777)
+			fakePrestarterFile.Write([]byte(fmt.Sprintf("rm %s", fakePrestarterFile.Name())))
 
 			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
@@ -168,9 +168,9 @@ var _ = Describe("monitClient", func() {
 			})
 
 			It("calls the prestart binary", func() {
-				Expect(fakePrestarterBinary.Name()).Should(BeAnExistingFile())
+				Expect(fakePrestarterFile.Name()).Should(BeAnExistingFile())
 				monitClient.StartServiceJoin()
-				Expect(fakePrestarterBinary.Name()).ShouldNot(BeAnExistingFile())
+				Expect(fakePrestarterFile.Name()).ShouldNot(BeAnExistingFile())
 			})
 
 		})
@@ -277,8 +277,8 @@ var _ = Describe("monitClient", func() {
 			})
 			processName = "garbd"
 
-			fakePrestarterBinary, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
-			fakePrestarterBinary.Chmod(0777)
+			fakePrestarterFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
+			fakePrestarterFile.Chmod(0777)
 		})
 
 		Describe("StopService", func() {
