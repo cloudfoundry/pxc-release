@@ -59,7 +59,12 @@ func (m *monitClient) startService(startMode string) (string, error) {
 			m.logger.Error("Failed to start mysql node", err)
 			return "", err
 		}
-		prestartCmd := exec.Command("/bin/bash", m.monitConfig.MysqlPrestartUnprivilegedFilePath)
+		prestartCmd := exec.Command(
+			"/bin/bash",
+			m.monitConfig.MysqlPrestartUnprivilegedFilePath,
+			">> /var/vcap/sys/log/galera-healthcheck/pre-start-unprivileged.stdout.log",
+			"2>> /var/vcap/sys/log/galera-healthcheck/pre-start-unprivileged.stderr.log",
+		)
 		err = prestartCmd.Run()
 		if err != nil {
 			m.logger.Error("Failed to pre-start mysql node", err)
