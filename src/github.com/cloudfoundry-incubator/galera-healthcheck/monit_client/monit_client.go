@@ -65,22 +65,19 @@ func (m *monitClient) startService(startMode string) (string, error) {
 			m.monitConfig.MysqlPrestartUnprivilegedFilePath,
 		)
 
-		stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapPrestartStdoutLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		env := os.Environ()
+		env = append(env, fmt.Sprintf("LOG_FILE=%s", m.monitConfig.BootstrapLogFilePath))
+		prestartCmd.Env = env
+
+		stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
-			m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapPrestartStdoutLogFilePath), err)
+			m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapLogFilePath), err)
 			return "", err
 		}
 		defer stdoutDest.Close()
 
-		stderrDest, err := os.OpenFile(m.monitConfig.BootstrapPrestartStderrLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapPrestartStderrLogFilePath), err)
-			return "", err
-		}
-		defer stderrDest.Close()
-
 		prestartCmd.Stdout = stdoutDest
-		prestartCmd.Stderr = stderrDest
+		prestartCmd.Stderr = stdoutDest
 
 		err = prestartCmd.Run()
 		if err != nil {
