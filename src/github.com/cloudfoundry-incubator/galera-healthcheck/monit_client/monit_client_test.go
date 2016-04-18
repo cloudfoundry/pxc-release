@@ -19,8 +19,12 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
-var stateFile *os.File
-var fakePrestarterFile *os.File
+var (
+	stateFile                          *os.File
+	fakePrestarterFile                 *os.File
+	fakeBootstrapPrestartStdoutLogFile *os.File
+	fakeBootstrapPrestartStderrLogFile *os.File
+)
 
 var _ = Describe("monitClient", func() {
 
@@ -36,13 +40,15 @@ var _ = Describe("monitClient", func() {
 		ts = httptest.NewServer(fakeHandler)
 		testHost, testPort := splitHostandPort(ts.URL)
 		monitConfig := config.MonitConfig{
-			User:                              "fake-user",
-			Password:                          "fake-password",
-			Host:                              testHost,
-			Port:                              testPort,
-			MysqlStateFilePath:                stateFile.Name(),
-			ServiceName:                       processName,
-			MysqlPrestartUnprivilegedFilePath: fakePrestarterFile.Name(),
+			User:                               "fake-user",
+			Password:                           "fake-password",
+			Host:                               testHost,
+			Port:                               testPort,
+			MysqlStateFilePath:                 stateFile.Name(),
+			ServiceName:                        processName,
+			MysqlPrestartUnprivilegedFilePath:  fakePrestarterFile.Name(),
+			BootstrapPrestartStdoutLogFilePath: fakeBootstrapPrestartStdoutLogFile.Name(),
+			BootstrapPrestartStderrLogFilePath: fakeBootstrapPrestartStderrLogFile.Name(),
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
@@ -64,6 +70,9 @@ var _ = Describe("monitClient", func() {
 			fakePrestarterFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
 			fakePrestarterFile.Chmod(0777)
 			fakePrestarterFile.Write([]byte(fmt.Sprintf("rm %s", fakePrestarterFile.Name())))
+
+			fakeBootstrapPrestartStdoutLogFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestartStdoutLogFile")
+			fakeBootstrapPrestartStderrLogFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestartStderrLogFile")
 
 			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
@@ -279,6 +288,10 @@ var _ = Describe("monitClient", func() {
 
 			fakePrestarterFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
 			fakePrestarterFile.Chmod(0777)
+
+			fakeBootstrapPrestartStdoutLogFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestartStdoutLogFile")
+			fakeBootstrapPrestartStderrLogFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestartStderrLogFile")
+
 		})
 
 		Describe("StopService", func() {

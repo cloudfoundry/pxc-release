@@ -32,13 +32,15 @@ type DBConfig struct {
 }
 
 type MonitConfig struct {
-	Host                              string `yaml:"Host" validate:"nonzero"`
-	User                              string `yaml:"User" validate:"nonzero"`
-	Port                              int    `yaml:"Port" validate:"nonzero"`
-	Password                          string `yaml:"Password" validate:"nonzero"`
-	MysqlStateFilePath                string `yaml:"MysqlStateFilePath"`
-	MysqlPrestartUnprivilegedFilePath string `yaml:"MysqlPrestartUnprivilegedFilePath"`
-	ServiceName                       string `yaml:"ServiceName" validate:"nonzero"`
+	Host                               string `yaml:"Host" validate:"nonzero"`
+	User                               string `yaml:"User" validate:"nonzero"`
+	Port                               int    `yaml:"Port" validate:"nonzero"`
+	Password                           string `yaml:"Password" validate:"nonzero"`
+	MysqlStateFilePath                 string `yaml:"MysqlStateFilePath"`
+	MysqlPrestartUnprivilegedFilePath  string `yaml:"MysqlPrestartUnprivilegedFilePath"`
+	BootstrapPrestartStdoutLogFilePath string `yaml:"BootstrapPrestartStdoutLogFilePath"`
+	BootstrapPrestartStderrLogFilePath string `yaml:"BootstrapPrestartStderrLogFilePath"`
+	ServiceName                        string `yaml:"ServiceName" validate:"nonzero"`
 }
 
 type BootstrapEndpointConfig struct {

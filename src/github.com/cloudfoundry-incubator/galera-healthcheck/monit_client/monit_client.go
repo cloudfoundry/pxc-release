@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -62,9 +63,25 @@ func (m *monitClient) startService(startMode string) (string, error) {
 		prestartCmd := exec.Command(
 			"/bin/bash",
 			m.monitConfig.MysqlPrestartUnprivilegedFilePath,
-			">> /var/vcap/sys/log/galera-healthcheck/pre-start-unprivileged.stdout.log",
-			"2>> /var/vcap/sys/log/galera-healthcheck/pre-start-unprivileged.stderr.log",
 		)
+
+		stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapPrestartStdoutLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapPrestartStdoutLogFilePath), err)
+			return "", err
+		}
+		defer stdoutDest.Close()
+
+		stderrDest, err := os.OpenFile(m.monitConfig.BootstrapPrestartStderrLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapPrestartStderrLogFilePath), err)
+			return "", err
+		}
+		defer stderrDest.Close()
+
+		prestartCmd.Stdout = stdoutDest
+		prestartCmd.Stderr = stderrDest
+
 		err = prestartCmd.Run()
 		if err != nil {
 			m.logger.Error("Failed to pre-start mysql node", err)
