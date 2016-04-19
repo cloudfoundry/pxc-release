@@ -34,11 +34,11 @@ var _ = Describe("PreStarter", func() {
 	}
 
 	ensureShutdown := func() {
-		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
+		Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(1))
 	}
 
 	ensureNoShutdown := func() {
-		Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(0))
+		Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(0))
 	}
 
 	ensureDatabaseReachableCheck := func() {
@@ -144,7 +144,7 @@ var _ = Describe("PreStarter", func() {
 			})
 		})
 
-		Context("When mysql takes some time to start", func() {
+		Context("When mysqld takes some time to start", func() {
 			var expectedRetryAttempts int
 
 			BeforeEach(func() {

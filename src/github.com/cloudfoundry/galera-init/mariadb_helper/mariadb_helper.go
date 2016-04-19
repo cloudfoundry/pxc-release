@@ -25,8 +25,8 @@ type DBHelper interface {
 	StartMysqldInMode(command string) error
 	StartMysqldInJoin() (*exec.Cmd, error)
 	StartMysqldInBootstrap() (*exec.Cmd, error)
-	StopMysql() error
-	StopStandaloneMysql() error
+	StopMysqld() error
+	StopStandaloneMysqld() error
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
@@ -91,7 +91,7 @@ func (m MariaDBHelper) StartMysqldInMode(command string) error {
 
 func (m MariaDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
-	cmd, err := m.startMysqlAsChildProcess()
+	cmd, err := m.startMysqldAsChildProcess()
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
@@ -102,7 +102,7 @@ func (m MariaDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 
 func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
-	cmd, err := m.startMysqlAsChildProcess("--wsrep-new-cluster")
+	cmd, err := m.startMysqldAsChildProcess("--wsrep-new-cluster")
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
@@ -111,7 +111,7 @@ func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StopMysql() error {
+func (m MariaDBHelper) StopMysqld() error {
 	m.logger.Info("Stopping node")
 	err := m.runMysqlDaemon(StopCommand)
 	if err != nil {
@@ -120,7 +120,7 @@ func (m MariaDBHelper) StopMysql() error {
 	return err
 }
 
-func (m MariaDBHelper) StopStandaloneMysql() error {
+func (m MariaDBHelper) StopStandaloneMysqld() error {
 	m.logger.Info("Stopping standalone node")
 	err := m.runMysqlDaemon(StopStandaloneCommand)
 	if err != nil {
@@ -138,7 +138,7 @@ func (m MariaDBHelper) runMysqlDaemon(mode string) error {
 		mode)
 }
 
-func (m MariaDBHelper) startMysqlAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
+func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
 		"/var/vcap/packages/mariadb/bin/mysqld_safe",

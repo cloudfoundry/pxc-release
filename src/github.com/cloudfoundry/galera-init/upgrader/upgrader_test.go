@@ -55,11 +55,11 @@ var _ = Describe("Upgrader", func() {
 			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.StopStandaloneMysqlCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StopStandaloneMysqldCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the mysql start command fails", func() {
+		Context("when the mysqld start command fails", func() {
 			It("quits early and returns an error", func() {
 				fakeDbHelper.StartMysqldInModeStub = func(mode string) error {
 					return errors.New("BOOM")
@@ -111,9 +111,9 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the mysql stop script fails", func() {
+		Context("when the mysqld stop script fails", func() {
 			BeforeEach(func() {
-				fakeDbHelper.StopStandaloneMysqlStub = func() error {
+				fakeDbHelper.StopStandaloneMysqldStub = func() error {
 					return errors.New("exited 1")
 				}
 			})
@@ -175,7 +175,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when we fail to read the last upgraded version file in the MySQL datadir", func() {
+		Context("when we fail to read the last upgraded version file in the mysqld datadir", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 
@@ -217,7 +217,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the last upgraded version in the MySQL datadir matches the Mariadb package version", func() {
+		Context("when the last upgraded version in the mysqld datadir matches the Mariadb package version", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 
@@ -239,7 +239,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the version in the MySQL datadir does not match the Mariadb package version", func() {
+		Context("when the version in the mysqld datadir does not match the Mariadb package version", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 

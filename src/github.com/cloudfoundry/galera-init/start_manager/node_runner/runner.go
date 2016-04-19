@@ -22,18 +22,18 @@ func NewRunner(mgr start_manager.StartManager, logger lager.Logger) Runner {
 func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	err := r.mgr.Execute()
 	if err != nil {
-		r.logger.Error("Failed starting Maria with error:", err)
+		r.logger.Error("Failed starting mysqld with error:", err)
 		//database may have started but failed to accept connections
 		shutdownErr := r.mgr.Shutdown()
 		if shutdownErr != nil {
-			r.logger.Error("Error stopping mysql process", shutdownErr)
+			r.logger.Error("Error stopping mysqld process", shutdownErr)
 		}
 		return err
 	}
 
 	cmd, err := r.mgr.GetMysqlCmd()
 	if err != nil {
-		r.logger.Error("Error getting Maria process", err)
+		r.logger.Error("Error getting mysqld process", err)
 		return err
 	}
 
@@ -49,10 +49,10 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var shutdownErr error
 	select {
 	case <-signals:
-		r.logger.Info("Received shutdown signal. Shutting down Maria.")
+		r.logger.Info("Received shutdown signal. Shutting down mysqld.")
 		shutdownErr = r.mgr.Shutdown()
 	case err = <-mariaExited:
-		r.logger.Error("Maria process exited with error", err)
+		r.logger.Error("mysqld process exited with error", err)
 		shutdownErr = err
 	}
 	return shutdownErr

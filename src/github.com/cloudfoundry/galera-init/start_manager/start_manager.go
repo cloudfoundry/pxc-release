@@ -63,7 +63,7 @@ func (m *startManager) Execute() error {
 	var err error
 
 	if m.mariaDBHelper.IsProcessRunning() {
-		m.logger.Info("MySQL process is already running, shutting down before continuing")
+		m.logger.Info("mysqld process is already running, shutting down before continuing")
 		err = m.Shutdown()
 		if err != nil {
 			m.logger.Error("Failed to shutdown mysql process", err)
@@ -156,8 +156,8 @@ func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
 }
 
 func (m *startManager) Shutdown() error {
-	m.logger.Info("Shutting down MariaDB")
-	return m.mariaDBHelper.StopMysql()
+	m.logger.Info("Shutting down mysqld")
+	return m.mariaDBHelper.StopMysqld()
 }
 
 func (m *startManager) writeStringToFile(contents string) error {

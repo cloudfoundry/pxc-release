@@ -117,7 +117,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("Stop", func() {
 		It("calls the mysql daemon with the stop command", func() {
-			helper.StopStandaloneMysql()
+			helper.StopStandaloneMysqld()
 			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
 
 			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
@@ -133,7 +133,7 @@ var _ = Describe("MariaDBHelper", func() {
 			})
 
 			It("returns the error", func() {
-				err := helper.StopStandaloneMysql()
+				err := helper.StopStandaloneMysqld()
 				Expect(err).To(HaveOccurred())
 			})
 		})

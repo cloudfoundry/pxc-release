@@ -70,7 +70,7 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 		cmch := s.osHelper.WaitForCommand(s.mysqlCmd)
 		select {
 		case <-dbch:
-			err = s.shutdownMysql()
+			err = s.shutdownMysqld()
 			if err != nil {
 				return "", err
 			}
@@ -88,7 +88,7 @@ func (s *prestarter) GetMysqlCmd() (*exec.Cmd, error) {
 	if s.mysqlCmd != nil || (s.mysqlCmd == nil && s.finalState != Clustered) {
 		return s.mysqlCmd, nil
 	}
-	return nil, errors.New("Mysql has not been started")
+	return nil, errors.New("mysqld has not been started")
 }
 
 func (s *prestarter) startNodeAsJoiner() error {
@@ -135,7 +135,7 @@ func (s *prestarter) waitForDatabaseToAcceptConnections() chan string {
 	return ch
 }
 
-func (s *prestarter) shutdownMysql() error {
-	s.logger.Info("Shutting down MariaDB after prestart")
-	return s.mariaDBHelper.StopMysql()
+func (s *prestarter) shutdownMysqld() error {
+	s.logger.Info("Shutting down mysqld after prestart")
+	return s.mariaDBHelper.StopMysqld()
 }

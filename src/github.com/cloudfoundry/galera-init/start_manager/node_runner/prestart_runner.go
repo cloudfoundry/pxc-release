@@ -22,11 +22,11 @@ func NewPrestartRunner(mgr start_manager.StartManager, logger lager.Logger) Pres
 func (r PrestartRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	err := r.mgr.Execute()
 	if err != nil {
-		r.logger.Error("Failed starting Maria with error:", err)
+		r.logger.Error("Failed starting mysqld with error:", err)
 		//database may have started but failed to accept connections
 		shutdownErr := r.mgr.Shutdown()
 		if shutdownErr != nil {
-			r.logger.Error("Error stopping mysql process", shutdownErr)
+			r.logger.Error("Error stopping mysqld process", shutdownErr)
 		}
 		return err
 	}
@@ -37,7 +37,7 @@ func (r PrestartRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 	//fmt.Println("Starting to listen on signals channel...")
 	s := <-signals
 	if s == os.Kill {
-		r.logger.Info("Received shutdown signal. Shutting down Maria.")
+		r.logger.Info("Received shutdown signal. Shutting down mysqld.")
 	}
 	return nil
 }

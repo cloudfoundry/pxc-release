@@ -60,7 +60,7 @@ func main() {
 
 	select {
 	case err = <-process.Wait():
-		logger.Fatal("Error starting mariadb", err)
+		logger.Fatal("Error starting mysqld", err)
 	case <-process.Ready():
 		//continue
 	}

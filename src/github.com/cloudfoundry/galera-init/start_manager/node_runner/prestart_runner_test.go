@@ -46,7 +46,7 @@ var _ = Describe("StartManagerRunner", func() {
 			}
 		})
 
-		It("Closes the ready channel and waits for mysql to exit", func() {
+		It("Closes the ready channel and waits for mysqld to exit", func() {
 			signals := make(chan os.Signal)
 			ready := make(chan struct{})
 
@@ -65,7 +65,7 @@ var _ = Describe("StartManagerRunner", func() {
 
 		Context("And the runner is signaled", func() {
 
-			It("Does not tell the mysql process to shutdown", func() {
+			It("Does not tell the mysqld process to shutdown", func() {
 				signals := make(chan os.Signal)
 				ready := make(chan struct{})
 
@@ -108,7 +108,7 @@ var _ = Describe("StartManagerRunner", func() {
 			Consistently(ready).ShouldNot(BeClosed())
 		})
 
-		It("Tells the mysql process to shutdown", func() {
+		It("Tells the mysqld process to shutdown", func() {
 			runErr := make(chan error)
 			go func() {
 				runErr <- runner.Run(signals, ready)

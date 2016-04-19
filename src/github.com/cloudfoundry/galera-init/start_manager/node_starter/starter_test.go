@@ -142,7 +142,7 @@ var _ = Describe("Starter", func() {
 			})
 		})
 
-		Context("When mysql starts in under the startup timeout", func() {
+		Context("When mysqld starts in under the startup timeout", func() {
 			var expectedRetryAttempts int
 
 			BeforeEach(func() {
@@ -206,7 +206,7 @@ var _ = Describe("Starter", func() {
 				})
 			})
 
-			Context("When mysql does not start in less than configured start time", func() {
+			Context("When mysqld does not start in less than configured start time", func() {
 				var maxRetryAttempts int
 
 				BeforeEach(func() {

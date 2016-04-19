@@ -111,7 +111,7 @@ func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
 	if s.mysqlCmd != nil {
 		return s.mysqlCmd, nil
 	}
-	return nil, errors.New("Mysql has not been started")
+	return nil, errors.New("mysqld has not been started")
 }
 
 func (s *starter) bootstrapNode() error {

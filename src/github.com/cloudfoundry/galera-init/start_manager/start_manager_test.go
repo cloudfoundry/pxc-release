@@ -106,7 +106,7 @@ var _ = Describe("StartManager", func() {
 		It("kills the process before continuing", func() {
 			err := mgr.Execute()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(fakeDBHelper.StopMysqlCallCount()).To(Equal(1))
+			Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(1))
 		})
 	})
 
