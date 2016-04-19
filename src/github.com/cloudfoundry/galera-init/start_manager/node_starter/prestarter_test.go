@@ -26,11 +26,11 @@ var _ = Describe("PreStarter", func() {
 	var fakeCommandJoin *exec.Cmd
 
 	ensureJoin := func() {
-		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
+		Expect(fakeDBHelper.StartMysqldInJoinCallCount()).To(Equal(1))
 	}
 
 	ensureNoJoin := func() {
-		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(0))
+		Expect(fakeDBHelper.StartMysqldInJoinCallCount()).To(Equal(0))
 	}
 
 	ensureShutdown := func() {
@@ -81,7 +81,7 @@ var _ = Describe("PreStarter", func() {
 		BeforeEach(func() {
 			fakeCommandJoinStr = "fake-command-join"
 			fakeCommandJoin = exec.Command(fakeCommandJoinStr)
-			fakeDBHelper.StartMysqlInJoinReturns(fakeCommandJoin, nil)
+			fakeDBHelper.StartMysqldInJoinReturns(fakeCommandJoin, nil)
 		})
 
 		Context("prestarting with state SINGLE_NODE", func() {
@@ -180,7 +180,7 @@ var _ = Describe("PreStarter", func() {
 
 			Context("starting cluster returns an error", func() {
 				BeforeEach(func() {
-					fakeDBHelper.StartMysqlInJoinReturns(nil, errors.New("some errors"))
+					fakeDBHelper.StartMysqldInJoinReturns(nil, errors.New("some errors"))
 				})
 
 				Context("NEEDS_BOOTSTRAP", func() {

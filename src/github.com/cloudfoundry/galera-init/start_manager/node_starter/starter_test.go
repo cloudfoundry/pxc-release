@@ -40,11 +40,11 @@ var _ = Describe("Starter", func() {
 	}
 
 	ensureBootstrap := func() {
-		Expect(fakeDBHelper.StartMysqlInBootstrapCallCount()).To(Equal(1))
+		Expect(fakeDBHelper.StartMysqldInBootstrapCallCount()).To(Equal(1))
 	}
 
 	ensureJoin := func() {
-		Expect(fakeDBHelper.StartMysqlInJoinCallCount()).To(Equal(1))
+		Expect(fakeDBHelper.StartMysqldInJoinCallCount()).To(Equal(1))
 	}
 
 	ensureMysqlCmdMatches := func(cmd string) {
@@ -73,10 +73,10 @@ var _ = Describe("Starter", func() {
 		BeforeEach(func() {
 			fakeCommandBootstrapStr = "fake-command-bootstrap"
 			fakeCommandBootstrap = exec.Command(fakeCommandBootstrapStr)
-			fakeDBHelper.StartMysqlInBootstrapReturns(fakeCommandBootstrap, nil)
+			fakeDBHelper.StartMysqldInBootstrapReturns(fakeCommandBootstrap, nil)
 			fakeCommandJoinStr = "fake-command-join"
 			fakeCommandJoin = exec.Command(fakeCommandJoinStr)
-			fakeDBHelper.StartMysqlInJoinReturns(fakeCommandJoin, nil)
+			fakeDBHelper.StartMysqldInJoinReturns(fakeCommandJoin, nil)
 		})
 
 		Context("starting with state SINGLE_NODE", func() {
@@ -177,8 +177,8 @@ var _ = Describe("Starter", func() {
 
 			Context("starting cluster returns an error", func() {
 				BeforeEach(func() {
-					fakeDBHelper.StartMysqlInBootstrapReturns(nil, errors.New("some errors"))
-					fakeDBHelper.StartMysqlInJoinReturns(nil, errors.New("some errors"))
+					fakeDBHelper.StartMysqldInBootstrapReturns(nil, errors.New("some errors"))
+					fakeDBHelper.StartMysqldInJoinReturns(nil, errors.New("some errors"))
 				})
 
 				Context("SINGLE_NODE", func() {

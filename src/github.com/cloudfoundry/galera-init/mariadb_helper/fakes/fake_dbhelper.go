@@ -18,17 +18,17 @@ type FakeDBHelper struct {
 	startMysqldInModeReturns struct {
 		result1 error
 	}
-	StartMysqlInJoinStub        func() (*exec.Cmd, error)
-	startMysqlInJoinMutex       sync.RWMutex
-	startMysqlInJoinArgsForCall []struct{}
-	startMysqlInJoinReturns     struct {
+	StartMysqldInJoinStub        func() (*exec.Cmd, error)
+	startMysqldInJoinMutex       sync.RWMutex
+	startMysqldInJoinArgsForCall []struct{}
+	startMysqldInJoinReturns     struct {
 		result1 *exec.Cmd
 		result2 error
 	}
-	StartMysqlInBootstrapStub        func() (*exec.Cmd, error)
-	startMysqlInBootstrapMutex       sync.RWMutex
-	startMysqlInBootstrapArgsForCall []struct{}
-	startMysqlInBootstrapReturns     struct {
+	StartMysqldInBootstrapStub        func() (*exec.Cmd, error)
+	startMysqldInBootstrapMutex       sync.RWMutex
+	startMysqldInBootstrapArgsForCall []struct{}
+	startMysqldInBootstrapReturns     struct {
 		result1 *exec.Cmd
 		result2 error
 	}
@@ -109,51 +109,51 @@ func (fake *FakeDBHelper) StartMysqldInModeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
-	fake.startMysqlInJoinMutex.Lock()
-	fake.startMysqlInJoinArgsForCall = append(fake.startMysqlInJoinArgsForCall, struct{}{})
-	fake.startMysqlInJoinMutex.Unlock()
-	if fake.StartMysqlInJoinStub != nil {
-		return fake.StartMysqlInJoinStub()
+func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
+	fake.startMysqldInJoinMutex.Lock()
+	fake.startMysqldInJoinArgsForCall = append(fake.startMysqldInJoinArgsForCall, struct{}{})
+	fake.startMysqldInJoinMutex.Unlock()
+	if fake.StartMysqldInJoinStub != nil {
+		return fake.StartMysqldInJoinStub()
 	} else {
-		return fake.startMysqlInJoinReturns.result1, fake.startMysqlInJoinReturns.result2
+		return fake.startMysqldInJoinReturns.result1, fake.startMysqldInJoinReturns.result2
 	}
 }
 
-func (fake *FakeDBHelper) StartMysqlInJoinCallCount() int {
-	fake.startMysqlInJoinMutex.RLock()
-	defer fake.startMysqlInJoinMutex.RUnlock()
-	return len(fake.startMysqlInJoinArgsForCall)
+func (fake *FakeDBHelper) StartMysqldInJoinCallCount() int {
+	fake.startMysqldInJoinMutex.RLock()
+	defer fake.startMysqldInJoinMutex.RUnlock()
+	return len(fake.startMysqldInJoinArgsForCall)
 }
 
-func (fake *FakeDBHelper) StartMysqlInJoinReturns(result1 *exec.Cmd, result2 error) {
-	fake.StartMysqlInJoinStub = nil
-	fake.startMysqlInJoinReturns = struct {
+func (fake *FakeDBHelper) StartMysqldInJoinReturns(result1 *exec.Cmd, result2 error) {
+	fake.StartMysqldInJoinStub = nil
+	fake.startMysqldInJoinReturns = struct {
 		result1 *exec.Cmd
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeDBHelper) StartMysqlInBootstrap() (*exec.Cmd, error) {
-	fake.startMysqlInBootstrapMutex.Lock()
-	fake.startMysqlInBootstrapArgsForCall = append(fake.startMysqlInBootstrapArgsForCall, struct{}{})
-	fake.startMysqlInBootstrapMutex.Unlock()
-	if fake.StartMysqlInBootstrapStub != nil {
-		return fake.StartMysqlInBootstrapStub()
+func (fake *FakeDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
+	fake.startMysqldInBootstrapMutex.Lock()
+	fake.startMysqldInBootstrapArgsForCall = append(fake.startMysqldInBootstrapArgsForCall, struct{}{})
+	fake.startMysqldInBootstrapMutex.Unlock()
+	if fake.StartMysqldInBootstrapStub != nil {
+		return fake.StartMysqldInBootstrapStub()
 	} else {
-		return fake.startMysqlInBootstrapReturns.result1, fake.startMysqlInBootstrapReturns.result2
+		return fake.startMysqldInBootstrapReturns.result1, fake.startMysqldInBootstrapReturns.result2
 	}
 }
 
-func (fake *FakeDBHelper) StartMysqlInBootstrapCallCount() int {
-	fake.startMysqlInBootstrapMutex.RLock()
-	defer fake.startMysqlInBootstrapMutex.RUnlock()
-	return len(fake.startMysqlInBootstrapArgsForCall)
+func (fake *FakeDBHelper) StartMysqldInBootstrapCallCount() int {
+	fake.startMysqldInBootstrapMutex.RLock()
+	defer fake.startMysqldInBootstrapMutex.RUnlock()
+	return len(fake.startMysqldInBootstrapArgsForCall)
 }
 
-func (fake *FakeDBHelper) StartMysqlInBootstrapReturns(result1 *exec.Cmd, result2 error) {
-	fake.StartMysqlInBootstrapStub = nil
-	fake.startMysqlInBootstrapReturns = struct {
+func (fake *FakeDBHelper) StartMysqldInBootstrapReturns(result1 *exec.Cmd, result2 error) {
+	fake.StartMysqldInBootstrapStub = nil
+	fake.startMysqldInBootstrapReturns = struct {
 		result1 *exec.Cmd
 		result2 error
 	}{result1, result2}

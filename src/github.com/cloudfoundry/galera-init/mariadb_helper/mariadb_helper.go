@@ -23,8 +23,8 @@ const (
 
 type DBHelper interface {
 	StartMysqldInMode(command string) error
-	StartMysqlInJoin() (*exec.Cmd, error)
-	StartMysqlInBootstrap() (*exec.Cmd, error)
+	StartMysqldInJoin() (*exec.Cmd, error)
+	StartMysqldInBootstrap() (*exec.Cmd, error)
 	StopMysql() error
 	StopStandaloneMysql() error
 	Upgrade() (output string, err error)
@@ -89,7 +89,7 @@ func (m MariaDBHelper) StartMysqldInMode(command string) error {
 	return err
 }
 
-func (m MariaDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
+func (m MariaDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
 	cmd, err := m.startMysqlAsChildProcess()
 
@@ -100,7 +100,7 @@ func (m MariaDBHelper) StartMysqlInJoin() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StartMysqlInBootstrap() (*exec.Cmd, error) {
+func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
 	cmd, err := m.startMysqlAsChildProcess("--wsrep-new-cluster")
 

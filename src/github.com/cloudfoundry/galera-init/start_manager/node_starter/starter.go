@@ -116,7 +116,7 @@ func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
 
 func (s *starter) bootstrapNode() error {
 	s.logger.Info("Bootstrapping node")
-	cmd, err := s.mariaDBHelper.StartMysqlInBootstrap()
+	cmd, err := s.mariaDBHelper.StartMysqldInBootstrap()
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (s *starter) bootstrapNode() error {
 
 func (s *starter) startNodeAsJoiner() error {
 	s.logger.Info("Joining an existing cluster")
-	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
+	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (s *starter) startNodeAsJoiner() error {
 
 func (s *starter) joinCluster() (err error) {
 	s.logger.Info("Joining a multi-node cluster")
-	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
+	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 
 	if err != nil {
 		return err

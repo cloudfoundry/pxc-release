@@ -93,7 +93,7 @@ func (s *prestarter) GetMysqlCmd() (*exec.Cmd, error) {
 
 func (s *prestarter) startNodeAsJoiner() error {
 	s.logger.Info("Joining an existing cluster")
-	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
+	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (s *prestarter) startNodeAsJoiner() error {
 
 func (s *prestarter) joinCluster() (err error) {
 	s.logger.Info("Joining a multi-node cluster")
-	cmd, err := s.mariaDBHelper.StartMysqlInJoin()
+	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 
 	if err != nil {
 		return err
