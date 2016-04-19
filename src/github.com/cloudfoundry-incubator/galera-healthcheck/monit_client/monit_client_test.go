@@ -21,7 +21,7 @@ import (
 
 var (
 	stateFile            *os.File
-	fakePrestarterFile   *os.File
+	fakeBootstrapFile    *os.File
 	fakeBootstrapLogFile *os.File
 )
 
@@ -39,14 +39,14 @@ var _ = Describe("monitClient", func() {
 		ts = httptest.NewServer(fakeHandler)
 		testHost, testPort := splitHostandPort(ts.URL)
 		monitConfig := config.MonitConfig{
-			User:                              "fake-user",
-			Password:                          "fake-password",
-			Host:                              testHost,
-			Port:                              testPort,
-			MysqlStateFilePath:                stateFile.Name(),
-			ServiceName:                       processName,
-			MysqlPrestartUnprivilegedFilePath: fakePrestarterFile.Name(),
-			BootstrapLogFilePath:              fakeBootstrapLogFile.Name(),
+			User:                 "fake-user",
+			Password:             "fake-password",
+			Host:                 testHost,
+			Port:                 testPort,
+			MysqlStateFilePath:   stateFile.Name(),
+			ServiceName:          processName,
+			BootstrapFilePath:    fakeBootstrapFile.Name(),
+			BootstrapLogFilePath: fakeBootstrapLogFile.Name(),
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
@@ -57,7 +57,7 @@ var _ = Describe("monitClient", func() {
 	AfterEach(func() {
 		ts.Close()
 		os.Remove(stateFile.Name())
-		os.Remove(fakePrestarterFile.Name())
+		os.Remove(fakeBootstrapFile.Name())
 	})
 
 	Context("when running on a mysql node", func() {
@@ -65,9 +65,9 @@ var _ = Describe("monitClient", func() {
 			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
 			stateFile.Chmod(0777)
 
-			fakePrestarterFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
-			fakePrestarterFile.Chmod(0777)
-			fakePrestarterFile.Write([]byte(fmt.Sprintf("rm %s", fakePrestarterFile.Name())))
+			fakeBootstrapFile, _ = ioutil.TempFile(os.TempDir(), "fakeBootstrapper")
+			fakeBootstrapFile.Chmod(0777)
+			fakeBootstrapFile.Write([]byte(fmt.Sprintf("rm %s", fakeBootstrapFile.Name())))
 
 			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
 
@@ -173,10 +173,10 @@ var _ = Describe("monitClient", func() {
 				})
 			})
 
-			It("calls the prestart binary", func() {
-				Expect(fakePrestarterFile.Name()).Should(BeAnExistingFile())
+			It("calls the bootstrap binary", func() {
+				Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
 				monitClient.StartServiceJoin()
-				Expect(fakePrestarterFile.Name()).ShouldNot(BeAnExistingFile())
+				Expect(fakeBootstrapFile.Name()).ShouldNot(BeAnExistingFile())
 			})
 
 		})
@@ -283,8 +283,8 @@ var _ = Describe("monitClient", func() {
 			})
 			processName = "garbd"
 
-			fakePrestarterFile, _ = ioutil.TempFile(os.TempDir(), "fakePrestarter")
-			fakePrestarterFile.Chmod(0777)
+			fakeBootstrapFile, _ = ioutil.TempFile(os.TempDir(), "fakeBootstrapper")
+			fakeBootstrapFile.Chmod(0777)
 
 			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
 

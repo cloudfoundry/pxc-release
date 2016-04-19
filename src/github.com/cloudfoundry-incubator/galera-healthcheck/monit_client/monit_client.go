@@ -62,7 +62,7 @@ func (m *monitClient) startService(startMode string) (string, error) {
 		}
 		prestartCmd := exec.Command(
 			"/bin/bash",
-			m.monitConfig.MysqlPrestartUnprivilegedFilePath,
+			m.monitConfig.BootstrapFilePath,
 		)
 
 		env := os.Environ()
