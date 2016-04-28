@@ -854,6 +854,13 @@ then
 
     if [ ! -r "${STATDIR}/${IST_FILE}" ]
     then
+
+        if [ ! ${DISABLE_SST:=0} -eq 0 ]
+        then
+          wsrep_log_error "SST disabled due to danger of data loss. Verify data and bootstrap the cluster"
+          exit 1
+        fi
+
         if [[ -d ${DATA}/.sst ]];then
             wsrep_log_info "WARNING: Stale temporary SST directory: ${DATA}/.sst from previous state transfer"
         fi
