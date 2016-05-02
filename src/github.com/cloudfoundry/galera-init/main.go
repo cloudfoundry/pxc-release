@@ -60,7 +60,8 @@ func main() {
 
 	select {
 	case err = <-process.Wait():
-		logger.Fatal("Error starting mysqld", err)
+		logger.Error("Error starting mysqld", err)
+		os.Exit(1)
 	case <-process.Ready():
 		//continue
 	}
