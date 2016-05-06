@@ -78,7 +78,19 @@ func logWriterTestHelper(filePath string) logwriter.LogWriter {
 	db, err := sql.Open("testdb", "")
 	Expect(err).ToNot(HaveOccurred())
 
-	sql := "SHOW STATUS WHERE Variable_name IN ('wsrep_ready','wsrep_cluster_conf_id','wsrep_cluster_status','wsrep_connected','wsrep_local_state_comment','wsrep_local_recv_queue_avg','wsrep_flow_control_paused','wsrep_cert_deps_distance','wsrep_local_send_queue_avg')"
+	sql := `
+		SHOW STATUS
+		WHERE Variable_name IN (
+			'wsrep_ready',
+			'wsrep_cluster_conf_id',
+			'wsrep_cluster_status',
+			'wsrep_connected',
+			'wsrep_local_state_comment',
+			'wsrep_local_recv_queue_avg',
+			'wsrep_flow_control_paused',
+			'wsrep_cert_deps_distance',
+			'wsrep_local_send_queue_avg'
+		)`
 	columns := []string{"Variable_name", "Value"}
 	result := "a,1\nb,2\nc,3\nd,4\ne,5\nf,6\ng,7\nh,8\ni,9"
 	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
