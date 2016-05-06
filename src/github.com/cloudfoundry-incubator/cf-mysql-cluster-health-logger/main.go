@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"time"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
-	"log"
-	"os"
-	"time"
 )
 
 func main() {
@@ -45,7 +46,10 @@ func main() {
 	writer := logwriter.New(db, config.LogPath)
 
 	for {
-		writer.Write(time.Now().Format(time.RFC3339))
+		err := writer.Write(time.Now().Format(time.RFC3339))
+		if err != nil {
+			log.Fatal(err)
+		}
 		time.Sleep(time.Duration(config.Interval) * time.Second)
 	}
 }
