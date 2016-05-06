@@ -25,8 +25,8 @@ func New(db *sql.DB, logPath string) LogWriter {
 }
 
 func (lw *logWriter) Write(ts string) {
-	var statusColumnNames [9]string
-	var statusColumnValues [9]string
+	var statusColumnNames []string
+	var statusColumnValues []string
 
 	statusQuery := `SHOW STATUS WHERE Variable_name IN (
 		'wsrep_ready',
@@ -45,15 +45,13 @@ func (lw *logWriter) Write(ts string) {
 		log.Fatal(err)
 	}
 
-	index := 0
 	defer status.Close()
 	for status.Next() {
 		var varName string
 		var varValue string
 		status.Scan(&varName, &varValue)
-		statusColumnNames[index] = varName
-		statusColumnValues[index] = varValue
-		index++
+		statusColumnNames = append(statusColumnNames, varName)
+		statusColumnValues = append(statusColumnValues, varValue)
 	}
 	_, err = os.Stat(lw.logPath)
 	writeHeaders := false
@@ -64,8 +62,8 @@ func (lw *logWriter) Write(ts string) {
 	f, _ := os.OpenFile(lw.logPath, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0666)
 	defer f.Close()
 
-	columnNamesStr := strings.Join(statusColumnNames[0:9], ",")
-	columnValuesStr := strings.Join(statusColumnValues[0:9], ",")
+	columnNamesStr := strings.Join(statusColumnNames, ",")
+	columnValuesStr := strings.Join(statusColumnValues, ",")
 
 	if writeHeaders {
 		f.WriteString(fmt.Sprintf("%s,%s","timestamp", columnNamesStr))
