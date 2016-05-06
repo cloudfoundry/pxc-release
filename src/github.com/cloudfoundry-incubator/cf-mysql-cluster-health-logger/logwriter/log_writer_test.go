@@ -5,31 +5,35 @@ import (
 
 	testdb "github.com/erikstmartin/go-testdb"
 
+	"io/ioutil"
+	"os"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
-	"os"
-	"io/ioutil"
 )
 
 var (
 	logFile *os.File
+	err     error
 )
 
 var _ = Describe("Cluster Health Logger", func() {
 
 	BeforeEach(func() {
-		logFile, _ = ioutil.TempFile(os.TempDir(), "logFile")
-
+		logFile, err = ioutil.TempFile(os.TempDir(), "cluster-health-logger")
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		os.Remove(logFile.Name())
+		err = os.Remove(logFile.Name())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("when the log file does not exist", func() {
 		BeforeEach(func() {
-			os.Remove(logFile.Name())
+			err = os.Remove(logFile.Name())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("writes headers to the file", func() {
@@ -71,7 +75,8 @@ var _ = Describe("Cluster Health Logger", func() {
 })
 
 func logWriterTestHelper(filePath string) logwriter.LogWriter {
-	db, _ := sql.Open("testdb", "")
+	db, err := sql.Open("testdb", "")
+	Expect(err).ToNot(HaveOccurred())
 
 	sql := "SHOW STATUS WHERE Variable_name IN ('wsrep_ready','wsrep_cluster_conf_id','wsrep_cluster_status','wsrep_connected','wsrep_local_state_comment','wsrep_local_recv_queue_avg','wsrep_flow_control_paused','wsrep_cert_deps_distance','wsrep_local_send_queue_avg')"
 	columns := []string{"Variable_name", "Value"}
