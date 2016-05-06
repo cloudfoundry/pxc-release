@@ -53,9 +53,9 @@ func (lw *logWriter) Write(ts string) {
 		statusColumnNames = append(statusColumnNames, varName)
 		statusColumnValues = append(statusColumnValues, varValue)
 	}
-	_, err = os.Stat(lw.logPath)
+	info, err := os.Stat(lw.logPath)
 	writeHeaders := false
-	if err != nil {
+	if err != nil || info.Size() == 0 {
 		writeHeaders = true
 	}
 

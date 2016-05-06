@@ -57,7 +57,7 @@ var _ = Describe("Cluster Health Logger", func() {
 			logWriter.Write(ts1)
 		})
 
-		It("writes a new line", func() {
+		It("writes a new row", func() {
 			logWriter := logWriterTestHelper(logFile.Name())
 			ts2 := "sad-time"
 			logWriter.Write(ts2)
@@ -66,8 +66,25 @@ var _ = Describe("Cluster Health Logger", func() {
 			contentsStr := string(contents)
 			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i\nhappy-time,1,2,3,4,5,6,7,8,9\nsad-time,1,2,3,4,5,6,7,8,9\n"))
 		})
-
 	})
+
+	Context("when the log file has been truncated", func() {
+		BeforeEach(func() {
+			err = logFile.Truncate(0)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("writes new headers with the next row", func() {
+			logWriter := logWriterTestHelper(logFile.Name())
+			ts := "happy-time"
+			logWriter.Write(ts)
+			contents, err := ioutil.ReadFile(logFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			contentsStr := string(contents)
+			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i\nhappy-time,1,2,3,4,5,6,7,8,9\n"))
+		})
+	})
+
 })
 
 func logWriterTestHelper(filePath string) logwriter.LogWriter {
