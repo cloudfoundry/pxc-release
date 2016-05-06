@@ -3,13 +3,12 @@ package logwriter
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 )
 
 type LogWriter interface {
-	Write(string)
+	Write(string) error
 }
 
 type logWriter struct {
@@ -24,7 +23,7 @@ func New(db *sql.DB, logPath string) LogWriter {
 	}
 }
 
-func (lw *logWriter) Write(ts string) {
+func (lw *logWriter) Write(ts string) error {
 	var statusColumnNames []string
 	var statusColumnValues []string
 
@@ -42,7 +41,7 @@ func (lw *logWriter) Write(ts string) {
 	status, err := lw.db.Query(statusQuery)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	defer status.Close()
@@ -59,7 +58,10 @@ func (lw *logWriter) Write(ts string) {
 		writeHeaders = true
 	}
 
-	f, _ := os.OpenFile(lw.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	f, err := os.OpenFile(lw.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
 	defer f.Close()
 
 	columnNamesStr := strings.Join(statusColumnNames, ",")
@@ -71,4 +73,5 @@ func (lw *logWriter) Write(ts string) {
 	}
 	f.WriteString(fmt.Sprintf("%s,%s", ts, columnValuesStr))
 	f.WriteString("\n")
+	return nil
 }

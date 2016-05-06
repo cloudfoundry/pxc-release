@@ -2,6 +2,7 @@ package logwriter_test
 
 import (
 	"database/sql"
+	"errors"
 
 	testdb "github.com/erikstmartin/go-testdb"
 
@@ -12,6 +13,20 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+const expectedSQL = `
+ SHOW STATUS
+ WHERE Variable_name IN (
+     'wsrep_ready',
+     'wsrep_cluster_conf_id',
+     'wsrep_cluster_status',
+     'wsrep_connected',
+     'wsrep_local_state_comment',
+     'wsrep_local_recv_queue_avg',
+     'wsrep_flow_control_paused',
+     'wsrep_cert_deps_distance',
+     'wsrep_local_send_queue_avg'
+   )`
 
 var (
 	logFile *os.File
@@ -39,7 +54,8 @@ var _ = Describe("Cluster Health Logger", func() {
 		It("writes headers to the file", func() {
 			logWriter := logWriterTestHelper(logFile.Name())
 			ts := "happy-time"
-			logWriter.Write(ts)
+			err = logWriter.Write(ts)
+			Expect(err).ToNot(HaveOccurred())
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
@@ -54,13 +70,15 @@ var _ = Describe("Cluster Health Logger", func() {
 
 			logWriter := logWriterTestHelper(logFile.Name())
 			ts1 := "happy-time"
-			logWriter.Write(ts1)
+			err = logWriter.Write(ts1)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("writes a new row", func() {
 			logWriter := logWriterTestHelper(logFile.Name())
 			ts2 := "sad-time"
-			logWriter.Write(ts2)
+			err = logWriter.Write(ts2)
+			Expect(err).ToNot(HaveOccurred())
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
@@ -77,11 +95,25 @@ var _ = Describe("Cluster Health Logger", func() {
 		It("writes new headers with the next row", func() {
 			logWriter := logWriterTestHelper(logFile.Name())
 			ts := "happy-time"
-			logWriter.Write(ts)
+			err = logWriter.Write(ts)
+			Expect(err).ToNot(HaveOccurred())
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
 			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i\nhappy-time,1,2,3,4,5,6,7,8,9\n"))
+		})
+	})
+
+	Context("when the query errors", func() {
+		It("returns the error", func() {
+			db, err := sql.Open("testdb", "")
+			Expect(err).ToNot(HaveOccurred())
+
+			testdb.StubQueryError(expectedSQL, errors.New("Database connection failure"))
+			logWriter := logwriter.New(db, logFile.Name())
+			err = logWriter.Write("sad-time")
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(errors.New("Database connection failure")))
 		})
 	})
 
@@ -91,22 +123,9 @@ func logWriterTestHelper(filePath string) logwriter.LogWriter {
 	db, err := sql.Open("testdb", "")
 	Expect(err).ToNot(HaveOccurred())
 
-	sql := `
-		SHOW STATUS
-		WHERE Variable_name IN (
-			'wsrep_ready',
-			'wsrep_cluster_conf_id',
-			'wsrep_cluster_status',
-			'wsrep_connected',
-			'wsrep_local_state_comment',
-			'wsrep_local_recv_queue_avg',
-			'wsrep_flow_control_paused',
-			'wsrep_cert_deps_distance',
-			'wsrep_local_send_queue_avg'
-		)`
 	columns := []string{"Variable_name", "Value"}
 	result := "a,1\nb,2\nc,3\nd,4\ne,5\nf,6\ng,7\nh,8\ni,9"
-	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
+	testdb.StubQuery(expectedSQL, testdb.RowsFromCSVString(columns, result))
 
 	return logwriter.New(db, filePath)
 }
