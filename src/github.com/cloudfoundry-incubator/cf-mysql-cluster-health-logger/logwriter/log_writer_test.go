@@ -47,28 +47,24 @@ var _ = Describe("Cluster Health Logger", func() {
 		})
 	})
 
-	Context("when the log file exists", func() {
-
-		It("writes only the rows to the file", func() {
-			logWriter := logWriterTestHelper(logFile.Name())
-			ts := "happy-time"
-			logWriter.Write(ts)
-			contents, err := ioutil.ReadFile(logFile.Name())
+	Context("when the log file exists with content", func() {
+		BeforeEach(func() {
+			err = os.Remove(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
-			contentsStr := string(contents)
-			Expect(contentsStr).To(Equal("happy-time,1,2,3,4,5,6,7,8,9\n"))
+
+			logWriter := logWriterTestHelper(logFile.Name())
+			ts1 := "happy-time"
+			logWriter.Write(ts1)
 		})
 
 		It("writes a new line", func() {
 			logWriter := logWriterTestHelper(logFile.Name())
-			ts1 := "happy-time"
-			logWriter.Write(ts1)
 			ts2 := "sad-time"
 			logWriter.Write(ts2)
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
-			Expect(contentsStr).To(Equal("happy-time,1,2,3,4,5,6,7,8,9\nsad-time,1,2,3,4,5,6,7,8,9\n"))
+			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i\nhappy-time,1,2,3,4,5,6,7,8,9\nsad-time,1,2,3,4,5,6,7,8,9\n"))
 		})
 
 	})
