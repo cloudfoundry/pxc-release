@@ -1,16 +1,16 @@
 package main
 
 import (
-	"flag"
-	"github.com/pivotal-cf-experimental/service-config"
-	"os"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
-	"log"
 	"database/sql"
+	"flag"
 	"fmt"
-	"time"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
+	"log"
+	"os"
+	"time"
 )
 
 func main() {
@@ -46,6 +46,6 @@ func main() {
 
 	for {
 		writer.Write(time.Now().Format(time.RFC3339))
-		time.Sleep(time.Duration(config.Interval)*time.Second)
+		time.Sleep(time.Duration(config.Interval) * time.Second)
 	}
 }

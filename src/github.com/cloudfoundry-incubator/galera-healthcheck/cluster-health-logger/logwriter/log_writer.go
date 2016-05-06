@@ -2,10 +2,10 @@ package logwriter
 
 import (
 	"database/sql"
-	"os"
-	"strings"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 )
 
 type LogWriter interface {
@@ -19,7 +19,7 @@ type logWriter struct {
 
 func New(db *sql.DB, logPath string) LogWriter {
 	return &logWriter{
-		db:     db,
+		db:      db,
 		logPath: logPath,
 	}
 }
@@ -59,16 +59,16 @@ func (lw *logWriter) Write(ts string) {
 		writeHeaders = true
 	}
 
-	f, _ := os.OpenFile(lw.logPath, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0666)
+	f, _ := os.OpenFile(lw.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	defer f.Close()
 
 	columnNamesStr := strings.Join(statusColumnNames, ",")
 	columnValuesStr := strings.Join(statusColumnValues, ",")
 
 	if writeHeaders {
-		f.WriteString(fmt.Sprintf("%s,%s","timestamp", columnNamesStr))
+		f.WriteString(fmt.Sprintf("%s,%s", "timestamp", columnNamesStr))
 		f.WriteString("\n")
 	}
-	f.WriteString(fmt.Sprintf("%s,%s",ts, columnValuesStr))
+	f.WriteString(fmt.Sprintf("%s,%s", ts, columnValuesStr))
 	f.WriteString("\n")
 }
