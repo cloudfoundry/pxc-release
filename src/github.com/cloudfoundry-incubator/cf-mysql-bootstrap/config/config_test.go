@@ -34,7 +34,8 @@ var _ = Describe("Config", func() {
 				],
 				"Username": "fake-username",
 				"Password": "fake-password",
-				"LogFilePath": "%s"
+				"LogFilePath": "%s",
+				"RepairMode": "bootstrap"
 			}`, tmpFile.Name())
 
 		osArgs = []string{
@@ -62,9 +63,17 @@ var _ = Describe("Config", func() {
 	})
 
 	Describe("Validate", func() {
-		It("does not return error on valid config", func() {
-			err := rootConfig.Validate()
-			Expect(err).NotTo(HaveOccurred())
+		Context("valid config", func() {
+			It("accepts bootstrap as a value for RepairMode", func() {
+				err := rootConfig.Validate()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("accepts force-rejoin as a value for RepairMode", func() {
+				rootConfig.RepairMode = "force-rejoin"
+				err := rootConfig.Validate()
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 
 		It("returns an error if HealthcheckURLs is blank", func() {
@@ -85,6 +94,17 @@ var _ = Describe("Config", func() {
 		It("returns an error if Password is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "Password")
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if RepairMode is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "RepairMode")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error if RepairMode is invalid", func() {
+			rootConfig.RepairMode = "shoestrap"
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
 		})
 
 	})
