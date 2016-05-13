@@ -63,8 +63,8 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 	}
 
 	if syncedNodes == allNodes {
-		err := errors.New("All nodes are synced. Bootstrap not required.")
-		nm.rootConfig.Logger.Error("Bootstrap not required", err)
+		err := errors.New("All nodes are synced. Action not required.")
+		nm.rootConfig.Logger.Error("Action not required", err)
 		return err
 	}
 

@@ -75,127 +75,132 @@ var _ = Describe("Bootstrap", func() {
 	})
 
 	Describe("#VerifyClusterIsUnhealthy", func() {
-		Context("when all nodes are full mysql nodes", func() {
-			Context("when all mysql nodes are unhealthy", func() {
-				BeforeEach(func() {
-					for _, handler := range endpointHandlers {
-						handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
-					}
-				})
-
-				It("does not return an error", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).ToNot(HaveOccurred())
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
-				})
+		Context("when RepairMode is bootstrap", func() {
+			BeforeEach(func() {
+				rootConfig.RepairMode = "bootstrap"
 			})
-
-			Context("when all mysql nodes are healthy", func() {
-
-				BeforeEach(func() {
-					for _, handler := range endpointHandlers {
-						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
-					}
-				})
-
-				It("returns an error", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("All nodes are synced. Bootstrap not required."))
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
-				})
-			})
-
-			Context("when some mysql nodes are synced but some are unhealthy", func() {
-
-				BeforeEach(func() {
-					for _, handler := range endpointHandlers {
-						handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
-					}
-					endpointHandlers[ServerCount-1].StubEndpointWithStatus("/", http.StatusOK, "synced")
-				})
-
-				It("returns an error without bootstrapping", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
-				})
-
-			})
-		})
-
-		Context("when there is an arbitrator node", func() {
-			Context("when all mysql nodes are unhealthy", func() {
-				BeforeEach(func() {
-					for i, handler := range endpointHandlers {
-						if i == ArbitratorIndex {
-							handler.StubEndpointWithStatus("/", http.StatusBadRequest, "arbitrator node")
-						} else {
+			Context("when all nodes are full mysql nodes", func() {
+				Context("when all mysql nodes are unhealthy", func() {
+					BeforeEach(func() {
+						for _, handler := range endpointHandlers {
 							handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
 						}
-					}
+					})
+
+					It("does not return an error", func() {
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).ToNot(HaveOccurred())
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
 				})
 
-				It("does not return an error", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).ToNot(HaveOccurred())
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
-				})
-			})
+				Context("when all mysql nodes are healthy", func() {
 
-			Context("when all mysql nodes are healthy", func() {
-
-				BeforeEach(func() {
-					for i, handler := range endpointHandlers {
-						if i == ArbitratorIndex {
-							handler.StubEndpointWithStatus("/", http.StatusBadRequest, "arbitrator node")
-						} else {
+					BeforeEach(func() {
+						for _, handler := range endpointHandlers {
 							handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
 						}
-					}
+					})
+
+					It("returns an error", func() {
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("All nodes are synced. Action not required."))
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
 				})
 
-				It("returns an error", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("All nodes are synced. Bootstrap not required."))
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
-				})
-			})
+				Context("when some mysql nodes are synced but some are unhealthy", func() {
 
-			Context("when some mysql nodes are synced but some are unhealthy", func() {
-				BeforeEach(func() {
-					for i, handler := range endpointHandlers {
-						if i == ArbitratorIndex {
-							handler.StubEndpointWithStatus("/", http.StatusBadRequest, "arbitrator node")
-						} else {
+					BeforeEach(func() {
+						for _, handler := range endpointHandlers {
 							handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
 						}
-					}
-					endpointHandlers[ServerCount-1].StubEndpointWithStatus("/", http.StatusOK, "synced")
+						endpointHandlers[ServerCount-1].StubEndpointWithStatus("/", http.StatusOK, "synced")
+					})
+
+					It("returns an error without bootstrapping", func() {
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
+
+				})
+			})
+			Context("when there is an arbitrator node", func() {
+				Context("when all mysql nodes are unhealthy", func() {
+					BeforeEach(func() {
+						for i, handler := range endpointHandlers {
+							if i == ArbitratorIndex {
+								handler.StubEndpointWithStatus("/", http.StatusBadRequest, "arbitrator node")
+							} else {
+								handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+							}
+						}
+					})
+
+					It("does not return an error", func() {
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).ToNot(HaveOccurred())
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
 				})
 
-				It("returns an error without bootstrapping", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
+				Context("when all mysql nodes are healthy", func() {
+
+					BeforeEach(func() {
+						for i, handler := range endpointHandlers {
+							if i == ArbitratorIndex {
+								handler.StubEndpointWithStatus("/", http.StatusBadRequest, "arbitrator node")
+							} else {
+								handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+							}
+						}
+					})
+
+					It("returns an error", func() {
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("All nodes are synced. Action not required."))
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
+				})
+
+				Context("when some mysql nodes are synced but some are unhealthy", func() {
+					BeforeEach(func() {
+						for i, handler := range endpointHandlers {
+							if i == ArbitratorIndex {
+								handler.StubEndpointWithStatus("/", http.StatusBadRequest, "arbitrator node")
+							} else {
+								handler.StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+							}
+						}
+						endpointHandlers[ServerCount-1].StubEndpointWithStatus("/", http.StatusOK, "synced")
+					})
+
+					It("returns an error without bootstrapping", func() {
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
 				})
 			})
 		})
+
 	})
 
 	Describe("#VerifyAllNodesAreReachable", func() {
