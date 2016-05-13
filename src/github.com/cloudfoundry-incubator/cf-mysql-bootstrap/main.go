@@ -13,14 +13,20 @@ import (
 
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
-	err = rootConfig.BuildLogger()
-	logger := rootConfig.Logger
-
 	if err != nil {
-		logger.Fatal("Failed to parse config", err, lager.Data{
-			"config": rootConfig,
-		})
+		panic(fmt.Sprintf("Failed to parse config: %s", err.Error()))
 	}
+
+	err = rootConfig.Validate()
+	if err != nil {
+		panic(fmt.Sprintf("Invalid config: %s", err.Error()))
+	}
+
+	err = rootConfig.BuildLogger()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to build logger: %s", err.Error()))
+	}
+	logger := rootConfig.Logger
 
 	nodeManager := node_manager.New(rootConfig, clock.DefaultClock())
 	bootstrapper := bootstrapperPkg.New(nodeManager)
