@@ -74,12 +74,12 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 			nm.rootConfig.Logger.Error("Action cannot be performed", err)
 			return err
 		}
-	}
-
-	if syncedNodes > 0 && syncedNodes != allNodes {
-		err := errors.New("Cluster healthy but one or more nodes are failing. Bootstrap not required.")
-		nm.rootConfig.Logger.Error("Bootstrap not required", err)
-		return err
+	} else {
+		if syncedNodes > 0 && syncedNodes != allNodes {
+			err := errors.New("Cluster healthy but one or more nodes are failing. Bootstrap not required.")
+			nm.rootConfig.Logger.Error("Bootstrap not required", err)
+			return err
+		}
 	}
 
 	return nil
