@@ -63,7 +63,7 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 	}
 
 	if syncedNodes == allNodes {
-		err := errors.New("All nodes are synced. Action not required.")
+		err := fmt.Errorf("All nodes are synced, %s not required.", nm.rootConfig.RepairMode)
 		nm.rootConfig.Logger.Error("Action not required", err)
 		return err
 	}
