@@ -46,6 +46,18 @@ func New(rootConfig *config.Config, clock clock.Clock) NodeManager {
 }
 
 func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
+	syncedNodes, allNodes := nm.determineNodeCount()
+
+	if syncedNodes == allNodes {
+		err := fmt.Errorf("All nodes are synced, %s not required.", nm.rootConfig.RepairMode)
+		nm.rootConfig.Logger.Error("Action not required", err)
+		return err
+	}
+
+	return nm.validateNodeCountForRepairMode(syncedNodes, allNodes, nm.rootConfig.RepairMode)
+}
+
+func (nm *nodeManager) determineNodeCount() (int, int) {
 	allNodes := len(nm.rootConfig.HealthcheckURLs)
 	syncedNodes := 0
 
@@ -62,13 +74,11 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 		}
 	}
 
-	if syncedNodes == allNodes {
-		err := fmt.Errorf("All nodes are synced, %s not required.", nm.rootConfig.RepairMode)
-		nm.rootConfig.Logger.Error("Action not required", err)
-		return err
-	}
+	return syncedNodes, allNodes
+}
 
-	if nm.rootConfig.RepairMode == "force-rejoin" {
+func (nm *nodeManager) validateNodeCountForRepairMode(syncedNodes, allNodes int, repairMode string) error {
+	if repairMode == "force-rejoin" {
 		if syncedNodes < (allNodes - 1) {
 			err := errors.New("More than one node is unhealthy, cannot force-rejoin.")
 			nm.rootConfig.Logger.Error("Action cannot be performed", err)
@@ -81,7 +91,6 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
