@@ -68,6 +68,14 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
 		return err
 	}
 
+	if nm.rootConfig.RepairMode == "force-rejoin" {
+		if syncedNodes < (allNodes - 1) {
+			err := errors.New("More than one node is unhealthy, cannot force-rejoin.")
+			nm.rootConfig.Logger.Error("Action cannot be performed", err)
+			return err
+		}
+	}
+
 	if syncedNodes > 0 && syncedNodes != allNodes {
 		err := errors.New("Cluster healthy but one or more nodes are failing. Bootstrap not required.")
 		nm.rootConfig.Logger.Error("Bootstrap not required", err)

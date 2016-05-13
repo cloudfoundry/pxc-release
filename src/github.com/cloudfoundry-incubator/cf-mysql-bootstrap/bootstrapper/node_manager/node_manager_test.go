@@ -83,12 +83,27 @@ var _ = Describe("Bootstrap", func() {
 					}
 				})
 
-				It("does not return an error", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).ToNot(HaveOccurred())
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
+				Context("when RepairMode is bootstrap", func() {
+					It("does not return an error", func() {
+						rootConfig.RepairMode = "bootstrap"
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).ToNot(HaveOccurred())
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
+				})
+
+				Context("when RepairMode is force-rejoin", func() {
+					It("returns an error", func() {
+						rootConfig.RepairMode = "force-rejoin"
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(Equal("More than one node is unhealthy, cannot force-rejoin."))
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
 				})
 			})
 
@@ -157,12 +172,27 @@ var _ = Describe("Bootstrap", func() {
 					}
 				})
 
-				It("does not return an error", func() {
-					err := nodeManager.VerifyClusterIsUnhealthy()
-					Expect(err).ToNot(HaveOccurred())
-					for _, handler := range endpointHandlers {
-						Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
-					}
+				Context("when RepairMode is bootstrap", func() {
+					It("does not return an error", func() {
+						rootConfig.RepairMode = "bootstrap"
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).ToNot(HaveOccurred())
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
+				})
+
+				Context("when RepairMode is force-rejoin", func() {
+					It("returns an error", func() {
+						rootConfig.RepairMode = "force-rejoin"
+						err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(Equal("More than one node is unhealthy, cannot force-rejoin."))
+						for _, handler := range endpointHandlers {
+							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
+						}
+					})
 				})
 			})
 
