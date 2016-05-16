@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -30,18 +31,27 @@ func main() {
 
 	nodeManager := node_manager.New(rootConfig, clock.DefaultClock())
 	bootstrapper := bootstrapperPkg.New(nodeManager)
-	err = bootstrapper.Bootstrap()
+
+	if rootConfig.RepairMode == "bootstrap" {
+		err = bootstrapper.Bootstrap()
+	} else if rootConfig.RepairMode == "force-rejoin" {
+		err = bootstrapper.ForceRejoin()
+	} else {
+		logger.Error("Invalid repair mode:", errors.New(fmt.Sprintf("%s", rootConfig.RepairMode)))
+		printHumanReadableErr(err)
+		os.Exit(1)
+	}
 
 	if err != nil {
-		logger.Error("Failed to bootstrap cluster", err, lager.Data{
+		logger.Error("Failed to repair cluster", err, lager.Data{
 			"config": rootConfig,
 		})
 		printHumanReadableErr(err)
 		os.Exit(1)
 	}
 
-	logger.Info("Successfully bootstrapped cluster")
-	fmt.Println("Successfully bootstrapped cluster")
+	logger.Info("Successfully repaired cluster")
+	fmt.Println("Successfully repaired cluster")
 }
 
 func printHumanReadableErr(err error) {
