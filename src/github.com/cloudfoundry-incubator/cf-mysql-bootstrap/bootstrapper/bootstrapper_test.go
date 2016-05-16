@@ -1,6 +1,8 @@
 package bootstrapper_test
 
 import (
+	"errors"
+
 	bootstrapperPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager/fakes"
 	. "github.com/onsi/ginkgo"
@@ -48,6 +50,59 @@ var _ = Describe("Bootstrap", func() {
 				fakeNodeManager.JoinNodeArgsForCall(1),
 			}
 			Expect(joinNodes).To(ConsistOf("url1", "url2"))
+		})
+	})
+})
+
+var _ = Describe("Force-rejoin", func() {
+
+	BeforeEach(func() {
+		fakeNodeManager = &fakes.FakeNodeManager{}
+		bootstrapper = bootstrapperPkg.New(fakeNodeManager)
+		fakeNodeManager.FindUnhealthyNodeStub = func() (string, error) {
+			return "fake-url", nil
+		}
+	})
+
+	Context("when all nodeManager calls succeed", func() {
+		It("makes the unhealthy node rejoin the cluster", func() {
+			err := bootstrapper.ForceRejoin()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fakeNodeManager.VerifyClusterIsUnhealthyCallCount()).To(Equal(1))
+			Expect(fakeNodeManager.FindUnhealthyNodeCallCount()).To(Equal(1))
+			Expect(fakeNodeManager.JoinNodeCallCount()).To(Equal(1))
+			Expect(fakeNodeManager.JoinNodeArgsForCall(0)).To(Equal("fake-url"))
+		})
+	})
+
+	Context("when cluster is healthy", func() {
+		It("returns an error", func() {
+			fakeNodeManager.VerifyClusterIsUnhealthyStub = func() error {
+				return errors.New("fake-error")
+			}
+			err := bootstrapper.ForceRejoin()
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("if FindUnhealthyNode returns an error", func() {
+		It("returns an error", func() {
+			fakeNodeManager.FindUnhealthyNodeStub = func() (string, error) {
+				return "", errors.New("fake-error")
+			}
+			err := bootstrapper.ForceRejoin()
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("if JoinNode returns an error", func() {
+		It("returns an error", func() {
+			fakeNodeManager.JoinNodeStub = func(string) error {
+				return errors.New("fake-error")
+			}
+			err := bootstrapper.ForceRejoin()
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

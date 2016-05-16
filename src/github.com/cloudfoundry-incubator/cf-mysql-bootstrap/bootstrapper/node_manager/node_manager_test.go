@@ -285,6 +285,55 @@ var _ = Describe("Bootstrap", func() {
 		})
 	})
 
+	Describe("#FindUnhealthyNode", func() {
+		Context("when one node is unhealthy", func() {
+			BeforeEach(func() {
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+				}
+				endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+			})
+
+			It("returns the url of the unhealthy node", func() {
+				unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(unhealthyNodeURL).To(Equal(testServers[1].URL))
+			})
+		})
+
+		Context("when no nodes are unhealthy", func() {
+			BeforeEach(func() {
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+				}
+			})
+
+			It("returns an error", func() {
+				unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("Found no unhealthy nodes"))
+				Expect(unhealthyNodeURL).To(Equal(""))
+			})
+		})
+
+		Context("when more than one nodes are unhealthy", func() {
+			BeforeEach(func() {
+				for _, handler := range endpointHandlers {
+					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+				}
+				endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+				endpointHandlers[2].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+			})
+
+			It("returns an error", func() {
+				unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("Found more than one unhealthy node"))
+				Expect(unhealthyNodeURL).To(Equal(""))
+			})
+		})
+	})
+
 	Describe("#VerifyAllNodesAreReachable", func() {
 
 		Context("when all nodes are reachable", func() {

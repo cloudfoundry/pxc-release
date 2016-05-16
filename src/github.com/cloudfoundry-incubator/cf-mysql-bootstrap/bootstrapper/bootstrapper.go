@@ -1,8 +1,6 @@
 package bootstrapper
 
-import (
-	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
-)
+import "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 
 const PollingIntervalInSec = 5
 
@@ -14,6 +12,25 @@ func New(nodeManager node_manager.NodeManager) *Bootstrapper {
 	return &Bootstrapper{
 		nodeManager: nodeManager,
 	}
+}
+
+func (b *Bootstrapper) ForceRejoin() error {
+	err := b.nodeManager.VerifyClusterIsUnhealthy()
+	if err != nil {
+		return err
+	}
+
+	url, err := b.nodeManager.FindUnhealthyNode()
+	if err != nil {
+		return err
+	}
+
+	err = b.nodeManager.JoinNode(url)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *Bootstrapper) Bootstrap() error {

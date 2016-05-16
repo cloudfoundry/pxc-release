@@ -15,6 +15,8 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+//go:generate counterfeiter -o fakes/fake_node_manager.go . NodeManager
+
 const (
 	PollingIntervalInSec = 5
 	ShutDownTimeout      = 60
@@ -31,6 +33,7 @@ type NodeManager interface {
 	GetSequenceNumbers() (map[string]int, error)
 	BootstrapNode(baseURL string) error
 	JoinNode(baseURL string) error
+	FindUnhealthyNode() (string, error)
 }
 
 type nodeManager struct {
@@ -42,6 +45,27 @@ func New(rootConfig *config.Config, clock clock.Clock) NodeManager {
 	return &nodeManager{
 		rootConfig: rootConfig,
 		clock:      clock,
+	}
+}
+
+func (nm *nodeManager) FindUnhealthyNode() (string, error) {
+	unhealthyIndex := -1
+	var unhealthyURL string
+	for index, url := range nm.rootConfig.HealthcheckURLs {
+		_, err := nm.sendGetRequest(url)
+		if err != nil {
+			if unhealthyIndex != -1 {
+				return "", errors.New("Found more than one unhealthy node")
+			}
+			unhealthyIndex = index
+			unhealthyURL = url
+		}
+	}
+
+	if unhealthyIndex == -1 {
+		return "", errors.New("Found no unhealthy nodes")
+	} else {
+		return unhealthyURL, nil
 	}
 }
 
