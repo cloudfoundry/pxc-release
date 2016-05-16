@@ -71,6 +71,8 @@ var _ = Describe("Force-rejoin", func() {
 
 			Expect(fakeNodeManager.VerifyClusterIsUnhealthyCallCount()).To(Equal(1))
 			Expect(fakeNodeManager.FindUnhealthyNodeCallCount()).To(Equal(1))
+			Expect(fakeNodeManager.StopNodeCallCount()).To(Equal(1))
+			Expect(fakeNodeManager.StopNodeArgsForCall(0)).To(Equal("fake-url"))
 			Expect(fakeNodeManager.JoinNodeCallCount()).To(Equal(1))
 			Expect(fakeNodeManager.JoinNodeArgsForCall(0)).To(Equal("fake-url"))
 		})
@@ -99,6 +101,16 @@ var _ = Describe("Force-rejoin", func() {
 	Context("if JoinNode returns an error", func() {
 		It("returns an error", func() {
 			fakeNodeManager.JoinNodeStub = func(string) error {
+				return errors.New("fake-error")
+			}
+			err := bootstrapper.ForceRejoin()
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("if StopNode returns an error", func() {
+		It("returns an error", func() {
+			fakeNodeManager.StopNodeStub = func(string) error {
 				return errors.New("fake-error")
 			}
 			err := bootstrapper.ForceRejoin()

@@ -56,6 +56,14 @@ type FakeNodeManager struct {
 		result1 string
 		result2 error
 	}
+	StopNodeStub        func(string) error
+	stopNodeMutex       sync.RWMutex
+	stopNodeArgsForCall []struct {
+		arg1 string
+	}
+	stopNodeReturns struct {
+		result1 error
+	}
 	invocations map[string][][]interface{}
 }
 
@@ -257,6 +265,40 @@ func (fake *FakeNodeManager) FindUnhealthyNodeReturns(result1 string, result2 er
 		result1 string
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeNodeManager) StopNode(arg1 string) error {
+	fake.stopNodeMutex.Lock()
+	fake.stopNodeArgsForCall = append(fake.stopNodeArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.guard("StopNode")
+	fake.invocations["StopNode"] = append(fake.invocations["StopNode"], []interface{}{arg1})
+	fake.stopNodeMutex.Unlock()
+	if fake.StopNodeStub != nil {
+		return fake.StopNodeStub(arg1)
+	} else {
+		return fake.stopNodeReturns.result1
+	}
+}
+
+func (fake *FakeNodeManager) StopNodeCallCount() int {
+	fake.stopNodeMutex.RLock()
+	defer fake.stopNodeMutex.RUnlock()
+	return len(fake.stopNodeArgsForCall)
+}
+
+func (fake *FakeNodeManager) StopNodeArgsForCall(i int) string {
+	fake.stopNodeMutex.RLock()
+	defer fake.stopNodeMutex.RUnlock()
+	return fake.stopNodeArgsForCall[i].arg1
+}
+
+func (fake *FakeNodeManager) StopNodeReturns(result1 error) {
+	fake.StopNodeStub = nil
+	fake.stopNodeReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeNodeManager) Invocations() map[string][][]interface{} {

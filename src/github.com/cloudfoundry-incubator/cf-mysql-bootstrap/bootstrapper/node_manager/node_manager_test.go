@@ -287,51 +287,185 @@ var _ = Describe("Bootstrap", func() {
 
 	Describe("#FindUnhealthyNode", func() {
 		Context("when one node is unhealthy", func() {
-			BeforeEach(func() {
-				for _, handler := range endpointHandlers {
-					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
-				}
-				endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+			Context("when all are mysql nodes", func() {
+				BeforeEach(func() {
+					for _, handler := range endpointHandlers {
+						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+					}
+					endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+				})
+
+				It("returns the url of the unhealthy node", func() {
+					unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(unhealthyNodeURL).To(Equal(testServers[1].URL))
+				})
 			})
 
-			It("returns the url of the unhealthy node", func() {
-				unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(unhealthyNodeURL).To(Equal(testServers[1].URL))
+			Context("when we have one arbitrator", func() {
+				BeforeEach(func() {
+					for _, handler := range endpointHandlers {
+						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+					}
+					endpointHandlers[0].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "arbitrator")
+					endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+				})
+
+				It("returns the url of the unhealthy node", func() {
+					unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(unhealthyNodeURL).To(Equal(testServers[1].URL))
+				})
 			})
 		})
 
 		Context("when no nodes are unhealthy", func() {
-			BeforeEach(func() {
-				for _, handler := range endpointHandlers {
-					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
-				}
+			Context("when all are mysql nodes", func() {
+				BeforeEach(func() {
+					for _, handler := range endpointHandlers {
+						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+					}
+				})
+
+				It("returns an error", func() {
+					unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("Found no unhealthy nodes"))
+					Expect(unhealthyNodeURL).To(Equal(""))
+				})
 			})
 
-			It("returns an error", func() {
-				unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Found no unhealthy nodes"))
-				Expect(unhealthyNodeURL).To(Equal(""))
+			Context("when we have one arbitrator", func() {
+				BeforeEach(func() {
+					for _, handler := range endpointHandlers {
+						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+					}
+					endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "arbitrator")
+				})
+
+				It("returns an error", func() {
+					unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("Found no unhealthy nodes"))
+					Expect(unhealthyNodeURL).To(Equal(""))
+				})
 			})
 		})
 
 		Context("when more than one nodes are unhealthy", func() {
-			BeforeEach(func() {
-				for _, handler := range endpointHandlers {
-					handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
-				}
-				endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
-				endpointHandlers[2].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+			Context("when all are mysql nodes", func() {
+				BeforeEach(func() {
+					for _, handler := range endpointHandlers {
+						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
+					}
+					endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+					endpointHandlers[2].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+				})
+
+				It("returns an error", func() {
+					unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("Found more than one unhealthy node"))
+					Expect(unhealthyNodeURL).To(Equal(""))
+				})
 			})
 
-			It("returns an error", func() {
-				unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Found more than one unhealthy node"))
-				Expect(unhealthyNodeURL).To(Equal(""))
+			Context("when we have one arbitrator", func() {
+				BeforeEach(func() {
+					endpointHandlers[0].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "arbitrator")
+					endpointHandlers[1].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+					endpointHandlers[2].StubEndpointWithStatus("/", http.StatusServiceUnavailable, "not synced")
+				})
+
+				It("returns an error", func() {
+					unhealthyNodeURL, err := nodeManager.FindUnhealthyNode()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("Found more than one unhealthy node"))
+					Expect(unhealthyNodeURL).To(Equal(""))
+				})
 			})
 		})
+	})
+
+	Describe("#StopNode", func() {
+		Context("when the shutdown request succeeds", func() {
+			const pendingCallCount = 3
+			BeforeEach(func() {
+				node_manager.GetShutDownTimeout = func() int {
+					return 25
+				}
+				currCallCount := 0
+				fakeHandler := &fakes.FakeHandler{}
+				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+					var responseText string
+					if currCallCount <= pendingCallCount {
+						responseText = "pending"
+					} else {
+						responseText = "stopped"
+					}
+					currCallCount++
+					fmt.Fprintf(w, responseText)
+				}
+				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusOK)
+			})
+
+			It("stops the node and quits successfully", func() {
+				err := nodeManager.StopNode(testServers[0].URL)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(endpointHandlers[0].GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", pendingCallCount))
+			})
+
+		})
+
+		Context("when the shutdown request fails", func() {
+			const pendingCallCount = 3
+			BeforeEach(func() {
+				fakeHandler := &fakes.FakeHandler{}
+				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+					var responseText string
+					responseText = "pending"
+					fmt.Fprintf(w, responseText)
+				}
+				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusInternalServerError)
+			})
+
+			It("fails to stop the node and returns error", func() {
+				err := nodeManager.StopNode(testServers[0].URL)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to stop"))
+				Expect(endpointHandlers[0].GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the node does not shut down in time", func() {
+			const pendingCallCount = 3
+			BeforeEach(func() {
+				node_manager.GetShutDownTimeout = func() int {
+					return 25
+				}
+				fakeHandler := &fakes.FakeHandler{}
+				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+					var responseText string
+					responseText = "pending"
+					fmt.Fprintf(w, responseText)
+				}
+				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusOK)
+			})
+
+			It("fails to stop the node and returns error", func() {
+				err := nodeManager.StopNode(testServers[0].URL)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to stop"))
+				Expect(endpointHandlers[0].GetFakeHandler("/stop_mysql").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", pendingCallCount))
+			})
+		})
+
 	})
 
 	Describe("#VerifyAllNodesAreReachable", func() {

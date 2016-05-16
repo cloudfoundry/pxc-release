@@ -25,6 +25,11 @@ func (b *Bootstrapper) ForceRejoin() error {
 		return err
 	}
 
+	err = b.nodeManager.StopNode(url)
+	if err != nil {
+		return err
+	}
+
 	err = b.nodeManager.JoinNode(url)
 	if err != nil {
 		return err

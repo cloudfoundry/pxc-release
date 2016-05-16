@@ -34,6 +34,7 @@ type NodeManager interface {
 	BootstrapNode(baseURL string) error
 	JoinNode(baseURL string) error
 	FindUnhealthyNode() (string, error)
+	StopNode(string) error
 }
 
 type nodeManager struct {
@@ -52,8 +53,8 @@ func (nm *nodeManager) FindUnhealthyNode() (string, error) {
 	unhealthyIndex := -1
 	var unhealthyURL string
 	for index, url := range nm.rootConfig.HealthcheckURLs {
-		_, err := nm.sendGetRequest(url)
-		if err != nil {
+		responseBody, err := nm.sendGetRequest(url)
+		if err != nil && !strings.Contains(responseBody, "arbitrator") {
 			if unhealthyIndex != -1 {
 				return "", errors.New("Found more than one unhealthy node")
 			}
@@ -140,6 +141,23 @@ func (nm *nodeManager) StopAllNodes() error {
 	}
 
 	return nm.waitForClusterShutdown()
+}
+
+func (nm *nodeManager) StopNode(url string) error {
+	stopMysqlUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.ShutDownMysql)
+	_, err := nm.sendPostRequest(stopMysqlUrl)
+
+	if err != nil {
+		return fmt.Errorf("Failed to stop node at %s, got error: %s", url, err.Error())
+	}
+
+	statusUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.MysqlStatus)
+	err = nm.pollUntilResponse(statusUrl, "stopped")
+	if err != nil {
+		return fmt.Errorf("Failed to stop node at %s, got error: %s", url, err.Error())
+	}
+
+	return nil
 }
 
 func (nm *nodeManager) GetSequenceNumbers() (map[string]int, error) {
