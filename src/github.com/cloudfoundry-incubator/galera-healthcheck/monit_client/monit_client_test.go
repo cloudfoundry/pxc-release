@@ -28,16 +28,26 @@ var (
 var _ = Describe("monitClient", func() {
 
 	var (
-		monitClient monit_client.MonitClient
-		ts          *httptest.Server
-		logger      lager.Logger
-		fakeHandler http.HandlerFunc
-		processName string
+		monitClient        monit_client.MonitClient
+		ts                 *httptest.Server
+		logger             lager.Logger
+		fakeHandler        http.HandlerFunc
+		processName        string
+		blankBootstrapFile bool
 	)
+
+	BeforeEach(func() {
+		blankBootstrapFile = false
+	})
 
 	JustBeforeEach(func() {
 		ts = httptest.NewServer(fakeHandler)
 		testHost, testPort := splitHostandPort(ts.URL)
+		fakeBootstrapFileName := ""
+		if !blankBootstrapFile {
+			fakeBootstrapFileName = fakeBootstrapFile.Name()
+		}
+
 		monitConfig := config.MonitConfig{
 			User:                 "fake-user",
 			Password:             "fake-password",
@@ -45,7 +55,7 @@ var _ = Describe("monitClient", func() {
 			Port:                 testPort,
 			MysqlStateFilePath:   stateFile.Name(),
 			ServiceName:          processName,
-			BootstrapFilePath:    fakeBootstrapFile.Name(),
+			BootstrapFilePath:    fakeBootstrapFileName,
 			BootstrapLogFilePath: fakeBootstrapLogFile.Name(),
 		}
 
@@ -185,6 +195,18 @@ var _ = Describe("monitClient", func() {
 					st, err := monitClient.StartServiceSingleNode()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("singleNode"))
+				})
+			})
+
+			Context("when BootstrapFilePath is blank", func() {
+				BeforeEach(func() {
+					blankBootstrapFile = true
+				})
+
+				It("does not call the bootstrap binary", func() {
+					Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
+					monitClient.StartServiceJoin()
+					Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
 				})
 			})
 

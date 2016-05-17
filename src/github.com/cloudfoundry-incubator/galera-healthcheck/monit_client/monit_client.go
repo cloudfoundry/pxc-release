@@ -67,29 +67,32 @@ func (m *monitClient) startService(startMode string) (string, error) {
 			m.logger.Error("Failed to start mysql node", err)
 			return "", err
 		}
-		prestartCmd := exec.Command(
-			"/bin/bash",
-			m.monitConfig.BootstrapFilePath,
-		)
 
-		env := os.Environ()
-		env = append(env, fmt.Sprintf("LOG_FILE=%s", m.monitConfig.BootstrapLogFilePath))
-		prestartCmd.Env = env
+		if m.monitConfig.BootstrapFilePath != "" {
+			prestartCmd := exec.Command(
+				"/bin/bash",
+				m.monitConfig.BootstrapFilePath,
+			)
 
-		stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapLogFilePath), err)
-			return "", err
-		}
-		defer stdoutDest.Close()
+			env := os.Environ()
+			env = append(env, fmt.Sprintf("LOG_FILE=%s", m.monitConfig.BootstrapLogFilePath))
+			prestartCmd.Env = env
 
-		prestartCmd.Stdout = stdoutDest
-		prestartCmd.Stderr = stdoutDest
+			stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				m.logger.Error(fmt.Sprintf("Failed to open pre-start-unprivileged log file: %s", m.monitConfig.BootstrapLogFilePath), err)
+				return "", err
+			}
+			defer stdoutDest.Close()
 
-		err = prestartCmd.Run()
-		if err != nil {
-			m.logger.Error("Failed to pre-start mysql node", err)
-			return "", err
+			prestartCmd.Stdout = stdoutDest
+			prestartCmd.Stderr = stdoutDest
+
+			err = prestartCmd.Run()
+			if err != nil {
+				m.logger.Error("Failed to pre-start mysql node", err)
+				return "", err
+			}
 		}
 	}
 
