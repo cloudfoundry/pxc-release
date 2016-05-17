@@ -54,6 +54,16 @@ var _ = Describe("GaleraStartMySQL", func() {
 			})
 		})
 
+		Context("singleNode mode", func() {
+			It("writes 'SINGLE_NODE' to its state file", func() {
+				mysqlStartMode := mysql_start_mode.NewMysqlStartMode(stateFile.Name(), "singleNode")
+				err := mysqlStartMode.Start()
+				Expect(err).ToNot(HaveOccurred())
+				stateFileOutput, _ := ioutil.ReadFile(stateFile.Name())
+				Expect(string(stateFileOutput)).To(Equal("SINGLE_NODE"))
+			})
+		})
+
 		It("is passed an unrecognized parameter", func() {
 			mysqlStartMode := mysql_start_mode.NewMysqlStartMode("stateFileExample.txt", "not_legit_parameter")
 			err := mysqlStartMode.Start()

@@ -173,6 +173,21 @@ var _ = Describe("monitClient", func() {
 				})
 			})
 
+			Context("when starting in singleNode mode", func() {
+				BeforeEach(func() {
+					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						w.WriteHeader(http.StatusOK)
+						fmt.Fprintln(w, "not monitored - start pending")
+					})
+				})
+
+				It("returns string noting successful start in singleNode mode", func() {
+					st, err := monitClient.StartServiceSingleNode()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(st).To(ContainSubstring("singleNode"))
+				})
+			})
+
 			It("calls the bootstrap binary", func() {
 				Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
 				monitClient.StartServiceJoin()

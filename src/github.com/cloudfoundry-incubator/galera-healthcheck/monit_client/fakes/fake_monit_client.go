@@ -23,6 +23,13 @@ type FakeMonitClient struct {
 		result1 string
 		result2 error
 	}
+	StartServiceSingleNodeStub        func() (string, error)
+	startServiceSingleNodeMutex       sync.RWMutex
+	startServiceSingleNodeArgsForCall []struct{}
+	startServiceSingleNodeReturns     struct {
+		result1 string
+		result2 error
+	}
 	StopServiceStub        func() (string, error)
 	stopServiceMutex       sync.RWMutex
 	stopServiceArgsForCall []struct{}
@@ -90,6 +97,31 @@ func (fake *FakeMonitClient) StartServiceJoinCallCount() int {
 func (fake *FakeMonitClient) StartServiceJoinReturns(result1 string, result2 error) {
 	fake.StartServiceJoinStub = nil
 	fake.startServiceJoinReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMonitClient) StartServiceSingleNode() (string, error) {
+	fake.startServiceSingleNodeMutex.Lock()
+	fake.startServiceSingleNodeArgsForCall = append(fake.startServiceSingleNodeArgsForCall, struct{}{})
+	fake.startServiceSingleNodeMutex.Unlock()
+	if fake.StartServiceSingleNodeStub != nil {
+		return fake.StartServiceSingleNodeStub()
+	} else {
+		return fake.startServiceSingleNodeReturns.result1, fake.startServiceSingleNodeReturns.result2
+	}
+}
+
+func (fake *FakeMonitClient) StartServiceSingleNodeCallCount() int {
+	fake.startServiceSingleNodeMutex.RLock()
+	defer fake.startServiceSingleNodeMutex.RUnlock()
+	return len(fake.startServiceSingleNodeArgsForCall)
+}
+
+func (fake *FakeMonitClient) StartServiceSingleNodeReturns(result1 string, result2 error) {
+	fake.StartServiceSingleNodeStub = nil
+	fake.startServiceSingleNodeReturns = struct {
 		result1 string
 		result2 error
 	}{result1, result2}

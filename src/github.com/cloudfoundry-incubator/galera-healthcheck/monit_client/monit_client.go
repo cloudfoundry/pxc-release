@@ -16,9 +16,12 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+//go:generate counterfeiter -o fakes/fake_monit_client.go . MonitClient
+
 type MonitClient interface {
 	StartServiceBootstrap() (string, error)
 	StartServiceJoin() (string, error)
+	StartServiceSingleNode() (string, error)
 	StopService() (string, error)
 	GetStatus() (string, error)
 	GetLogger() lager.Logger
@@ -50,6 +53,10 @@ func (m *monitClient) StartServiceBootstrap() (string, error) {
 
 func (m *monitClient) StartServiceJoin() (string, error) {
 	return m.startService("join")
+}
+
+func (m *monitClient) StartServiceSingleNode() (string, error) {
+	return m.startService("singleNode")
 }
 
 func (m *monitClient) startService(startMode string) (string, error) {

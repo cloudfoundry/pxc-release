@@ -24,6 +24,8 @@ func (ms *MysqlStartMode) Start() error {
 		err = ms.mysqlStartModeInBootstrap()
 	case "join":
 		err = ms.mysqlStartModeInJoin()
+	case "singleNode":
+		err = ms.mysqlStartModeInSingleNode()
 	default:
 		err = fmt.Errorf("Unrecognized value for start mode!")
 	}
@@ -44,6 +46,14 @@ func (ms *MysqlStartMode) mysqlStartModeInBootstrap() error {
 
 func (ms *MysqlStartMode) mysqlStartModeInJoin() error {
 	err := ioutil.WriteFile(ms.stateFilePath, []byte("CLUSTERED"), 0777)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ms *MysqlStartMode) mysqlStartModeInSingleNode() error {
+	err := ioutil.WriteFile(ms.stateFilePath, []byte("SINGLE_NODE"), 0777)
 	if err != nil {
 		return err
 	}

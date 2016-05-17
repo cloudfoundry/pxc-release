@@ -110,6 +110,16 @@ var _ = Describe("Bootstrap API", func() {
 			Expect(monitClient.StartServiceBootstrapCallCount()).To(Equal(1))
 		})
 
+		It("Calls StartService(single_node) on the monit client when a start command is sent in single_node mode", func() {
+			req := createReq("start_mysql_single_node", "POST")
+			resp, err := http.DefaultClient.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			Expect(monitClient.StartServiceSingleNodeCallCount()).To(Equal(1))
+		})
+
 		It("Calls GetStatus on the monit client when a new GetStatusCmd is created", func() {
 			req := createReq("mysql_status", "GET")
 			resp, err := http.DefaultClient.Do(req)

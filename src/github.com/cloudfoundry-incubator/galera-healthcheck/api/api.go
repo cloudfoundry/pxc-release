@@ -36,6 +36,7 @@ func NewRouter(apiParams ApiParameters) (http.Handler, error) {
 		{Name: "stop_mysql", Method: "POST", Path: "/stop_mysql"},
 		{Name: "start_mysql_bootstrap", Method: "POST", Path: "/start_mysql_bootstrap"},
 		{Name: "start_mysql_join", Method: "POST", Path: "/start_mysql_join"},
+		{Name: "start_mysql_single_node", Method: "POST", Path: "/start_mysql_single_node"},
 		{Name: "sequence_number", Method: "GET", Path: "/sequence_number"},
 		{Name: "galera_status", Method: "GET", Path: "/galera_status"},
 		{Name: "root", Method: "GET", Path: "/"},
@@ -45,13 +46,14 @@ func NewRouter(apiParams ApiParameters) (http.Handler, error) {
 	seqnoChecker := r.apiParams.SequenceNumberChecker
 	healthchecker := r.apiParams.Healthchecker
 	handlers := rata.Handlers{
-		"mysql_status":          r.getSecureHandler(client.GetStatus),
-		"stop_mysql":            r.getSecureHandler(client.StopService),
-		"start_mysql_bootstrap": r.getSecureHandler(client.StartServiceBootstrap),
-		"start_mysql_join":      r.getSecureHandler(client.StartServiceJoin),
-		"sequence_number":       r.getSecureHandler(seqnoChecker.Check),
-		"galera_status":         r.getInsecureHandler(healthchecker.Check),
-		"root":                  r.getInsecureHandler(healthchecker.Check),
+		"mysql_status":            r.getSecureHandler(client.GetStatus),
+		"stop_mysql":              r.getSecureHandler(client.StopService),
+		"start_mysql_bootstrap":   r.getSecureHandler(client.StartServiceBootstrap),
+		"start_mysql_join":        r.getSecureHandler(client.StartServiceJoin),
+		"start_mysql_single_node": r.getSecureHandler(client.StartServiceSingleNode),
+		"sequence_number":         r.getSecureHandler(seqnoChecker.Check),
+		"galera_status":           r.getInsecureHandler(healthchecker.Check),
+		"root":                    r.getInsecureHandler(healthchecker.Check),
 	}
 
 	handler, err := rata.NewRouter(routes, handlers)
