@@ -36,7 +36,7 @@ func main() {
 		fmt.Sprintf("%s:%s@tcp(%s:%d)/",
 			config.User,
 			config.Password,
-			"localhost",
+			"127.0.0.1",
 			config.Port))
 
 	if err != nil {
