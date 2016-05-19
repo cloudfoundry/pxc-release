@@ -2,27 +2,32 @@
 package fakes
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 )
 
 type FakeHealthChecker struct {
-	CheckStub        func() (string, error)
+	CheckStub        func(req *http.Request) (string, error)
 	checkMutex       sync.RWMutex
-	checkArgsForCall []struct{}
-	checkReturns     struct {
+	checkArgsForCall []struct {
+		req *http.Request
+	}
+	checkReturns struct {
 		result1 string
 		result2 error
 	}
 }
 
-func (fake *FakeHealthChecker) Check() (string, error) {
+func (fake *FakeHealthChecker) Check(req *http.Request) (string, error) {
 	fake.checkMutex.Lock()
-	fake.checkArgsForCall = append(fake.checkArgsForCall, struct{}{})
+	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
+		req *http.Request
+	}{req})
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
-		return fake.CheckStub()
+		return fake.CheckStub(req)
 	} else {
 		return fake.checkReturns.result1, fake.checkReturns.result2
 	}
@@ -32,6 +37,12 @@ func (fake *FakeHealthChecker) CheckCallCount() int {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
 	return len(fake.checkArgsForCall)
+}
+
+func (fake *FakeHealthChecker) CheckArgsForCall(i int) *http.Request {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	return fake.checkArgsForCall[i].req
 }
 
 func (fake *FakeHealthChecker) CheckReturns(result1 string, result2 error) {

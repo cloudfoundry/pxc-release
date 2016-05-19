@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
+	"net/http"
 )
 
 var _ = Describe("GaleraHealthChecker", func() {
@@ -176,7 +177,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					logger := lagertest.NewTestLogger("healthcheck test")
 					healthchecker := healthcheck.New(db, config, logger)
 
-					_, err := healthchecker.Check()
+					_, err := healthchecker.Check(createReq())
 					Expect(err).To(MatchError("test error"))
 				})
 			})
@@ -204,7 +205,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					logger := lagertest.NewTestLogger("healthcheck test")
 					healthchecker := healthcheck.New(db, config, logger)
 
-					_, err := healthchecker.Check()
+					_, err := healthchecker.Check(createReq())
 					Expect(err).To(MatchError("another test error"))
 				})
 			})
@@ -231,7 +232,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				})
 
 				It("returns false and a warning message", func() {
-					_, err := healthchecker.Check()
+					_, err := healthchecker.Check(createReq())
 					Expect(err).To(MatchError("Cannot get status from galera"))
 				})
 
@@ -263,6 +264,12 @@ type healthcheckTestHelperConfig struct {
 	monit                 config.MonitConfig
 }
 
+func createReq() *http.Request {
+	req, err := http.NewRequest("", "/example.com", nil)
+	Expect(err).ToNot(HaveOccurred())
+	return req
+}
+
 func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, error) {
 	db, _ := sql.Open("testdb", "")
 
@@ -291,5 +298,5 @@ func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, erro
 	logger := lagertest.NewTestLogger("healthcheck test")
 	healthchecker := healthcheck.New(db, config, logger)
 
-	return healthchecker.Check()
+	return healthchecker.Check(createReq())
 }

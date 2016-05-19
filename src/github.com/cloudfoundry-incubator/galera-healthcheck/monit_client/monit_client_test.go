@@ -98,7 +98,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has stopped", func() {
-					st, err := monitClient.StopService()
+					st, err := monitClient.StopService(createReq())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("stop"))
 				})
@@ -113,7 +113,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response non-200 and process has not stopped", func() {
-					_, err := monitClient.StopService()
+					_, err := monitClient.StopService(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
 				})
@@ -128,7 +128,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has not stopped", func() {
-					_, err := monitClient.StopService()
+					_, err := monitClient.StopService(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("failed to stop"))
 				})
@@ -147,7 +147,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response non-200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin()
+					_, err := monitClient.StartServiceJoin(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
 				})
@@ -162,7 +162,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has started", func() {
-					st, err := monitClient.StartServiceJoin()
+					st, err := monitClient.StartServiceJoin(createReq())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("join"))
 				})
@@ -177,7 +177,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin()
+					_, err := monitClient.StartServiceJoin(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("failed to start"))
 				})
@@ -192,7 +192,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns string noting successful start in singleNode mode", func() {
-					st, err := monitClient.StartServiceSingleNode()
+					st, err := monitClient.StartServiceSingleNode(createReq())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("singleNode"))
 				})
@@ -205,14 +205,14 @@ var _ = Describe("monitClient", func() {
 
 				It("does not call the bootstrap binary", func() {
 					Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
-					monitClient.StartServiceJoin()
+					monitClient.StartServiceJoin(createReq())
 					Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
 				})
 			})
 
 			It("calls the bootstrap binary", func() {
 				Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
-				monitClient.StartServiceJoin()
+				monitClient.StartServiceJoin(createReq())
 				Expect(fakeBootstrapFile.Name()).ShouldNot(BeAnExistingFile())
 			})
 
@@ -243,7 +243,7 @@ var _ = Describe("monitClient", func() {
 					})
 
 					It("returns running", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("running"))
 					})
@@ -255,7 +255,7 @@ var _ = Describe("monitClient", func() {
 					})
 
 					It("returns stopped", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("stopped"))
 					})
@@ -266,7 +266,7 @@ var _ = Describe("monitClient", func() {
 						processName = "failing_process"
 					})
 					It("returns failing", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("failing"))
 					})
@@ -277,7 +277,7 @@ var _ = Describe("monitClient", func() {
 						processName = "pending_process"
 					})
 					It("returns failing", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("pending"))
 					})
@@ -288,7 +288,7 @@ var _ = Describe("monitClient", func() {
 						processName = "nonexistent_process"
 					})
 					It("returns an error", func() {
-						_, err := monitClient.GetStatus()
+						_, err := monitClient.GetStatus(createReq())
 						Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Could not find process %s", processName)))
 					})
 				})
@@ -303,7 +303,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns an error", func() {
-					_, err := monitClient.GetStatus()
+					_, err := monitClient.GetStatus(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
 				})
@@ -338,7 +338,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has stopped", func() {
-					st, err := monitClient.StopService()
+					st, err := monitClient.StopService(createReq())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("stop"))
 				})
@@ -353,7 +353,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response non-200 and process has not stopped", func() {
-					_, err := monitClient.StopService()
+					_, err := monitClient.StopService(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
 				})
@@ -368,7 +368,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has not stopped", func() {
-					_, err := monitClient.StopService()
+					_, err := monitClient.StopService(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("failed to stop"))
 				})
@@ -387,7 +387,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response non-200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin()
+					_, err := monitClient.StartServiceJoin(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
 
@@ -406,7 +406,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has started", func() {
-					st, err := monitClient.StartServiceJoin()
+					st, err := monitClient.StartServiceJoin(createReq())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(st).To(ContainSubstring("join"))
 
@@ -425,7 +425,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns http response 200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin()
+					_, err := monitClient.StartServiceJoin(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("failed to start"))
 
@@ -437,7 +437,7 @@ var _ = Describe("monitClient", func() {
 
 			Context("when trying to bootstrap the arbitrator node", func() {
 				It("returns a message saying not allowed", func() {
-					_, err := monitClient.StartServiceBootstrap()
+					_, err := monitClient.StartServiceBootstrap(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("bootstrapping arbitrator not allowed"))
 				})
@@ -469,7 +469,7 @@ var _ = Describe("monitClient", func() {
 					})
 
 					It("returns running", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("running"))
 					})
@@ -481,7 +481,7 @@ var _ = Describe("monitClient", func() {
 					})
 
 					It("returns stopped", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("stopped"))
 					})
@@ -492,7 +492,7 @@ var _ = Describe("monitClient", func() {
 						processName = "failing_process"
 					})
 					It("returns failing", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("failing"))
 					})
@@ -503,7 +503,7 @@ var _ = Describe("monitClient", func() {
 						processName = "pending_process"
 					})
 					It("returns failing", func() {
-						stat, err := monitClient.GetStatus()
+						stat, err := monitClient.GetStatus(createReq())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(stat).To(Equal("pending"))
 					})
@@ -514,7 +514,7 @@ var _ = Describe("monitClient", func() {
 						processName = "nonexistent_process"
 					})
 					It("returns an error", func() {
-						_, err := monitClient.GetStatus()
+						_, err := monitClient.GetStatus(createReq())
 						Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Could not find process %s", processName)))
 					})
 				})
@@ -529,7 +529,7 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("returns an error", func() {
-					_, err := monitClient.GetStatus()
+					_, err := monitClient.GetStatus(createReq())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
 				})
@@ -549,4 +549,10 @@ func getRelativeFile(relativeFilepath string) string {
 	_, filename, _, _ := runtime.Caller(1)
 	thisDir := filepath.Dir(filename)
 	return filepath.Join(thisDir, relativeFilepath)
+}
+
+func createReq() *http.Request {
+	req, err := http.NewRequest("", "/example.com", nil)
+	Expect(err).ToNot(HaveOccurred())
+	return req
 }

@@ -19,12 +19,12 @@ import (
 //go:generate counterfeiter -o fakes/fake_monit_client.go . MonitClient
 
 type MonitClient interface {
-	StartServiceBootstrap() (string, error)
-	StartServiceJoin() (string, error)
-	StartServiceSingleNode() (string, error)
-	StopService() (string, error)
-	GetStatus() (string, error)
-	GetLogger() lager.Logger
+	StartServiceBootstrap(req *http.Request) (string, error)
+	StartServiceJoin(req *http.Request) (string, error)
+	StartServiceSingleNode(req *http.Request) (string, error)
+	StopService(req *http.Request) (string, error)
+	GetStatus(req *http.Request) (string, error)
+	GetLogger(req *http.Request) lager.Logger
 }
 
 type monitClient struct {
@@ -39,11 +39,11 @@ func New(monitConfig config.MonitConfig, logger lager.Logger) *monitClient {
 	}
 }
 
-func (m *monitClient) GetLogger() lager.Logger {
+func (m *monitClient) GetLogger(req *http.Request) lager.Logger {
 	return m.logger
 }
 
-func (m *monitClient) StartServiceBootstrap() (string, error) {
+func (m *monitClient) StartServiceBootstrap(req *http.Request) (string, error) {
 	if m.monitConfig.ServiceName == "mariadb_ctrl" {
 		return m.startService("bootstrap")
 	} else {
@@ -51,11 +51,11 @@ func (m *monitClient) StartServiceBootstrap() (string, error) {
 	}
 }
 
-func (m *monitClient) StartServiceJoin() (string, error) {
+func (m *monitClient) StartServiceJoin(req *http.Request) (string, error) {
 	return m.startService("join")
 }
 
-func (m *monitClient) StartServiceSingleNode() (string, error) {
+func (m *monitClient) StartServiceSingleNode(req *http.Request) (string, error) {
 	return m.startService("singleNode")
 }
 
@@ -76,6 +76,7 @@ func (m *monitClient) startService(startMode string) (string, error) {
 
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("LOG_FILE=%s", m.monitConfig.BootstrapLogFilePath))
+			env = append(env, "DISABLE_SST=1")
 			prestartCmd.Env = env
 
 			stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
@@ -104,7 +105,7 @@ func (m *monitClient) startService(startMode string) (string, error) {
 	return msg, err
 }
 
-func (m *monitClient) StopService() (string, error) {
+func (m *monitClient) StopService(req *http.Request) (string, error) {
 	err := m.runServiceCmd("stop")
 	msg := ""
 	if err == nil {
@@ -142,7 +143,7 @@ func (m *monitClient) statusLookup(s MonitStatus) (string, error) {
 	}
 }
 
-func (m *monitClient) GetStatus() (string, error) {
+func (m *monitClient) GetStatus(req *http.Request) (string, error) {
 
 	statusResponse, err := m.runStatusCmd()
 	if err != nil {

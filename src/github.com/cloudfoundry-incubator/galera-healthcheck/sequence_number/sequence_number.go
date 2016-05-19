@@ -10,11 +10,14 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/pivotal-golang/lager"
+	"net/http"
 )
 
 type SequenceNumberChecker interface {
-	Check() (string, error)
+	Check(req *http.Request) (string, error)
 }
+
+//go:generate counterfeiter -o fakes/fake_sequence_number_checker.go . SequenceNumberChecker
 
 type sequenceNumberChecker struct {
 	db        *sql.DB
@@ -32,7 +35,7 @@ func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logge
 	}
 }
 
-func (s *sequenceNumberChecker) Check() (string, error) {
+func (s *sequenceNumberChecker) Check(req *http.Request) (string, error) {
 	s.logger.Info("Checking sequence number of mariadb node...")
 
 	if s.config.Monit.ServiceName == "garbd" {

@@ -8,10 +8,13 @@ import (
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-golang/lager"
+	"net/http"
 )
 
+//go:generate counterfeiter -o fakes/fake_health_checker.go . HealthChecker
+
 type HealthChecker interface {
-	Check() (string, error)
+	Check(req *http.Request) (string, error)
 }
 
 const (
@@ -35,7 +38,7 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) HealthChecker {
 	}
 }
 
-func (h *healthChecker) Check() (string, error) {
+func (h *healthChecker) Check(req *http.Request) (string, error) {
 	if h.config.Monit.ServiceName == "garbd" {
 		return "", errors.New("arbitrator node")
 	}

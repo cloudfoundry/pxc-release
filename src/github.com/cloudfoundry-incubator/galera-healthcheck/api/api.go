@@ -12,7 +12,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type RunFunc func() (string, error)
+type RunFunc func(req *http.Request) (string, error)
 
 type ApiParameters struct {
 	RootConfig            *config.Config
@@ -78,7 +78,7 @@ func (r router) getSecureHandler(run RunFunc) http.Handler {
 func (r router) getInsecureHandler(run RunFunc) http.Handler {
 	logger := r.apiParams.RootConfig.Logger
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		body, err := run()
+		body, err := run(req)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			logger.Error("Failed to process request", err)

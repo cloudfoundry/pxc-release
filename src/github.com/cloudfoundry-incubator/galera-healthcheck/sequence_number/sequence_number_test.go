@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 	"github.com/pivotal-golang/lager/lagertest"
+	"net/http"
 )
 
 var _ = Describe("GaleraSequenceChecker", func() {
@@ -57,7 +58,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 			})
 
 			It("returns an unsuccessful check", func() {
-				_, err := sequenceChecker.Check()
+				_, err := sequenceChecker.Check(createReq())
 				Expect(err).To(MatchError("can't determine sequence number when database is running"))
 			})
 		})
@@ -70,7 +71,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 			})
 
 			It("returns a successful sequence number", func() {
-				seq, err := sequenceChecker.Check()
+				seq, err := sequenceChecker.Check(createReq())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(seq).To(ContainSubstring(expectedSeqNumber))
 			})
@@ -81,7 +82,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 				})
 
 				It("returns an error", func() {
-					_, err := sequenceChecker.Check()
+					_, err := sequenceChecker.Check(createReq())
 					Expect(err).To(MatchError("Invalid sequence number -1"))
 				})
 			})
@@ -92,7 +93,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 				})
 
 				It("returns an unsuccessful Check", func() {
-					_, err := sequenceChecker.Check()
+					_, err := sequenceChecker.Check(createReq())
 					Expect(err).To(MatchError("something went wrong"))
 				})
 			})
@@ -108,10 +109,16 @@ var _ = Describe("GaleraSequenceChecker", func() {
 			})
 
 			It("returns a message stating it is an arbitrator node", func() {
-				seq, err := sequenceChecker.Check()
+				seq, err := sequenceChecker.Check(createReq())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(seq).To(ContainSubstring(arbitratorSeqnoResponse))
 			})
 		})
 	})
 })
+
+func createReq() *http.Request {
+	req, err := http.NewRequest("", "/example.com", nil)
+	Expect(err).ToNot(HaveOccurred())
+	return req
+}
