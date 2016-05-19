@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
+	"github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/logwriter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

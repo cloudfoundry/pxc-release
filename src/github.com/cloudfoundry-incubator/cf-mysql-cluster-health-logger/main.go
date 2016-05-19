@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry-incubator/galera-healthcheck/cluster-health-logger/logwriter"
+	"github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/logwriter"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
