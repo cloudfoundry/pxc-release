@@ -220,6 +220,8 @@ func (nm *nodeManager) startNodeWithURL(baseURL string, startEndpoint string) er
 		})
 		if responseBody == "running" {
 			break
+		} else if responseBody == "failing" {
+			return fmt.Errorf("Node is failing: %s", baseURL)
 		}
 	}
 

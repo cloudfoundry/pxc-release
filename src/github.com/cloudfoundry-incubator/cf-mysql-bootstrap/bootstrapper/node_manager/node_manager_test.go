@@ -708,6 +708,39 @@ var _ = Describe("Bootstrap", func() {
 			})
 		})
 
+		Context("when the bootstrap request fails", func() {
+
+			const pendingCallCount = 5
+
+			BeforeEach(func() {
+				currCallCount := 0
+				fakeHandler := &fakes.FakeHandler{}
+				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+					var responseText string
+					if currCallCount <= pendingCallCount {
+						responseText = "pending"
+					} else {
+						responseText = "failing"
+					}
+					currCallCount++
+					fmt.Fprintf(w, responseText)
+				}
+				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
+			})
+
+			It("sends a bootstrap command to a node and returns an error when it reports 'failing'", func() {
+				bootstrapNodeUrl := rootConfig.HealthcheckURLs[0]
+
+				err := nodeManager.BootstrapNode(bootstrapNodeUrl)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(fmt.Sprintf("Node is failing: %s", bootstrapNodeUrl)))
+
+				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_bootstrap").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", pendingCallCount))
+			})
+		})
+
 		Context("when the bootstrap endpoint returns a non-200 response", func() {
 
 			BeforeEach(func() {
@@ -754,6 +787,39 @@ var _ = Describe("Bootstrap", func() {
 
 				err := nodeManager.JoinNode(joinNodeUrl)
 				Expect(err).ToNot(HaveOccurred())
+
+				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
+				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", pendingCallCount))
+			})
+		})
+
+		Context("when the join request fails", func() {
+
+			const pendingCallCount = 5
+
+			BeforeEach(func() {
+				currCallCount := 0
+				fakeHandler := &fakes.FakeHandler{}
+				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
+					var responseText string
+					if currCallCount <= pendingCallCount {
+						responseText = "pending"
+					} else {
+						responseText = "failing"
+					}
+					currCallCount++
+					fmt.Fprintf(w, responseText)
+				}
+				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
+				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
+			})
+
+			It("sends a join command to a node and returns an error when it reports 'failing'", func() {
+				joinNodeUrl := rootConfig.HealthcheckURLs[0]
+
+				err := nodeManager.JoinNode(joinNodeUrl)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(fmt.Sprintf("Node is failing: %s", joinNodeUrl)))
 
 				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
 				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", pendingCallCount))
