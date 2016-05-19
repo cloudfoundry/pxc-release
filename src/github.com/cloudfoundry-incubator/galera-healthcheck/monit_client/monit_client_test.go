@@ -77,7 +77,7 @@ var _ = Describe("monitClient", func() {
 
 			fakeBootstrapFile, _ = ioutil.TempFile(os.TempDir(), "fakeBootstrapper")
 			fakeBootstrapFile.Chmod(0777)
-			fakeBootstrapFile.Write([]byte(fmt.Sprintf("rm %s", fakeBootstrapFile.Name())))
+			fakeBootstrapFile.WriteString(fmt.Sprintf("echo \"DISABLE_SST:${DISABLE_SST}\"\nrm %s\n", fakeBootstrapFile.Name()))
 
 			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
 
@@ -210,9 +210,12 @@ var _ = Describe("monitClient", func() {
 				})
 			})
 
-			It("calls the bootstrap binary", func() {
+			It("calls the bootstrap binary with SST disabled by default", func() {
 				Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
 				monitClient.StartServiceJoin(createReq())
+				logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(logContent)).To(ContainSubstring("DISABLE_SST:1"))
 				Expect(fakeBootstrapFile.Name()).ShouldNot(BeAnExistingFile())
 			})
 
