@@ -198,7 +198,7 @@ func (nm *nodeManager) JoinNode(baseURL string) error {
 }
 
 func (nm *nodeManager) startNodeWithURL(baseURL string, startEndpoint string) error {
-	startURL := fmt.Sprintf("%s/%s", baseURL, startEndpoint)
+	startURL := fmt.Sprintf("%s/%s?sst=true", baseURL, startEndpoint)
 	_, err := nm.sendPostRequest(startURL)
 	if err != nil {
 		return err

@@ -789,6 +789,9 @@ var _ = Describe("Bootstrap", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(endpointHandlers[0].GetFakeHandler("/start_mysql_join").ServeHTTPCallCount()).To(Equal(1))
+
+				_, joinReq := endpointHandlers[0].GetFakeHandler("/start_mysql_join").ServeHTTPArgsForCall(0)
+				Expect(joinReq.URL.Query().Get("sst")).To(Equal("true"))
 				Expect(endpointHandlers[0].GetFakeHandler("/mysql_status").ServeHTTPCallCount()).To(BeNumerically(">=", pendingCallCount))
 			})
 		})
