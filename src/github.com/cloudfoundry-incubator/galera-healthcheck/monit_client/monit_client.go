@@ -45,21 +45,23 @@ func (m *monitClient) GetLogger(req *http.Request) lager.Logger {
 
 func (m *monitClient) StartServiceBootstrap(req *http.Request) (string, error) {
 	if m.monitConfig.ServiceName == "mariadb_ctrl" {
-		return m.startService("bootstrap")
+		return m.startService("bootstrap", true)
 	} else {
 		return "", errors.New("bootstrapping arbitrator not allowed")
 	}
 }
 
 func (m *monitClient) StartServiceJoin(req *http.Request) (string, error) {
-	return m.startService("join")
+	urlParams := req.URL.Query()
+	sstDisabled := !(urlParams.Get("sst") == "true")
+	return m.startService("join", sstDisabled)
 }
 
 func (m *monitClient) StartServiceSingleNode(req *http.Request) (string, error) {
-	return m.startService("singleNode")
+	return m.startService("singleNode", true)
 }
 
-func (m *monitClient) startService(startMode string) (string, error) {
+func (m *monitClient) startService(startMode string, sstDisabled bool) (string, error) {
 	if m.monitConfig.ServiceName == "mariadb_ctrl" {
 		mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
 		err := mySqlStartMode.Start()
@@ -76,7 +78,9 @@ func (m *monitClient) startService(startMode string) (string, error) {
 
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("LOG_FILE=%s", m.monitConfig.BootstrapLogFilePath))
-			env = append(env, "DISABLE_SST=1")
+			if sstDisabled {
+				env = append(env, "DISABLE_SST=1")
+			}
 			prestartCmd.Env = env
 
 			stdoutDest, err := os.OpenFile(m.monitConfig.BootstrapLogFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)

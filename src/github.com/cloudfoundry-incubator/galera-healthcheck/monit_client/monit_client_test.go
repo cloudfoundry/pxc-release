@@ -21,7 +21,6 @@ import (
 
 var (
 	stateFile            *os.File
-	fakeBootstrapFile    *os.File
 	fakeBootstrapLogFile *os.File
 )
 
@@ -45,7 +44,7 @@ var _ = Describe("monitClient", func() {
 		testHost, testPort := splitHostandPort(ts.URL)
 		fakeBootstrapFileName := ""
 		if !blankBootstrapFile {
-			fakeBootstrapFileName = fakeBootstrapFile.Name()
+			fakeBootstrapFileName = "fixtures/fake_prestart_script"
 		}
 
 		monitConfig := config.MonitConfig{
@@ -67,17 +66,12 @@ var _ = Describe("monitClient", func() {
 	AfterEach(func() {
 		ts.Close()
 		os.Remove(stateFile.Name())
-		os.Remove(fakeBootstrapFile.Name())
 	})
 
 	Context("when running on a mysql node", func() {
 		BeforeEach(func() {
 			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
 			stateFile.Chmod(0777)
-
-			fakeBootstrapFile, _ = ioutil.TempFile(os.TempDir(), "fakeBootstrapper")
-			fakeBootstrapFile.Chmod(0777)
-			fakeBootstrapFile.WriteString(fmt.Sprintf("echo \"DISABLE_SST:${DISABLE_SST}\"\nrm %s\n", fakeBootstrapFile.Name()))
 
 			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
 
@@ -204,21 +198,39 @@ var _ = Describe("monitClient", func() {
 				})
 
 				It("does not call the bootstrap binary", func() {
-					Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
 					monitClient.StartServiceJoin(createReq())
-					Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
+					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(logContent)).To(BeEmpty())
 				})
 			})
 
-			It("calls the bootstrap binary with SST disabled by default", func() {
-				Expect(fakeBootstrapFile.Name()).Should(BeAnExistingFile())
-				monitClient.StartServiceJoin(createReq())
-				logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(logContent)).To(ContainSubstring("DISABLE_SST:1"))
-				Expect(fakeBootstrapFile.Name()).ShouldNot(BeAnExistingFile())
+			Context("when BootstrapFilePath is set", func() {
+				It("calls the bootstrap binary with SST disabled by default", func() {
+					monitClient.StartServiceJoin(createReq())
+					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(logContent)).To(ContainSubstring("SST is disabled"))
+				})
 			})
 
+			Context("when requester wants to enable SSTs", func() {
+				It("calls the bootstrap binary with SST not disabled", func() {
+					monitClient.StartServiceJoin(createReqSSTEnabled())
+					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(logContent)).To(ContainSubstring("SST is enabled"))
+				})
+			})
+
+			Context("when requester wants to disable SSTs", func() {
+				It("calls the bootstrap binary with SST disabled", func() {
+					monitClient.StartServiceJoin(createReqSSTDisabled())
+					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(logContent)).To(ContainSubstring("SST is disabled"))
+				})
+			})
 		})
 
 		Describe("Status", func() {
@@ -322,9 +334,6 @@ var _ = Describe("monitClient", func() {
 				w.WriteHeader(http.StatusOK)
 			})
 			processName = "garbd"
-
-			fakeBootstrapFile, _ = ioutil.TempFile(os.TempDir(), "fakeBootstrapper")
-			fakeBootstrapFile.Chmod(0777)
 
 			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
 
@@ -556,6 +565,18 @@ func getRelativeFile(relativeFilepath string) string {
 
 func createReq() *http.Request {
 	req, err := http.NewRequest("", "/example.com", nil)
+	Expect(err).ToNot(HaveOccurred())
+	return req
+}
+
+func createReqSSTDisabled() *http.Request {
+	req, err := http.NewRequest("", "/example.com?sst=false", nil)
+	Expect(err).ToNot(HaveOccurred())
+	return req
+}
+
+func createReqSSTEnabled() *http.Request {
+	req, err := http.NewRequest("", "/example.com?sst=true", nil)
 	Expect(err).ToNot(HaveOccurred())
 	return req
 }

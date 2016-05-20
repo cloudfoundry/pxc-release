@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [[ -n "${DISABLE_SST}" ]]; then
+  echo "SST is disabled"
+else
+  echo "SST is enabled"
+fi
