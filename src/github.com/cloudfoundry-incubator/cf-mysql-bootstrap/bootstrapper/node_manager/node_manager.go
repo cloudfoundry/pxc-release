@@ -103,9 +103,9 @@ func (nm *nodeManager) determineNodeCount() (int, int) {
 }
 
 func (nm *nodeManager) validateNodeCountForRepairMode(syncedNodes, allNodes int, repairMode string) error {
-	if repairMode == "force-rejoin" {
+	if repairMode == "rejoin-unsafe" {
 		if syncedNodes < (allNodes - 1) {
-			err := errors.New("More than one node is unhealthy, cannot force-rejoin.")
+			err := errors.New("More than one node is unhealthy, cannot execute rejoin-unsafe.")
 			nm.rootConfig.Logger.Error("Action cannot be performed", err)
 			return err
 		}

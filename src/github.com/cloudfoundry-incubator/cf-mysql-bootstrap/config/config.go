@@ -22,7 +22,7 @@ type Config struct {
 	StartMysqlInJoinMode      string
 	StartMysqlInBootstrapMode string
 	LogFilePath               string `yaml:"LogFilePath" validate:"nonzero"`
-	RepairMode                string `yaml:"RepairMode" validate:"nonzero,regexp=^(bootstrap|force-rejoin)$"`
+	RepairMode                string `yaml:"RepairMode" validate:"nonzero,regexp=^(bootstrap|rejoin-unsafe)$"`
 }
 
 func defaultConfig() *Config {

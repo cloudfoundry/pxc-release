@@ -14,7 +14,7 @@ func New(nodeManager node_manager.NodeManager) *Bootstrapper {
 	}
 }
 
-func (b *Bootstrapper) ForceRejoin() error {
+func (b *Bootstrapper) RejoinUnsafe() error {
 	err := b.nodeManager.VerifyClusterIsUnhealthy()
 	if err != nil {
 		return err

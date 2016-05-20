@@ -54,7 +54,7 @@ var _ = Describe("Bootstrap", func() {
 	})
 })
 
-var _ = Describe("Force-rejoin", func() {
+var _ = Describe("rejoin-unsafe", func() {
 
 	BeforeEach(func() {
 		fakeNodeManager = &fakes.FakeNodeManager{}
@@ -66,7 +66,7 @@ var _ = Describe("Force-rejoin", func() {
 
 	Context("when all nodeManager calls succeed", func() {
 		It("makes the unhealthy node rejoin the cluster", func() {
-			err := bootstrapper.ForceRejoin()
+			err := bootstrapper.RejoinUnsafe()
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(fakeNodeManager.VerifyClusterIsUnhealthyCallCount()).To(Equal(1))
@@ -83,7 +83,7 @@ var _ = Describe("Force-rejoin", func() {
 			fakeNodeManager.VerifyClusterIsUnhealthyStub = func() error {
 				return errors.New("fake-error")
 			}
-			err := bootstrapper.ForceRejoin()
+			err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -93,7 +93,7 @@ var _ = Describe("Force-rejoin", func() {
 			fakeNodeManager.FindUnhealthyNodeStub = func() (string, error) {
 				return "", errors.New("fake-error")
 			}
-			err := bootstrapper.ForceRejoin()
+			err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -103,7 +103,7 @@ var _ = Describe("Force-rejoin", func() {
 			fakeNodeManager.JoinNodeStub = func(string) error {
 				return errors.New("fake-error")
 			}
-			err := bootstrapper.ForceRejoin()
+			err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -113,7 +113,7 @@ var _ = Describe("Force-rejoin", func() {
 			fakeNodeManager.StopNodeStub = func(string) error {
 				return errors.New("fake-error")
 			}
-			err := bootstrapper.ForceRejoin()
+			err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
 		})
 	})

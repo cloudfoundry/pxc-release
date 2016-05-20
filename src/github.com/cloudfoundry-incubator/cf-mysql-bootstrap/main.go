@@ -34,8 +34,8 @@ func main() {
 
 	if rootConfig.RepairMode == "bootstrap" {
 		err = bootstrapper.Bootstrap()
-	} else if rootConfig.RepairMode == "force-rejoin" {
-		err = bootstrapper.ForceRejoin()
+	} else if rootConfig.RepairMode == "rejoin-unsafe" {
+		err = bootstrapper.RejoinUnsafe()
 	} else {
 		logger.Error("Invalid repair mode:", errors.New(fmt.Sprintf("%s", rootConfig.RepairMode)))
 		printHumanReadableErr(err)

@@ -69,8 +69,8 @@ var _ = Describe("Config", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("accepts force-rejoin as a value for RepairMode", func() {
-				rootConfig.RepairMode = "force-rejoin"
+			It("accepts rejoin-unsafe as a value for RepairMode", func() {
+				rootConfig.RepairMode = "rejoin-unsafe"
 				err := rootConfig.Validate()
 				Expect(err).NotTo(HaveOccurred())
 			})
