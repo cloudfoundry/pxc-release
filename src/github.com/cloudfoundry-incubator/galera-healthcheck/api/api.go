@@ -67,8 +67,8 @@ func NewRouter(apiParams ApiParameters) (http.Handler, error) {
 
 func (r router) getSecureHandler(run RunFunc) http.Handler {
 	basicAuth := middleware.NewBasicAuth(
-		r.apiParams.RootConfig.BootstrapEndpoint.Username,
-		r.apiParams.RootConfig.BootstrapEndpoint.Password,
+		r.apiParams.RootConfig.SidecarEndpoint.Username,
+		r.apiParams.RootConfig.SidecarEndpoint.Password,
 	)
 
 	handler := r.getInsecureHandler(run)

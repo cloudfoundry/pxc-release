@@ -24,7 +24,7 @@ const (
 	ApiPassword               = "fake-password"
 )
 
-var _ = Describe("Bootstrap API", func() {
+var _ = Describe("Sidecar API", func() {
 	var (
 		monitClient    *fakes.FakeMonitClient
 		sequenceNumber *sequencefakes.FakeSequenceNumberChecker
@@ -44,7 +44,7 @@ var _ = Describe("Bootstrap API", func() {
 		monitClient.GetLoggerReturns(testLogger)
 
 		testConfig := &config.Config{
-			BootstrapEndpoint: config.BootstrapEndpointConfig{
+			SidecarEndpoint: config.SidecarEndpointConfig{
 				Username: ApiUsername,
 				Password: ApiPassword,
 			},

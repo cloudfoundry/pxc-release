@@ -20,8 +20,8 @@ type Config struct {
 	AvailableWhenReadOnly bool        `yaml:"AvailableWhenReadOnly"`
 	PidFile               string      `yaml:"PidFile" validate:"nonzero"`
 	Logger                lager.Logger
-	MysqldPath            string                  `yaml:"MysqldPath" validate:"nonzero"`
-	BootstrapEndpoint     BootstrapEndpointConfig `yaml:"BootstrapEndpoint" validate:"nonzero"`
+	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
+	SidecarEndpoint       SidecarEndpointConfig `yaml:"SidecarEndpoint" validate:"nonzero"`
 }
 
 type DBConfig struct {
@@ -42,7 +42,7 @@ type MonitConfig struct {
 	ServiceName          string `yaml:"ServiceName" validate:"nonzero"`
 }
 
-type BootstrapEndpointConfig struct {
+type SidecarEndpointConfig struct {
 	Username string `yaml:"Username" validate:"nonzero"`
 	Password string `yaml:"Password" validate:"nonzero"`
 }

@@ -42,7 +42,7 @@ var _ = Describe("Config", func() {
 					"ServiceName": "mariadb_ctrl"
 				},
 				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld",
-				"BootstrapEndpoint": {
+				"SidecarEndpoint": {
 					"Username": "username",
 					"Password": "password"
 				}
@@ -138,13 +138,13 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if BootstrapEndpoint.Username is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "BootstrapEndpoint.Username")
+		It("returns an error if SidecarEndpoint.Username is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "SidecarEndpoint.Username")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if BootstrapEndpoint.Password is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "BootstrapEndpoint.Password")
+		It("returns an error if SidecarEndpoint.Password is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "SidecarEndpoint.Password")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
