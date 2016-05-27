@@ -223,6 +223,7 @@ func (nm *nodeManager) startNodeWithURL(baseURL string, startEndpoint string) er
 		} else if responseBody == "failing" {
 			return fmt.Errorf("Node is failing: %s", baseURL)
 		}
+		<-nm.clock.After(time.Duration(PollingIntervalInSec) * time.Second)
 	}
 
 	return nil
