@@ -32,14 +32,15 @@ type DBConfig struct {
 }
 
 type MonitConfig struct {
-	Host                 string `yaml:"Host" validate:"nonzero"`
-	User                 string `yaml:"User" validate:"nonzero"`
-	Port                 int    `yaml:"Port" validate:"nonzero"`
-	Password             string `yaml:"Password" validate:"nonzero"`
-	MysqlStateFilePath   string `yaml:"MysqlStateFilePath"`
-	BootstrapFilePath    string `yaml:"BootstrapFilePath"`
-	BootstrapLogFilePath string `yaml:"BootstrapLogFilePath"`
-	ServiceName          string `yaml:"ServiceName" validate:"nonzero"`
+	Host                    string `yaml:"Host" validate:"nonzero"`
+	User                    string `yaml:"User" validate:"nonzero"`
+	Port                    int    `yaml:"Port" validate:"nonzero"`
+	Password                string `yaml:"Password" validate:"nonzero"`
+	MysqlStateFilePath      string `yaml:"MysqlStateFilePath"`
+	BootstrapFilePath       string `yaml:"BootstrapFilePath"`
+	BootstrapLogFilePath    string `yaml:"BootstrapLogFilePath"`
+	ServiceName             string `yaml:"ServiceName" validate:"nonzero"`
+	EnableSstMarkerFilePath string `yaml:"EnableSstMarkerFilePath"`
 }
 
 type SidecarEndpointConfig struct {

@@ -99,6 +99,15 @@ func (m *monitClient) startService(startMode string, sstDisabled bool) (string, 
 				return "", err
 			}
 		}
+
+		// Used when mariadb_ctrl does not support a bootstrap file
+		if m.monitConfig.EnableSstMarkerFilePath != "" {
+			if sstDisabled {
+				os.Remove(m.monitConfig.EnableSstMarkerFilePath)
+			} else {
+				os.Create(m.monitConfig.EnableSstMarkerFilePath)
+			}
+		}
 	}
 
 	err := m.runServiceCmd("start")

@@ -27,12 +27,13 @@ var (
 var _ = Describe("monitClient", func() {
 
 	var (
-		monitClient        monit_client.MonitClient
-		ts                 *httptest.Server
-		logger             lager.Logger
-		fakeHandler        http.HandlerFunc
-		processName        string
-		blankBootstrapFile bool
+		monitClient             monit_client.MonitClient
+		ts                      *httptest.Server
+		logger                  lager.Logger
+		fakeHandler             http.HandlerFunc
+		processName             string
+		blankBootstrapFile      bool
+		enableSstMarkerFilePath string
 	)
 
 	BeforeEach(func() {
@@ -48,14 +49,15 @@ var _ = Describe("monitClient", func() {
 		}
 
 		monitConfig := config.MonitConfig{
-			User:                 "fake-user",
-			Password:             "fake-password",
-			Host:                 testHost,
-			Port:                 testPort,
-			MysqlStateFilePath:   stateFile.Name(),
-			ServiceName:          processName,
-			BootstrapFilePath:    fakeBootstrapFileName,
-			BootstrapLogFilePath: fakeBootstrapLogFile.Name(),
+			User:                    "fake-user",
+			Password:                "fake-password",
+			Host:                    testHost,
+			Port:                    testPort,
+			MysqlStateFilePath:      stateFile.Name(),
+			ServiceName:             processName,
+			BootstrapFilePath:       fakeBootstrapFileName,
+			BootstrapLogFilePath:    fakeBootstrapLogFile.Name(),
+			EnableSstMarkerFilePath: enableSstMarkerFilePath,
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
@@ -194,6 +196,9 @@ var _ = Describe("monitClient", func() {
 
 			Context("when BootstrapFilePath is blank", func() {
 				BeforeEach(func() {
+					enableSstFile, _ := ioutil.TempFile(os.TempDir(), "EnableSstMarkerFilePath")
+					enableSstFile.Close()
+					enableSstMarkerFilePath = enableSstFile.Name()
 					blankBootstrapFile = true
 				})
 
@@ -202,6 +207,21 @@ var _ = Describe("monitClient", func() {
 					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(string(logContent)).To(BeEmpty())
+				})
+
+				Context("when requester wants to enable SSTs", func() {
+					It("writes to the EnableSstMarkerFilePath", func() {
+						os.Remove(enableSstMarkerFilePath)
+						monitClient.StartServiceJoin(createReqSSTEnabled())
+						Expect(enableSstMarkerFilePath).To(BeARegularFile())
+					})
+				})
+
+				Context("when requester wants to disable SSTs", func() {
+					It("removes the EnableSstMarkerFilePath", func() {
+						monitClient.StartServiceJoin(createReq())
+						Expect(enableSstMarkerFilePath).ToNot(BeARegularFile())
+					})
 				})
 			})
 
