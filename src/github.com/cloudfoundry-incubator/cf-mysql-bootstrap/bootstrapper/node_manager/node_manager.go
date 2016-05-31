@@ -19,7 +19,7 @@ import (
 
 const (
 	PollingIntervalInSec = 5
-	ShutDownTimeout      = 300
+	ShutDownTimeout      = 630
 )
 
 var GetShutDownTimeout = func() int {
