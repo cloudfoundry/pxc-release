@@ -36,7 +36,8 @@ func (lw *logWriter) Write(ts string) error {
 		'wsrep_local_recv_queue_avg',
 		'wsrep_flow_control_paused',
 		'wsrep_cert_deps_distance',
-		'wsrep_local_send_queue_avg'
+		'wsrep_local_send_queue_avg',
+		'wsrep_last_committed'
 		)`
 	status, err := lw.db.Query(statusQuery)
 
