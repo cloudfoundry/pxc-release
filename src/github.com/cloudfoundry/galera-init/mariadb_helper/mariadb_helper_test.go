@@ -355,7 +355,7 @@ var _ = Describe("MariaDBHelper", func() {
 						sqlmock.ExpectQuery(existingUserQuery).
 							WithArgs().
 							WillReturnRows(sqlmock.NewRows([]string{"User"}).
-								AddRow(dbConfig.ReadOnlyUser))
+							AddRow(dbConfig.ReadOnlyUser))
 					})
 
 					It("deletes the read only user", func() {
@@ -401,7 +401,7 @@ var _ = Describe("MariaDBHelper", func() {
 					sqlmock.ExpectQuery(existingUserQuery).
 						WithArgs().
 						WillReturnRows(sqlmock.NewRows([]string{"User"}).
-							AddRow(dbConfig.ReadOnlyUser))
+						AddRow(dbConfig.ReadOnlyUser))
 				})
 
 				It("deletes the read only user", func() {
