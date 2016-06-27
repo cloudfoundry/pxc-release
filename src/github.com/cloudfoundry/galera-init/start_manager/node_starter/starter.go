@@ -60,26 +60,21 @@ func NewStarter(
 func (s *starter) StartNodeFromState(state string) (string, error) {
 	var newNodeState string
 	var err error
-	var bootStrapNode bool
 
 	switch state {
 	case SingleNode:
 		err = s.bootstrapNode()
 		newNodeState = SingleNode
-		bootStrapNode = true
 	case NeedsBootstrap:
 		if s.clusterHealthChecker.HealthyCluster() {
 			err = s.startNodeAsJoiner()
-			bootStrapNode = false
 		} else {
 			err = s.bootstrapNode()
-			bootStrapNode = true
 		}
 		newNodeState = Clustered
 	case Clustered:
 		err = s.joinCluster()
 		newNodeState = Clustered
-		bootStrapNode = false
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
@@ -92,11 +87,9 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 		return "", err
 	}
 
-	if bootStrapNode {
-		err = s.seedDatabases()
-		if err != nil {
-			return "", err
-		}
+	err = s.seedDatabases()
+	if err != nil {
+		return "", err
 	}
 
 	err = s.createOrDeleteReadOnlyUser()
