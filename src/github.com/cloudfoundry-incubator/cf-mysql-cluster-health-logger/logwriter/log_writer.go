@@ -24,21 +24,10 @@ func New(db *sql.DB, logPath string) LogWriter {
 }
 
 func (lw *logWriter) Write(ts string) error {
-	var statusColumnNames []string
-	var statusColumnValues []string
+	var columnNames []string
+	var columnValues []string
 
-	statusQuery := `SHOW STATUS WHERE Variable_name IN (
-		'wsrep_ready',
-		'wsrep_cluster_conf_id',
-		'wsrep_cluster_status',
-		'wsrep_connected',
-		'wsrep_local_state_comment',
-		'wsrep_local_recv_queue_avg',
-		'wsrep_flow_control_paused',
-		'wsrep_cert_deps_distance',
-		'wsrep_local_send_queue_avg',
-		'wsrep_last_committed'
-		)`
+	statusQuery := `SHOW STATUS WHERE Variable_name like 'wsrep%'`
 	status, err := lw.db.Query(statusQuery)
 
 	if err != nil {
@@ -50,9 +39,26 @@ func (lw *logWriter) Write(ts string) error {
 		var varName string
 		var varValue string
 		status.Scan(&varName, &varValue)
-		statusColumnNames = append(statusColumnNames, varName)
-		statusColumnValues = append(statusColumnValues, varValue)
+		columnNames = append(columnNames, varName)
+		columnValues = append(columnValues, varValue)
 	}
+
+	variablesQuery := `SHOW VARIABLES WHERE Variable_name = 'sql_log_bin'`
+	variables, err := lw.db.Query(variablesQuery)
+
+	if err != nil {
+		return err
+	}
+
+	defer variables.Close()
+	for variables.Next() {
+		var varName string
+		var varValue string
+		variables.Scan(&varName, &varValue)
+		columnNames = append(columnNames, varName)
+		columnValues = append(columnValues, varValue)
+	}
+
 	info, err := os.Stat(lw.logPath)
 	writeHeaders := false
 	if err != nil || info.Size() == 0 {
@@ -65,8 +71,8 @@ func (lw *logWriter) Write(ts string) error {
 	}
 	defer f.Close()
 
-	columnNamesStr := strings.Join(statusColumnNames, ",")
-	columnValuesStr := strings.Join(statusColumnValues, ",")
+	columnNamesStr := strings.Join(columnNames, ",")
+	columnValuesStr := strings.Join(columnValues, ",")
 
 	if writeHeaders {
 		f.WriteString(fmt.Sprintf("%s,%s", "timestamp", columnNamesStr))
