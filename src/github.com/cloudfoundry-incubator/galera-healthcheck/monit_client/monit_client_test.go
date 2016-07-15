@@ -58,6 +58,7 @@ var _ = Describe("monitClient", func() {
 			BootstrapFilePath:       fakeBootstrapFileName,
 			BootstrapLogFilePath:    fakeBootstrapLogFile.Name(),
 			EnableSstMarkerFilePath: enableSstMarkerFilePath,
+			SstInterruptNotifyCmd:   "fake-notify-cmd",
 		}
 
 		logger = lagertest.NewTestLogger("monit_client")
@@ -231,6 +232,7 @@ var _ = Describe("monitClient", func() {
 					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(string(logContent)).To(ContainSubstring("SST is disabled"))
+					Expect(string(logContent)).To(ContainSubstring("INTERRUPT_NOTIFY_CMD=fake-notify-cmd"))
 				})
 			})
 
@@ -249,6 +251,7 @@ var _ = Describe("monitClient", func() {
 					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(string(logContent)).To(ContainSubstring("SST is disabled"))
+					Expect(string(logContent)).To(ContainSubstring("INTERRUPT_NOTIFY_CMD=fake-notify-cmd"))
 				})
 			})
 		})

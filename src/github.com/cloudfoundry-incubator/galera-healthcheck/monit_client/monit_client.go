@@ -80,6 +80,7 @@ func (m *monitClient) startService(startMode string, sstDisabled bool) (string, 
 			env = append(env, fmt.Sprintf("LOG_FILE=%s", m.monitConfig.BootstrapLogFilePath))
 			if sstDisabled {
 				env = append(env, "DISABLE_SST=1")
+				env = append(env, fmt.Sprintf("INTERRUPT_NOTIFY_CMD=%s", m.monitConfig.SstInterruptNotifyCmd))
 			}
 			prestartCmd.Env = env
 

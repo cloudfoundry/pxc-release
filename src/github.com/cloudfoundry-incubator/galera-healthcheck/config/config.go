@@ -41,6 +41,7 @@ type MonitConfig struct {
 	BootstrapLogFilePath    string `yaml:"BootstrapLogFilePath"`
 	ServiceName             string `yaml:"ServiceName" validate:"nonzero"`
 	EnableSstMarkerFilePath string `yaml:"EnableSstMarkerFilePath"`
+	SstInterruptNotifyCmd   string `yaml:"SstInterruptNotifyCmd"`
 }
 
 type SidecarEndpointConfig struct {
