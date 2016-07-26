@@ -39,6 +39,10 @@ var _ = Describe("StartManager", func() {
 		NodeCount int
 	}
 
+	ensureRunPostStartSQLs := func() {
+		Expect(fakeDBHelper.RunPostStartSQLCallCount()).To(BeNumerically(">=", 1))
+	}
+
 	ensureStateFileContentIs := func(expected string) {
 		count := fakeOs.WriteStringToFileCallCount()
 		filename, contents := fakeOs.WriteStringToFileArgsForCall(count - 1)
@@ -147,6 +151,27 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
+	Describe("runPostStartSQL", func() {
+		BeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeCount: 1,
+			})
+		})
+
+		Context("when running post start sql fails", func() {
+			var expectedErr error
+			BeforeEach(func() {
+				expectedErr = errors.New("post start sql failed")
+				fakeDBHelper.RunPostStartSQLReturns(expectedErr)
+			})
+
+			It("forwards the error", func() {
+				err := mgr.Execute()
+				Expect(err).To(Equal(expectedErr))
+			})
+		})
+	})
+
 	Context("When starting in single-node deployment", func() {
 		BeforeEach(func() {
 			mgr = createManager(managerArgs{
@@ -165,6 +190,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
+				ensureRunPostStartSQLs()
 			})
 		})
 
@@ -179,6 +205,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
+				ensureRunPostStartSQLs()
 			})
 		})
 	})
@@ -201,6 +228,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
+					ensureRunPostStartSQLs()
 				})
 			})
 
@@ -217,6 +245,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
+					ensureRunPostStartSQLs()
 				})
 			})
 		})
@@ -239,6 +268,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
+					ensureRunPostStartSQLs()
 				})
 			})
 
@@ -252,6 +282,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
+					ensureRunPostStartSQLs()
 				})
 			})
 
@@ -265,6 +296,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
+					ensureRunPostStartSQLs()
 				})
 
 				Context("And the IP of the current node is not the first in the cluster", func() {
@@ -280,6 +312,7 @@ var _ = Describe("StartManager", func() {
 						Expect(err).ToNot(HaveOccurred())
 						ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 						ensureStateFileContentIs("CLUSTERED")
+						ensureRunPostStartSQLs()
 					})
 				})
 			})
@@ -341,6 +374,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
+				ensureRunPostStartSQLs()
 			})
 		})
 
@@ -359,6 +393,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 				ensureStateFileContentIs("CLUSTERED")
+				ensureRunPostStartSQLs()
 			})
 		})
 	})

@@ -11,7 +11,10 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-golang/lager"
+	"io/ioutil"
 )
+
+//go:generate counterfeiter -o fakes/fake_dbhelper.go . DBHelper
 
 const (
 	StopStandaloneCommand = "stop-stand-alone"
@@ -32,6 +35,7 @@ type DBHelper interface {
 	IsProcessRunning() bool
 	Seed() error
 	ManageReadOnlyUser() error
+	RunPostStartSQL() error
 }
 
 type MariaDBHelper struct {
@@ -313,6 +317,30 @@ func (m MariaDBHelper) deleteReadOnlyUser(db *sql.DB) error {
 		if _, err := db.Exec(deleteUserQuery); err != nil {
 			m.logger.Error("Unable to delete Read Only user", err)
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (m MariaDBHelper) RunPostStartSQL() error {
+	m.logger.Info("Running Post Start SQL Queries")
+
+	db, err := OpenDBConnection(m.config)
+	if err != nil {
+		m.logger.Error("database not reachable", err)
+		return err
+	}
+	defer CloseDBConnection(db)
+
+	for _, file := range m.config.PostStartSQLFiles {
+		sqlString, err := ioutil.ReadFile(file)
+		if err != nil {
+			m.logger.Error("error reading PostStartSQL file", err, lager.Data{
+				"filePath": file,
+			})
+		} else {
+			db.Exec(string(sqlString))
 		}
 	}
 

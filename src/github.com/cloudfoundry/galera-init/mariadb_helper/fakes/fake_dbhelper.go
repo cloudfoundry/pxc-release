@@ -75,6 +75,12 @@ type FakeDBHelper struct {
 	manageReadOnlyUserReturns     struct {
 		result1 error
 	}
+	RunPostStartSQLStub        func() error
+	runPostStartSQLMutex       sync.RWMutex
+	runPostStartSQLArgsForCall []struct{}
+	runPostStartSQLReturns     struct {
+		result1 error
+	}
 }
 
 func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
@@ -324,6 +330,30 @@ func (fake *FakeDBHelper) ManageReadOnlyUserCallCount() int {
 func (fake *FakeDBHelper) ManageReadOnlyUserReturns(result1 error) {
 	fake.ManageReadOnlyUserStub = nil
 	fake.manageReadOnlyUserReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) RunPostStartSQL() error {
+	fake.runPostStartSQLMutex.Lock()
+	fake.runPostStartSQLArgsForCall = append(fake.runPostStartSQLArgsForCall, struct{}{})
+	fake.runPostStartSQLMutex.Unlock()
+	if fake.RunPostStartSQLStub != nil {
+		return fake.RunPostStartSQLStub()
+	} else {
+		return fake.runPostStartSQLReturns.result1
+	}
+}
+
+func (fake *FakeDBHelper) RunPostStartSQLCallCount() int {
+	fake.runPostStartSQLMutex.RLock()
+	defer fake.runPostStartSQLMutex.RUnlock()
+	return len(fake.runPostStartSQLArgsForCall)
+}
+
+func (fake *FakeDBHelper) RunPostStartSQLReturns(result1 error) {
+	fake.RunPostStartSQLStub = nil
+	fake.runPostStartSQLReturns = struct {
 		result1 error
 	}{result1}
 }
