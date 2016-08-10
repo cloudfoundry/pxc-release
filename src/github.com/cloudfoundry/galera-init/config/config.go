@@ -25,6 +25,7 @@ type DBHelper struct {
 	ReadOnlyUser        string              `yaml:"ReadOnlyUser" validate:"nonzero"`
 	ReadOnlyPassword    string              `yaml:"ReadOnlyPassword"`
 	PreseededDatabases  []PreseededDatabase `yaml:"PreseededDatabases"`
+	PostStartSQLFiles   []string            `yaml:"PostStartSQLFiles"`
 }
 
 type StartManager struct {
