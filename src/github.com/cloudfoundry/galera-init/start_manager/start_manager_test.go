@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
-	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
-	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
-	node_starter_fakes "github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter/fakes"
-	upgrader_fakes "github.com/cloudfoundry/mariadb_ctrl/upgrader/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter/node_starterfakes"
+	"github.com/cloudfoundry/mariadb_ctrl/upgrader/upgraderfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/cloudfoundry/mariadb_ctrl/start_manager"
@@ -23,11 +23,11 @@ var _ = Describe("StartManager", func() {
 	var mgr StartManager
 
 	var testLogger *lagertest.TestLogger
-	var fakeOs *os_fakes.FakeOsHelper
-	var fakeUpgrader *upgrader_fakes.FakeUpgrader
-	var fakeDBHelper *db_helper_fakes.FakeDBHelper
-	var fakeStarter *node_starter_fakes.FakeStarter
-	var fakeHealthChecker *health_checker_fakes.FakeClusterHealthChecker
+	var fakeOs *os_helperfakes.FakeOsHelper
+	var fakeUpgrader *upgraderfakes.FakeUpgrader
+	var fakeDBHelper *mariadb_helperfakes.FakeDBHelper
+	var fakeStarter *node_starterfakes.FakeStarter
+	var fakeHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
 	var startNodeReturn string
 	var startNodeReturnError error
 
@@ -83,11 +83,11 @@ var _ = Describe("StartManager", func() {
 
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
-		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeUpgrader = new(upgrader_fakes.FakeUpgrader)
-		fakeStarter = new(node_starter_fakes.FakeStarter)
-		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
-		fakeHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
+		fakeOs = new(os_helperfakes.FakeOsHelper)
+		fakeUpgrader = new(upgraderfakes.FakeUpgrader)
+		fakeStarter = new(node_starterfakes.FakeStarter)
+		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
+		fakeHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
 
 		fakeDBHelper.IsProcessRunningReturns(false)
 		fakeDBHelper.IsDatabaseReachableReturns(true)

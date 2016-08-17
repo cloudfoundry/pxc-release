@@ -4,10 +4,10 @@ import (
 	"errors"
 	"os/exec"
 
-	health_checker_fakes "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
-	db_helper_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
-	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -19,9 +19,9 @@ var _ = Describe("PreStarter", func() {
 	var prestarter node_starter.Starter
 
 	var testLogger *lagertest.TestLogger
-	var fakeOs *os_fakes.FakeOsHelper
-	var fakeClusterHealthChecker *health_checker_fakes.FakeClusterHealthChecker
-	var fakeDBHelper *db_helper_fakes.FakeDBHelper
+	var fakeOs *os_helperfakes.FakeOsHelper
+	var fakeClusterHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
+	var fakeDBHelper *mariadb_helperfakes.FakeDBHelper
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
 
@@ -63,9 +63,9 @@ var _ = Describe("PreStarter", func() {
 
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("node_prestarter")
-		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeClusterHealthChecker = new(health_checker_fakes.FakeClusterHealthChecker)
-		fakeDBHelper = new(db_helper_fakes.FakeDBHelper)
+		fakeOs = new(os_helperfakes.FakeOsHelper)
+		fakeClusterHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
+		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
 		prestarter = node_starter.NewPreStarter(

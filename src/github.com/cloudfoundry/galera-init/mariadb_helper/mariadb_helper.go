@@ -14,8 +14,6 @@ import (
 	"io/ioutil"
 )
 
-//go:generate counterfeiter -o fakes/fake_dbhelper.go . DBHelper
-
 const (
 	StopStandaloneCommand = "stop-stand-alone"
 	StopCommand           = "stop"

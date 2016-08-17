@@ -11,6 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+//go:generate counterfeiter . Upgrader
 type Upgrader interface {
 	Upgrade() error
 	NeedsUpgrade() (bool, error)

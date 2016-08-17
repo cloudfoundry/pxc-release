@@ -8,6 +8,7 @@ import (
 
 var MakeRequest = http.Get
 
+//go:generate counterfeiter . ClusterHealthChecker
 type ClusterHealthChecker interface {
 	HealthyCluster() bool
 }

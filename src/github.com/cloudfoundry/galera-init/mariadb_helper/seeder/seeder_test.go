@@ -18,12 +18,13 @@ var _ = Describe("Seeder", func() {
 		dbConfig   config.PreseededDatabase
 		fakeDB     *sql.DB
 		seeder     s.Seeder
+		mock       sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
 		var err error
 		testLogger = *lagertest.NewTestLogger("seeder")
-		fakeDB, err = sqlmock.New()
+		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
 
 		dbConfig = config.PreseededDatabase{
@@ -42,8 +43,7 @@ var _ = Describe("Seeder", func() {
 	})
 
 	AfterEach(func() {
-		err := fakeDB.Close()
-		Expect(err).ToNot(HaveOccurred())
+		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
 	const lastInsertId = -1
@@ -59,7 +59,7 @@ var _ = Describe("Seeder", func() {
 		})
 
 		It("creates the database", func() {
-			sqlmock.ExpectExec(createDbExec).
+			mock.ExpectExec(createDbExec).
 				WithArgs().
 				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
@@ -68,7 +68,7 @@ var _ = Describe("Seeder", func() {
 
 		Context("when creating the database returns an error", func() {
 			It("bubbles the error up", func() {
-				sqlmock.ExpectExec(createDbExec).
+				mock.ExpectExec(createDbExec).
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 
@@ -93,7 +93,7 @@ var _ = Describe("Seeder", func() {
 				expectedRow := sqlmock.NewRows([]string{"User"}).
 					AddRow(dbConfig.User)
 
-				sqlmock.ExpectQuery(selectUserQuery).
+				mock.ExpectQuery(selectUserQuery).
 					WithArgs().
 					WillReturnRows(expectedRow)
 
@@ -107,7 +107,7 @@ var _ = Describe("Seeder", func() {
 			It("returns false", func() {
 				noExpectedRow := sqlmock.NewRows([]string{"User"})
 
-				sqlmock.ExpectQuery(selectUserQuery).
+				mock.ExpectQuery(selectUserQuery).
 					WithArgs().
 					WillReturnRows(noExpectedRow)
 
@@ -119,7 +119,7 @@ var _ = Describe("Seeder", func() {
 
 		Context("determining if the user exists returns an error", func() {
 			It("returns the error", func() {
-				sqlmock.ExpectQuery(selectUserQuery).
+				mock.ExpectQuery(selectUserQuery).
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 
@@ -141,7 +141,7 @@ var _ = Describe("Seeder", func() {
 		})
 
 		It("creates the user", func() {
-			sqlmock.ExpectExec(createUserExec).
+			mock.ExpectExec(createUserExec).
 				WithArgs().
 				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
@@ -150,7 +150,7 @@ var _ = Describe("Seeder", func() {
 
 		Context("when creating the user returns an error", func() {
 			It("bubbles the error up", func() {
-				sqlmock.ExpectExec(createUserExec).
+				mock.ExpectExec(createUserExec).
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 

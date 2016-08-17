@@ -7,7 +7,7 @@ import (
 
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -19,7 +19,7 @@ import (
 var _ = Describe("MariaDB Helper", func() {
 	var (
 		helper     *mariadb_helper.MariaDBHelper
-		fakeOs     *os_fakes.FakeOsHelper
+		fakeOs     *os_helperfakes.FakeOsHelper
 		testLogger lagertest.TestLogger
 		logFile    string
 		dbConfig   config.DBHelper
@@ -69,7 +69,7 @@ var _ = Describe("MariaDB Helper", func() {
 			},
 		}
 
-		fakeOs = new(os_fakes.FakeOsHelper)
+		fakeOs = new(os_helperfakes.FakeOsHelper)
 		testLogger = *lagertest.NewTestLogger("mariadb_helper")
 		logFile = "/log-file.log"
 	})

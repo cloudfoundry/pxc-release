@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/cloudfoundry/mariadb_ctrl/config"
-	db_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/fakes"
-	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	. "github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,16 +14,16 @@ import (
 
 var _ = Describe("Upgrader", func() {
 	var upgrader Upgrader
-	var fakeOs *os_fakes.FakeOsHelper
-	var fakeDbHelper *db_fakes.FakeDBHelper
+	var fakeOs *os_helperfakes.FakeOsHelper
+	var fakeDbHelper *mariadb_helperfakes.FakeDBHelper
 	var testLogger *lagertest.TestLogger
 
 	lastUpgradedVersionFile := "/var/vcap/store/mysql/mysql_upgrade_info"
 	packageVersionFile := "/var/vcap/package/mariadb/VERSION"
 
 	BeforeEach(func() {
-		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeDbHelper = new(db_fakes.FakeDBHelper)
+		fakeOs = new(os_helperfakes.FakeOsHelper)
+		fakeDbHelper = new(mariadb_helperfakes.FakeDBHelper)
 		testLogger = lagertest.NewTestLogger("upgrader")
 
 		upgrader = NewUpgrader(

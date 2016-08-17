@@ -5,19 +5,20 @@ import (
 	"errors"
 	"fmt"
 
+	"io/ioutil"
+	"os"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
-	seeder_fakes "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder/fakes"
-	os_fakes "github.com/cloudfoundry/mariadb_ctrl/os_helper/fakes"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
+	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder/seederfakes"
+	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
-	"io/ioutil"
-	"os"
 )
 
 var _ = Describe("MariaDBHelper", func() {
@@ -26,21 +27,22 @@ var _ = Describe("MariaDBHelper", func() {
 
 	var (
 		helper     *mariadb_helper.MariaDBHelper
-		fakeOs     *os_fakes.FakeOsHelper
-		fakeSeeder *seeder_fakes.FakeSeeder
+		fakeOs     *os_helperfakes.FakeOsHelper
+		fakeSeeder *seederfakes.FakeSeeder
 		testLogger lagertest.TestLogger
 		logFile    string
 		dbConfig   config.DBHelper
 		fakeDB     *sql.DB
+		mock       sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
 		var err error
-		fakeOs = new(os_fakes.FakeOsHelper)
-		fakeSeeder = new(seeder_fakes.FakeSeeder)
+		fakeOs = new(os_helperfakes.FakeOsHelper)
+		fakeSeeder = new(seederfakes.FakeSeeder)
 		testLogger = *lagertest.NewTestLogger("mariadb_helper")
 
-		fakeDB, err = sqlmock.New()
+		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
 		mariadb_helper.OpenDBConnection = func(config.DBHelper) (*sql.DB, error) {
 			return fakeDB, nil
@@ -50,7 +52,7 @@ var _ = Describe("MariaDBHelper", func() {
 			return nil
 		}
 
-		mariadb_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
+		mariadb_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
 			return fakeSeeder
 		}
 
@@ -98,8 +100,7 @@ var _ = Describe("MariaDBHelper", func() {
 	})
 
 	AfterEach(func() {
-		err := fakeDB.Close()
-		Expect(err).ToNot(HaveOccurred())
+		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
 	Describe("Start", func() {
@@ -201,7 +202,7 @@ var _ = Describe("MariaDBHelper", func() {
 				BeforeEach(func() {
 					fakeSeeder.IsExistingUserReturns(true, nil)
 
-					sqlmock.ExpectExec("FLUSH PRIVILEGES").
+					mock.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 				})
@@ -220,7 +221,7 @@ var _ = Describe("MariaDBHelper", func() {
 				BeforeEach(func() {
 					fakeSeeder.IsExistingUserReturns(false, nil)
 
-					sqlmock.ExpectExec("FLUSH PRIVILEGES").
+					mock.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 				})
@@ -305,15 +306,15 @@ var _ = Describe("MariaDBHelper", func() {
 				})
 
 				It("creates a read only user named roadmin", func() {
-					sqlmock.ExpectExec(grantReadPrivilegesExec).
+					mock.ExpectExec(grantReadPrivilegesExec).
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-					sqlmock.ExpectExec(setReadOnlyUserPassword).
+					mock.ExpectExec(setReadOnlyUserPassword).
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-					sqlmock.ExpectExec("FLUSH PRIVILEGES").
+					mock.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
@@ -323,7 +324,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 				Context("granting select to the read only user errors", func() {
 					It("returns the error back", func() {
-						sqlmock.ExpectExec(grantReadPrivilegesExec).
+						mock.ExpectExec(grantReadPrivilegesExec).
 							WithArgs().
 							WillReturnError(errors.New("some error"))
 
@@ -335,11 +336,11 @@ var _ = Describe("MariaDBHelper", func() {
 
 				Context("setting the read only user password errors", func() {
 					It("returns the error back", func() {
-						sqlmock.ExpectExec(grantReadPrivilegesExec).
+						mock.ExpectExec(grantReadPrivilegesExec).
 							WithArgs().
 							WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-						sqlmock.ExpectExec(setReadOnlyUserPassword).
+						mock.ExpectExec(setReadOnlyUserPassword).
 							WillReturnError(errors.New("another error"))
 
 						err := helper.ManageReadOnlyUser()
@@ -364,14 +365,14 @@ var _ = Describe("MariaDBHelper", func() {
 
 				Context("if the read only user exists", func() {
 					BeforeEach(func() {
-						sqlmock.ExpectQuery(existingUserQuery).
+						mock.ExpectQuery(existingUserQuery).
 							WithArgs().
 							WillReturnRows(sqlmock.NewRows([]string{"User"}).
 								AddRow(dbConfig.ReadOnlyUser))
 					})
 
 					It("deletes the read only user", func() {
-						sqlmock.ExpectExec(deleteUserExec).
+						mock.ExpectExec(deleteUserExec).
 							WithArgs().
 							WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 						err := helper.ManageReadOnlyUser()
@@ -381,7 +382,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 				Context("if the read only user does not exist", func() {
 					BeforeEach(func() {
-						sqlmock.ExpectQuery(existingUserQuery).
+						mock.ExpectQuery(existingUserQuery).
 							WithArgs().
 							WillReturnRows(sqlmock.NewRows([]string{"User"}))
 					})
@@ -410,14 +411,14 @@ var _ = Describe("MariaDBHelper", func() {
 
 			Context("if the read only user exists", func() {
 				BeforeEach(func() {
-					sqlmock.ExpectQuery(existingUserQuery).
+					mock.ExpectQuery(existingUserQuery).
 						WithArgs().
 						WillReturnRows(sqlmock.NewRows([]string{"User"}).
 							AddRow(dbConfig.ReadOnlyUser))
 				})
 
 				It("deletes the read only user", func() {
-					sqlmock.ExpectExec(deleteUserExec).
+					mock.ExpectExec(deleteUserExec).
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 					err := helper.ManageReadOnlyUser()
@@ -427,7 +428,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 			Context("if the read only user does not exist", func() {
 				BeforeEach(func() {
-					sqlmock.ExpectQuery(existingUserQuery).
+					mock.ExpectQuery(existingUserQuery).
 						WithArgs().
 						WillReturnRows(sqlmock.NewRows([]string{"User"}))
 				})
@@ -443,8 +444,8 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("RunPostStartSQL", func() {
 		It("runs the contents of the specified files", func() {
-			sqlmock.ExpectExec("some fake query")
-			sqlmock.ExpectExec("another fake query")
+			mock.ExpectExec("some fake query")
+			mock.ExpectExec("another fake query")
 
 			helper.RunPostStartSQL()
 		})
