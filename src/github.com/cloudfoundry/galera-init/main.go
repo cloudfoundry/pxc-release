@@ -7,11 +7,11 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/cloudfoundry-incubator/cf-lager"
+	"code.cloudfoundry.org/cflager"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/preparer"
 	"github.com/pivotal-cf-experimental/service-config"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -29,12 +29,12 @@ func main() {
 			User: "root",
 		},
 	})
-	cf_lager.AddFlags(flags)
+	cflager.AddFlags(flags)
 	flags.StringVar(&prestartFlag, "prestart", "false", "Start mariadb_ctrl in prestart mode")
 
 	flags.Parse(os.Args[1:])
 
-	logger, _ := cf_lager.New("mariadb_ctrl")
+	logger, _ := cflager.New("mariadb_ctrl")
 
 	var rootConfig config.Config
 	err := serviceConfig.Read(&rootConfig)

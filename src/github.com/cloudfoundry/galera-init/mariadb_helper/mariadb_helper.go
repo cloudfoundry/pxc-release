@@ -10,7 +10,7 @@ import (
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"io/ioutil"
 )
 

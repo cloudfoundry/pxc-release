@@ -9,7 +9,7 @@ import (
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("Seeder", func() {

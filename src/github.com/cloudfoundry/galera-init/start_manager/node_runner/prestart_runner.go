@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type PrestartRunner struct {

@@ -3,7 +3,7 @@ package cluster_health_checker
 import (
 	"net/http"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 var MakeRequest = http.Get

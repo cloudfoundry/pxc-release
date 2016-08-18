@@ -11,7 +11,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 const (

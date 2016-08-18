@@ -9,7 +9,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
