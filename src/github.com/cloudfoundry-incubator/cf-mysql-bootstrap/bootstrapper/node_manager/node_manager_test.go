@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	clockPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock/fakes"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
@@ -14,7 +15,6 @@ import (
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/test_helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 const (

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
-	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter -o fakes/fake_node_manager.go . NodeManager

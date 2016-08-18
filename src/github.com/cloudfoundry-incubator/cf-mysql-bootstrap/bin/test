@@ -9,11 +9,6 @@ go fmt github.com/cloudfoundry-incubator/cf-mysql-bootstrap/...
 
 echo -e "\nVetting packages for potential issues..."
 $MY_DIR/govet
-let "result+=$?"
 
 echo -e "\nTesting packages..."
 ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@" $MY_DIR/..
-let "result+=$?"
-
-echo -e "\nExit Code: $result"
-exit $result
