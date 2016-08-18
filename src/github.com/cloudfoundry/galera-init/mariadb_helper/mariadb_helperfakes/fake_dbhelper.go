@@ -81,6 +81,12 @@ type FakeDBHelper struct {
 	runPostStartSQLReturns     struct {
 		result1 error
 	}
+	TestDatabaseCleanupStub        func() error
+	testDatabaseCleanupMutex       sync.RWMutex
+	testDatabaseCleanupArgsForCall []struct{}
+	testDatabaseCleanupReturns     struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -371,6 +377,31 @@ func (fake *FakeDBHelper) RunPostStartSQLReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) TestDatabaseCleanup() error {
+	fake.testDatabaseCleanupMutex.Lock()
+	fake.testDatabaseCleanupArgsForCall = append(fake.testDatabaseCleanupArgsForCall, struct{}{})
+	fake.recordInvocation("TestDatabaseCleanup", []interface{}{})
+	fake.testDatabaseCleanupMutex.Unlock()
+	if fake.TestDatabaseCleanupStub != nil {
+		return fake.TestDatabaseCleanupStub()
+	} else {
+		return fake.testDatabaseCleanupReturns.result1
+	}
+}
+
+func (fake *FakeDBHelper) TestDatabaseCleanupCallCount() int {
+	fake.testDatabaseCleanupMutex.RLock()
+	defer fake.testDatabaseCleanupMutex.RUnlock()
+	return len(fake.testDatabaseCleanupArgsForCall)
+}
+
+func (fake *FakeDBHelper) TestDatabaseCleanupReturns(result1 error) {
+	fake.TestDatabaseCleanupStub = nil
+	fake.testDatabaseCleanupReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -396,6 +427,8 @@ func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	defer fake.manageReadOnlyUserMutex.RUnlock()
 	fake.runPostStartSQLMutex.RLock()
 	defer fake.runPostStartSQLMutex.RUnlock()
+	fake.testDatabaseCleanupMutex.RLock()
+	defer fake.testDatabaseCleanupMutex.RUnlock()
 	return fake.invocations
 }
 
