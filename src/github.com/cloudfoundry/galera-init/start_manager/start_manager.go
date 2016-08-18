@@ -104,6 +104,11 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
+	err = m.runTestDatabaseCleanup()
+	if err != nil {
+		return err
+	}
+
 	err = m.writeStringToFile(newNodeState)
 	if err != nil {
 		return err
@@ -178,5 +183,18 @@ func (m *startManager) runPostStartSQL() error {
 	}
 
 	m.logger.Info("Post start sql succeeded.")
+	return nil
+}
+
+func (m *startManager) runTestDatabaseCleanup() error {
+	err := m.mariaDBHelper.TestDatabaseCleanup()
+	if err != nil {
+		m.logger.Info("There was a problem cleaning up test databases", lager.Data{
+			"errMessage": err.Error(),
+		})
+		return err
+	}
+
+	m.logger.Info("Test database cleanup succeeded.")
 	return nil
 }

@@ -42,6 +42,10 @@ var _ = Describe("StartManager", func() {
 		Expect(fakeDBHelper.RunPostStartSQLCallCount()).To(BeNumerically(">=", 1))
 	}
 
+	ensureTestDatabaseCleanup := func() {
+		Expect(fakeDBHelper.TestDatabaseCleanupCallCount()).To(Equal(1))
+	}
+
 	ensureStateFileContentIs := func(expected string) {
 		count := fakeOs.WriteStringToFileCallCount()
 		filename, contents := fakeOs.WriteStringToFileArgsForCall(count - 1)
@@ -170,6 +174,27 @@ var _ = Describe("StartManager", func() {
 		})
 	})
 
+	Describe("runTestDatabaseCleanup", func() {
+		BeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeCount: 1,
+			})
+		})
+
+		Context("when running test database cleanup fails", func() {
+			var expectedErr error
+			BeforeEach(func() {
+				expectedErr = errors.New("test database cleanup failed")
+				fakeDBHelper.TestDatabaseCleanupReturns(expectedErr)
+			})
+
+			It("forwards the error", func() {
+				err := mgr.Execute()
+				Expect(err).To(Equal(expectedErr))
+			})
+		})
+	})
+
 	Context("When starting in single-node deployment", func() {
 		BeforeEach(func() {
 			mgr = createManager(managerArgs{
@@ -189,6 +214,7 @@ var _ = Describe("StartManager", func() {
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
 				ensureRunPostStartSQLs()
+				ensureTestDatabaseCleanup()
 			})
 		})
 
@@ -204,6 +230,7 @@ var _ = Describe("StartManager", func() {
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
 				ensureRunPostStartSQLs()
+				ensureTestDatabaseCleanup()
 			})
 		})
 	})
@@ -227,6 +254,7 @@ var _ = Describe("StartManager", func() {
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
 					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 				})
 			})
 
@@ -244,6 +272,7 @@ var _ = Describe("StartManager", func() {
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
 					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 				})
 			})
 		})
@@ -267,6 +296,7 @@ var _ = Describe("StartManager", func() {
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
 					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 				})
 			})
 
@@ -281,6 +311,7 @@ var _ = Describe("StartManager", func() {
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
 					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 				})
 			})
 
@@ -295,6 +326,7 @@ var _ = Describe("StartManager", func() {
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
 					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 				})
 
 				Context("And the IP of the current node is not the first in the cluster", func() {
@@ -311,6 +343,7 @@ var _ = Describe("StartManager", func() {
 						ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 						ensureStateFileContentIs("CLUSTERED")
 						ensureRunPostStartSQLs()
+						ensureTestDatabaseCleanup()
 					})
 				})
 
@@ -384,6 +417,7 @@ var _ = Describe("StartManager", func() {
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
 				ensureRunPostStartSQLs()
+				ensureTestDatabaseCleanup()
 			})
 		})
 
@@ -403,6 +437,7 @@ var _ = Describe("StartManager", func() {
 				ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 				ensureStateFileContentIs("CLUSTERED")
 				ensureRunPostStartSQLs()
+				ensureTestDatabaseCleanup()
 			})
 		})
 	})
