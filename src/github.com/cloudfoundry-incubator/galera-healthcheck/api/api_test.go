@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	healthcheckfakes "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck/fakes"
@@ -13,7 +14,6 @@ import (
 	sequencefakes "github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 const (

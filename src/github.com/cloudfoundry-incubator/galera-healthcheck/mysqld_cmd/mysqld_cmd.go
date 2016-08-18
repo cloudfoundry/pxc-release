@@ -9,8 +9,8 @@ import (
 	"path"
 	"regexp"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"github.com/pivotal-golang/lager"
 )
 
 type MysqldCmd interface {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"github.com/pivotal-golang/lager"
 	"net/http"
 )
 

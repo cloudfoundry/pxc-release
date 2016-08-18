@@ -7,9 +7,9 @@ import (
 
 	"strconv"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
-	"github.com/pivotal-golang/lager"
 	"net/http"
 )
 

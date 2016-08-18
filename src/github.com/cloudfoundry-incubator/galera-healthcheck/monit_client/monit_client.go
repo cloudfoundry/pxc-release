@@ -11,9 +11,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysql_start_mode"
-	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter -o fakes/fake_monit_client.go . MonitClient

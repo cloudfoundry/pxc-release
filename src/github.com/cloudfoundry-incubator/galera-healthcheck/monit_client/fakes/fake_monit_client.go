@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
-	"github.com/pivotal-golang/lager"
 )
 
 type FakeMonitClient struct {

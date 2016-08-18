@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
-	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	_ "github.com/go-sql-driver/mysql"

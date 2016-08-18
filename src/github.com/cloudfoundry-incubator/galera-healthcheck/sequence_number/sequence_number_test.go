@@ -9,10 +9,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
-	"github.com/pivotal-golang/lager/lagertest"
 	"net/http"
 )
 
