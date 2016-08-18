@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("Seeder", func() {

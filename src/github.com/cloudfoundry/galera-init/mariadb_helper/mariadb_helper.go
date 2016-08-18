@@ -6,11 +6,11 @@ import (
 
 	"database/sql"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	_ "github.com/go-sql-driver/mysql"
-	"code.cloudfoundry.org/lager"
 	"io/ioutil"
 )
 

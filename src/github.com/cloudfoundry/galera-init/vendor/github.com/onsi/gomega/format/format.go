@@ -6,8 +6,8 @@ package format
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 // Use MaxDepth to set the maximum recursion depth when printing deeply nested objects
@@ -187,7 +187,7 @@ func formatString(object interface{}, indentation uint) string {
 }
 
 func formatSlice(v reflect.Value, indentation uint) string {
-	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 && isPrintableString(string(v.Bytes())){
+	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 && isPrintableString(string(v.Bytes())) {
 		return formatString(v.Bytes(), indentation)
 	}
 

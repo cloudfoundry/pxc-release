@@ -5,18 +5,14 @@ result=0
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo -e "\nGenerating fakes..."
-go generate github.com/cloudfoundry/mariadb_ctrl/...
+go generate $(go list github.com/cloudfoundry/mariadb_ctrl/... | grep -v /vendor/)
 
 echo -e "\nFormatting packages..."
 go fmt github.com/cloudfoundry/mariadb_ctrl/...
 
 echo -e "\nVetting packages for potential issues..."
 $MY_DIR/govet
-let "result+=$?"
 
 echo -e "\nTesting packages..."
 ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage="integration_test" "$@" $MY_DIR/..
-let "result+=$?"
 
-echo -e "\nExit Code: $result"
-exit $result

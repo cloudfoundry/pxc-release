@@ -3,13 +3,13 @@ package upgrader_test
 import (
 	"errors"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	. "github.com/cloudfoundry/mariadb_ctrl/upgrader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("Upgrader", func() {

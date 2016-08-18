@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	. "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"code.cloudfoundry.org/lager/lagertest"
+	. "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

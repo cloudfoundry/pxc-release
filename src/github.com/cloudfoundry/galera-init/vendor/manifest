@@ -18,6 +18,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/DATA-DOG/go-sqlmock",
+			"repository": "https://github.com/DATA-DOG/go-sqlmock",
+			"vcs": "git",
+			"revision": "05f39e9110c0ed1ec1834d06004693026a4d24f1",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/go-sql-driver/mysql",
 			"repository": "https://github.com/go-sql-driver/mysql",
 			"vcs": "git",
@@ -48,6 +56,22 @@
 			"repository": "https://github.com/imdario/mergo",
 			"vcs": "git",
 			"revision": "50d4dbd4eb0e84778abe37cefef140271d96fade",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/kisielk/sqlstruct",
+			"repository": "https://github.com/kisielk/sqlstruct",
+			"vcs": "git",
+			"revision": "648daed35d49dac24a4bff253b190a80da3ab6a5",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/nu7hatch/gouuid",
+			"repository": "https://github.com/nu7hatch/gouuid",
+			"vcs": "git",
+			"revision": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3",
 			"branch": "master",
 			"notests": true
 		},

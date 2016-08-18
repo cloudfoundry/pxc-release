@@ -5,13 +5,13 @@ import (
 	"os/exec"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
-	"code.cloudfoundry.org/lager"
 )
 
 const (

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
@@ -11,7 +12,6 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter/node_starterfakes"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader/upgraderfakes"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	. "github.com/onsi/ginkgo"

@@ -8,10 +8,10 @@ import (
 	"strconv"
 
 	"code.cloudfoundry.org/cflager"
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/preparer"
 	"github.com/pivotal-cf-experimental/service-config"
-	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 )
 

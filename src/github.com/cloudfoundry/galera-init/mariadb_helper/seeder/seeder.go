@@ -5,9 +5,9 @@ import (
 
 	"database/sql"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	_ "github.com/go-sql-driver/mysql"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . Seeder

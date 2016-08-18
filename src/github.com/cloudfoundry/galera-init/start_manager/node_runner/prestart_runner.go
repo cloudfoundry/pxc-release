@@ -3,8 +3,8 @@ package node_runner
 import (
 	"os"
 
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 )
 
 type PrestartRunner struct {

@@ -5,9 +5,9 @@ import (
 	"os"
 	"os/exec"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_runner"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/start_managerfakes"

@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
 	"github.com/go-sql-driver/mysql"
 	"github.com/nu7hatch/gouuid"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
