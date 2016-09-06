@@ -8,9 +8,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/api/apifakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	healthcheckfakes "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck/fakes"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client/fakes"
+	monitclient_fakes "github.com/cloudfoundry-incubator/galera-healthcheck/monit_client/fakes"
 	sequencefakes "github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,19 +26,19 @@ const (
 
 var _ = Describe("Sidecar API", func() {
 	var (
-		monitClient    *fakes.FakeMonitClient
+		monitClient    *monitclient_fakes.FakeMonitClient
 		sequenceNumber *sequencefakes.FakeSequenceNumberChecker
-		healthchecker  *healthcheckfakes.FakeHealthChecker
+		healthchecker  *apifakes.FakeReqHealthChecker
 		ts             *httptest.Server
 	)
 
 	BeforeEach(func() {
-		monitClient = &fakes.FakeMonitClient{}
+		monitClient = &monitclient_fakes.FakeMonitClient{}
 		sequenceNumber = &sequencefakes.FakeSequenceNumberChecker{}
 		sequenceNumber.CheckReturns(ExpectedSeqno, nil)
 
-		healthchecker = &healthcheckfakes.FakeHealthChecker{}
-		healthchecker.CheckReturns(ExpectedHealthCheckStatus, nil)
+		healthchecker = &apifakes.FakeReqHealthChecker{}
+		healthchecker.CheckReqReturns(ExpectedHealthCheckStatus, nil)
 
 		testLogger := lagertest.NewTestLogger("mysql_cmd")
 		monitClient.GetLoggerReturns(testLogger)
@@ -60,7 +60,7 @@ var _ = Describe("Sidecar API", func() {
 			RootConfig:            testConfig,
 			MonitClient:           monitClient,
 			SequenceNumberChecker: sequenceNumber,
-			Healthchecker:         healthchecker,
+			ReqHealthchecker:      healthchecker,
 		})
 		Expect(err).ToNot(HaveOccurred())
 		ts = httptest.NewServer(handler)
@@ -215,7 +215,7 @@ var _ = Describe("Sidecar API", func() {
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-			Expect(healthchecker.CheckCallCount()).To(Equal(1))
+			Expect(healthchecker.CheckReqCallCount()).To(Equal(1))
 		})
 
 		It("Calls Check on the Healthchecker at /galera_status", func() {
@@ -227,7 +227,7 @@ var _ = Describe("Sidecar API", func() {
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-			Expect(healthchecker.CheckCallCount()).To(Equal(1))
+			Expect(healthchecker.CheckReqCallCount()).To(Equal(1))
 		})
 	})
 })

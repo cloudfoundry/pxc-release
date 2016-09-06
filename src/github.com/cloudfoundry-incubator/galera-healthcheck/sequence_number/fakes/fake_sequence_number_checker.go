@@ -18,6 +18,8 @@ type FakeSequenceNumberChecker struct {
 		result1 string
 		result2 error
 	}
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeSequenceNumberChecker) Check(req *http.Request) (string, error) {
@@ -25,6 +27,7 @@ func (fake *FakeSequenceNumberChecker) Check(req *http.Request) (string, error) 
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("Check", []interface{}{req})
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
 		return fake.CheckStub(req)
@@ -51,6 +54,26 @@ func (fake *FakeSequenceNumberChecker) CheckReturns(result1 string, result2 erro
 		result1 string
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeSequenceNumberChecker) Invocations() map[string][][]interface{} {
+	fake.invocationsMutex.RLock()
+	defer fake.invocationsMutex.RUnlock()
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	return fake.invocations
+}
+
+func (fake *FakeSequenceNumberChecker) recordInvocation(key string, args []interface{}) {
+	fake.invocationsMutex.Lock()
+	defer fake.invocationsMutex.Unlock()
+	if fake.invocations == nil {
+		fake.invocations = map[string][][]interface{}{}
+	}
+	if fake.invocations[key] == nil {
+		fake.invocations[key] = [][]interface{}{}
+	}
+	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
 var _ sequence_number.SequenceNumberChecker = new(FakeSequenceNumberChecker)

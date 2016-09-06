@@ -60,7 +60,7 @@ func main() {
 	router, err := api.NewRouter(api.ApiParameters{
 		RootConfig:            rootConfig,
 		SequenceNumberChecker: sequenceNumberchecker,
-		Healthchecker:         healthchecker,
+		ReqHealthchecker:      healthchecker,
 		MonitClient:           monitClient,
 	})
 	if err != nil {

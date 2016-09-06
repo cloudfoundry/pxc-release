@@ -63,6 +63,8 @@ type FakeMonitClient struct {
 	getLoggerReturns struct {
 		result1 lager.Logger
 	}
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeMonitClient) StartServiceBootstrap(req *http.Request) (string, error) {
@@ -70,6 +72,7 @@ func (fake *FakeMonitClient) StartServiceBootstrap(req *http.Request) (string, e
 	fake.startServiceBootstrapArgsForCall = append(fake.startServiceBootstrapArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("StartServiceBootstrap", []interface{}{req})
 	fake.startServiceBootstrapMutex.Unlock()
 	if fake.StartServiceBootstrapStub != nil {
 		return fake.StartServiceBootstrapStub(req)
@@ -103,6 +106,7 @@ func (fake *FakeMonitClient) StartServiceJoin(req *http.Request) (string, error)
 	fake.startServiceJoinArgsForCall = append(fake.startServiceJoinArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("StartServiceJoin", []interface{}{req})
 	fake.startServiceJoinMutex.Unlock()
 	if fake.StartServiceJoinStub != nil {
 		return fake.StartServiceJoinStub(req)
@@ -136,6 +140,7 @@ func (fake *FakeMonitClient) StartServiceSingleNode(req *http.Request) (string, 
 	fake.startServiceSingleNodeArgsForCall = append(fake.startServiceSingleNodeArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("StartServiceSingleNode", []interface{}{req})
 	fake.startServiceSingleNodeMutex.Unlock()
 	if fake.StartServiceSingleNodeStub != nil {
 		return fake.StartServiceSingleNodeStub(req)
@@ -169,6 +174,7 @@ func (fake *FakeMonitClient) StopService(req *http.Request) (string, error) {
 	fake.stopServiceArgsForCall = append(fake.stopServiceArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("StopService", []interface{}{req})
 	fake.stopServiceMutex.Unlock()
 	if fake.StopServiceStub != nil {
 		return fake.StopServiceStub(req)
@@ -202,6 +208,7 @@ func (fake *FakeMonitClient) GetStatus(req *http.Request) (string, error) {
 	fake.getStatusArgsForCall = append(fake.getStatusArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("GetStatus", []interface{}{req})
 	fake.getStatusMutex.Unlock()
 	if fake.GetStatusStub != nil {
 		return fake.GetStatusStub(req)
@@ -235,6 +242,7 @@ func (fake *FakeMonitClient) GetLogger(req *http.Request) lager.Logger {
 	fake.getLoggerArgsForCall = append(fake.getLoggerArgsForCall, struct {
 		req *http.Request
 	}{req})
+	fake.recordInvocation("GetLogger", []interface{}{req})
 	fake.getLoggerMutex.Unlock()
 	if fake.GetLoggerStub != nil {
 		return fake.GetLoggerStub(req)
@@ -260,6 +268,36 @@ func (fake *FakeMonitClient) GetLoggerReturns(result1 lager.Logger) {
 	fake.getLoggerReturns = struct {
 		result1 lager.Logger
 	}{result1}
+}
+
+func (fake *FakeMonitClient) Invocations() map[string][][]interface{} {
+	fake.invocationsMutex.RLock()
+	defer fake.invocationsMutex.RUnlock()
+	fake.startServiceBootstrapMutex.RLock()
+	defer fake.startServiceBootstrapMutex.RUnlock()
+	fake.startServiceJoinMutex.RLock()
+	defer fake.startServiceJoinMutex.RUnlock()
+	fake.startServiceSingleNodeMutex.RLock()
+	defer fake.startServiceSingleNodeMutex.RUnlock()
+	fake.stopServiceMutex.RLock()
+	defer fake.stopServiceMutex.RUnlock()
+	fake.getStatusMutex.RLock()
+	defer fake.getStatusMutex.RUnlock()
+	fake.getLoggerMutex.RLock()
+	defer fake.getLoggerMutex.RUnlock()
+	return fake.invocations
+}
+
+func (fake *FakeMonitClient) recordInvocation(key string, args []interface{}) {
+	fake.invocationsMutex.Lock()
+	defer fake.invocationsMutex.Unlock()
+	if fake.invocations == nil {
+		fake.invocations = map[string][][]interface{}{}
+	}
+	if fake.invocations[key] == nil {
+		fake.invocations[key] = [][]interface{}{}
+	}
+	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
 var _ monit_client.MonitClient = new(FakeMonitClient)

@@ -6,11 +6,15 @@ import (
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/middleware"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
 	"github.com/tedsuo/rata"
 )
+
+//go:generate counterfeiter . ReqHealthChecker
+type ReqHealthChecker interface {
+	CheckReq(*http.Request) (string, error)
+}
 
 type RunFunc func(req *http.Request) (string, error)
 
@@ -18,7 +22,7 @@ type ApiParameters struct {
 	RootConfig            *config.Config
 	MonitClient           monit_client.MonitClient
 	SequenceNumberChecker sequence_number.SequenceNumberChecker
-	Healthchecker         healthcheck.HealthChecker
+	ReqHealthchecker      ReqHealthChecker
 }
 
 type router struct {
@@ -26,7 +30,6 @@ type router struct {
 }
 
 func NewRouter(apiParams ApiParameters) (http.Handler, error) {
-
 	r := router{
 		apiParams: apiParams,
 	}
@@ -44,7 +47,7 @@ func NewRouter(apiParams ApiParameters) (http.Handler, error) {
 
 	client := r.apiParams.MonitClient
 	seqnoChecker := r.apiParams.SequenceNumberChecker
-	healthchecker := r.apiParams.Healthchecker
+	healthchecker := r.apiParams.ReqHealthchecker
 	handlers := rata.Handlers{
 		"mysql_status":            r.getSecureHandler(client.GetStatus),
 		"stop_mysql":              r.getSecureHandler(client.StopService),
@@ -52,8 +55,8 @@ func NewRouter(apiParams ApiParameters) (http.Handler, error) {
 		"start_mysql_join":        r.getSecureHandler(client.StartServiceJoin),
 		"start_mysql_single_node": r.getSecureHandler(client.StartServiceSingleNode),
 		"sequence_number":         r.getSecureHandler(seqnoChecker.Check),
-		"galera_status":           r.getInsecureHandler(healthchecker.Check),
-		"root":                    r.getInsecureHandler(healthchecker.Check),
+		"galera_status":           r.getInsecureHandler(healthchecker.CheckReq),
+		"root":                    r.getInsecureHandler(healthchecker.CheckReq),
 	}
 
 	handler, err := rata.NewRouter(routes, handlers)

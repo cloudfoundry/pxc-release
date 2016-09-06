@@ -13,11 +13,9 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net/http"
 )
 
 var _ = Describe("GaleraHealthChecker", func() {
-
 	Describe("Check", func() {
 		Context("Node is running mysql", func() {
 
@@ -177,7 +175,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					logger := lagertest.NewTestLogger("healthcheck test")
 					healthchecker := healthcheck.New(db, config, logger)
 
-					_, err := healthchecker.Check(createReq())
+					_, err := healthchecker.Check()
 					Expect(err).To(MatchError("test error"))
 				})
 			})
@@ -205,13 +203,13 @@ var _ = Describe("GaleraHealthChecker", func() {
 					logger := lagertest.NewTestLogger("healthcheck test")
 					healthchecker := healthcheck.New(db, config, logger)
 
-					_, err := healthchecker.Check(createReq())
+					_, err := healthchecker.Check()
 					Expect(err).To(MatchError("another test error"))
 				})
 			})
 
 			Context("db is down", func() {
-				var healthchecker healthcheck.HealthChecker
+				var healthchecker *healthcheck.HealthChecker
 
 				BeforeEach(func() {
 					db, _ := sql.Open("testdb", "")
@@ -232,7 +230,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				})
 
 				It("returns false and a warning message", func() {
-					_, err := healthchecker.Check(createReq())
+					_, err := healthchecker.Check()
 					Expect(err).To(MatchError("Cannot get status from galera"))
 				})
 
@@ -264,12 +262,6 @@ type healthcheckTestHelperConfig struct {
 	monit                 config.MonitConfig
 }
 
-func createReq() *http.Request {
-	req, err := http.NewRequest("", "/example.com", nil)
-	Expect(err).ToNot(HaveOccurred())
-	return req
-}
-
 func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, error) {
 	db, _ := sql.Open("testdb", "")
 
@@ -298,5 +290,5 @@ func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, erro
 	logger := lagertest.NewTestLogger("healthcheck test")
 	healthchecker := healthcheck.New(db, config, logger)
 
-	return healthchecker.Check(createReq())
+	return healthchecker.Check()
 }

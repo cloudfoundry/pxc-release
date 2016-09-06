@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"net/http"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"net/http"
 )
-
-//go:generate counterfeiter -o fakes/fake_health_checker.go . HealthChecker
-
-type HealthChecker interface {
-	Check(req *http.Request) (string, error)
-}
 
 const (
 	STATE_JOINING        = 1
@@ -24,21 +19,24 @@ const (
 	STATE_SYNCED         = 4
 )
 
-type healthChecker struct {
+type HealthChecker struct {
 	db     *sql.DB
 	config config.Config
 	logger lager.Logger
 }
 
-func New(db *sql.DB, config config.Config, logger lager.Logger) HealthChecker {
-	return &healthChecker{
+func New(db *sql.DB, config config.Config, logger lager.Logger) *HealthChecker {
+	return &HealthChecker{
 		db:     db,
 		config: config,
 		logger: logger,
 	}
 }
+func (h *HealthChecker) CheckReq(req *http.Request) (string, error) {
+	return h.Check()
+}
 
-func (h *healthChecker) Check(req *http.Request) (string, error) {
+func (h *HealthChecker) Check() (string, error) {
 	if h.config.Monit.ServiceName == "garbd" {
 		return "", errors.New("arbitrator node")
 	}
@@ -75,7 +73,7 @@ func (h *healthChecker) Check(req *http.Request) (string, error) {
 
 }
 
-func (h *healthChecker) healthy(value int) (string, error) {
+func (h *HealthChecker) healthy(value int) (string, error) {
 	if !h.config.AvailableWhenReadOnly {
 		readOnly, err := h.isReadOnly()
 		if err != nil {
@@ -89,7 +87,7 @@ func (h *healthChecker) healthy(value int) (string, error) {
 	return "synced", nil
 }
 
-func (h *healthChecker) isReadOnly() (bool, error) {
+func (h *HealthChecker) isReadOnly() (bool, error) {
 	var unused, readOnly string
 	err := h.db.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&unused, &readOnly)
 	if err != nil {
