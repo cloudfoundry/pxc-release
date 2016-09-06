@@ -9,11 +9,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"net/http"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
-	"net/http"
 )
 
 var _ = Describe("GaleraSequenceChecker", func() {
@@ -24,7 +25,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 	)
 
 	var (
-		sequenceChecker sequence_number.SequenceNumberChecker
+		sequenceChecker *sequence_number.SequenceNumberChecker
 		mysqldCmd       *fakes.FakeMysqldCmd
 		rootConfig      config.Config
 		logger          *lagertest.TestLogger

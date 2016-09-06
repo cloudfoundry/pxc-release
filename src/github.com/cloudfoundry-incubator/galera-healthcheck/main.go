@@ -21,7 +21,6 @@ import (
 )
 
 func main() {
-
 	rootConfig, err := config.NewConfig(os.Args)
 
 	logger := rootConfig.Logger
@@ -57,12 +56,12 @@ func main() {
 	healthchecker := healthcheck.New(db, *rootConfig, logger)
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 
-	router, err := api.NewRouter(api.ApiParameters{
-		RootConfig:            rootConfig,
-		SequenceNumberChecker: sequenceNumberchecker,
-		ReqHealthchecker:      healthchecker,
-		MonitClient:           monitClient,
-	})
+	router, err := api.NewRouter(
+		rootConfig,
+		monitClient,
+		sequenceNumberchecker,
+		healthchecker,
+	)
 	if err != nil {
 		logger.Fatal("Failed to create router", err)
 	}

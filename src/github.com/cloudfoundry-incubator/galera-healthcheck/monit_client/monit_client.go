@@ -16,34 +16,23 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysql_start_mode"
 )
 
-//go:generate counterfeiter -o fakes/fake_monit_client.go . MonitClient
-
-type MonitClient interface {
-	StartServiceBootstrap(req *http.Request) (string, error)
-	StartServiceJoin(req *http.Request) (string, error)
-	StartServiceSingleNode(req *http.Request) (string, error)
-	StopService(req *http.Request) (string, error)
-	GetStatus(req *http.Request) (string, error)
-	GetLogger(req *http.Request) lager.Logger
-}
-
-type monitClient struct {
+type MonitClient struct {
 	monitConfig config.MonitConfig
 	logger      lager.Logger
 }
 
-func New(monitConfig config.MonitConfig, logger lager.Logger) *monitClient {
-	return &monitClient{
+func New(monitConfig config.MonitConfig, logger lager.Logger) *MonitClient {
+	return &MonitClient{
 		monitConfig: monitConfig,
 		logger:      logger,
 	}
 }
 
-func (m *monitClient) GetLogger(req *http.Request) lager.Logger {
+func (m *MonitClient) GetLogger(req *http.Request) lager.Logger {
 	return m.logger
 }
 
-func (m *monitClient) StartServiceBootstrap(req *http.Request) (string, error) {
+func (m *MonitClient) StartServiceBootstrap(req *http.Request) (string, error) {
 	if m.monitConfig.ServiceName == "mariadb_ctrl" {
 		return m.startService("bootstrap", true)
 	} else {
@@ -51,17 +40,17 @@ func (m *monitClient) StartServiceBootstrap(req *http.Request) (string, error) {
 	}
 }
 
-func (m *monitClient) StartServiceJoin(req *http.Request) (string, error) {
+func (m *MonitClient) StartServiceJoin(req *http.Request) (string, error) {
 	urlParams := req.URL.Query()
 	sstDisabled := !(urlParams.Get("sst") == "true")
 	return m.startService("join", sstDisabled)
 }
 
-func (m *monitClient) StartServiceSingleNode(req *http.Request) (string, error) {
+func (m *MonitClient) StartServiceSingleNode(req *http.Request) (string, error) {
 	return m.startService("singleNode", true)
 }
 
-func (m *monitClient) startService(startMode string, sstDisabled bool) (string, error) {
+func (m *MonitClient) startService(startMode string, sstDisabled bool) (string, error) {
 	if m.monitConfig.ServiceName == "mariadb_ctrl" {
 		mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
 		err := mySqlStartMode.Start()
@@ -119,7 +108,7 @@ func (m *monitClient) startService(startMode string, sstDisabled bool) (string, 
 	return msg, err
 }
 
-func (m *monitClient) StopService(req *http.Request) (string, error) {
+func (m *MonitClient) StopService(req *http.Request) (string, error) {
 	err := m.runServiceCmd("stop")
 	msg := ""
 	if err == nil {
@@ -128,8 +117,7 @@ func (m *monitClient) StopService(req *http.Request) (string, error) {
 	return msg, err
 }
 
-func (m *monitClient) statusLookup(s MonitStatus) (string, error) {
-
+func (m *MonitClient) statusLookup(s MonitStatus) (string, error) {
 	var tagForService ServiceTag
 	foundService := false
 	for _, serviceTag := range s.Services {
@@ -157,8 +145,7 @@ func (m *monitClient) statusLookup(s MonitStatus) (string, error) {
 	}
 }
 
-func (m *monitClient) GetStatus(req *http.Request) (string, error) {
-
+func (m *MonitClient) GetStatus(req *http.Request) (string, error) {
 	statusResponse, err := m.runStatusCmd()
 	if err != nil {
 		return "", err
@@ -177,8 +164,7 @@ func (m *monitClient) GetStatus(req *http.Request) (string, error) {
 	return status, nil
 }
 
-func (m *monitClient) newUrl(endpoint string, queryParams ...url.Values) (*url.URL, error) {
-
+func (m *MonitClient) newUrl(endpoint string, queryParams ...url.Values) (*url.URL, error) {
 	config := m.monitConfig
 
 	statusURL, err := url.Parse(fmt.Sprintf("http://%s:%d/%s", config.Host, config.Port, endpoint))
@@ -197,8 +183,7 @@ func (m *monitClient) newUrl(endpoint string, queryParams ...url.Values) (*url.U
 	return statusURL, nil
 }
 
-func (m *monitClient) runStatusCmd() (io.Reader, error) {
-
+func (m *MonitClient) runStatusCmd() (io.Reader, error) {
 	statusURL, err := m.newUrl("_status", url.Values{
 		"format": []string{"xml"},
 	})
@@ -211,7 +196,7 @@ func (m *monitClient) runStatusCmd() (io.Reader, error) {
 	return resp, err
 }
 
-func (m *monitClient) runServiceCmd(command string) error {
+func (m *MonitClient) runServiceCmd(command string) error {
 	serviceAction := fmt.Sprintf("action=%s", command)
 	pendingStatusMsg := fmt.Sprintf("%s pending", command)
 	statusURL, err := m.newUrl(m.monitConfig.ServiceName)
@@ -237,7 +222,7 @@ func (m *monitClient) runServiceCmd(command string) error {
 	return nil
 }
 
-func (m *monitClient) sendRequest(statusURL *url.URL, reqMethod string, params ...string) (io.Reader, error) {
+func (m *MonitClient) sendRequest(statusURL *url.URL, reqMethod string, params ...string) (io.Reader, error) {
 	config := m.monitConfig
 	client := &http.Client{}
 

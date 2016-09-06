@@ -10,8 +10,6 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/apifakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	monitclient_fakes "github.com/cloudfoundry-incubator/galera-healthcheck/monit_client/fakes"
-	sequencefakes "github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -26,15 +24,15 @@ const (
 
 var _ = Describe("Sidecar API", func() {
 	var (
-		monitClient    *monitclient_fakes.FakeMonitClient
-		sequenceNumber *sequencefakes.FakeSequenceNumberChecker
+		monitClient    *apifakes.FakeMonitClient
+		sequenceNumber *apifakes.FakeSequenceNumberChecker
 		healthchecker  *apifakes.FakeReqHealthChecker
 		ts             *httptest.Server
 	)
 
 	BeforeEach(func() {
-		monitClient = &monitclient_fakes.FakeMonitClient{}
-		sequenceNumber = &sequencefakes.FakeSequenceNumberChecker{}
+		monitClient = &apifakes.FakeMonitClient{}
+		sequenceNumber = &apifakes.FakeSequenceNumberChecker{}
 		sequenceNumber.CheckReturns(ExpectedSeqno, nil)
 
 		healthchecker = &apifakes.FakeReqHealthChecker{}
@@ -56,12 +54,12 @@ var _ = Describe("Sidecar API", func() {
 		monitClient.StartServiceJoinReturns("Successfully sent join request", nil)
 		monitClient.GetStatusReturns("running", nil)
 
-		handler, err := api.NewRouter(api.ApiParameters{
-			RootConfig:            testConfig,
-			MonitClient:           monitClient,
-			SequenceNumberChecker: sequenceNumber,
-			ReqHealthchecker:      healthchecker,
-		})
+		handler, err := api.NewRouter(
+			testConfig,
+			monitClient,
+			sequenceNumber,
+			healthchecker,
+		)
 		Expect(err).ToNot(HaveOccurred())
 		ts = httptest.NewServer(handler)
 	})

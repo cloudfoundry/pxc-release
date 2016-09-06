@@ -7,27 +7,26 @@ import (
 
 	"strconv"
 
+	"net/http"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
-	"net/http"
 )
 
-type SequenceNumberChecker interface {
-	Check(req *http.Request) (string, error)
-}
-
-//go:generate counterfeiter -o fakes/fake_sequence_number_checker.go . SequenceNumberChecker
-
-type sequenceNumberChecker struct {
+type SequenceNumberChecker struct {
 	db        *sql.DB
 	config    config.Config
 	logger    lager.Logger
 	mysqldCmd mysqld_cmd.MysqldCmd
 }
 
-func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logger lager.Logger) SequenceNumberChecker {
-	return &sequenceNumberChecker{
+func New(db *sql.DB,
+	mysqldCmd mysqld_cmd.MysqldCmd,
+	config config.Config,
+	logger lager.Logger,
+) *SequenceNumberChecker {
+	return &SequenceNumberChecker{
 		db:        db,
 		config:    config,
 		logger:    logger,
@@ -35,7 +34,7 @@ func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logge
 	}
 }
 
-func (s *sequenceNumberChecker) Check(req *http.Request) (string, error) {
+func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
 	s.logger.Info("Checking sequence number of mariadb node...")
 
 	if s.config.Monit.ServiceName == "garbd" {
@@ -61,7 +60,7 @@ func (s *sequenceNumberChecker) Check(req *http.Request) (string, error) {
 	}
 }
 
-func (s *sequenceNumberChecker) readSeqNoFromRecoverCmd() (string, error) {
+func (s *SequenceNumberChecker) readSeqNoFromRecoverCmd() (string, error) {
 	s.logger.Info("Reading seqno from logs")
 	seqno, err := s.mysqldCmd.RecoverSeqno()
 	if err != nil {
@@ -72,7 +71,7 @@ func (s *sequenceNumberChecker) readSeqNoFromRecoverCmd() (string, error) {
 	return seqno, nil
 }
 
-func (s *sequenceNumberChecker) dbReachable() bool {
+func (s *SequenceNumberChecker) dbReachable() bool {
 	_, err := s.db.Exec("SHOW VARIABLES")
 	if err != nil {
 		s.logger.Info(fmt.Sprintf("Database not reachable, continuing: %s", err.Error()))

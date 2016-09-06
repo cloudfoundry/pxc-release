@@ -25,9 +25,8 @@ var (
 )
 
 var _ = Describe("monitClient", func() {
-
 	var (
-		monitClient             monit_client.MonitClient
+		monitClient             *monit_client.MonitClient
 		ts                      *httptest.Server
 		logger                  lager.Logger
 		fakeHandler             http.HandlerFunc
