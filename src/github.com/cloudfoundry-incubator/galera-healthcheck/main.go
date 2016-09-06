@@ -57,6 +57,7 @@ func main() {
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 
 	router, err := api.NewRouter(
+		logger,
 		rootConfig,
 		monitClient,
 		sequenceNumberchecker,

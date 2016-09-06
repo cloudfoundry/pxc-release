@@ -46,7 +46,6 @@ var _ = Describe("Sidecar API", func() {
 				Username: ApiUsername,
 				Password: ApiPassword,
 			},
-			Logger: testLogger,
 		}
 
 		monitClient.StopServiceReturns("Successfully sent stop request", nil)
@@ -55,6 +54,7 @@ var _ = Describe("Sidecar API", func() {
 		monitClient.GetStatusReturns("running", nil)
 
 		handler, err := api.NewRouter(
+			testLogger,
 			testConfig,
 			monitClient,
 			sequenceNumber,

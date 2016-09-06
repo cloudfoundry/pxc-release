@@ -34,6 +34,7 @@ type SequenceNumberChecker interface {
 type RunFunc func(req *http.Request) (string, error)
 
 type router struct {
+	logger                lager.Logger
 	rootConfig            *config.Config
 	monitClient           MonitClient
 	sequenceNumberChecker SequenceNumberChecker
@@ -41,12 +42,14 @@ type router struct {
 }
 
 func NewRouter(
+	logger lager.Logger,
 	rootConfig *config.Config,
 	monitClient MonitClient,
 	sequenceNumberChecker SequenceNumberChecker,
 	reqHealthChecker ReqHealthChecker,
 ) (http.Handler, error) {
 	r := router{
+		logger:                logger,
 		rootConfig:            rootConfig,
 		monitClient:           monitClient,
 		sequenceNumberChecker: sequenceNumberChecker,
@@ -77,7 +80,7 @@ func NewRouter(
 
 	handler, err := rata.NewRouter(routes, handlers)
 	if err != nil {
-		rootConfig.Logger.Error("Error initializing router", err)
+		logger.Error("Error initializing router", err)
 		return nil, err
 	}
 
@@ -95,17 +98,16 @@ func (r router) getSecureHandler(run RunFunc) http.Handler {
 }
 
 func (r router) getInsecureHandler(run RunFunc) http.Handler {
-	logger := r.rootConfig.Logger
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, err := run(req)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			logger.Error("Failed to process request", err)
+			r.logger.Error("Failed to process request", err)
 			w.Write([]byte(err.Error()))
 			return
 		}
 
-		logger.Debug(fmt.Sprintf("Response body: %s", body))
+		r.logger.Debug(fmt.Sprintf("Response body: %s", body))
 		w.Write([]byte(body))
 	})
 }
