@@ -7,9 +7,12 @@ import (
 	"net/http/httptest"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"encoding/json"
+	"errors"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/apifakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -28,10 +31,19 @@ var _ = Describe("Sidecar API", func() {
 		sequenceNumber   *apifakes.FakeSequenceNumberChecker
 		reqhealthchecker *apifakes.FakeReqHealthChecker
 		healthchecker    *apifakes.FakeHealthChecker
+		stateSnapshotter *apifakes.FakeStateSnapshotter
 		ts               *httptest.Server
+
+		ExpectedStateSnapshot domain.DBState
 	)
 
 	BeforeEach(func() {
+		ExpectedStateSnapshot = domain.DBState{
+			WsrepLocalIndex: 0,
+			WsrepLocalState: 4,
+			ReadOnly:        false,
+		}
+
 		monitClient = &apifakes.FakeMonitClient{}
 		sequenceNumber = &apifakes.FakeSequenceNumberChecker{}
 		sequenceNumber.CheckReturns(ExpectedSeqno, nil)
@@ -41,6 +53,9 @@ var _ = Describe("Sidecar API", func() {
 
 		healthchecker = &apifakes.FakeHealthChecker{}
 		healthchecker.CheckReturns(ExpectedHealthCheckStatus, nil)
+
+		stateSnapshotter = new(apifakes.FakeStateSnapshotter)
+		stateSnapshotter.StateReturns(ExpectedStateSnapshot, nil)
 
 		testLogger := lagertest.NewTestLogger("mysql_cmd")
 		monitClient.GetLoggerReturns(testLogger)
@@ -64,6 +79,7 @@ var _ = Describe("Sidecar API", func() {
 			sequenceNumber,
 			reqhealthchecker,
 			healthchecker,
+			stateSnapshotter,
 		)
 		Expect(err).ToNot(HaveOccurred())
 		ts = httptest.NewServer(handler)
@@ -232,5 +248,55 @@ var _ = Describe("Sidecar API", func() {
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
 			Expect(reqhealthchecker.CheckReqCallCount()).To(Equal(1))
 		})
+
+		FDescribe("/api/v1/status", func() {
+			It("Calls State on the stateSnapshotter", func() {
+				req := createReq("api/v1/status", "GET")
+				resp, err := http.DefaultClient.Do(req)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(resp.StatusCode).To(Equal(http.StatusOK))
+				Expect(stateSnapshotter.StateCallCount()).To(Equal(1))
+			})
+
+			Context("when getting the state succeeds", func() {
+				BeforeEach(func() {
+					stateSnapshotter.StateReturns(domain.DBState{
+						WsrepLocalIndex: 1,
+					}, nil)
+				})
+
+				It("has the 'wsrep_local_index'", func() {
+					req := createReq("api/v1/status", "GET")
+					resp, err := http.DefaultClient.Do(req)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+					var state struct {
+						WsrepLocalIndex uint `json:"wsrep_local_index"`
+					}
+
+					json.NewDecoder(resp.Body).Decode(&state)
+
+					Expect(state.WsrepLocalIndex).To(Equal(uint(1)))
+				})
+			})
+
+			Context("when getting the state fails", func() {
+				BeforeEach(func() {
+					stateSnapshotter.StateReturns(domain.DBState{}, errors.New("possibly not a galera cluster"))
+				})
+
+				It("500s", func() {
+					req := createReq("api/v1/status", "GET")
+					resp, err := http.DefaultClient.Do(req)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
 	})
 })

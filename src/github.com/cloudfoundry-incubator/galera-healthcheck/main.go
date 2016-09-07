@@ -55,6 +55,10 @@ func main() {
 	monitClient := monit_client.New(rootConfig.Monit, logger)
 	healthchecker := healthcheck.New(db, *rootConfig, logger)
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
+	stateSnapshotter := &healthcheck.DBStateSnapshotter{
+		DB:     db,
+		Logger: logger,
+	}
 
 	router, err := api.NewRouter(
 		logger,
@@ -63,6 +67,7 @@ func main() {
 		sequenceNumberchecker,
 		healthchecker,
 		healthchecker,
+		stateSnapshotter,
 	)
 	if err != nil {
 		logger.Fatal("Failed to create router", err)

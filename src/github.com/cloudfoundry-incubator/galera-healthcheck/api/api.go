@@ -6,8 +6,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"encoding/json"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/middleware"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	"github.com/tedsuo/rata"
 )
 
@@ -19,6 +21,11 @@ type ReqHealthChecker interface {
 //go:generate counterfeiter . HealthChecker
 type HealthChecker interface {
 	Check() (string, error)
+}
+
+//go:generate counterfeiter . StateSnapshotter
+type StateSnapshotter interface {
+	State() (domain.DBState, error)
 }
 
 //go:generate counterfeiter . MonitClient
@@ -45,6 +52,7 @@ type router struct {
 	sequenceNumberChecker SequenceNumberChecker
 	reqHealthChecker      ReqHealthChecker
 	healthchecker         HealthChecker
+	stateSnapshotter      StateSnapshotter
 }
 
 func NewRouter(
@@ -54,6 +62,7 @@ func NewRouter(
 	sequenceNumberChecker SequenceNumberChecker,
 	reqHealthChecker ReqHealthChecker,
 	healthchecker HealthChecker,
+	stateSnapshotter StateSnapshotter,
 ) (http.Handler, error) {
 	r := router{
 		logger:                logger,
@@ -62,6 +71,7 @@ func NewRouter(
 		sequenceNumberChecker: sequenceNumberChecker,
 		reqHealthChecker:      reqHealthChecker,
 		healthchecker:         healthchecker,
+		stateSnapshotter:      stateSnapshotter,
 	}
 
 	routes := rata.Routes{
@@ -125,8 +135,8 @@ func (r router) getInsecureHandler(run RunFunc) http.Handler {
 }
 
 func (r router) v1Status() http.Handler {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		_, err := r.healthchecker.Check()
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		s, err := r.stateSnapshotter.State()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			r.logger.Error("Failed to process request", err)
@@ -134,8 +144,13 @@ func (r router) v1Status() http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{}`))
-	})
 
-	return handler
+		json.NewEncoder(w).Encode(V1StatusResponse{
+			WsrepLocalIndex: s.WsrepLocalIndex,
+		})
+	})
+}
+
+type V1StatusResponse struct {
+	WsrepLocalIndex uint `json:"wsrep_local_index"`
 }
