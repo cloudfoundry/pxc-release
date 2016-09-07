@@ -249,7 +249,7 @@ var _ = Describe("Sidecar API", func() {
 			Expect(reqhealthchecker.CheckReqCallCount()).To(Equal(1))
 		})
 
-		FDescribe("/api/v1/status", func() {
+		Describe("/api/v1/status", func() {
 			It("Calls State on the stateSnapshotter", func() {
 				req := createReq("api/v1/status", "GET")
 				resp, err := http.DefaultClient.Do(req)

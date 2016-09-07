@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 )
@@ -106,4 +107,12 @@ func formatErrorString(err error, keyPrefix string) string {
 		errsString += fmt.Sprintf("%s%s : %s\n", keyPrefix, fieldName, validationMessage)
 	}
 	return errsString
+}
+
+func (c *Config) IsHealthy(state domain.DBState) bool {
+	if state.ReadOnly && !c.AvailableWhenReadOnly {
+		return false
+	}
+
+	return (domain.WsrepLocalState(state.WsrepLocalState) == domain.Synced) || (domain.WsrepLocalState(state.WsrepLocalState) == domain.DonorDesynced && c.AvailableWhenDonor)
 }

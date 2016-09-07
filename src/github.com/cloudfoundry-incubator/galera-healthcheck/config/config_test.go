@@ -6,7 +6,9 @@ import (
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
@@ -152,4 +154,31 @@ var _ = Describe("Config", func() {
 			Expect(rootConfig.Logger).ToNot(BeNil())
 		})
 	})
+
+	DescribeTable("IsHealthy",
+		func(ls domain.WsrepLocalState, availableWhenDonor bool, availableWhenReadOnly bool, readOnly bool, expected bool) {
+			config := &Config{
+				AvailableWhenDonor:    availableWhenDonor,
+				AvailableWhenReadOnly: availableWhenReadOnly,
+			}
+
+			state := domain.DBState{
+				WsrepLocalState: uint(ls),
+				ReadOnly:        readOnly,
+			}
+
+			Expect(config.IsHealthy(state)).To(Equal(expected))
+		},
+		Entry("Joining is always false", domain.Joining, false, false, false, false),
+		Entry("Joined is always false", domain.Joined, false, false, false, false),
+		Entry("DonorDesynced when not availableWhenDonor is false ", domain.DonorDesynced, false, false, false, false),
+		Entry("DonorDesynced when availableWhenReadOnly is always true - 1", domain.DonorDesynced, true, true, false, true),
+		Entry("DonorDesynced when availableWhenReadOnly is always true - 2", domain.DonorDesynced, true, true, true, true),
+		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 1", domain.DonorDesynced, true, false, false, true),
+		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 2", domain.DonorDesynced, true, false, true, false),
+		Entry("Synced when availableWhenReadOnly is always true - 1", domain.Synced, true, true, false, true),
+		Entry("Synced when availableWhenReadOnly is always true - 2", domain.Synced, true, true, true, true),
+		Entry("Synced when not availableWhenReadOnly is !readOnly - 1", domain.Synced, true, false, false, true),
+		Entry("Synced when not availableWhenReadOnly is !readOnly - 2", domain.Synced, true, false, true, false),
+	)
 })

@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"encoding/json"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/middleware"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
@@ -141,16 +142,19 @@ func (r router) v1Status() http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			r.logger.Error("Failed to process request", err)
 			w.Write([]byte(err.Error()))
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 
 		json.NewEncoder(w).Encode(V1StatusResponse{
 			WsrepLocalIndex: s.WsrepLocalIndex,
+			Healthy:         r.rootConfig.IsHealthy(s),
 		})
 	})
 }
 
 type V1StatusResponse struct {
 	WsrepLocalIndex uint `json:"wsrep_local_index"`
+	Healthy         bool `json:"healthy"`
 }
