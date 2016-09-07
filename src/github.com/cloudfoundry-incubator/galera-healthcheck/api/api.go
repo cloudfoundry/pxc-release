@@ -16,6 +16,11 @@ type ReqHealthChecker interface {
 	CheckReq(*http.Request) (string, error)
 }
 
+//go:generate counterfeiter . HealthChecker
+type HealthChecker interface {
+	Check() (string, error)
+}
+
 //go:generate counterfeiter . MonitClient
 type MonitClient interface {
 	StartServiceBootstrap(req *http.Request) (string, error)
@@ -39,6 +44,7 @@ type router struct {
 	monitClient           MonitClient
 	sequenceNumberChecker SequenceNumberChecker
 	reqHealthChecker      ReqHealthChecker
+	healthchecker         HealthChecker
 }
 
 func NewRouter(
@@ -47,6 +53,7 @@ func NewRouter(
 	monitClient MonitClient,
 	sequenceNumberChecker SequenceNumberChecker,
 	reqHealthChecker ReqHealthChecker,
+	healthchecker HealthChecker,
 ) (http.Handler, error) {
 	r := router{
 		logger:                logger,
@@ -54,9 +61,12 @@ func NewRouter(
 		monitClient:           monitClient,
 		sequenceNumberChecker: sequenceNumberChecker,
 		reqHealthChecker:      reqHealthChecker,
+		healthchecker:         healthchecker,
 	}
 
 	routes := rata.Routes{
+		{Name: "v1_status", Method: "GET", Path: "/api/v1/status"},
+
 		{Name: "mysql_status", Method: "GET", Path: "/mysql_status"},
 		{Name: "stop_mysql", Method: "POST", Path: "/stop_mysql"},
 		{Name: "start_mysql_bootstrap", Method: "POST", Path: "/start_mysql_bootstrap"},
@@ -68,6 +78,8 @@ func NewRouter(
 	}
 
 	handlers := rata.Handlers{
+		"v1_status": r.v1Status(),
+
 		"mysql_status":            r.getSecureHandler(r.monitClient.GetStatus),
 		"stop_mysql":              r.getSecureHandler(r.monitClient.StopService),
 		"start_mysql_bootstrap":   r.getSecureHandler(r.monitClient.StartServiceBootstrap),
@@ -110,4 +122,20 @@ func (r router) getInsecureHandler(run RunFunc) http.Handler {
 		r.logger.Debug(fmt.Sprintf("Response body: %s", body))
 		w.Write([]byte(body))
 	})
+}
+
+func (r router) v1Status() http.Handler {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		_, err := r.healthchecker.Check()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			r.logger.Error("Failed to process request", err)
+			w.Write([]byte(err.Error()))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{}`))
+	})
+
+	return handler
 }

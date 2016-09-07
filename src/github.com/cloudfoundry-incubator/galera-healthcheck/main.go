@@ -62,6 +62,7 @@ func main() {
 		monitClient,
 		sequenceNumberchecker,
 		healthchecker,
+		healthchecker,
 	)
 	if err != nil {
 		logger.Fatal("Failed to create router", err)

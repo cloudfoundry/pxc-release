@@ -24,10 +24,11 @@ const (
 
 var _ = Describe("Sidecar API", func() {
 	var (
-		monitClient    *apifakes.FakeMonitClient
-		sequenceNumber *apifakes.FakeSequenceNumberChecker
-		healthchecker  *apifakes.FakeReqHealthChecker
-		ts             *httptest.Server
+		monitClient      *apifakes.FakeMonitClient
+		sequenceNumber   *apifakes.FakeSequenceNumberChecker
+		reqhealthchecker *apifakes.FakeReqHealthChecker
+		healthchecker    *apifakes.FakeHealthChecker
+		ts               *httptest.Server
 	)
 
 	BeforeEach(func() {
@@ -35,8 +36,11 @@ var _ = Describe("Sidecar API", func() {
 		sequenceNumber = &apifakes.FakeSequenceNumberChecker{}
 		sequenceNumber.CheckReturns(ExpectedSeqno, nil)
 
-		healthchecker = &apifakes.FakeReqHealthChecker{}
-		healthchecker.CheckReqReturns(ExpectedHealthCheckStatus, nil)
+		reqhealthchecker = &apifakes.FakeReqHealthChecker{}
+		reqhealthchecker.CheckReqReturns(ExpectedHealthCheckStatus, nil)
+
+		healthchecker = &apifakes.FakeHealthChecker{}
+		healthchecker.CheckReturns(ExpectedHealthCheckStatus, nil)
 
 		testLogger := lagertest.NewTestLogger("mysql_cmd")
 		monitClient.GetLoggerReturns(testLogger)
@@ -58,6 +62,7 @@ var _ = Describe("Sidecar API", func() {
 			testConfig,
 			monitClient,
 			sequenceNumber,
+			reqhealthchecker,
 			healthchecker,
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -204,7 +209,7 @@ var _ = Describe("Sidecar API", func() {
 			Expect(sequenceNumber.CheckCallCount()).To(Equal(0))
 		})
 
-		It("Calls Check on the Healthchecker at the root endpoint", func() {
+		It("Calls Check on the reqHealthchecker at the root endpoint", func() {
 			req := createReq("", "GET")
 			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
@@ -213,10 +218,10 @@ var _ = Describe("Sidecar API", func() {
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-			Expect(healthchecker.CheckReqCallCount()).To(Equal(1))
+			Expect(reqhealthchecker.CheckReqCallCount()).To(Equal(1))
 		})
 
-		It("Calls Check on the Healthchecker at /galera_status", func() {
+		It("Calls Check on the reqHealthchecker at /galera_status", func() {
 			req := createReq("galera_status", "GET")
 			resp, err := http.DefaultClient.Do(req)
 			Expect(err).ToNot(HaveOccurred())
@@ -225,7 +230,7 @@ var _ = Describe("Sidecar API", func() {
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-			Expect(healthchecker.CheckReqCallCount()).To(Equal(1))
+			Expect(reqhealthchecker.CheckReqCallCount()).To(Equal(1))
 		})
 	})
 })

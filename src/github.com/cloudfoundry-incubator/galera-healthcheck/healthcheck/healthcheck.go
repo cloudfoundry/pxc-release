@@ -32,6 +32,7 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) *HealthChecker {
 		logger: logger,
 	}
 }
+
 func (h *HealthChecker) CheckReq(req *http.Request) (string, error) {
 	return h.Check()
 }
