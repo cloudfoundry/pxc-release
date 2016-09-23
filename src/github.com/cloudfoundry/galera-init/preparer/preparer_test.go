@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("Preparer", func() {
 
-	var prep preparer.Preparer
+	var prep *preparer.Preparer
 	var testLogger lager.Logger
 
 	BeforeEach(func() {
@@ -44,13 +44,14 @@ var _ = Describe("Preparer", func() {
 
 	Context("Happy path", func() {
 		It("instantiates all the objects", func() {
-			prep.Prepare()
-			Expect(prep.GetOsHelper()).ToNot(Equal(nil))
-			Expect(prep.GetDBHelper()).ToNot(Equal(nil))
-			Expect(prep.GetUpgrader()).ToNot(Equal(nil))
-			Expect(prep.GetHealthChecker()).ToNot(Equal(nil))
-			Expect(prep.GetStartManager()).ToNot(Equal(nil))
-			Expect(prep.GetRunner()).ToNot(Equal(nil))
+			Expect(prep.OsHelper).ToNot(Equal(nil))
+			Expect(prep.DBHelper).ToNot(Equal(nil))
+			Expect(prep.Upgrader).ToNot(Equal(nil))
+			Expect(prep.ClusterHealthChecker).ToNot(Equal(nil))
+			Expect(prep.NodeStartManager).ToNot(Equal(nil))
+
+			runner := prep.Prepare()
+			Expect(runner).ToNot(Equal(nil))
 		})
 	})
 })
