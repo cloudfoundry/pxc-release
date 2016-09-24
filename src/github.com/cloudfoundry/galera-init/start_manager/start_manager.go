@@ -99,16 +99,6 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	err = m.runPostStartSQL()
-	if err != nil {
-		return err
-	}
-
-	err = m.runTestDatabaseCleanup()
-	if err != nil {
-		return err
-	}
-
 	err = m.writeStringToFile(newNodeState)
 	if err != nil {
 		return err
@@ -173,28 +163,4 @@ func (m *startManager) Shutdown() error {
 func (m *startManager) writeStringToFile(contents string) error {
 	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
 	return m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
-}
-
-func (m *startManager) runPostStartSQL() error {
-	err := m.mariaDBHelper.RunPostStartSQL()
-	if err != nil {
-		m.logger.Info(fmt.Sprintf("There was a problem running post start sql: '%s'", err.Error()))
-		return err
-	}
-
-	m.logger.Info("Post start sql succeeded.")
-	return nil
-}
-
-func (m *startManager) runTestDatabaseCleanup() error {
-	err := m.mariaDBHelper.TestDatabaseCleanup()
-	if err != nil {
-		m.logger.Info("There was a problem cleaning up test databases", lager.Data{
-			"errMessage": err.Error(),
-		})
-		return err
-	}
-
-	m.logger.Info("Test database cleanup succeeded.")
-	return nil
 }
