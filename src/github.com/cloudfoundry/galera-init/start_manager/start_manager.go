@@ -109,7 +109,7 @@ func (m *startManager) Execute() error {
 
 func (m *startManager) getCurrentNodeState() (string, error) {
 
-	// Single-node deploy always requires bootstraping of new cluster
+	// Single-node deploy always requires bootstrapping of new cluster
 	if len(m.config.ClusterIps) == 1 {
 		return node_starter.SingleNode, nil
 	}

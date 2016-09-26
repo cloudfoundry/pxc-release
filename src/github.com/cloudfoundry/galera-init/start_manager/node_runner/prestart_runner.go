@@ -22,7 +22,7 @@ func NewPrestartRunner(mgr start_manager.StartManager, logger lager.Logger) Pres
 func (r PrestartRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	err := r.mgr.Execute()
 	if err != nil {
-		r.logger.Error("Failed starting mysqld with error:", err)
+		r.logger.Error("Failed pre-starting mysqld with error:", err)
 		//database may have started but failed to accept connections
 		shutdownErr := r.mgr.Shutdown()
 		if shutdownErr != nil {

@@ -53,6 +53,14 @@ var _ = Describe("Starter", func() {
 		Expect(runCmd.Path).To(Equal(cmd))
 	}
 
+	ensureRunPostStartSQLs := func() {
+		Expect(fakeDBHelper.RunPostStartSQLCallCount()).To(BeNumerically(">=", 1))
+	}
+
+	ensureTestDatabaseCleanup := func() {
+		Expect(fakeDBHelper.TestDatabaseCleanupCallCount()).To(Equal(1))
+	}
+
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_helperfakes.FakeOsHelper)
@@ -91,6 +99,8 @@ var _ = Describe("Starter", func() {
 				ensureBootstrap()
 				ensureSeedDatabases()
 				ensureManageReadOnlyUser()
+				ensureRunPostStartSQLs()
+				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
 		})
@@ -108,6 +118,8 @@ var _ = Describe("Starter", func() {
 					ensureBootstrap()
 					ensureSeedDatabases()
 					ensureManageReadOnlyUser()
+					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 				})
 			})
@@ -123,6 +135,8 @@ var _ = Describe("Starter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
 					ensureSeedDatabases()
+					ensureRunPostStartSQLs()
+					ensureTestDatabaseCleanup()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
 				})
 			})
@@ -140,6 +154,8 @@ var _ = Describe("Starter", func() {
 				ensureJoin()
 				ensureSeedDatabases()
 				ensureManageReadOnlyUser()
+				ensureRunPostStartSQLs()
+				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
 			})
 		})
@@ -253,6 +269,30 @@ var _ = Describe("Starter", func() {
 					_, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("some error"))
+				})
+			})
+
+			Context("when running post start sql fails", func() {
+				BeforeEach(func() {
+					fakeDBHelper.RunPostStartSQLReturns(errors.New("post start sql failed"))
+				})
+
+				It("forwards the error", func() {
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("post start sql failed"))
+				})
+			})
+
+			Context("when running test database cleanup fails", func() {
+				BeforeEach(func() {
+					fakeDBHelper.TestDatabaseCleanupReturns(errors.New("test database cleanup failed"))
+				})
+
+				It("forwards the error", func() {
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("test database cleanup failed"))
 				})
 			})
 		})
