@@ -60,16 +60,15 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
+
+	cflager.AddFlags(flags)
+
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(Config{
 		Db: DBHelper{
 			User: "root",
 		},
 	})
-
-	cflager.AddFlags(flags)
-
-	serviceConfig.AddFlags(flags)
 	flags.Parse(configurationOptions)
 
 	err := serviceConfig.Read(&c)
