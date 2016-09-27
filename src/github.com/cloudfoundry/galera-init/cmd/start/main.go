@@ -1,13 +1,10 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 
-	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
@@ -17,7 +14,6 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_runner"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
-	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
 )
@@ -25,123 +21,113 @@ import (
 func main() {
 	var processErr error
 
-	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-
-	serviceConfig := service_config.New()
-	serviceConfig.AddFlags(flags)
-	serviceConfig.AddDefaults(config.Config{
-		Db: config.DBHelper{
-			User: "root",
-		},
-	})
-	cflager.AddFlags(flags)
-
-	flags.Parse(os.Args[1:])
-
-	logger, _ := cflager.New("mariadb_ctrl")
-
-	var rootConfig config.Config
-	err := serviceConfig.Read(&rootConfig)
+	cfg, err := config.NewConfig(os.Args)
 	if err != nil {
-		logger.Fatal("Error reading config file", err)
+		cfg.Logger.Fatal("Error creating config", err)
+		return
 	}
 
-	err = rootConfig.Validate()
+	err = cfg.Validate()
 	if err != nil {
-		logger.Fatal("Error validating config", err)
+		cfg.Logger.Fatal("Error validating config", err)
+		return
 	}
 
-	sigRunner := newRunner(logger, rootConfig)
+	sigRunner := newRunner(cfg)
 
 	process := ifrit.Background(sigRunner)
 
 	select {
 	case err = <-process.Wait():
-		logger.Error("Error starting mysqld", err)
+		cfg.Logger.Error("Error starting mysqld", err)
 		os.Exit(1)
 	case <-process.Ready():
 		//continue
 	}
 
-	err = writePidFile(rootConfig, logger)
+	err = writePidFile(cfg)
 	if err != nil {
 		process.Signal(os.Kill)
 		<-process.Wait()
 
-		logger.Fatal("Error writing pidfile", err, lager.Data{
-			"PidFile": rootConfig.PidFile,
+		cfg.Logger.Fatal("Error writing pidfile", err, lager.Data{
+			"PidFile": cfg.PidFile,
 		})
 	}
 
-	logger.Info("mariadb_ctrl started")
+	cfg.Logger.Info("mariadb_ctrl started")
 
 	processErr = <-process.Wait()
 
-	err = deletePidFile(rootConfig, logger)
+	err = deletePidFile(cfg)
 	if err != nil {
-		logger.Error("Error deleting pidfile", err, lager.Data{
-			"pidfile": rootConfig.PidFile,
+		cfg.Logger.Error("Error deleting pidfile", err, lager.Data{
+			"pidfile": cfg.PidFile,
 		})
 	}
 
 	if processErr != nil {
-		logger.Fatal("Error starting mariadb_ctrl", processErr)
+		cfg.Logger.Fatal("Error starting mariadb_ctrl", processErr)
 	}
 
-	logger.Info("Process exited without error.")
+	cfg.Logger.Info("Process exited without error.")
 }
 
-func writePidFile(rootConfig config.Config, logger lager.Logger) error {
-	logger.Info(fmt.Sprintf("Writing pid to %s", rootConfig.PidFile))
-	return ioutil.WriteFile(rootConfig.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
+func writePidFile(cfg *config.Config) error {
+	cfg.Logger.Info("Writing pid", lager.Data{
+		"pidfile": cfg.PidFile,
+	})
+	return ioutil.WriteFile(cfg.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
 }
 
-func deletePidFile(rootConfig config.Config, logger lager.Logger) error {
-	logger.Info(fmt.Sprintf("Deleting pidfile: %s", rootConfig.PidFile))
-	return os.Remove(rootConfig.PidFile)
+func deletePidFile(cfg *config.Config) error {
+	cfg.Logger.Info("Deleting pidfile", lager.Data{
+		"pidfile": cfg.PidFile,
+	})
+	return os.Remove(cfg.PidFile)
 }
 
-func newRunner(logger lager.Logger, rootConfig config.Config) ifrit.Runner {
+func newRunner(cfg *config.Config) ifrit.Runner {
 	OsHelper := os_helper.NewImpl()
 
 	DBHelper := mariadb_helper.NewMariaDBHelper(
 		OsHelper,
-		rootConfig.Db,
-		rootConfig.LogFileLocation,
-		logger,
+		cfg.Db,
+		cfg.LogFileLocation,
+		cfg.Logger,
 	)
 
 	Upgrader := upgrader.NewUpgrader(
 		OsHelper,
-		rootConfig.Upgrader,
-		logger,
+		cfg.Upgrader,
+		cfg.Logger,
 		DBHelper,
 	)
 
 	ClusterHealthChecker := cluster_health_checker.NewClusterHealthChecker(
-		rootConfig.Manager.ClusterIps,
-		logger,
+		cfg.Manager.ClusterIps,
+		cfg.Logger,
 	)
 
 	NodeStarter := node_starter.NewStarter(
 		DBHelper,
 		OsHelper,
-		rootConfig.Manager,
-		logger,
+		cfg.Manager,
+		cfg.Logger,
 		ClusterHealthChecker,
 	)
 
 	NodeStartManager := start_manager.New(
 		OsHelper,
-		rootConfig.Manager,
+		cfg.Manager,
 		DBHelper,
 		Upgrader,
 		NodeStarter,
-		logger,
+		cfg.Logger,
 		ClusterHealthChecker,
 	)
 
-	runner := node_runner.NewRunner(NodeStartManager, logger)
+	runner := node_runner.NewRunner(NodeStartManager, cfg.Logger)
 
 	sigRunner := sigmon.New(runner, os.Kill)
 

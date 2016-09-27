@@ -9,5 +9,5 @@ import (
 
 func TestUpgrader(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Executable Suite")
+	RunSpecs(t, "Start Executable Suite")
 }

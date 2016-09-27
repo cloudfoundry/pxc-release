@@ -4,7 +4,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
+
+	"flag"
+
+	"code.cloudfoundry.org/cflager"
+	"code.cloudfoundry.org/lager"
 )
 
 type Config struct {
@@ -14,6 +20,7 @@ type Config struct {
 	Manager         StartManager `yaml:"Manager"`
 	Upgrader        Upgrader     `yaml:"Upgrader"`
 	Prestart        bool
+	Logger          lager.Logger
 }
 
 type DBHelper struct {
@@ -43,6 +50,33 @@ type PreseededDatabase struct {
 	DBName   string `yaml:"DBName" validate:"nonzero"`
 	User     string `yaml:"User" validate:"nonzero"`
 	Password string `yaml:"Password"`
+}
+
+func NewConfig(osArgs []string) (*Config, error) {
+	var c Config
+
+	binaryName := osArgs[0]
+	configurationOptions := osArgs[1:]
+
+	serviceConfig := service_config.New()
+	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
+	serviceConfig.AddFlags(flags)
+	serviceConfig.AddDefaults(Config{
+		Db: DBHelper{
+			User: "root",
+		},
+	})
+
+	cflager.AddFlags(flags)
+
+	serviceConfig.AddFlags(flags)
+	flags.Parse(configurationOptions)
+
+	err := serviceConfig.Read(&c)
+
+	c.Logger, _ = cflager.New(binaryName)
+
+	return &c, err
 }
 
 func (c Config) Validate() error {
