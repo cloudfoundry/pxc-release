@@ -213,7 +213,7 @@ var _ = Describe("MariaDBHelper", func() {
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
 					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
-					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
+					Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(2))
 				})
 			})
 
@@ -232,7 +232,7 @@ var _ = Describe("MariaDBHelper", func() {
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
 					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(2))
+					Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(2))
 				})
 			})
 
@@ -250,7 +250,7 @@ var _ = Describe("MariaDBHelper", func() {
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 
-					fakeSeeder.GrantUserAllPrivilegesReturns(errors.New("Error"))
+					fakeSeeder.GrantUserPrivilegesReturns(errors.New("Error"))
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 				})
@@ -270,7 +270,7 @@ var _ = Describe("MariaDBHelper", func() {
 				Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(0))
 				Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(0))
 				Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
-				Expect(fakeSeeder.GrantUserAllPrivilegesCallCount()).To(Equal(0))
+				Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(0))
 			})
 		})
 	})

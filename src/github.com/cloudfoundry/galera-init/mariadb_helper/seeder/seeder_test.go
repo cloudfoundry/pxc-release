@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
@@ -157,6 +158,30 @@ var _ = Describe("Seeder", func() {
 				err := seeder.CreateUser()
 				Expect(err).To(HaveOccurred())
 			})
+		})
+	})
+
+	Describe("GrantUserPrivileges", func() {
+		var (
+			grantAllExec string
+		)
+
+		BeforeEach(func() {
+			grantAllExec = fmt.Sprintf("GRANT ALL ON `%s`.* TO '%s'@'%%", dbConfig.DBName, dbConfig.User)
+		})
+
+		It("grants them all privileges and then revokes LOCK TABLES", func() {
+			mock.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
+
+			Expect(seeder.GrantUserPrivileges()).To(Succeed())
+		})
+
+		It("returns an error if granting privileges errors", func() {
+			err := errors.New("error")
+
+			mock.ExpectExec(grantAllExec).WillReturnError(err)
+
+			Expect(seeder.GrantUserPrivileges()).To(MatchError(err))
 		})
 	})
 })

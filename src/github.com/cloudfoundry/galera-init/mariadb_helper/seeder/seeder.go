@@ -16,7 +16,7 @@ type Seeder interface {
 	CreateDBIfNeeded() error
 	IsExistingUser() (bool, error)
 	CreateUser() error
-	GrantUserAllPrivileges() error
+	GrantUserPrivileges() error
 }
 
 type seeder struct {
@@ -70,9 +70,9 @@ func (s seeder) CreateUser() error {
 	return nil
 }
 
-func (s seeder) GrantUserAllPrivileges() error {
+func (s seeder) GrantUserPrivileges() error {
 	_, err := s.db.Exec(fmt.Sprintf(
-		"GRANT ALL ON `%s`.* TO `%s`",
+		"GRANT ALL ON `%s`.* TO '%s'@'%%'",
 		s.config.DBName,
 		s.config.User))
 	if err != nil {

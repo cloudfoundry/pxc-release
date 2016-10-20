@@ -137,6 +137,8 @@ var _ = Describe("MariaDB Helper", func() {
 				//check that user has permission to create a table
 				_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
 				Expect(err).NotTo(HaveOccurred())
+
+				_, err = userDb.Exec("INSERT INTO testTable (ID) VALUES (1)")
 			}
 		}
 

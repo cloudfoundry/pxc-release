@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type FakeDBHelper struct {

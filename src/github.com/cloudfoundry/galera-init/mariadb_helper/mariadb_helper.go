@@ -210,7 +210,7 @@ func (m MariaDBHelper) Seed() error {
 			}
 		}
 
-		if err := seeder.GrantUserAllPrivileges(); err != nil {
+		if err := seeder.GrantUserPrivileges(); err != nil {
 			return err
 		}
 	}

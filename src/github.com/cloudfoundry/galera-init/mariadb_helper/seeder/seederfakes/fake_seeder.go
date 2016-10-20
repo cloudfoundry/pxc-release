@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type FakeSeeder struct {
@@ -28,10 +27,10 @@ type FakeSeeder struct {
 	createUserReturns     struct {
 		result1 error
 	}
-	GrantUserAllPrivilegesStub        func() error
-	grantUserAllPrivilegesMutex       sync.RWMutex
-	grantUserAllPrivilegesArgsForCall []struct{}
-	grantUserAllPrivilegesReturns     struct {
+	GrantUserPrivilegesStub        func() error
+	grantUserPrivilegesMutex       sync.RWMutex
+	grantUserPrivilegesArgsForCall []struct{}
+	grantUserPrivilegesReturns     struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -114,27 +113,27 @@ func (fake *FakeSeeder) CreateUserReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeSeeder) GrantUserAllPrivileges() error {
-	fake.grantUserAllPrivilegesMutex.Lock()
-	fake.grantUserAllPrivilegesArgsForCall = append(fake.grantUserAllPrivilegesArgsForCall, struct{}{})
-	fake.recordInvocation("GrantUserAllPrivileges", []interface{}{})
-	fake.grantUserAllPrivilegesMutex.Unlock()
-	if fake.GrantUserAllPrivilegesStub != nil {
-		return fake.GrantUserAllPrivilegesStub()
+func (fake *FakeSeeder) GrantUserPrivileges() error {
+	fake.grantUserPrivilegesMutex.Lock()
+	fake.grantUserPrivilegesArgsForCall = append(fake.grantUserPrivilegesArgsForCall, struct{}{})
+	fake.recordInvocation("GrantUserPrivileges", []interface{}{})
+	fake.grantUserPrivilegesMutex.Unlock()
+	if fake.GrantUserPrivilegesStub != nil {
+		return fake.GrantUserPrivilegesStub()
 	} else {
-		return fake.grantUserAllPrivilegesReturns.result1
+		return fake.grantUserPrivilegesReturns.result1
 	}
 }
 
-func (fake *FakeSeeder) GrantUserAllPrivilegesCallCount() int {
-	fake.grantUserAllPrivilegesMutex.RLock()
-	defer fake.grantUserAllPrivilegesMutex.RUnlock()
-	return len(fake.grantUserAllPrivilegesArgsForCall)
+func (fake *FakeSeeder) GrantUserPrivilegesCallCount() int {
+	fake.grantUserPrivilegesMutex.RLock()
+	defer fake.grantUserPrivilegesMutex.RUnlock()
+	return len(fake.grantUserPrivilegesArgsForCall)
 }
 
-func (fake *FakeSeeder) GrantUserAllPrivilegesReturns(result1 error) {
-	fake.GrantUserAllPrivilegesStub = nil
-	fake.grantUserAllPrivilegesReturns = struct {
+func (fake *FakeSeeder) GrantUserPrivilegesReturns(result1 error) {
+	fake.GrantUserPrivilegesStub = nil
+	fake.grantUserPrivilegesReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -148,8 +147,8 @@ func (fake *FakeSeeder) Invocations() map[string][][]interface{} {
 	defer fake.isExistingUserMutex.RUnlock()
 	fake.createUserMutex.RLock()
 	defer fake.createUserMutex.RUnlock()
-	fake.grantUserAllPrivilegesMutex.RLock()
-	defer fake.grantUserAllPrivilegesMutex.RUnlock()
+	fake.grantUserPrivilegesMutex.RLock()
+	defer fake.grantUserPrivilegesMutex.RUnlock()
 	return fake.invocations
 }
 
