@@ -163,15 +163,18 @@ var _ = Describe("Seeder", func() {
 
 	Describe("GrantUserPrivileges", func() {
 		var (
-			grantAllExec string
+			grantAllExec         string
+			revokePrivilegesExec string
 		)
 
 		BeforeEach(func() {
 			grantAllExec = fmt.Sprintf("GRANT ALL ON `%s`.* TO '%s'@'%%", dbConfig.DBName, dbConfig.User)
+			revokePrivilegesExec = fmt.Sprintf("REVOKE LOCK TABLES ON `%s`.* FROM '%s'@'%%", dbConfig.DBName, dbConfig.User)
 		})
 
 		It("grants them all privileges and then revokes LOCK TABLES", func() {
 			mock.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(revokePrivilegesExec).WillReturnResult(sqlmock.NewResult(0, 0))
 
 			Expect(seeder.GrantUserPrivileges()).To(Succeed())
 		})
@@ -180,6 +183,15 @@ var _ = Describe("Seeder", func() {
 			err := errors.New("error")
 
 			mock.ExpectExec(grantAllExec).WillReturnError(err)
+
+			Expect(seeder.GrantUserPrivileges()).To(MatchError(err))
+		})
+
+		It("returns an error if revoking LOCK TABLES privileges errors", func() {
+			err := errors.New("error")
+
+			mock.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(revokePrivilegesExec).WillReturnError(err)
 
 			Expect(seeder.GrantUserPrivileges()).To(MatchError(err))
 		})

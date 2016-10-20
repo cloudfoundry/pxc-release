@@ -82,5 +82,19 @@ func (s seeder) GrantUserPrivileges() error {
 		})
 		return err
 	}
+
+	_, err = s.db.Exec(fmt.Sprintf(
+		"REVOKE LOCK TABLES ON `%s`.* FROM '%s'@'%%'",
+		s.config.DBName,
+		s.config.User,
+	))
+	if err != nil {
+		s.logger.Error("Error revoking LOCK TABLES privilege", err, lager.Data{
+			"dbName": s.config.DBName,
+			"user":   s.config.User,
+		})
+		return err
+	}
+
 	return nil
 }

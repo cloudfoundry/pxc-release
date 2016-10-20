@@ -112,6 +112,7 @@ var _ = Describe("MariaDB Helper", func() {
 			}
 		})
 
+		const mysqlAccessDenied uint16 = 1044
 		var ensureSeedSucceeds = func() {
 			err := helper.Seed()
 			Expect(err).NotTo(HaveOccurred())
@@ -134,11 +135,19 @@ var _ = Describe("MariaDB Helper", func() {
 				Expect(err).NotTo(HaveOccurred())
 				defer userDb.Close()
 
-				//check that user has permission to create a table
+				//check that user has CREATE permission
 				_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
 				Expect(err).NotTo(HaveOccurred())
 
+				//check that user has INSERT permission
 				_, err = userDb.Exec("INSERT INTO testTable (ID) VALUES (1)")
+
+				//check that user does not have LOCK TABLES permission
+				_, err = userDb.Exec("LOCK TABLES testTable READ")
+				Expect(err).To(HaveOccurred())
+				e, found := err.(*mysql.MySQLError)
+				Expect(found).To(BeTrue())
+				Expect(e.Number).To(Equal(mysqlAccessDenied))
 			}
 		}
 
