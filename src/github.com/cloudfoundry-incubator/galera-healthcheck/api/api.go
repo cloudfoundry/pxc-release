@@ -148,13 +148,17 @@ func (r router) v1Status() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 
 		json.NewEncoder(w).Encode(V1StatusResponse{
-			WsrepLocalIndex: s.WsrepLocalIndex,
-			Healthy:         r.rootConfig.IsHealthy(s),
+			WsrepLocalState:        uint(s.WsrepLocalState),
+			WsrepLocalStateComment: string(s.WsrepLocalState.Comment()),
+			WsrepLocalIndex:        s.WsrepLocalIndex,
+			Healthy:                r.rootConfig.IsHealthy(s),
 		})
 	})
 }
 
 type V1StatusResponse struct {
-	WsrepLocalIndex uint `json:"wsrep_local_index"`
-	Healthy         bool `json:"healthy"`
+	WsrepLocalState        uint   `json:"wsrep_local_state"`
+	WsrepLocalStateComment string `json:"wsrep_local_state_comment"`
+	WsrepLocalIndex        uint   `json:"wsrep_local_index"`
+	Healthy                bool   `json:"healthy"`
 }

@@ -41,7 +41,7 @@ var _ = Describe("Sidecar API", func() {
 	BeforeEach(func() {
 		ExpectedStateSnapshot = domain.DBState{
 			WsrepLocalIndex: 0,
-			WsrepLocalState: 4,
+			WsrepLocalState: domain.Synced,
 			ReadOnly:        false,
 		}
 
@@ -268,6 +268,7 @@ var _ = Describe("Sidecar API", func() {
 				BeforeEach(func() {
 					returnedState = domain.DBState{
 						WsrepLocalIndex: 1,
+						WsrepLocalState: domain.Synced,
 					}
 
 					stateSnapshotter.StateReturns(returnedState, nil)
@@ -281,12 +282,16 @@ var _ = Describe("Sidecar API", func() {
 					Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 					var state struct {
-						WsrepLocalIndex uint `json:"wsrep_local_index"`
+						WsrepLocalIndex        uint   `json:"wsrep_local_index"`
+						WsrepLocalState        uint   `json:"wsrep_local_state"`
+						WsrepLocalStateComment string `json:"wsrep_local_state_comment"`
 					}
 
 					json.NewDecoder(resp.Body).Decode(&state)
 
 					Expect(state.WsrepLocalIndex).To(Equal(returnedState.WsrepLocalIndex))
+					Expect(state.WsrepLocalState).To(Equal(uint(returnedState.WsrepLocalState)))
+					Expect(state.WsrepLocalStateComment).To(Equal(string(returnedState.WsrepLocalState.Comment())))
 				})
 			})
 
