@@ -163,7 +163,7 @@ var _ = Describe("Config", func() {
 			}
 
 			state := domain.DBState{
-				WsrepLocalState: uint(ls),
+				WsrepLocalState: ls,
 				ReadOnly:        readOnly,
 			}
 

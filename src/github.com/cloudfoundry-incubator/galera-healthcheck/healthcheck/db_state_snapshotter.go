@@ -28,7 +28,7 @@ func (s *DBStateSnapshotter) State() (state domain.DBState, err error) {
 
 	var (
 		unused     string
-		localState uint
+		localState domain.WsrepLocalState
 		localIndex uint
 		readOnly   string
 	)

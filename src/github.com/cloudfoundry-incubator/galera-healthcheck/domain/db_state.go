@@ -11,6 +11,6 @@ const (
 
 type DBState struct {
 	WsrepLocalIndex uint
-	WsrepLocalState uint
+	WsrepLocalState WsrepLocalState
 	ReadOnly        bool
 }

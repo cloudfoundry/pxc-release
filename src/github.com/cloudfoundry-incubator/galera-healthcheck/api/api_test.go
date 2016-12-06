@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"encoding/json"
 	"errors"
+
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/apifakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
@@ -260,13 +261,19 @@ var _ = Describe("Sidecar API", func() {
 			})
 
 			Context("when getting the state succeeds", func() {
+				var (
+					returnedState domain.DBState
+				)
+
 				BeforeEach(func() {
-					stateSnapshotter.StateReturns(domain.DBState{
+					returnedState = domain.DBState{
 						WsrepLocalIndex: 1,
-					}, nil)
+					}
+
+					stateSnapshotter.StateReturns(returnedState, nil)
 				})
 
-				It("has the 'wsrep_local_index'", func() {
+				It("has the required fields", func() {
 					req := createReq("api/v1/status", "GET")
 					resp, err := http.DefaultClient.Do(req)
 					Expect(err).ToNot(HaveOccurred())
@@ -279,7 +286,7 @@ var _ = Describe("Sidecar API", func() {
 
 					json.NewDecoder(resp.Body).Decode(&state)
 
-					Expect(state.WsrepLocalIndex).To(Equal(uint(1)))
+					Expect(state.WsrepLocalIndex).To(Equal(returnedState.WsrepLocalIndex))
 				})
 			})
 
@@ -297,6 +304,5 @@ var _ = Describe("Sidecar API", func() {
 				})
 			})
 		})
-
 	})
 })

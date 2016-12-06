@@ -1,12 +1,14 @@
 package healthcheck_test
 
 import (
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+
+	"database/sql"
+	"errors"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"database/sql"
-	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,7 +52,7 @@ var _ = Describe("DBStateSnapshotter", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(state.WsrepLocalIndex).To(Equal(uint(0)))
-			Expect(state.WsrepLocalState).To(Equal(uint(4)))
+			Expect(state.WsrepLocalState).To(Equal(domain.Synced))
 			Expect(state.ReadOnly).To(BeTrue())
 		})
 
