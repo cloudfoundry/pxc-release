@@ -134,7 +134,7 @@ func (m MariaDBHelper) StopStandaloneMysqld() error {
 
 func (m MariaDBHelper) runMysqlDaemon(mode string) error {
 	return m.osHelper.RunCommandWithTimeout(
-		10,
+		100,
 		m.logFileLocation,
 		"bash",
 		m.config.DaemonPath,
