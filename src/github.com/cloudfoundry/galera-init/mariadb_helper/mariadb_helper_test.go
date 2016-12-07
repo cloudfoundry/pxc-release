@@ -134,7 +134,7 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
 
 			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
-			Expect(timeout).To(Equal(10))
+			Expect(timeout).To(Equal(100))
 			Expect(logDestination).To(Equal(logFile))
 			Expect(executable).To(Equal("bash"))
 			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StopStandaloneCommand}))
