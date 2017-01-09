@@ -28,6 +28,7 @@ type DBHelper struct {
 	UpgradePath         string              `yaml:"UpgradePath" validate:"nonzero"`
 	User                string              `yaml:"User" validate:"nonzero"`
 	Password            string              `yaml:"Password"`
+	Port                int                 `yaml:"Port"`
 	ReadOnlyUserEnabled bool                `yaml:"ReadOnlyUserEnabled"`
 	ReadOnlyUser        string              `yaml:"ReadOnlyUser" validate:"nonzero"`
 	ReadOnlyPassword    string              `yaml:"ReadOnlyPassword"`
@@ -67,6 +68,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig.AddDefaults(Config{
 		Db: DBHelper{
 			User: "root",
+			Port: 3306,
 		},
 	})
 	flags.Parse(configurationOptions)

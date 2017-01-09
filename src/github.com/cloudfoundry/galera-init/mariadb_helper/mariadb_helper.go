@@ -6,12 +6,13 @@ import (
 
 	"database/sql"
 
+	"io/ioutil"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
-	_ "github.com/go-sql-driver/mysql"
-	"io/ioutil"
+	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -64,7 +65,13 @@ var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager
 
 // Overridable methods to allow mocking DB connections in tests
 var OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/", config.User, config.Password))
+	c := mysql.Config{
+		User:   config.User,
+		Passwd: config.Password,
+		Net:    "tcp",
+		Addr:   fmt.Sprintf("localhost:%d", config.Port),
+	}
+	db, err := sql.Open("mysql", c.FormatDSN())
 	if err != nil {
 		return nil, err
 	}
