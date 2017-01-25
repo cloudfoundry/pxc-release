@@ -27,10 +27,6 @@ var _ = Describe("Starter", func() {
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
 
-	node_starter.GetDatabaseStartTime = func() int {
-		return 10
-	}
-
 	ensureManageReadOnlyUser := func() {
 		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
 	}
@@ -177,7 +173,7 @@ var _ = Describe("Starter", func() {
 				}
 			})
 
-			It("retries pinging the database until it is reachable", func() {
+			It("eventually succeeds", func() {
 				_, err := starter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
@@ -221,28 +217,6 @@ var _ = Describe("Starter", func() {
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
-				})
-			})
-
-			Context("When mysqld does not start in less than configured start time", func() {
-				var maxRetryAttempts int
-
-				BeforeEach(func() {
-					maxRetryAttempts = node_starter.GetDatabaseStartTime() / node_starter.StartupPollingFrequencyInSeconds
-					fakeDBHelper.IsDatabaseReachableReturns(false)
-				})
-
-				It("returns a timeout error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Timeout"))
-					Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(maxRetryAttempts))
-				})
-
-				It("does not attempt to seed the database", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(fakeDBHelper.SeedCallCount()).To(Equal(0))
 				})
 			})
 
