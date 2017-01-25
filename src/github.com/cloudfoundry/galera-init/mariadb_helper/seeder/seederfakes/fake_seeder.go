@@ -44,9 +44,8 @@ func (fake *FakeSeeder) CreateDBIfNeeded() error {
 	fake.createDBIfNeededMutex.Unlock()
 	if fake.CreateDBIfNeededStub != nil {
 		return fake.CreateDBIfNeededStub()
-	} else {
-		return fake.createDBIfNeededReturns.result1
 	}
+	return fake.createDBIfNeededReturns.result1
 }
 
 func (fake *FakeSeeder) CreateDBIfNeededCallCount() int {
@@ -69,9 +68,8 @@ func (fake *FakeSeeder) IsExistingUser() (bool, error) {
 	fake.isExistingUserMutex.Unlock()
 	if fake.IsExistingUserStub != nil {
 		return fake.IsExistingUserStub()
-	} else {
-		return fake.isExistingUserReturns.result1, fake.isExistingUserReturns.result2
 	}
+	return fake.isExistingUserReturns.result1, fake.isExistingUserReturns.result2
 }
 
 func (fake *FakeSeeder) IsExistingUserCallCount() int {
@@ -95,9 +93,8 @@ func (fake *FakeSeeder) CreateUser() error {
 	fake.createUserMutex.Unlock()
 	if fake.CreateUserStub != nil {
 		return fake.CreateUserStub()
-	} else {
-		return fake.createUserReturns.result1
 	}
+	return fake.createUserReturns.result1
 }
 
 func (fake *FakeSeeder) CreateUserCallCount() int {
@@ -120,9 +117,8 @@ func (fake *FakeSeeder) GrantUserPrivileges() error {
 	fake.grantUserPrivilegesMutex.Unlock()
 	if fake.GrantUserPrivilegesStub != nil {
 		return fake.GrantUserPrivilegesStub()
-	} else {
-		return fake.grantUserPrivilegesReturns.result1
 	}
+	return fake.grantUserPrivilegesReturns.result1
 }
 
 func (fake *FakeSeeder) GrantUserPrivilegesCallCount() int {

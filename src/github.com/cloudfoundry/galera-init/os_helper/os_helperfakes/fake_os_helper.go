@@ -95,9 +95,8 @@ func (fake *FakeOsHelper) RunCommand(executable string, args ...string) (string,
 	fake.runCommandMutex.Unlock()
 	if fake.RunCommandStub != nil {
 		return fake.RunCommandStub(executable, args...)
-	} else {
-		return fake.runCommandReturns.result1, fake.runCommandReturns.result2
 	}
+	return fake.runCommandReturns.result1, fake.runCommandReturns.result2
 }
 
 func (fake *FakeOsHelper) RunCommandCallCount() int {
@@ -132,9 +131,8 @@ func (fake *FakeOsHelper) RunCommandWithTimeout(timeout int, logFileName string,
 	fake.runCommandWithTimeoutMutex.Unlock()
 	if fake.RunCommandWithTimeoutStub != nil {
 		return fake.RunCommandWithTimeoutStub(timeout, logFileName, executable, args...)
-	} else {
-		return fake.runCommandWithTimeoutReturns.result1
 	}
+	return fake.runCommandWithTimeoutReturns.result1
 }
 
 func (fake *FakeOsHelper) RunCommandWithTimeoutCallCount() int {
@@ -167,9 +165,8 @@ func (fake *FakeOsHelper) StartCommand(logFileName string, executable string, ar
 	fake.startCommandMutex.Unlock()
 	if fake.StartCommandStub != nil {
 		return fake.StartCommandStub(logFileName, executable, args...)
-	} else {
-		return fake.startCommandReturns.result1, fake.startCommandReturns.result2
 	}
+	return fake.startCommandReturns.result1, fake.startCommandReturns.result2
 }
 
 func (fake *FakeOsHelper) StartCommandCallCount() int {
@@ -201,9 +198,8 @@ func (fake *FakeOsHelper) WaitForCommand(cmd *exec.Cmd) chan error {
 	fake.waitForCommandMutex.Unlock()
 	if fake.WaitForCommandStub != nil {
 		return fake.WaitForCommandStub(cmd)
-	} else {
-		return fake.waitForCommandReturns.result1
 	}
+	return fake.waitForCommandReturns.result1
 }
 
 func (fake *FakeOsHelper) WaitForCommandCallCount() int {
@@ -234,9 +230,8 @@ func (fake *FakeOsHelper) FileExists(filename string) bool {
 	fake.fileExistsMutex.Unlock()
 	if fake.FileExistsStub != nil {
 		return fake.FileExistsStub(filename)
-	} else {
-		return fake.fileExistsReturns.result1
 	}
+	return fake.fileExistsReturns.result1
 }
 
 func (fake *FakeOsHelper) FileExistsCallCount() int {
@@ -267,9 +262,8 @@ func (fake *FakeOsHelper) ReadFile(filename string) (string, error) {
 	fake.readFileMutex.Unlock()
 	if fake.ReadFileStub != nil {
 		return fake.ReadFileStub(filename)
-	} else {
-		return fake.readFileReturns.result1, fake.readFileReturns.result2
 	}
+	return fake.readFileReturns.result1, fake.readFileReturns.result2
 }
 
 func (fake *FakeOsHelper) ReadFileCallCount() int {
@@ -302,9 +296,8 @@ func (fake *FakeOsHelper) WriteStringToFile(filename string, contents string) er
 	fake.writeStringToFileMutex.Unlock()
 	if fake.WriteStringToFileStub != nil {
 		return fake.WriteStringToFileStub(filename, contents)
-	} else {
-		return fake.writeStringToFileReturns.result1
 	}
+	return fake.writeStringToFileReturns.result1
 }
 
 func (fake *FakeOsHelper) WriteStringToFileCallCount() int {

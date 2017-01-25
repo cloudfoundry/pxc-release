@@ -32,9 +32,8 @@ func (fake *FakeUpgrader) Upgrade() error {
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
 		return fake.UpgradeStub()
-	} else {
-		return fake.upgradeReturns.result1
 	}
+	return fake.upgradeReturns.result1
 }
 
 func (fake *FakeUpgrader) UpgradeCallCount() int {
@@ -57,9 +56,8 @@ func (fake *FakeUpgrader) NeedsUpgrade() (bool, error) {
 	fake.needsUpgradeMutex.Unlock()
 	if fake.NeedsUpgradeStub != nil {
 		return fake.NeedsUpgradeStub()
-	} else {
-		return fake.needsUpgradeReturns.result1, fake.needsUpgradeReturns.result2
 	}
+	return fake.needsUpgradeReturns.result1, fake.needsUpgradeReturns.result2
 }
 
 func (fake *FakeUpgrader) NeedsUpgradeCallCount() int {

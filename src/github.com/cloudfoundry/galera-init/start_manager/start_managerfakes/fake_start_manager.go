@@ -39,9 +39,8 @@ func (fake *FakeStartManager) Execute() error {
 	fake.executeMutex.Unlock()
 	if fake.ExecuteStub != nil {
 		return fake.ExecuteStub()
-	} else {
-		return fake.executeReturns.result1
 	}
+	return fake.executeReturns.result1
 }
 
 func (fake *FakeStartManager) ExecuteCallCount() int {
@@ -64,9 +63,8 @@ func (fake *FakeStartManager) GetMysqlCmd() (*exec.Cmd, error) {
 	fake.getMysqlCmdMutex.Unlock()
 	if fake.GetMysqlCmdStub != nil {
 		return fake.GetMysqlCmdStub()
-	} else {
-		return fake.getMysqlCmdReturns.result1, fake.getMysqlCmdReturns.result2
 	}
+	return fake.getMysqlCmdReturns.result1, fake.getMysqlCmdReturns.result2
 }
 
 func (fake *FakeStartManager) GetMysqlCmdCallCount() int {
@@ -90,9 +88,8 @@ func (fake *FakeStartManager) Shutdown() error {
 	fake.shutdownMutex.Unlock()
 	if fake.ShutdownStub != nil {
 		return fake.ShutdownStub()
-	} else {
-		return fake.shutdownReturns.result1
 	}
+	return fake.shutdownReturns.result1
 }
 
 func (fake *FakeStartManager) ShutdownCallCount() int {

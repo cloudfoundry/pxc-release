@@ -38,9 +38,8 @@ func (fake *FakeStarter) StartNodeFromState(arg1 string) (string, error) {
 	fake.startNodeFromStateMutex.Unlock()
 	if fake.StartNodeFromStateStub != nil {
 		return fake.StartNodeFromStateStub(arg1)
-	} else {
-		return fake.startNodeFromStateReturns.result1, fake.startNodeFromStateReturns.result2
 	}
+	return fake.startNodeFromStateReturns.result1, fake.startNodeFromStateReturns.result2
 }
 
 func (fake *FakeStarter) StartNodeFromStateCallCount() int {
@@ -70,9 +69,8 @@ func (fake *FakeStarter) GetMysqlCmd() (*exec.Cmd, error) {
 	fake.getMysqlCmdMutex.Unlock()
 	if fake.GetMysqlCmdStub != nil {
 		return fake.GetMysqlCmdStub()
-	} else {
-		return fake.getMysqlCmdReturns.result1, fake.getMysqlCmdReturns.result2
 	}
+	return fake.getMysqlCmdReturns.result1, fake.getMysqlCmdReturns.result2
 }
 
 func (fake *FakeStarter) GetMysqlCmdCallCount() int {

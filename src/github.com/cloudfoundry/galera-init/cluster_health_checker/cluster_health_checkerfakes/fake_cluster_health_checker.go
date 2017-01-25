@@ -25,9 +25,8 @@ func (fake *FakeClusterHealthChecker) HealthyCluster() bool {
 	fake.healthyClusterMutex.Unlock()
 	if fake.HealthyClusterStub != nil {
 		return fake.HealthyClusterStub()
-	} else {
-		return fake.healthyClusterReturns.result1
 	}
+	return fake.healthyClusterReturns.result1
 }
 
 func (fake *FakeClusterHealthChecker) HealthyClusterCallCount() int {

@@ -99,9 +99,8 @@ func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
 	fake.startMysqldInModeMutex.Unlock()
 	if fake.StartMysqldInModeStub != nil {
 		return fake.StartMysqldInModeStub(command)
-	} else {
-		return fake.startMysqldInModeReturns.result1
 	}
+	return fake.startMysqldInModeReturns.result1
 }
 
 func (fake *FakeDBHelper) StartMysqldInModeCallCount() int {
@@ -130,9 +129,8 @@ func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	fake.startMysqldInJoinMutex.Unlock()
 	if fake.StartMysqldInJoinStub != nil {
 		return fake.StartMysqldInJoinStub()
-	} else {
-		return fake.startMysqldInJoinReturns.result1, fake.startMysqldInJoinReturns.result2
 	}
+	return fake.startMysqldInJoinReturns.result1, fake.startMysqldInJoinReturns.result2
 }
 
 func (fake *FakeDBHelper) StartMysqldInJoinCallCount() int {
@@ -156,9 +154,8 @@ func (fake *FakeDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	fake.startMysqldInBootstrapMutex.Unlock()
 	if fake.StartMysqldInBootstrapStub != nil {
 		return fake.StartMysqldInBootstrapStub()
-	} else {
-		return fake.startMysqldInBootstrapReturns.result1, fake.startMysqldInBootstrapReturns.result2
 	}
+	return fake.startMysqldInBootstrapReturns.result1, fake.startMysqldInBootstrapReturns.result2
 }
 
 func (fake *FakeDBHelper) StartMysqldInBootstrapCallCount() int {
@@ -182,9 +179,8 @@ func (fake *FakeDBHelper) StopMysqld() error {
 	fake.stopMysqldMutex.Unlock()
 	if fake.StopMysqldStub != nil {
 		return fake.StopMysqldStub()
-	} else {
-		return fake.stopMysqldReturns.result1
 	}
+	return fake.stopMysqldReturns.result1
 }
 
 func (fake *FakeDBHelper) StopMysqldCallCount() int {
@@ -207,9 +203,8 @@ func (fake *FakeDBHelper) StopStandaloneMysqld() error {
 	fake.stopStandaloneMysqldMutex.Unlock()
 	if fake.StopStandaloneMysqldStub != nil {
 		return fake.StopStandaloneMysqldStub()
-	} else {
-		return fake.stopStandaloneMysqldReturns.result1
 	}
+	return fake.stopStandaloneMysqldReturns.result1
 }
 
 func (fake *FakeDBHelper) StopStandaloneMysqldCallCount() int {
@@ -232,9 +227,8 @@ func (fake *FakeDBHelper) Upgrade() (output string, err error) {
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
 		return fake.UpgradeStub()
-	} else {
-		return fake.upgradeReturns.result1, fake.upgradeReturns.result2
 	}
+	return fake.upgradeReturns.result1, fake.upgradeReturns.result2
 }
 
 func (fake *FakeDBHelper) UpgradeCallCount() int {
@@ -258,9 +252,8 @@ func (fake *FakeDBHelper) IsDatabaseReachable() bool {
 	fake.isDatabaseReachableMutex.Unlock()
 	if fake.IsDatabaseReachableStub != nil {
 		return fake.IsDatabaseReachableStub()
-	} else {
-		return fake.isDatabaseReachableReturns.result1
 	}
+	return fake.isDatabaseReachableReturns.result1
 }
 
 func (fake *FakeDBHelper) IsDatabaseReachableCallCount() int {
@@ -283,9 +276,8 @@ func (fake *FakeDBHelper) IsProcessRunning() bool {
 	fake.isProcessRunningMutex.Unlock()
 	if fake.IsProcessRunningStub != nil {
 		return fake.IsProcessRunningStub()
-	} else {
-		return fake.isProcessRunningReturns.result1
 	}
+	return fake.isProcessRunningReturns.result1
 }
 
 func (fake *FakeDBHelper) IsProcessRunningCallCount() int {
@@ -308,9 +300,8 @@ func (fake *FakeDBHelper) Seed() error {
 	fake.seedMutex.Unlock()
 	if fake.SeedStub != nil {
 		return fake.SeedStub()
-	} else {
-		return fake.seedReturns.result1
 	}
+	return fake.seedReturns.result1
 }
 
 func (fake *FakeDBHelper) SeedCallCount() int {
@@ -333,9 +324,8 @@ func (fake *FakeDBHelper) ManageReadOnlyUser() error {
 	fake.manageReadOnlyUserMutex.Unlock()
 	if fake.ManageReadOnlyUserStub != nil {
 		return fake.ManageReadOnlyUserStub()
-	} else {
-		return fake.manageReadOnlyUserReturns.result1
 	}
+	return fake.manageReadOnlyUserReturns.result1
 }
 
 func (fake *FakeDBHelper) ManageReadOnlyUserCallCount() int {
@@ -358,9 +348,8 @@ func (fake *FakeDBHelper) RunPostStartSQL() error {
 	fake.runPostStartSQLMutex.Unlock()
 	if fake.RunPostStartSQLStub != nil {
 		return fake.RunPostStartSQLStub()
-	} else {
-		return fake.runPostStartSQLReturns.result1
 	}
+	return fake.runPostStartSQLReturns.result1
 }
 
 func (fake *FakeDBHelper) RunPostStartSQLCallCount() int {
@@ -383,9 +372,8 @@ func (fake *FakeDBHelper) TestDatabaseCleanup() error {
 	fake.testDatabaseCleanupMutex.Unlock()
 	if fake.TestDatabaseCleanupStub != nil {
 		return fake.TestDatabaseCleanupStub()
-	} else {
-		return fake.testDatabaseCleanupReturns.result1
 	}
+	return fake.testDatabaseCleanupReturns.result1
 }
 
 func (fake *FakeDBHelper) TestDatabaseCleanupCallCount() int {
