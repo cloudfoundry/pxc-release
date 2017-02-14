@@ -14,66 +14,74 @@ func New(nodeManager node_manager.NodeManager) *Bootstrapper {
 	}
 }
 
-func (b *Bootstrapper) RejoinUnsafe() error {
-	err := b.nodeManager.VerifyClusterIsUnhealthy()
+func (b *Bootstrapper) RejoinUnsafe() (bool, error) {
+	unhealthy, err := b.nodeManager.VerifyClusterIsUnhealthy()
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	if !unhealthy {
+		return false, nil
 	}
 
 	url, err := b.nodeManager.FindUnhealthyNode()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = b.nodeManager.StopNode(url)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = b.nodeManager.JoinNode(url)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
-func (b *Bootstrapper) Bootstrap() error {
-	err := b.nodeManager.VerifyClusterIsUnhealthy()
+func (b *Bootstrapper) Bootstrap() (bool, error) {
+	unhealthy, err := b.nodeManager.VerifyClusterIsUnhealthy()
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	if !unhealthy {
+		return false, nil
 	}
 
 	err = b.nodeManager.VerifyAllNodesAreReachable()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = b.nodeManager.StopAllNodes()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	sequenceNumberMap, err := b.nodeManager.GetSequenceNumbers()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	bootstrapNodeURL, joinNodes := largestSequenceNumber(sequenceNumberMap)
 	err = b.nodeManager.BootstrapNode(bootstrapNodeURL)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// galera recommends joining nodes one at a time
 	for _, url := range joinNodes {
 		err = b.nodeManager.JoinNode(url)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func largestSequenceNumber(seqMap map[string]int) (string, []string) {

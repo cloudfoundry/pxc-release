@@ -15,14 +15,16 @@ var (
 )
 
 var _ = Describe("Bootstrap", func() {
-
 	BeforeEach(func() {
 		fakeNodeManager = &fakes.FakeNodeManager{}
 		bootstrapper = bootstrapperPkg.New(fakeNodeManager)
+
+		fakeNodeManager.VerifyClusterIsUnhealthyStub = func() (bool, error) {
+			return true, nil
+		}
 	})
 
 	Context("when all nodeManager calls succeed", func() {
-
 		BeforeEach(func() {
 			fakeNodeManager.GetSequenceNumbersReturns(map[string]int{
 				"url1": 1,
@@ -32,8 +34,9 @@ var _ = Describe("Bootstrap", func() {
 		})
 
 		It("bootstraps the node with the highest sequence number", func() {
-			err := bootstrapper.Bootstrap()
+			actionTaken, err := bootstrapper.Bootstrap()
 			Expect(err).ToNot(HaveOccurred())
+			Expect(actionTaken).To(BeTrue())
 
 			Expect(fakeNodeManager.VerifyClusterIsUnhealthyCallCount()).To(Equal(1))
 			Expect(fakeNodeManager.VerifyAllNodesAreReachableCallCount()).To(Equal(1))
@@ -55,10 +58,14 @@ var _ = Describe("Bootstrap", func() {
 })
 
 var _ = Describe("rejoin-unsafe", func() {
-
 	BeforeEach(func() {
 		fakeNodeManager = &fakes.FakeNodeManager{}
 		bootstrapper = bootstrapperPkg.New(fakeNodeManager)
+
+		fakeNodeManager.VerifyClusterIsUnhealthyStub = func() (bool, error) {
+			return true, nil
+		}
+
 		fakeNodeManager.FindUnhealthyNodeStub = func() (string, error) {
 			return "fake-url", nil
 		}
@@ -66,8 +73,9 @@ var _ = Describe("rejoin-unsafe", func() {
 
 	Context("when all nodeManager calls succeed", func() {
 		It("makes the unhealthy node rejoin the cluster", func() {
-			err := bootstrapper.RejoinUnsafe()
+			actionTaken, err := bootstrapper.RejoinUnsafe()
 			Expect(err).ToNot(HaveOccurred())
+			Expect(actionTaken).To(BeTrue())
 
 			Expect(fakeNodeManager.VerifyClusterIsUnhealthyCallCount()).To(Equal(1))
 			Expect(fakeNodeManager.FindUnhealthyNodeCallCount()).To(Equal(1))
@@ -79,12 +87,13 @@ var _ = Describe("rejoin-unsafe", func() {
 	})
 
 	Context("when cluster is healthy", func() {
-		It("returns an error", func() {
-			fakeNodeManager.VerifyClusterIsUnhealthyStub = func() error {
-				return errors.New("fake-error")
+		It("returns false,nil", func() {
+			fakeNodeManager.VerifyClusterIsUnhealthyStub = func() (bool, error) {
+				return false, nil
 			}
-			err := bootstrapper.RejoinUnsafe()
-			Expect(err).To(HaveOccurred())
+			actionTaken, err := bootstrapper.RejoinUnsafe()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actionTaken).To(BeFalse())
 		})
 	})
 
@@ -93,8 +102,9 @@ var _ = Describe("rejoin-unsafe", func() {
 			fakeNodeManager.FindUnhealthyNodeStub = func() (string, error) {
 				return "", errors.New("fake-error")
 			}
-			err := bootstrapper.RejoinUnsafe()
+			actionTaken, err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
+			Expect(actionTaken).To(BeFalse())
 		})
 	})
 
@@ -103,8 +113,9 @@ var _ = Describe("rejoin-unsafe", func() {
 			fakeNodeManager.JoinNodeStub = func(string) error {
 				return errors.New("fake-error")
 			}
-			err := bootstrapper.RejoinUnsafe()
+			actionTaken, err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
+			Expect(actionTaken).To(BeFalse())
 		})
 	})
 
@@ -113,8 +124,9 @@ var _ = Describe("rejoin-unsafe", func() {
 			fakeNodeManager.StopNodeStub = func(string) error {
 				return errors.New("fake-error")
 			}
-			err := bootstrapper.RejoinUnsafe()
+			actionTaken, err := bootstrapper.RejoinUnsafe()
 			Expect(err).To(HaveOccurred())
+			Expect(actionTaken).To(BeFalse())
 		})
 	})
 })

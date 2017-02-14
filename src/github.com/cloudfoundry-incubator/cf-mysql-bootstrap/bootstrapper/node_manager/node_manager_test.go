@@ -86,7 +86,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is bootstrap", func() {
 					It("does not return an error", func() {
 						rootConfig.RepairMode = "bootstrap"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).ToNot(HaveOccurred())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
@@ -97,7 +97,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is rejoin-unsafe", func() {
 					It("returns an error", func() {
 						rootConfig.RepairMode = "rejoin-unsafe"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(Equal("More than one node is unhealthy, cannot execute rejoin-unsafe."))
 						for _, handler := range endpointHandlers {
@@ -115,11 +115,11 @@ var _ = Describe("Bootstrap", func() {
 				})
 
 				Context("when RepairMode is bootstrap", func() {
-					It("returns an error", func() {
+					It("returns false,nil", func() {
 						rootConfig.RepairMode = "bootstrap"
-						err := nodeManager.VerifyClusterIsUnhealthy()
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("All nodes are synced, bootstrap not required."))
+						clusterUnhealthy, err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(clusterUnhealthy).To(BeFalse())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
 						}
@@ -127,11 +127,11 @@ var _ = Describe("Bootstrap", func() {
 				})
 
 				Context("when RepairMode is rejoin-unsafe", func() {
-					It("returns an error", func() {
+					It("returns false,nil", func() {
 						rootConfig.RepairMode = "rejoin-unsafe"
-						err := nodeManager.VerifyClusterIsUnhealthy()
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("All nodes are synced, rejoin-unsafe not required."))
+						clusterUnhealthy, err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(clusterUnhealthy).To(BeFalse())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
 						}
@@ -140,7 +140,6 @@ var _ = Describe("Bootstrap", func() {
 			})
 
 			Context("when all but one mysql nodes are synced", func() {
-
 				BeforeEach(func() {
 					for _, handler := range endpointHandlers {
 						handler.StubEndpointWithStatus("/", http.StatusOK, "synced")
@@ -151,7 +150,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is bootstrap", func() {
 					It("returns an error without bootstrapping", func() {
 						rootConfig.RepairMode = "bootstrap"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
 						for _, handler := range endpointHandlers {
@@ -163,7 +162,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is rejoin-unsafe", func() {
 					It("does not return an error", func() {
 						rootConfig.RepairMode = "rejoin-unsafe"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).NotTo(HaveOccurred())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
@@ -188,7 +187,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is bootstrap", func() {
 					It("does not return an error", func() {
 						rootConfig.RepairMode = "bootstrap"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).ToNot(HaveOccurred())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
@@ -199,7 +198,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is rejoin-unsafe", func() {
 					It("returns an error", func() {
 						rootConfig.RepairMode = "rejoin-unsafe"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(Equal("More than one node is unhealthy, cannot execute rejoin-unsafe."))
 						for _, handler := range endpointHandlers {
@@ -210,7 +209,6 @@ var _ = Describe("Bootstrap", func() {
 			})
 
 			Context("when all mysql nodes are healthy", func() {
-
 				BeforeEach(func() {
 					for i, handler := range endpointHandlers {
 						if i == ArbitratorIndex {
@@ -222,11 +220,11 @@ var _ = Describe("Bootstrap", func() {
 				})
 
 				Context("when RepairMode is bootstrap", func() {
-					It("returns an error", func() {
+					It("returns false,nil", func() {
 						rootConfig.RepairMode = "bootstrap"
-						err := nodeManager.VerifyClusterIsUnhealthy()
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("All nodes are synced, bootstrap not required."))
+						clusterUnhealthy, err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(clusterUnhealthy).To(BeFalse())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
 						}
@@ -234,11 +232,11 @@ var _ = Describe("Bootstrap", func() {
 				})
 
 				Context("when RepairMode is rejoin-unsafe", func() {
-					It("returns an error", func() {
+					It("returns false,nil", func() {
 						rootConfig.RepairMode = "rejoin-unsafe"
-						err := nodeManager.VerifyClusterIsUnhealthy()
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("All nodes are synced, rejoin-unsafe not required."))
+						clusterUnhealthy, err := nodeManager.VerifyClusterIsUnhealthy()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(clusterUnhealthy).To(BeFalse())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))
 						}
@@ -261,7 +259,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is bootstrap", func() {
 					It("returns an error without bootstrapping", func() {
 						rootConfig.RepairMode = "bootstrap"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("one or more nodes are failing"))
 						for _, handler := range endpointHandlers {
@@ -273,7 +271,7 @@ var _ = Describe("Bootstrap", func() {
 				Context("when RepairMode is rejoin-unsafe", func() {
 					It("does not return an error", func() {
 						rootConfig.RepairMode = "rejoin-unsafe"
-						err := nodeManager.VerifyClusterIsUnhealthy()
+						_, err := nodeManager.VerifyClusterIsUnhealthy()
 						Expect(err).NotTo(HaveOccurred())
 						for _, handler := range endpointHandlers {
 							Expect(handler.GetFakeHandler("/").ServeHTTPCallCount()).To(Equal(1))

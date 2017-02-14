@@ -27,7 +27,7 @@ var GetShutDownTimeout = func() int {
 }
 
 type NodeManager interface {
-	VerifyClusterIsUnhealthy() error
+	VerifyClusterIsUnhealthy() (bool, error)
 	VerifyAllNodesAreReachable() error
 	StopAllNodes() error
 	GetSequenceNumbers() (map[string]int, error)
@@ -70,16 +70,16 @@ func (nm *nodeManager) FindUnhealthyNode() (string, error) {
 	}
 }
 
-func (nm *nodeManager) VerifyClusterIsUnhealthy() error {
+func (nm *nodeManager) VerifyClusterIsUnhealthy() (bool, error) {
 	syncedNodes, allNodes := nm.determineNodeCount()
 
 	if syncedNodes == allNodes {
 		err := fmt.Errorf("All nodes are synced, %s not required.", nm.rootConfig.RepairMode)
 		nm.rootConfig.Logger.Error("Action not required", err)
-		return err
+		return false, nil
 	}
 
-	return nm.validateNodeCountForRepairMode(syncedNodes, allNodes, nm.rootConfig.RepairMode)
+	return true, nm.validateNodeCountForRepairMode(syncedNodes, allNodes, nm.rootConfig.RepairMode)
 }
 
 func (nm *nodeManager) determineNodeCount() (int, int) {

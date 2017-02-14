@@ -32,10 +32,11 @@ func main() {
 	nodeManager := node_manager.New(rootConfig, clock.DefaultClock())
 	bootstrapper := bootstrapperPkg.New(nodeManager)
 
+	var actionTaken bool
 	if rootConfig.RepairMode == "bootstrap" {
-		err = bootstrapper.Bootstrap()
+		actionTaken, err = bootstrapper.Bootstrap()
 	} else if rootConfig.RepairMode == "rejoin-unsafe" {
-		err = bootstrapper.RejoinUnsafe()
+		actionTaken, err = bootstrapper.RejoinUnsafe()
 	} else {
 		logger.Error("Invalid repair mode:", errors.New(fmt.Sprintf("%s", rootConfig.RepairMode)))
 		printHumanReadableErr(err)
@@ -48,6 +49,11 @@ func main() {
 		})
 		printHumanReadableErr(err)
 		os.Exit(1)
+	}
+
+	if !actionTaken {
+		fmt.Println("No action taken - cluster already healthy")
+		os.Exit(0)
 	}
 
 	logger.Info("Successfully repaired cluster")

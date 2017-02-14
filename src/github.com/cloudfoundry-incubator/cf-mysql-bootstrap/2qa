@@ -1,0 +1,17 @@
+#!/bin/bash
+
+result=0
+
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+base_dir="$( cd "${MY_DIR}/.." && pwd )"
+
+echo -e "\nFormatting packages..."
+go fmt github.com/cloudfoundry-incubator/cf-mysql-bootstrap/...
+
+echo -e "\nVetting packages for potential issues..."
+$MY_DIR/govet
+
+pushd "${base_dir}" > /dev/null
+  echo -e "\nTesting packages..."
+  ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@"
+popd > /dev/null

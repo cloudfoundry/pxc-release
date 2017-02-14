@@ -8,11 +8,12 @@ import (
 )
 
 type FakeNodeManager struct {
-	VerifyClusterIsUnhealthyStub        func() error
+	VerifyClusterIsUnhealthyStub        func() (bool, error)
 	verifyClusterIsUnhealthyMutex       sync.RWMutex
 	verifyClusterIsUnhealthyArgsForCall []struct{}
 	verifyClusterIsUnhealthyReturns     struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	VerifyAllNodesAreReachableStub        func() error
 	verifyAllNodesAreReachableMutex       sync.RWMutex
@@ -64,20 +65,19 @@ type FakeNodeManager struct {
 	stopNodeReturns struct {
 		result1 error
 	}
-	invocations map[string][][]interface{}
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeNodeManager) VerifyClusterIsUnhealthy() error {
+func (fake *FakeNodeManager) VerifyClusterIsUnhealthy() (bool, error) {
 	fake.verifyClusterIsUnhealthyMutex.Lock()
 	fake.verifyClusterIsUnhealthyArgsForCall = append(fake.verifyClusterIsUnhealthyArgsForCall, struct{}{})
-	fake.guard("VerifyClusterIsUnhealthy")
-	fake.invocations["VerifyClusterIsUnhealthy"] = append(fake.invocations["VerifyClusterIsUnhealthy"], []interface{}{})
+	fake.recordInvocation("VerifyClusterIsUnhealthy", []interface{}{})
 	fake.verifyClusterIsUnhealthyMutex.Unlock()
 	if fake.VerifyClusterIsUnhealthyStub != nil {
 		return fake.VerifyClusterIsUnhealthyStub()
-	} else {
-		return fake.verifyClusterIsUnhealthyReturns.result1
 	}
+	return fake.verifyClusterIsUnhealthyReturns.result1, fake.verifyClusterIsUnhealthyReturns.result2
 }
 
 func (fake *FakeNodeManager) VerifyClusterIsUnhealthyCallCount() int {
@@ -86,24 +86,23 @@ func (fake *FakeNodeManager) VerifyClusterIsUnhealthyCallCount() int {
 	return len(fake.verifyClusterIsUnhealthyArgsForCall)
 }
 
-func (fake *FakeNodeManager) VerifyClusterIsUnhealthyReturns(result1 error) {
+func (fake *FakeNodeManager) VerifyClusterIsUnhealthyReturns(result1 bool, result2 error) {
 	fake.VerifyClusterIsUnhealthyStub = nil
 	fake.verifyClusterIsUnhealthyReturns = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeNodeManager) VerifyAllNodesAreReachable() error {
 	fake.verifyAllNodesAreReachableMutex.Lock()
 	fake.verifyAllNodesAreReachableArgsForCall = append(fake.verifyAllNodesAreReachableArgsForCall, struct{}{})
-	fake.guard("VerifyAllNodesAreReachable")
-	fake.invocations["VerifyAllNodesAreReachable"] = append(fake.invocations["VerifyAllNodesAreReachable"], []interface{}{})
+	fake.recordInvocation("VerifyAllNodesAreReachable", []interface{}{})
 	fake.verifyAllNodesAreReachableMutex.Unlock()
 	if fake.VerifyAllNodesAreReachableStub != nil {
 		return fake.VerifyAllNodesAreReachableStub()
-	} else {
-		return fake.verifyAllNodesAreReachableReturns.result1
 	}
+	return fake.verifyAllNodesAreReachableReturns.result1
 }
 
 func (fake *FakeNodeManager) VerifyAllNodesAreReachableCallCount() int {
@@ -122,14 +121,12 @@ func (fake *FakeNodeManager) VerifyAllNodesAreReachableReturns(result1 error) {
 func (fake *FakeNodeManager) StopAllNodes() error {
 	fake.stopAllNodesMutex.Lock()
 	fake.stopAllNodesArgsForCall = append(fake.stopAllNodesArgsForCall, struct{}{})
-	fake.guard("StopAllNodes")
-	fake.invocations["StopAllNodes"] = append(fake.invocations["StopAllNodes"], []interface{}{})
+	fake.recordInvocation("StopAllNodes", []interface{}{})
 	fake.stopAllNodesMutex.Unlock()
 	if fake.StopAllNodesStub != nil {
 		return fake.StopAllNodesStub()
-	} else {
-		return fake.stopAllNodesReturns.result1
 	}
+	return fake.stopAllNodesReturns.result1
 }
 
 func (fake *FakeNodeManager) StopAllNodesCallCount() int {
@@ -148,14 +145,12 @@ func (fake *FakeNodeManager) StopAllNodesReturns(result1 error) {
 func (fake *FakeNodeManager) GetSequenceNumbers() (map[string]int, error) {
 	fake.getSequenceNumbersMutex.Lock()
 	fake.getSequenceNumbersArgsForCall = append(fake.getSequenceNumbersArgsForCall, struct{}{})
-	fake.guard("GetSequenceNumbers")
-	fake.invocations["GetSequenceNumbers"] = append(fake.invocations["GetSequenceNumbers"], []interface{}{})
+	fake.recordInvocation("GetSequenceNumbers", []interface{}{})
 	fake.getSequenceNumbersMutex.Unlock()
 	if fake.GetSequenceNumbersStub != nil {
 		return fake.GetSequenceNumbersStub()
-	} else {
-		return fake.getSequenceNumbersReturns.result1, fake.getSequenceNumbersReturns.result2
 	}
+	return fake.getSequenceNumbersReturns.result1, fake.getSequenceNumbersReturns.result2
 }
 
 func (fake *FakeNodeManager) GetSequenceNumbersCallCount() int {
@@ -177,14 +172,12 @@ func (fake *FakeNodeManager) BootstrapNode(baseURL string) error {
 	fake.bootstrapNodeArgsForCall = append(fake.bootstrapNodeArgsForCall, struct {
 		baseURL string
 	}{baseURL})
-	fake.guard("BootstrapNode")
-	fake.invocations["BootstrapNode"] = append(fake.invocations["BootstrapNode"], []interface{}{baseURL})
+	fake.recordInvocation("BootstrapNode", []interface{}{baseURL})
 	fake.bootstrapNodeMutex.Unlock()
 	if fake.BootstrapNodeStub != nil {
 		return fake.BootstrapNodeStub(baseURL)
-	} else {
-		return fake.bootstrapNodeReturns.result1
 	}
+	return fake.bootstrapNodeReturns.result1
 }
 
 func (fake *FakeNodeManager) BootstrapNodeCallCount() int {
@@ -211,14 +204,12 @@ func (fake *FakeNodeManager) JoinNode(baseURL string) error {
 	fake.joinNodeArgsForCall = append(fake.joinNodeArgsForCall, struct {
 		baseURL string
 	}{baseURL})
-	fake.guard("JoinNode")
-	fake.invocations["JoinNode"] = append(fake.invocations["JoinNode"], []interface{}{baseURL})
+	fake.recordInvocation("JoinNode", []interface{}{baseURL})
 	fake.joinNodeMutex.Unlock()
 	if fake.JoinNodeStub != nil {
 		return fake.JoinNodeStub(baseURL)
-	} else {
-		return fake.joinNodeReturns.result1
 	}
+	return fake.joinNodeReturns.result1
 }
 
 func (fake *FakeNodeManager) JoinNodeCallCount() int {
@@ -243,14 +234,12 @@ func (fake *FakeNodeManager) JoinNodeReturns(result1 error) {
 func (fake *FakeNodeManager) FindUnhealthyNode() (string, error) {
 	fake.findUnhealthyNodeMutex.Lock()
 	fake.findUnhealthyNodeArgsForCall = append(fake.findUnhealthyNodeArgsForCall, struct{}{})
-	fake.guard("FindUnhealthyNode")
-	fake.invocations["FindUnhealthyNode"] = append(fake.invocations["FindUnhealthyNode"], []interface{}{})
+	fake.recordInvocation("FindUnhealthyNode", []interface{}{})
 	fake.findUnhealthyNodeMutex.Unlock()
 	if fake.FindUnhealthyNodeStub != nil {
 		return fake.FindUnhealthyNodeStub()
-	} else {
-		return fake.findUnhealthyNodeReturns.result1, fake.findUnhealthyNodeReturns.result2
 	}
+	return fake.findUnhealthyNodeReturns.result1, fake.findUnhealthyNodeReturns.result2
 }
 
 func (fake *FakeNodeManager) FindUnhealthyNodeCallCount() int {
@@ -272,14 +261,12 @@ func (fake *FakeNodeManager) StopNode(arg1 string) error {
 	fake.stopNodeArgsForCall = append(fake.stopNodeArgsForCall, struct {
 		arg1 string
 	}{arg1})
-	fake.guard("StopNode")
-	fake.invocations["StopNode"] = append(fake.invocations["StopNode"], []interface{}{arg1})
+	fake.recordInvocation("StopNode", []interface{}{arg1})
 	fake.stopNodeMutex.Unlock()
 	if fake.StopNodeStub != nil {
 		return fake.StopNodeStub(arg1)
-	} else {
-		return fake.stopNodeReturns.result1
 	}
+	return fake.stopNodeReturns.result1
 }
 
 func (fake *FakeNodeManager) StopNodeCallCount() int {
@@ -302,16 +289,37 @@ func (fake *FakeNodeManager) StopNodeReturns(result1 error) {
 }
 
 func (fake *FakeNodeManager) Invocations() map[string][][]interface{} {
+	fake.invocationsMutex.RLock()
+	defer fake.invocationsMutex.RUnlock()
+	fake.verifyClusterIsUnhealthyMutex.RLock()
+	defer fake.verifyClusterIsUnhealthyMutex.RUnlock()
+	fake.verifyAllNodesAreReachableMutex.RLock()
+	defer fake.verifyAllNodesAreReachableMutex.RUnlock()
+	fake.stopAllNodesMutex.RLock()
+	defer fake.stopAllNodesMutex.RUnlock()
+	fake.getSequenceNumbersMutex.RLock()
+	defer fake.getSequenceNumbersMutex.RUnlock()
+	fake.bootstrapNodeMutex.RLock()
+	defer fake.bootstrapNodeMutex.RUnlock()
+	fake.joinNodeMutex.RLock()
+	defer fake.joinNodeMutex.RUnlock()
+	fake.findUnhealthyNodeMutex.RLock()
+	defer fake.findUnhealthyNodeMutex.RUnlock()
+	fake.stopNodeMutex.RLock()
+	defer fake.stopNodeMutex.RUnlock()
 	return fake.invocations
 }
 
-func (fake *FakeNodeManager) guard(key string) {
+func (fake *FakeNodeManager) recordInvocation(key string, args []interface{}) {
+	fake.invocationsMutex.Lock()
+	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
 		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
 		fake.invocations[key] = [][]interface{}{}
 	}
+	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
 var _ node_manager.NodeManager = new(FakeNodeManager)
