@@ -55,20 +55,21 @@ func NewStarter(
 func (s *starter) StartNodeFromState(state string) (string, error) {
 	var newNodeState string
 	var err error
+	var mysqldChan chan error
 
 	switch state {
 	case SingleNode:
-		err = s.bootstrapNode()
+		mysqldChan, err = s.bootstrapNode()
 		newNodeState = SingleNode
 	case NeedsBootstrap:
 		if s.clusterHealthChecker.HealthyCluster() {
-			err = s.startNodeAsJoiner()
+			mysqldChan, err = s.startNodeAsJoiner()
 		} else {
-			err = s.bootstrapNode()
+			mysqldChan, err = s.bootstrapNode()
 		}
 		newNodeState = Clustered
 	case Clustered:
-		err = s.joinCluster()
+		mysqldChan, err = s.joinCluster()
 		newNodeState = Clustered
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
@@ -76,8 +77,11 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if mysqldChan == nil {
+		return "", errors.New("Starting mysql failed, no channel created - exiting")
+	}
 
-	err = s.waitForDatabaseToAcceptConnections()
+	err = s.waitForDatabaseToAcceptConnections(mysqldChan)
 	if err != nil {
 		return "", err
 	}
@@ -112,54 +116,84 @@ func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
 	return nil, errors.New("mysqld has not been started")
 }
 
-func (s *starter) bootstrapNode() error {
+func (s *starter) bootstrapNode() (chan error, error) {
 	s.logger.Info("Bootstrapping node")
 	cmd, err := s.mariaDBHelper.StartMysqldInBootstrap()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	s.mysqlCmd = cmd
-
-	return nil
+	var mysqldChan = make(chan error, 1)
+	go func(mysqldChan chan error) {
+		s.logger.Info("waiting for bootstrapping node")
+		err := cmd.Wait()
+		s.logger.Info("mysqld exit")
+		mysqldChan <- err
+	}(mysqldChan)
+	return mysqldChan, nil
 }
 
-func (s *starter) startNodeAsJoiner() error {
+func (s *starter) startNodeAsJoiner() (chan error, error) {
 	s.logger.Info("Joining an existing cluster")
 	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	s.mysqlCmd = cmd
-
-	return nil
+	s.mysqlCmd = cmd // could we remove it?
+	var mysqldChan = make(chan error, 1)
+	go func(mysqldChan chan error) {
+		s.logger.Info("waiting for joining and existing cluster")
+		err := cmd.Wait()
+		s.logger.Info("mysqld exit")
+		mysqldChan <- err
+	}(mysqldChan)
+	return mysqldChan, nil
 }
 
-func (s *starter) joinCluster() (err error) {
+func (s *starter) joinCluster() (chan error, error) {
 	s.logger.Info("Joining a multi-node cluster")
 	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.mysqlCmd = cmd
 
-	return nil
+	var mysqldChan = make(chan error, 1)
+	go func(mysqldChan chan error) {
+		s.logger.Info("waiting for multi-node cluster")
+		err := cmd.Wait()
+		s.logger.Info("mysqld exit")
+		mysqldChan <- err
+	}(mysqldChan)
+	return mysqldChan, nil
 }
 
-func (s *starter) waitForDatabaseToAcceptConnections() error {
+func (s *starter)waitForDatabaseToAcceptConnections(mysqldChan chan error) error {
 	s.logger.Info(fmt.Sprintf("Attempting to reach database."))
 	numTries := 0
+
+	//pid := s.mysqlCmd.Process.Pid
+
+	//_, err := os.FindProcess(int(pid))
 	for {
 		numTries++
 
-		if s.mariaDBHelper.IsDatabaseReachable() {
-			s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
-			return nil
+		select {
+		case err := <-mysqldChan:
+			s.logger.Info("Database process exited, stop trying to connecto to database")
+			return err
+		default:
+			if s.mariaDBHelper.IsDatabaseReachable() {
+				s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
+				return nil
+			} else {
+				s.logger.Info("Database not reachable, retrying...")
+				s.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
+			}
 		}
-		s.logger.Info("Database not reachable, retrying...")
-		s.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
 	}
 }
 

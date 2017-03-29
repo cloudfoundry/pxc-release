@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type FakeSeeder struct {

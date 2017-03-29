@@ -189,6 +189,19 @@ var _ = Describe("Starter", func() {
 				})
 			})
 
+			Context("when mariadb exits before starting successfully", func() {
+				FIt("forwards the error", func() {
+					errorChan := make(chan error, 1)
+					errorChan <- errors.New("mariadb exited")
+					fakeOs.WaitForCommandReturns(errorChan)
+					fakeDBHelper.IsDatabaseReachableReturns(false)
+
+					_, err := starter.StartNodeFromState("CLUSTERED")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("MariaDB failed to start"))
+				})
+			})
+
 			Context("starting cluster returns an error", func() {
 				BeforeEach(func() {
 					fakeDBHelper.StartMysqldInBootstrapReturns(nil, errors.New("some errors"))
