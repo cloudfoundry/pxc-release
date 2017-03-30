@@ -28,7 +28,7 @@ func main() {
 		cfg.Logger.Fatal("Error validating config", err)
 		return
 	}
-	cfg.Logger.Info("test logger ")
+
 	err = managerSetup(cfg)
 
 	if err != nil {
