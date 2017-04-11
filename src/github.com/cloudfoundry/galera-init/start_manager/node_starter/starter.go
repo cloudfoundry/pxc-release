@@ -171,19 +171,16 @@ func (s *starter) joinCluster() (chan error, error) {
 	return mysqldChan, nil
 }
 
-func (s *starter)waitForDatabaseToAcceptConnections(mysqldChan chan error) error {
+func (s *starter) waitForDatabaseToAcceptConnections(mysqldChan chan error) error {
 	s.logger.Info(fmt.Sprintf("Attempting to reach database."))
 	numTries := 0
 
-	//pid := s.mysqlCmd.Process.Pid
-
-	//_, err := os.FindProcess(int(pid))
 	for {
 		numTries++
 
 		select {
 		case err := <-mysqldChan:
-			s.logger.Info("Database process exited, stop trying to connecto to database")
+			s.logger.Info("Database process exited, stop trying to connect to database")
 			return err
 		default:
 			if s.mariaDBHelper.IsDatabaseReachable() {

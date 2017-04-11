@@ -196,8 +196,11 @@ var _ = Describe("Starter", func() {
 					fakeOs.WaitForCommandReturns(errorChan)
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
-					_, err := starter.StartNodeFromState("CLUSTERED")
-					Expect(err).To(HaveOccurred())
+					var err error
+					Eventually(func() error {
+						_, err = starter.StartNodeFromState("CLUSTERED")
+						return err
+					}, 5).Should(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("MariaDB failed to start"))
 				})
 			})
