@@ -26,6 +26,7 @@ var _ = Describe("Starter", func() {
 	var fakeCommandBootstrap *exec.Cmd
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
+	var errorChan chan error
 
 	ensureManageReadOnlyUser := func() {
 		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
@@ -60,6 +61,8 @@ var _ = Describe("Starter", func() {
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_helperfakes.FakeOsHelper)
+		errorChan = make(chan error, 1)
+		fakeOs.WaitForCommandReturns(errorChan)
 		fakeClusterHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
 		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
@@ -156,30 +159,6 @@ var _ = Describe("Starter", func() {
 			})
 		})
 
-		Context("When mysqld starts in under the startup timeout", func() {
-			var expectedRetryAttempts int
-
-			BeforeEach(func() {
-				numTries := 0
-				expectedRetryAttempts = 2
-
-				fakeDBHelper.IsDatabaseReachableStub = func() bool {
-					numTries++
-					if numTries < expectedRetryAttempts {
-						return false
-					} else {
-						return true
-					}
-				}
-			})
-
-			It("eventually succeeds", func() {
-				_, err := starter.StartNodeFromState("CLUSTERED")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeDBHelper.IsDatabaseReachableCallCount()).To(Equal(expectedRetryAttempts))
-			})
-		})
-
 		Context("error handling", func() {
 			Context("when passed a an invalid state", func() {
 				It("forwards the error", func() {
@@ -190,10 +169,8 @@ var _ = Describe("Starter", func() {
 			})
 
 			Context("when mariadb exits before starting successfully", func() {
-				FIt("forwards the error", func() {
-					errorChan := make(chan error, 1)
+				It("forwards the error", func() {
 					errorChan <- errors.New("mariadb exited")
-					fakeOs.WaitForCommandReturns(errorChan)
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
 					var err error
@@ -201,7 +178,7 @@ var _ = Describe("Starter", func() {
 						_, err = starter.StartNodeFromState("CLUSTERED")
 						return err
 					}, 5).Should(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("MariaDB failed to start"))
+					Expect(err.Error()).To(ContainSubstring("mariadb exited"))
 				})
 			})
 

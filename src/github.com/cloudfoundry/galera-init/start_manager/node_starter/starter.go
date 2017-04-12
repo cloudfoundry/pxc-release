@@ -123,14 +123,10 @@ func (s *starter) bootstrapNode() (chan error, error) {
 		return nil, err
 	}
 	s.mysqlCmd = cmd
-	var mysqldChan = make(chan error, 1)
-	go func(mysqldChan chan error) {
-		s.logger.Info("waiting for bootstrapping node")
-		err := cmd.Wait()
-		s.logger.Info("mysqld exit")
-		mysqldChan <- err
-	}(mysqldChan)
-	return mysqldChan, nil
+	s.logger.Info("waiting for bootstrapping node")
+	errorChan := s.osHelper.WaitForCommand(cmd)
+	s.logger.Info("mysqld exit")
+	return errorChan, nil
 }
 
 func (s *starter) startNodeAsJoiner() (chan error, error) {
@@ -141,13 +137,9 @@ func (s *starter) startNodeAsJoiner() (chan error, error) {
 	}
 
 	s.mysqlCmd = cmd // could we remove it?
-	var mysqldChan = make(chan error, 1)
-	go func(mysqldChan chan error) {
-		s.logger.Info("waiting for joining and existing cluster")
-		err := cmd.Wait()
-		s.logger.Info("mysqld exit")
-		mysqldChan <- err
-	}(mysqldChan)
+	s.logger.Info("waiting for joiner node")
+	mysqldChan := s.osHelper.WaitForCommand(cmd)
+	s.logger.Info("mysqld exit")
 	return mysqldChan, nil
 }
 
@@ -160,14 +152,10 @@ func (s *starter) joinCluster() (chan error, error) {
 	}
 
 	s.mysqlCmd = cmd
+	s.logger.Info("waiting for join cluster node")
+	mysqldChan := s.osHelper.WaitForCommand(cmd)
+	s.logger.Info("mysqld exit")
 
-	var mysqldChan = make(chan error, 1)
-	go func(mysqldChan chan error) {
-		s.logger.Info("waiting for multi-node cluster")
-		err := cmd.Wait()
-		s.logger.Info("mysqld exit")
-		mysqldChan <- err
-	}(mysqldChan)
 	return mysqldChan, nil
 }
 

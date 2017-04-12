@@ -49,9 +49,7 @@ func main() {
 	cfg.Logger.Info("Process exited without error.")
 }
 
-
-
-func managerSetup(cfg *config.Config)  (start_manager.StartManager) {
+func managerSetup(cfg *config.Config) start_manager.StartManager {
 	OsHelper := os_helper.NewImpl()
 
 	DBHelper := mariadb_helper.NewMariaDBHelper(
@@ -91,8 +89,6 @@ func managerSetup(cfg *config.Config)  (start_manager.StartManager) {
 		ClusterHealthChecker,
 	)
 
-
-
 	//cmd, err := NodeStarter.GetMysqlCmd()
 	//if err != nil {
 	//	cfg.Logger.Info("GetMysqlCmderror")
@@ -106,12 +102,12 @@ func managerSetup(cfg *config.Config)  (start_manager.StartManager) {
 	// return sigRunner
 }
 
-func managerStart(startManager start_manager.StartManager)error{
-	return  startManager.Execute()
+func managerStart(startManager start_manager.StartManager) error {
+	return startManager.Execute()
 
 }
 
-func managerStop(startManager start_manager.StartManager)error{
-	return  startManager.Shutdown()
+func managerStop(startManager start_manager.StartManager) error {
+	return startManager.Shutdown()
 
 }

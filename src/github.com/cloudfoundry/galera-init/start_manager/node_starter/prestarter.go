@@ -65,12 +65,11 @@ func (s *prestarter) StartNodeFromState(state string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if mysqldChan == nil {
-		return "", errors.New("Starting mysql failed, no channel created - exiting")
-	}
-
 
 	if s.mysqlCmd != nil {
+		if mysqldChan == nil {
+			return "", errors.New("Starting mysql failed, no channel created - exiting")
+		}
 		err = s.waitForDatabaseToAcceptConnections(mysqldChan)
 
 	}
@@ -94,15 +93,11 @@ func (s *prestarter) startNodeAsJoiner() (chan error, error) {
 		return nil, err
 	}
 
-	s.mysqlCmd = cmd // could we remove it? i dont know
-	var mysqldChan = make(chan error, 1)
-	go func(mysqldChan chan error) {
-		s.logger.Info("waiting for joining and existing cluster")
-		err := cmd.Wait()
-		s.logger.Info("mysqld exit")
-		mysqldChan <- err
-	}(mysqldChan)
-	return mysqldChan, nil
+	s.mysqlCmd = cmd
+	s.logger.Info("waiting for joining and existing cluster")
+	errorChan := s.osHelper.WaitForCommand(cmd)
+	s.logger.Info("mysqld exit")
+	return errorChan, nil
 }
 
 func (s *prestarter) joinCluster() (chan error, error) {
@@ -110,28 +105,20 @@ func (s *prestarter) joinCluster() (chan error, error) {
 	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
 
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	s.mysqlCmd = cmd
 
-	var mysqldChan = make(chan error, 1)
-	go func(mysqldChan chan error) {
-		s.logger.Info("waiting for multi-node cluster")
-		err := cmd.Wait()
-		s.logger.Info("mysqld exit")
-		mysqldChan <- err
-	}(mysqldChan)
-	return mysqldChan, nil
+	s.logger.Info("waiting for multi-node cluster")
+	errorChan := s.osHelper.WaitForCommand(cmd)
+	s.logger.Info("mysqld exit")
+	return errorChan, nil
 }
 
 func (s *prestarter) waitForDatabaseToAcceptConnections(mysqldChan chan error) error {
 	s.logger.Info(fmt.Sprintf("Attempting to reach database."))
 	numTries := 0
-
-	//pid := s.mysqlCmd.Process.Pid
-
-	//_, err := os.FindProcess(int(pid))
 	for {
 		numTries++
 

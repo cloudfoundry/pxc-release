@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
+	"fmt"
 	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
@@ -12,7 +13,6 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
 	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
-	"fmt"
 )
 
 func main() {
@@ -64,16 +64,14 @@ func main() {
 func writePidFile(cfg *config.Config) error {
 	cfg.Logger.Info("Copying child pid to parent pid", lager.Data{
 		"childPidfile": cfg.ChildPidFile,
-		"pidfile": cfg.PidFile,
+		"pidfile":      cfg.PidFile,
 	})
-	pidAsByteArray,err :=ioutil.ReadFile(cfg.ChildPidFile)
-	if err !=nil{
-		panic(fmt.Sprintf("could not read pid file from %s",cfg.ChildPidFile))
+	pidAsByteArray, err := ioutil.ReadFile(cfg.ChildPidFile)
+	if err != nil {
+		panic(fmt.Sprintf("could not read pid file from %s", cfg.ChildPidFile))
 	}
 	return ioutil.WriteFile(cfg.PidFile, pidAsByteArray, 0644)
 }
-
-
 
 func deletePidFile(cfg *config.Config) error {
 	cfg.Logger.Info("Deleting pidfile", lager.Data{
@@ -82,7 +80,7 @@ func deletePidFile(cfg *config.Config) error {
 	return os.Remove(cfg.PidFile)
 }
 
-func managerSetup(cfg *config.Config)  error {
+func managerSetup(cfg *config.Config) error {
 	OsHelper := os_helper.NewImpl()
 
 	DBHelper := mariadb_helper.NewMariaDBHelper(
@@ -140,5 +138,3 @@ func managerSetup(cfg *config.Config)  error {
 
 	// return sigRunner
 }
-
-

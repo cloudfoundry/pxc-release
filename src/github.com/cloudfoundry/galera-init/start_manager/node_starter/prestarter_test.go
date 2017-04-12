@@ -24,6 +24,7 @@ var _ = Describe("PreStarter", func() {
 	var fakeDBHelper *mariadb_helperfakes.FakeDBHelper
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
+	var errorChan chan error
 
 	ensureJoin := func() {
 		Expect(fakeDBHelper.StartMysqldInJoinCallCount()).To(Equal(1))
@@ -31,14 +32,6 @@ var _ = Describe("PreStarter", func() {
 
 	ensureNoJoin := func() {
 		Expect(fakeDBHelper.StartMysqldInJoinCallCount()).To(Equal(0))
-	}
-
-	ensureShutdown := func() {
-		Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(1))
-	}
-
-	ensureNoShutdown := func() {
-		Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(0))
 	}
 
 	ensureDatabaseReachableCheck := func() {
@@ -67,6 +60,8 @@ var _ = Describe("PreStarter", func() {
 		fakeClusterHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
 		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
+		errorChan = make(chan error, 1)
+		fakeOs.WaitForCommandReturns(errorChan)
 
 		prestarter = node_starter.NewPreStarter(
 			fakeDBHelper,
@@ -82,6 +77,20 @@ var _ = Describe("PreStarter", func() {
 			fakeCommandJoinStr = "fake-command-join"
 			fakeCommandJoin = exec.Command(fakeCommandJoinStr)
 			fakeDBHelper.StartMysqldInJoinReturns(fakeCommandJoin, nil)
+		})
+
+		Context("when mariadb exits before starting successfully", func() {
+			It("forwards the error", func() {
+				errorChan <- errors.New("mariadb exited")
+				fakeDBHelper.IsDatabaseReachableReturns(false)
+
+				var err error
+				Eventually(func() error {
+					_, err = prestarter.StartNodeFromState("CLUSTERED")
+					return err
+				}, 5).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("mariadb exited"))
+			})
 		})
 
 		Context("prestarting with state SINGLE_NODE", func() {
@@ -123,7 +132,6 @@ var _ = Describe("PreStarter", func() {
 					ensureJoin()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
 					ensureDatabaseReachableCheck()
-					ensureShutdown()
 				})
 			})
 		})
@@ -140,7 +148,6 @@ var _ = Describe("PreStarter", func() {
 				ensureJoin()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
 				ensureDatabaseReachableCheck()
-				ensureShutdown()
 			})
 		})
 
@@ -202,19 +209,12 @@ var _ = Describe("PreStarter", func() {
 			})
 
 			Context("when mysqld exits", func() {
-				BeforeEach(func() {
-					fakeOs.WaitForCommandStub = func(*exec.Cmd) chan error {
-						ch := make(chan error, 1)
-						ch <- nil
-						return ch
-					}
-				})
 
 				It("returns a new error", func() {
+					errorChan <- errors.New("mysqld stopped. Please check mysql.err.log")
 					_, err := prestarter.StartNodeFromState("CLUSTERED")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("mysqld stopped. Please check mysql.err.log"))
-					ensureNoShutdown()
 				})
 			})
 

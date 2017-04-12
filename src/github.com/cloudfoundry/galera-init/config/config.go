@@ -16,7 +16,7 @@ import (
 type Config struct {
 	LogFileLocation string       `yaml:"LogFileLocation" validate:"nonzero"`
 	PidFile         string       `yaml:"PidFile" validate:"nonzero"`
-	ChildPidFile         string       `yaml:"ChildPidFile" validate:"nonzero"`
+	ChildPidFile    string       `yaml:"ChildPidFile" validate:"nonzero"`
 	Db              DBHelper     `yaml:"Db"`
 	Manager         StartManager `yaml:"Manager"`
 	Upgrader        Upgrader     `yaml:"Upgrader"`
