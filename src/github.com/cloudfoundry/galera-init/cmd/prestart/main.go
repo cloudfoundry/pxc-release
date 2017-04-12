@@ -26,12 +26,6 @@ func main() {
 	}
 
 	startManager := managerSetup(cfg)
-
-	if startManager != nil {
-		cfg.Logger.Info(err.Error())
-		panic("manager setup failed")
-	}
-
 	err = managerStart(startManager)
 
 	if err != nil {

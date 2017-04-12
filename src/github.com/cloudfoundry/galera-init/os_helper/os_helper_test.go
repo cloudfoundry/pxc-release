@@ -1,6 +1,7 @@
 package os_helper_test
 
 import (
+	"io/ioutil"
 	"os/exec"
 
 	. "github.com/cloudfoundry/mariadb_ctrl/os_helper"
@@ -14,7 +15,13 @@ import (
 var _ = Describe("OsHelper", func() {
 	Describe("RunCommandWithTimeout", func() {
 		var logFileName string
+		var err error
 		h := OsHelperImpl{}
+		BeforeEach(func() {
+			logFile, err := ioutil.TempFile(".", "cmd-output")
+			Expect(err).ToNot(HaveOccurred())
+			logFileName = logFile.Name()
+		})
 
 		AfterEach(func() {
 			if logFileName != "" && h.FileExists(logFileName) {
@@ -33,7 +40,6 @@ var _ = Describe("OsHelper", func() {
 		})
 
 		It("Writes the stdout to a log file", func() {
-			logFileName := "/tmp/stdout-log"
 			Expect(h.RunCommandWithTimeout(1, logFileName, "echo", "hello")).To(BeNil())
 			Expect(h.FileExists(logFileName)).To(BeTrue())
 			contents, err := h.ReadFile(logFileName)
@@ -42,12 +48,27 @@ var _ = Describe("OsHelper", func() {
 		})
 
 		It("Writes the stderr to a log file", func() {
-			logFileName := "/tmp/stderr-log"
 			Expect(h.RunCommandWithTimeout(1, logFileName, "cat", "notthere")).To(HaveOccurred())
 			Expect(h.FileExists(logFileName)).To(BeTrue())
 			contents, err := h.ReadFile(logFileName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(contents).To(Equal("cat: notthere: No such file or directory\n"))
+		})
+
+		It("Does not overwrite the logfile", func() {
+			err = h.RunCommandWithTimeout(1, logFileName, "echo", "line1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(h.FileExists(logFileName)).To(BeTrue())
+			contents, err := h.ReadFile(logFileName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(contents).To(Equal("line1\n"))
+
+			err = h.RunCommandWithTimeout(1, logFileName, "echo", "line2")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(h.FileExists(logFileName)).To(BeTrue())
+			contents, err = h.ReadFile(logFileName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(contents).To(Equal("line1\nline2\n"))
 		})
 	})
 
