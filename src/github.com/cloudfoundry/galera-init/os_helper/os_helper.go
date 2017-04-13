@@ -68,7 +68,7 @@ func (h OsHelperImpl) RunCommandWithTimeout(timeout int, logFileName string, exe
 
 func (h OsHelperImpl) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
 	cmd := exec.Command(executable, args...)
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY, 0666)
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
