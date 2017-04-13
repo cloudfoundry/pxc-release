@@ -36,6 +36,7 @@ type startManager struct {
 	logger        lager.Logger
 	healthChecker cluster_health_checker.ClusterHealthChecker
 	mysqlCmd      *exec.Cmd
+	mysqldPid     int
 }
 
 func New(

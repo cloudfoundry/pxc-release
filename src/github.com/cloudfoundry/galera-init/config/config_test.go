@@ -105,6 +105,7 @@ var _ = Describe("Config", func() {
 		Describe("Config", func() {
 			It("returns an error if LogFileLocation is blank", isRequiredField("LogFileLocation"))
 			It("returns an error if PidFile is blank", isRequiredField("PidFile"))
+			It("returns an error if ChildPidFile is blank", isRequiredField("ChildPidFile"))
 		})
 
 		Describe("Upgrader", func() {

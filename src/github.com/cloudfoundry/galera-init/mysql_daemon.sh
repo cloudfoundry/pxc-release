@@ -9,7 +9,7 @@ STANDALONE_PID_FILE=/tmp/tmp-mysql.pid
 case "$mode" in
   'start')
       echo "Starting MySQL"
-      /var/vcap/packages/mariadb/bin/mysqld_safe &
+      exec /var/vcap/packages/mariadb/bin/mysqld_safe
       ;;
 
   'stop')
