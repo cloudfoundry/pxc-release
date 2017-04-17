@@ -123,9 +123,9 @@ func (s *prestarter) waitForDatabaseToAcceptConnections(mysqldChan chan error) e
 		numTries++
 
 		select {
-		case err := <-mysqldChan:
+		case <-mysqldChan:
 			s.logger.Info("Database process exited, stop trying to connecto to database")
-			return err
+			return errors.New("Mysqld exited with error; aborting. Review the mysqld error logs for more information.")
 		default:
 			if s.mariaDBHelper.IsDatabaseReachable() {
 				s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))

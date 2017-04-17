@@ -80,16 +80,25 @@ var _ = Describe("PreStarter", func() {
 		})
 
 		Context("when mariadb exits before starting successfully", func() {
+			expectedErr := "Mysqld exited with error; aborting. Review the mysqld error logs for more information."
 			It("forwards the error", func() {
 				errorChan <- errors.New("mariadb exited")
 				fakeDBHelper.IsDatabaseReachableReturns(false)
 
 				var err error
-				Eventually(func() error {
-					_, err = prestarter.StartNodeFromState("CLUSTERED")
-					return err
-				}, 5).Should(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("mariadb exited"))
+				_, err = prestarter.StartNodeFromState("CLUSTERED")
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(expectedErr))
+			})
+
+			It("forwards an error, even if mysql start exits successfully", func() {
+				errorChan <- nil
+				fakeDBHelper.IsDatabaseReachableReturns(false)
+
+				var err error
+				_, err = prestarter.StartNodeFromState("CLUSTERED")
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(expectedErr))
 			})
 		})
 
@@ -207,17 +216,6 @@ var _ = Describe("PreStarter", func() {
 					})
 				})
 			})
-
-			Context("when mysqld exits", func() {
-
-				It("returns a new error", func() {
-					errorChan <- errors.New("mysqld stopped. Please check mysql.err.log")
-					_, err := prestarter.StartNodeFromState("CLUSTERED")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("mysqld stopped. Please check mysql.err.log"))
-				})
-			})
-
 		})
 	})
 })
