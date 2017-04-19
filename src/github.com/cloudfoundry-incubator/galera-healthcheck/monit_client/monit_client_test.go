@@ -21,6 +21,7 @@ import (
 
 var (
 	stateFile            *os.File
+	grastateFile         *os.File
 	fakeBootstrapLogFile *os.File
 )
 
@@ -53,6 +54,7 @@ var _ = Describe("monitClient", func() {
 			Host:                    testHost,
 			Port:                    testPort,
 			MysqlStateFilePath:      stateFile.Name(),
+			MysqlGrastateFilePath:   grastateFile.Name(),
 			ServiceName:             processName,
 			BootstrapFilePath:       fakeBootstrapFileName,
 			BootstrapLogFilePath:    fakeBootstrapLogFile.Name(),
@@ -68,12 +70,15 @@ var _ = Describe("monitClient", func() {
 	AfterEach(func() {
 		ts.Close()
 		os.Remove(stateFile.Name())
+		os.Remove(grastateFile.Name())
 	})
 
 	Context("when running on a mysql node", func() {
 		BeforeEach(func() {
 			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
 			stateFile.Chmod(0777)
+			grastateFile, _ = ioutil.TempFile(os.TempDir(), "grastateFile")
+			grastateFile.Chmod(0777)
 
 			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
 
@@ -352,6 +357,8 @@ var _ = Describe("monitClient", func() {
 		BeforeEach(func() {
 			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
 			stateFile.Chmod(0777)
+			grastateFile, _ = ioutil.TempFile(os.TempDir(), "grastateFile")
+			grastateFile.Chmod(0777)
 			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			})

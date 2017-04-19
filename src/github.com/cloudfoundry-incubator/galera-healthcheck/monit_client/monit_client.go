@@ -52,7 +52,7 @@ func (m *MonitClient) StartServiceSingleNode(req *http.Request) (string, error) 
 
 func (m *MonitClient) startService(startMode string, sstDisabled bool) (string, error) {
 	if m.monitConfig.ServiceName == "mariadb_ctrl" {
-		mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
+		mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, m.monitConfig.MysqlGrastateFilePath, startMode)
 		err := mySqlStartMode.Start()
 		if err != nil {
 			m.logger.Error("Failed to start mysql node", err)

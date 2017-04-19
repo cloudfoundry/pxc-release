@@ -3,17 +3,20 @@ package mysql_start_mode
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 )
 
 type MysqlStartMode struct {
-	stateFilePath string
-	mode          string
+	stateFilePath    string
+	grastateFilePath string
+	mode             string
 }
 
-func NewMysqlStartMode(stateFilePath string, mode string) *MysqlStartMode {
+func NewMysqlStartMode(stateFilePath string, grastateFilePath string, mode string) *MysqlStartMode {
 	return &MysqlStartMode{
-		stateFilePath: stateFilePath,
-		mode:          mode,
+		stateFilePath:    stateFilePath,
+		grastateFilePath: grastateFilePath,
+		mode:             mode,
 	}
 }
 
@@ -41,7 +44,15 @@ func (ms *MysqlStartMode) mysqlStartModeInBootstrap() error {
 	if err != nil {
 		return err
 	}
-	return nil
+
+	read, err := ioutil.ReadFile(ms.grastateFilePath)
+	if err != nil {
+		return err
+	}
+	subbed := strings.Replace(string(read), "safe_to_bootstrap: 0", "safe_to_bootstrap: 1", -1)
+	err = ioutil.WriteFile(ms.grastateFilePath, []byte(subbed), 0777)
+
+	return err
 }
 
 func (ms *MysqlStartMode) mysqlStartModeInJoin() error {
