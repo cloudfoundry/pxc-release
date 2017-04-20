@@ -38,7 +38,6 @@ type MonitConfig struct {
 	Port                    int    `yaml:"Port" validate:"nonzero"`
 	Password                string `yaml:"Password" validate:"nonzero"`
 	MysqlStateFilePath      string `yaml:"MysqlStateFilePath"`
-	MysqlGrastateFilePath   string `yaml:"MysqlGrastateFilePath"`
 	BootstrapFilePath       string `yaml:"BootstrapFilePath"`
 	BootstrapLogFilePath    string `yaml:"BootstrapLogFilePath"`
 	ServiceName             string `yaml:"ServiceName" validate:"nonzero"`
@@ -61,9 +60,6 @@ func defaultConfig() *Config {
 			Port:     3306,
 			User:     "root",
 			Password: "",
-		},
-		Monit: MonitConfig{
-			MysqlGrastateFilePath: "/var/vcap/store/mysql/grastate.dat",
 		},
 		AvailableWhenDonor:    true,
 		AvailableWhenReadOnly: false,
