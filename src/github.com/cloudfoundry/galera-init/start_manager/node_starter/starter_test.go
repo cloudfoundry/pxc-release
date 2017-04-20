@@ -13,6 +13,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"io/ioutil"
+	"os"
 )
 
 var _ = Describe("Starter", func() {
@@ -27,6 +29,7 @@ var _ = Describe("Starter", func() {
 	var fakeCommandJoinStr string
 	var fakeCommandJoin *exec.Cmd
 	var errorChan chan error
+	var grastateFile *os.File
 
 	ensureManageReadOnlyUser := func() {
 		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
@@ -67,13 +70,20 @@ var _ = Describe("Starter", func() {
 		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
+		grastateFile, _ = ioutil.TempFile(os.TempDir(), "grastateFile")
 		starter = node_starter.NewStarter(
 			fakeDBHelper,
 			fakeOs,
-			config.StartManager{},
+			config.StartManager{
+				GrastateFileLocation: grastateFile.Name(),
+			},
 			testLogger,
 			fakeClusterHealthChecker,
 		)
+	})
+
+	AfterEach(func() {
+		os.Remove(grastateFile.Name())
 	})
 
 	Describe("StartNodeFromState", func() {
@@ -102,6 +112,34 @@ var _ = Describe("Starter", func() {
 				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
+
+			Describe("grastate file", func() {
+				BeforeEach(func() {
+					grastateFile.Chmod(0777)
+					err := ioutil.WriteFile(grastateFile.Name(), []byte("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 0\nLESS IMPORTANT STUFF"), 0777)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("updates the grastate file's safe_to_bootstrap", func() {
+					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					Expect(err).ToNot(HaveOccurred())
+
+					grastateFileOutput, _ := ioutil.ReadFile(grastateFile.Name())
+					Expect(string(grastateFileOutput)).To(Equal("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 1\nLESS IMPORTANT STUFF"))
+				})
+
+				Describe("when it is not present", func() {
+					BeforeEach(func() {
+						os.Remove(grastateFile.Name())
+					})
+
+					It("does not create the file", func() {
+						_, err := starter.StartNodeFromState("SINGLE_NODE")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(grastateFile.Name()).ShouldNot(BeAnExistingFile())
+					})
+				})
+			})
 		})
 
 		Context("starting with state NEEDS_BOOTSTRAP", func() {
@@ -120,6 +158,34 @@ var _ = Describe("Starter", func() {
 					ensureRunPostStartSQLs()
 					ensureTestDatabaseCleanup()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
+				})
+
+				Describe("grastate file", func() {
+					BeforeEach(func() {
+						grastateFile.Chmod(0777)
+						err := ioutil.WriteFile(grastateFile.Name(), []byte("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 0\nLESS IMPORTANT STUFF"), 0777)
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("updates the grastate file's safe_to_bootstrap", func() {
+						_, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+						Expect(err).ToNot(HaveOccurred())
+
+						grastateFileOutput, _ := ioutil.ReadFile(grastateFile.Name())
+						Expect(string(grastateFileOutput)).To(Equal("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 1\nLESS IMPORTANT STUFF"))
+					})
+
+					Describe("when it is not present", func() {
+						BeforeEach(func() {
+							os.Remove(grastateFile.Name())
+						})
+
+						It("does not create the file", func() {
+							_, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(grastateFile.Name()).ShouldNot(BeAnExistingFile())
+						})
+					})
 				})
 			})
 

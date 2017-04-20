@@ -38,9 +38,10 @@ type DBHelper struct {
 }
 
 type StartManager struct {
-	StateFileLocation string   `yaml:"StateFileLocation" validate:"nonzero"`
-	ClusterIps        []string `yaml:"ClusterIps" validate:"nonzero"`
-	MyIP              string   `yaml:"MyIP" validate:"nonzero"`
+	StateFileLocation    string `yaml:"StateFileLocation" validate:"nonzero"`
+	GrastateFileLocation string
+	ClusterIps           []string `yaml:"ClusterIps" validate:"nonzero"`
+	MyIP                 string   `yaml:"MyIP" validate:"nonzero"`
 }
 
 type Upgrader struct {
@@ -70,6 +71,9 @@ func NewConfig(osArgs []string) (*Config, error) {
 		Db: DBHelper{
 			User: "root",
 			Port: 3306,
+		},
+		Manager: StartManager{
+			GrastateFileLocation: "/var/vcap/store/mysql/grastate.dat",
 		},
 	})
 	flags.Parse(configurationOptions)

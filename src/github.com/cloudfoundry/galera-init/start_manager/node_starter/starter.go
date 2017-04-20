@@ -11,6 +11,8 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"io/ioutil"
+	"strings"
 )
 
 const (
@@ -117,6 +119,16 @@ func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
 }
 
 func (s *starter) bootstrapNode() (chan error, error) {
+	s.logger.Info("Updating safe_to_bootstrap flag")
+	read, err := ioutil.ReadFile(s.config.GrastateFileLocation)
+	if err == nil {
+		subbed := strings.Replace(string(read), "safe_to_bootstrap: 0", "safe_to_bootstrap: 1", -1)
+		err = ioutil.WriteFile(s.config.GrastateFileLocation, []byte(subbed), 0777)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	s.logger.Info("Bootstrapping node")
 	cmd, err := s.mariaDBHelper.StartMysqldInBootstrap()
 	if err != nil {
