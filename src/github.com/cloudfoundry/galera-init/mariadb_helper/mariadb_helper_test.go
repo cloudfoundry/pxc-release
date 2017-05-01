@@ -294,7 +294,7 @@ var _ = Describe("MariaDBHelper", func() {
 					dbConfig.ReadOnlyPassword = "random-password"
 
 					grantReadPrivilegesExec = fmt.Sprintf(
-						"GRANT SELECT ON *.* TO '%s' IDENTIFIED BY '%s'",
+						"GRANT SELECT, PROCESS ON *.* TO '%s' IDENTIFIED BY '%s'",
 						dbConfig.ReadOnlyUser,
 						dbConfig.ReadOnlyPassword,
 					)
