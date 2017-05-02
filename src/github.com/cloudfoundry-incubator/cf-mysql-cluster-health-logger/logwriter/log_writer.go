@@ -71,14 +71,14 @@ func (lw *logWriter) Write(ts string) error {
 	}
 	defer f.Close()
 
-	columnNamesStr := strings.Join(columnNames, ",")
-	columnValuesStr := strings.Join(columnValues, ",")
+	columnNamesStr := strings.Join(columnNames, "|")
+	columnValuesStr := strings.Join(columnValues, "|")
 
 	if writeHeaders {
-		f.WriteString(fmt.Sprintf("%s,%s", "timestamp", columnNamesStr))
+		f.WriteString(fmt.Sprintf("%s|%s", "timestamp", columnNamesStr))
 		f.WriteString("\n")
 	}
-	f.WriteString(fmt.Sprintf("%s,%s", ts, columnValuesStr))
+	f.WriteString(fmt.Sprintf("%s|%s", ts, columnValuesStr))
 	f.WriteString("\n")
 	return nil
 }

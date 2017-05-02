@@ -52,7 +52,7 @@ var _ = Describe("Cluster Health Logger", func() {
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
-			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i,j\nhappy-time,1,2,3,4,5,6,7,8,9,10\n"))
+			Expect(contentsStr).To(Equal("timestamp|a|b|c|d|e|f|g|h|i|j\nhappy-time|1|2|3|4|5|6|7|8|9|10\n"))
 		})
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("Cluster Health Logger", func() {
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
-			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i,j\nhappy-time,1,2,3,4,5,6,7,8,9,10\nsad-time,1,2,3,4,5,6,7,8,9,10\n"))
+			Expect(contentsStr).To(Equal("timestamp|a|b|c|d|e|f|g|h|i|j\nhappy-time|1|2|3|4|5|6|7|8|9|10\nsad-time|1|2|3|4|5|6|7|8|9|10\n"))
 		})
 	})
 
@@ -93,7 +93,7 @@ var _ = Describe("Cluster Health Logger", func() {
 			contents, err := ioutil.ReadFile(logFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			contentsStr := string(contents)
-			Expect(contentsStr).To(Equal("timestamp,a,b,c,d,e,f,g,h,i,j\nhappy-time,1,2,3,4,5,6,7,8,9,10\n"))
+			Expect(contentsStr).To(Equal("timestamp|a|b|c|d|e|f|g|h|i|j\nhappy-time|1|2|3|4|5|6|7|8|9|10\n"))
 		})
 	})
 
