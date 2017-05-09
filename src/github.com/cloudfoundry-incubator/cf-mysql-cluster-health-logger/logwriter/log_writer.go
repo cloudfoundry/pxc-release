@@ -2,9 +2,8 @@ package logwriter
 
 import (
 	"database/sql"
-	"fmt"
+	"encoding/csv"
 	"os"
-	"strings"
 )
 
 type LogWriter interface {
@@ -24,8 +23,8 @@ func New(db *sql.DB, logPath string) LogWriter {
 }
 
 func (lw *logWriter) Write(ts string) error {
-	var columnNames []string
-	var columnValues []string
+	columnNames := []string{"timestamp"}
+	columnValues := []string{ts}
 
 	statusQuery := `SHOW STATUS WHERE Variable_name like 'wsrep%'`
 	status, err := lw.db.Query(statusQuery)
@@ -71,14 +70,15 @@ func (lw *logWriter) Write(ts string) error {
 	}
 	defer f.Close()
 
-	columnNamesStr := strings.Join(columnNames, "|")
-	columnValuesStr := strings.Join(columnValues, "|")
+	csvWriter := csv.NewWriter(f)
+	csvWriter.Comma = '|'
 
 	if writeHeaders {
-		f.WriteString(fmt.Sprintf("%s|%s", "timestamp", columnNamesStr))
-		f.WriteString("\n")
+		csvWriter.Write(columnNames)
 	}
-	f.WriteString(fmt.Sprintf("%s|%s", ts, columnValuesStr))
-	f.WriteString("\n")
+
+	csvWriter.Write(columnValues)
+	csvWriter.Flush()
+
 	return nil
 }
