@@ -42,6 +42,7 @@ type StartManager struct {
 	GrastateFileLocation string
 	ClusterIps           []string `yaml:"ClusterIps" validate:"nonzero"`
 	MyIP                 string   `yaml:"MyIP" validate:"nonzero"`
+	ClusterProbeTimeout  int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
 }
 
 type Upgrader struct {

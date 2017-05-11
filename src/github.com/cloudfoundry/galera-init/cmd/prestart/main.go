@@ -62,6 +62,7 @@ func managerSetup(cfg *config.Config) start_manager.StartManager {
 
 	ClusterHealthChecker := cluster_health_checker.NewClusterHealthChecker(
 		cfg.Manager.ClusterIps,
+		cfg.Manager.ClusterProbeTimeout,
 		cfg.Logger,
 	)
 
@@ -83,17 +84,7 @@ func managerSetup(cfg *config.Config) start_manager.StartManager {
 		ClusterHealthChecker,
 	)
 
-	//cmd, err := NodeStarter.GetMysqlCmd()
-	//if err != nil {
-	//	cfg.Logger.Info("GetMysqlCmderror")
-	//	return -1, err
-	//}
 	return NodeStartManager
-	// runner := node_runner.NewRunner(NodeStartManager, cfg.Logger)
-
-	// sigRunner := sigmon.New(runner, os.Kill)
-
-	// return sigRunner
 }
 
 func managerStart(startManager start_manager.StartManager) error {

@@ -4,9 +4,12 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"time"
 )
 
-var MakeRequest = http.Get
+var MakeRequest = func(url string, client http.Client) (*http.Response, error) {
+	return client.Get(url)
+}
 
 //go:generate counterfeiter . ClusterHealthChecker
 type ClusterHealthChecker interface {
@@ -14,14 +17,16 @@ type ClusterHealthChecker interface {
 }
 
 type httpClusterHealthChecker struct {
-	clusterIps []string
-	logger     lager.Logger
+	clusterIps          []string
+	clusterProbeTimeout int
+	logger              lager.Logger
 }
 
-func NewClusterHealthChecker(ips []string, logger lager.Logger) ClusterHealthChecker {
+func NewClusterHealthChecker(ips []string, clusterProbeTimeout int, logger lager.Logger) ClusterHealthChecker {
 	return httpClusterHealthChecker{
-		clusterIps: ips,
-		logger:     logger,
+		clusterIps:          ips,
+		clusterProbeTimeout: clusterProbeTimeout,
+		logger:              logger,
 	}
 }
 
@@ -32,7 +37,12 @@ func (h httpClusterHealthChecker) HealthyCluster() bool {
 	for _, ip := range h.clusterIps {
 		h.logger.Info("Checking if node is healthy: " + ip)
 
-		resp, _ := MakeRequest("http://" + ip + ":9200/")
+		timeout := time.Duration(h.clusterProbeTimeout) * time.Second
+		client := http.Client{
+			Timeout: timeout,
+		}
+
+		resp, _ := MakeRequest("http://"+ip+":9200/", client)
 		if resp != nil && resp.StatusCode == 200 {
 			h.logger.Info("node " + ip + " is healthy - cluster is healthy.")
 			return true

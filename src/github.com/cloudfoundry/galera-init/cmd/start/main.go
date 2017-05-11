@@ -39,11 +39,11 @@ func main() {
 	}
 	err = writePidFile(cfg)
 	if err != nil {
-		panic("could not write pid")
-
 		cfg.Logger.Fatal("Error writing pidfile", err, lager.Data{
 			"PidFile": cfg.PidFile,
 		})
+
+		panic("could not write pid")
 	}
 
 	cfg.Logger.Info("mariadb_ctrl started")
@@ -88,6 +88,7 @@ func managerSetup(cfg *config.Config) start_manager.StartManager {
 
 	ClusterHealthChecker := cluster_health_checker.NewClusterHealthChecker(
 		cfg.Manager.ClusterIps,
+		cfg.Manager.ClusterProbeTimeout,
 		cfg.Logger,
 	)
 
