@@ -86,8 +86,8 @@ func (m *startManager) Execute() error {
 	}
 
 	m.logger.Info("Determining bootstrap procedure", lager.Data{
-		"ClusterIps": m.config.ClusterIps,
-		"MyIP":       m.config.MyIP,
+		"ClusterIps":    m.config.ClusterIps,
+		"BootstrapNode": m.config.BootstrapNode,
 	})
 
 	currentState, err := m.getCurrentNodeState()
@@ -116,7 +116,7 @@ func (m *startManager) getCurrentNodeState() (string, error) {
 	}
 
 	if m.firstTimeDeploy() {
-		if m.config.MyIP == m.config.ClusterIps[0] {
+		if m.config.BootstrapNode {
 			return node_starter.NeedsBootstrap, nil
 		}
 

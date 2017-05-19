@@ -41,7 +41,7 @@ type StartManager struct {
 	StateFileLocation    string `yaml:"StateFileLocation" validate:"nonzero"`
 	GrastateFileLocation string
 	ClusterIps           []string `yaml:"ClusterIps" validate:"nonzero"`
-	MyIP                 string   `yaml:"MyIP" validate:"nonzero"`
+	BootstrapNode        bool     `yaml:"BootstrapNode"`
 	ClusterProbeTimeout  int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
 }
 

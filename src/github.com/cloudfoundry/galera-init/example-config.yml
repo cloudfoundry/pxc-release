@@ -12,14 +12,14 @@ Db:
   # Specifies the user name for MySQL
   User: testUser
   # Specifies the password for connecting to MySQL
-  Password: 
+  Password:
   ReadOnlyUserEnabled: true
   ReadOnlyUser: testROUser
   ReadOnlyPassword: testROPassword
   PreseededDatabases:
   - DBName: testDbName1
     User: testUser1
-    Password:   
+    Password:
 Upgrader:
   # Specifies the location of the file containing the MySQL version as deployed
   PackageVersionFile: testPackageVersionFile
@@ -29,7 +29,7 @@ Manager:
   # Specifies the location to store the statefile for MySQL boot
   StateFileLocation: testStateFileLocation
   # Specifies the job index of the MySQL node
-  MyIP: "1.1.1.1"
+  BootstrapNode: true
   # Comma-delimited list of IPs in the galera cluster
   ClusterIps: ["1.1.1.1", "1.1.1.2", "1.1.1.3"]
   # How many times to attempt database seeding before it fails

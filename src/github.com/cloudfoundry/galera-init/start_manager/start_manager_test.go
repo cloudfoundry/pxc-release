@@ -34,8 +34,8 @@ var _ = Describe("StartManager", func() {
 	const stateFileLocation = "/stateFileLocation"
 
 	type managerArgs struct {
-		NodeIndex int
-		NodeCount int
+		BootstrapNode bool
+		NodeCount     int
 	}
 
 	ensureStateFileContentIs := func(expected string) {
@@ -66,7 +66,7 @@ var _ = Describe("StartManager", func() {
 			fakeOs,
 			config.StartManager{
 				StateFileLocation: stateFileLocation,
-				MyIP:              clusterIps[args.NodeIndex],
+				BootstrapNode:     args.BootstrapNode,
 				ClusterIps:        clusterIps,
 			},
 			fakeDBHelper,
@@ -187,10 +187,11 @@ var _ = Describe("StartManager", func() {
 				fakeOs.FileExistsReturns(false)
 			})
 
-			Context("And the IP of the current node is the first in the cluster", func() {
+			Context("And the current node is the bootstrap node", func() {
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
-						NodeCount: 3,
+						BootstrapNode: true,
+						NodeCount:     3,
 					})
 				})
 
@@ -202,11 +203,11 @@ var _ = Describe("StartManager", func() {
 				})
 			})
 
-			Context("And the IP of the current node is not the first in the cluster", func() {
+			Context("And the current node is not the bootstrap node", func() {
 				BeforeEach(func() {
 					mgr = createManager(managerArgs{
-						NodeIndex: 1,
-						NodeCount: 3,
+						BootstrapNode: false,
+						NodeCount:     3,
 					})
 				})
 
@@ -265,11 +266,11 @@ var _ = Describe("StartManager", func() {
 					ensureStateFileContentIs("CLUSTERED")
 				})
 
-				Context("And the IP of the current node is not the first in the cluster", func() {
+				Context("And the current node is not the bootstrap node", func() {
 					BeforeEach(func() {
 						mgr = createManager(managerArgs{
-							NodeIndex: 1,
-							NodeCount: 3,
+							BootstrapNode: false,
+							NodeCount:     3,
 						})
 					})
 
