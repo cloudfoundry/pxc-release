@@ -17,10 +17,17 @@ type FakeDBHelper struct {
 	startMysqldInModeReturns struct {
 		result1 error
 	}
+	startMysqldInModeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StartMysqldInJoinStub        func() (*exec.Cmd, error)
 	startMysqldInJoinMutex       sync.RWMutex
 	startMysqldInJoinArgsForCall []struct{}
 	startMysqldInJoinReturns     struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	startMysqldInJoinReturnsOnCall map[int]struct {
 		result1 *exec.Cmd
 		result2 error
 	}
@@ -31,16 +38,26 @@ type FakeDBHelper struct {
 		result1 *exec.Cmd
 		result2 error
 	}
+	startMysqldInBootstrapReturnsOnCall map[int]struct {
+		result1 *exec.Cmd
+		result2 error
+	}
 	StopMysqldStub        func() error
 	stopMysqldMutex       sync.RWMutex
 	stopMysqldArgsForCall []struct{}
 	stopMysqldReturns     struct {
 		result1 error
 	}
+	stopMysqldReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StopStandaloneMysqldStub        func() error
 	stopStandaloneMysqldMutex       sync.RWMutex
 	stopStandaloneMysqldArgsForCall []struct{}
 	stopStandaloneMysqldReturns     struct {
+		result1 error
+	}
+	stopStandaloneMysqldReturnsOnCall map[int]struct {
 		result1 error
 	}
 	UpgradeStub        func() (output string, err error)
@@ -50,10 +67,17 @@ type FakeDBHelper struct {
 		result1 string
 		result2 error
 	}
+	upgradeReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	IsDatabaseReachableStub        func() bool
 	isDatabaseReachableMutex       sync.RWMutex
 	isDatabaseReachableArgsForCall []struct{}
 	isDatabaseReachableReturns     struct {
+		result1 bool
+	}
+	isDatabaseReachableReturnsOnCall map[int]struct {
 		result1 bool
 	}
 	IsProcessRunningStub        func() bool
@@ -62,10 +86,16 @@ type FakeDBHelper struct {
 	isProcessRunningReturns     struct {
 		result1 bool
 	}
+	isProcessRunningReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	SeedStub        func() error
 	seedMutex       sync.RWMutex
 	seedArgsForCall []struct{}
 	seedReturns     struct {
+		result1 error
+	}
+	seedReturnsOnCall map[int]struct {
 		result1 error
 	}
 	ManageReadOnlyUserStub        func() error
@@ -74,10 +104,16 @@ type FakeDBHelper struct {
 	manageReadOnlyUserReturns     struct {
 		result1 error
 	}
+	manageReadOnlyUserReturnsOnCall map[int]struct {
+		result1 error
+	}
 	RunPostStartSQLStub        func() error
 	runPostStartSQLMutex       sync.RWMutex
 	runPostStartSQLArgsForCall []struct{}
 	runPostStartSQLReturns     struct {
+		result1 error
+	}
+	runPostStartSQLReturnsOnCall map[int]struct {
 		result1 error
 	}
 	TestDatabaseCleanupStub        func() error
@@ -86,12 +122,16 @@ type FakeDBHelper struct {
 	testDatabaseCleanupReturns     struct {
 		result1 error
 	}
+	testDatabaseCleanupReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
 	fake.startMysqldInModeMutex.Lock()
+	ret, specificReturn := fake.startMysqldInModeReturnsOnCall[len(fake.startMysqldInModeArgsForCall)]
 	fake.startMysqldInModeArgsForCall = append(fake.startMysqldInModeArgsForCall, struct {
 		command string
 	}{command})
@@ -99,6 +139,9 @@ func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
 	fake.startMysqldInModeMutex.Unlock()
 	if fake.StartMysqldInModeStub != nil {
 		return fake.StartMysqldInModeStub(command)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.startMysqldInModeReturns.result1
 }
@@ -122,13 +165,29 @@ func (fake *FakeDBHelper) StartMysqldInModeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) StartMysqldInModeReturnsOnCall(i int, result1 error) {
+	fake.StartMysqldInModeStub = nil
+	if fake.startMysqldInModeReturnsOnCall == nil {
+		fake.startMysqldInModeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.startMysqldInModeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	fake.startMysqldInJoinMutex.Lock()
+	ret, specificReturn := fake.startMysqldInJoinReturnsOnCall[len(fake.startMysqldInJoinArgsForCall)]
 	fake.startMysqldInJoinArgsForCall = append(fake.startMysqldInJoinArgsForCall, struct{}{})
 	fake.recordInvocation("StartMysqldInJoin", []interface{}{})
 	fake.startMysqldInJoinMutex.Unlock()
 	if fake.StartMysqldInJoinStub != nil {
 		return fake.StartMysqldInJoinStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.startMysqldInJoinReturns.result1, fake.startMysqldInJoinReturns.result2
 }
@@ -147,13 +206,31 @@ func (fake *FakeDBHelper) StartMysqldInJoinReturns(result1 *exec.Cmd, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeDBHelper) StartMysqldInJoinReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.StartMysqldInJoinStub = nil
+	if fake.startMysqldInJoinReturnsOnCall == nil {
+		fake.startMysqldInJoinReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startMysqldInJoinReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	fake.startMysqldInBootstrapMutex.Lock()
+	ret, specificReturn := fake.startMysqldInBootstrapReturnsOnCall[len(fake.startMysqldInBootstrapArgsForCall)]
 	fake.startMysqldInBootstrapArgsForCall = append(fake.startMysqldInBootstrapArgsForCall, struct{}{})
 	fake.recordInvocation("StartMysqldInBootstrap", []interface{}{})
 	fake.startMysqldInBootstrapMutex.Unlock()
 	if fake.StartMysqldInBootstrapStub != nil {
 		return fake.StartMysqldInBootstrapStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.startMysqldInBootstrapReturns.result1, fake.startMysqldInBootstrapReturns.result2
 }
@@ -172,13 +249,31 @@ func (fake *FakeDBHelper) StartMysqldInBootstrapReturns(result1 *exec.Cmd, resul
 	}{result1, result2}
 }
 
+func (fake *FakeDBHelper) StartMysqldInBootstrapReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.StartMysqldInBootstrapStub = nil
+	if fake.startMysqldInBootstrapReturnsOnCall == nil {
+		fake.startMysqldInBootstrapReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startMysqldInBootstrapReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDBHelper) StopMysqld() error {
 	fake.stopMysqldMutex.Lock()
+	ret, specificReturn := fake.stopMysqldReturnsOnCall[len(fake.stopMysqldArgsForCall)]
 	fake.stopMysqldArgsForCall = append(fake.stopMysqldArgsForCall, struct{}{})
 	fake.recordInvocation("StopMysqld", []interface{}{})
 	fake.stopMysqldMutex.Unlock()
 	if fake.StopMysqldStub != nil {
 		return fake.StopMysqldStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.stopMysqldReturns.result1
 }
@@ -196,13 +291,29 @@ func (fake *FakeDBHelper) StopMysqldReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) StopMysqldReturnsOnCall(i int, result1 error) {
+	fake.StopMysqldStub = nil
+	if fake.stopMysqldReturnsOnCall == nil {
+		fake.stopMysqldReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.stopMysqldReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) StopStandaloneMysqld() error {
 	fake.stopStandaloneMysqldMutex.Lock()
+	ret, specificReturn := fake.stopStandaloneMysqldReturnsOnCall[len(fake.stopStandaloneMysqldArgsForCall)]
 	fake.stopStandaloneMysqldArgsForCall = append(fake.stopStandaloneMysqldArgsForCall, struct{}{})
 	fake.recordInvocation("StopStandaloneMysqld", []interface{}{})
 	fake.stopStandaloneMysqldMutex.Unlock()
 	if fake.StopStandaloneMysqldStub != nil {
 		return fake.StopStandaloneMysqldStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.stopStandaloneMysqldReturns.result1
 }
@@ -220,13 +331,29 @@ func (fake *FakeDBHelper) StopStandaloneMysqldReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) StopStandaloneMysqldReturnsOnCall(i int, result1 error) {
+	fake.StopStandaloneMysqldStub = nil
+	if fake.stopStandaloneMysqldReturnsOnCall == nil {
+		fake.stopStandaloneMysqldReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.stopStandaloneMysqldReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) Upgrade() (output string, err error) {
 	fake.upgradeMutex.Lock()
+	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct{}{})
 	fake.recordInvocation("Upgrade", []interface{}{})
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
 		return fake.UpgradeStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.upgradeReturns.result1, fake.upgradeReturns.result2
 }
@@ -245,13 +372,31 @@ func (fake *FakeDBHelper) UpgradeReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeDBHelper) UpgradeReturnsOnCall(i int, result1 string, result2 error) {
+	fake.UpgradeStub = nil
+	if fake.upgradeReturnsOnCall == nil {
+		fake.upgradeReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.upgradeReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDBHelper) IsDatabaseReachable() bool {
 	fake.isDatabaseReachableMutex.Lock()
+	ret, specificReturn := fake.isDatabaseReachableReturnsOnCall[len(fake.isDatabaseReachableArgsForCall)]
 	fake.isDatabaseReachableArgsForCall = append(fake.isDatabaseReachableArgsForCall, struct{}{})
 	fake.recordInvocation("IsDatabaseReachable", []interface{}{})
 	fake.isDatabaseReachableMutex.Unlock()
 	if fake.IsDatabaseReachableStub != nil {
 		return fake.IsDatabaseReachableStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.isDatabaseReachableReturns.result1
 }
@@ -269,13 +414,29 @@ func (fake *FakeDBHelper) IsDatabaseReachableReturns(result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) IsDatabaseReachableReturnsOnCall(i int, result1 bool) {
+	fake.IsDatabaseReachableStub = nil
+	if fake.isDatabaseReachableReturnsOnCall == nil {
+		fake.isDatabaseReachableReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isDatabaseReachableReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeDBHelper) IsProcessRunning() bool {
 	fake.isProcessRunningMutex.Lock()
+	ret, specificReturn := fake.isProcessRunningReturnsOnCall[len(fake.isProcessRunningArgsForCall)]
 	fake.isProcessRunningArgsForCall = append(fake.isProcessRunningArgsForCall, struct{}{})
 	fake.recordInvocation("IsProcessRunning", []interface{}{})
 	fake.isProcessRunningMutex.Unlock()
 	if fake.IsProcessRunningStub != nil {
 		return fake.IsProcessRunningStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.isProcessRunningReturns.result1
 }
@@ -293,13 +454,29 @@ func (fake *FakeDBHelper) IsProcessRunningReturns(result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) IsProcessRunningReturnsOnCall(i int, result1 bool) {
+	fake.IsProcessRunningStub = nil
+	if fake.isProcessRunningReturnsOnCall == nil {
+		fake.isProcessRunningReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isProcessRunningReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeDBHelper) Seed() error {
 	fake.seedMutex.Lock()
+	ret, specificReturn := fake.seedReturnsOnCall[len(fake.seedArgsForCall)]
 	fake.seedArgsForCall = append(fake.seedArgsForCall, struct{}{})
 	fake.recordInvocation("Seed", []interface{}{})
 	fake.seedMutex.Unlock()
 	if fake.SeedStub != nil {
 		return fake.SeedStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.seedReturns.result1
 }
@@ -317,13 +494,29 @@ func (fake *FakeDBHelper) SeedReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) SeedReturnsOnCall(i int, result1 error) {
+	fake.SeedStub = nil
+	if fake.seedReturnsOnCall == nil {
+		fake.seedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.seedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) ManageReadOnlyUser() error {
 	fake.manageReadOnlyUserMutex.Lock()
+	ret, specificReturn := fake.manageReadOnlyUserReturnsOnCall[len(fake.manageReadOnlyUserArgsForCall)]
 	fake.manageReadOnlyUserArgsForCall = append(fake.manageReadOnlyUserArgsForCall, struct{}{})
 	fake.recordInvocation("ManageReadOnlyUser", []interface{}{})
 	fake.manageReadOnlyUserMutex.Unlock()
 	if fake.ManageReadOnlyUserStub != nil {
 		return fake.ManageReadOnlyUserStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.manageReadOnlyUserReturns.result1
 }
@@ -341,13 +534,29 @@ func (fake *FakeDBHelper) ManageReadOnlyUserReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) ManageReadOnlyUserReturnsOnCall(i int, result1 error) {
+	fake.ManageReadOnlyUserStub = nil
+	if fake.manageReadOnlyUserReturnsOnCall == nil {
+		fake.manageReadOnlyUserReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.manageReadOnlyUserReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) RunPostStartSQL() error {
 	fake.runPostStartSQLMutex.Lock()
+	ret, specificReturn := fake.runPostStartSQLReturnsOnCall[len(fake.runPostStartSQLArgsForCall)]
 	fake.runPostStartSQLArgsForCall = append(fake.runPostStartSQLArgsForCall, struct{}{})
 	fake.recordInvocation("RunPostStartSQL", []interface{}{})
 	fake.runPostStartSQLMutex.Unlock()
 	if fake.RunPostStartSQLStub != nil {
 		return fake.RunPostStartSQLStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.runPostStartSQLReturns.result1
 }
@@ -365,13 +574,29 @@ func (fake *FakeDBHelper) RunPostStartSQLReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) RunPostStartSQLReturnsOnCall(i int, result1 error) {
+	fake.RunPostStartSQLStub = nil
+	if fake.runPostStartSQLReturnsOnCall == nil {
+		fake.runPostStartSQLReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.runPostStartSQLReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) TestDatabaseCleanup() error {
 	fake.testDatabaseCleanupMutex.Lock()
+	ret, specificReturn := fake.testDatabaseCleanupReturnsOnCall[len(fake.testDatabaseCleanupArgsForCall)]
 	fake.testDatabaseCleanupArgsForCall = append(fake.testDatabaseCleanupArgsForCall, struct{}{})
 	fake.recordInvocation("TestDatabaseCleanup", []interface{}{})
 	fake.testDatabaseCleanupMutex.Unlock()
 	if fake.TestDatabaseCleanupStub != nil {
 		return fake.TestDatabaseCleanupStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.testDatabaseCleanupReturns.result1
 }
@@ -385,6 +610,18 @@ func (fake *FakeDBHelper) TestDatabaseCleanupCallCount() int {
 func (fake *FakeDBHelper) TestDatabaseCleanupReturns(result1 error) {
 	fake.TestDatabaseCleanupStub = nil
 	fake.testDatabaseCleanupReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) TestDatabaseCleanupReturnsOnCall(i int, result1 error) {
+	fake.TestDatabaseCleanupStub = nil
+	if fake.testDatabaseCleanupReturnsOnCall == nil {
+		fake.testDatabaseCleanupReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.testDatabaseCleanupReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

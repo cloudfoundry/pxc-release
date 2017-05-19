@@ -14,10 +14,17 @@ type FakeUpgrader struct {
 	upgradeReturns     struct {
 		result1 error
 	}
+	upgradeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	NeedsUpgradeStub        func() (bool, error)
 	needsUpgradeMutex       sync.RWMutex
 	needsUpgradeArgsForCall []struct{}
 	needsUpgradeReturns     struct {
+		result1 bool
+		result2 error
+	}
+	needsUpgradeReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
 	}
@@ -27,11 +34,15 @@ type FakeUpgrader struct {
 
 func (fake *FakeUpgrader) Upgrade() error {
 	fake.upgradeMutex.Lock()
+	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct{}{})
 	fake.recordInvocation("Upgrade", []interface{}{})
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
 		return fake.UpgradeStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.upgradeReturns.result1
 }
@@ -49,13 +60,29 @@ func (fake *FakeUpgrader) UpgradeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeUpgrader) UpgradeReturnsOnCall(i int, result1 error) {
+	fake.UpgradeStub = nil
+	if fake.upgradeReturnsOnCall == nil {
+		fake.upgradeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.upgradeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeUpgrader) NeedsUpgrade() (bool, error) {
 	fake.needsUpgradeMutex.Lock()
+	ret, specificReturn := fake.needsUpgradeReturnsOnCall[len(fake.needsUpgradeArgsForCall)]
 	fake.needsUpgradeArgsForCall = append(fake.needsUpgradeArgsForCall, struct{}{})
 	fake.recordInvocation("NeedsUpgrade", []interface{}{})
 	fake.needsUpgradeMutex.Unlock()
 	if fake.NeedsUpgradeStub != nil {
 		return fake.NeedsUpgradeStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.needsUpgradeReturns.result1, fake.needsUpgradeReturns.result2
 }
@@ -69,6 +96,20 @@ func (fake *FakeUpgrader) NeedsUpgradeCallCount() int {
 func (fake *FakeUpgrader) NeedsUpgradeReturns(result1 bool, result2 error) {
 	fake.NeedsUpgradeStub = nil
 	fake.needsUpgradeReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeUpgrader) NeedsUpgradeReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.NeedsUpgradeStub = nil
+	if fake.needsUpgradeReturnsOnCall == nil {
+		fake.needsUpgradeReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.needsUpgradeReturnsOnCall[i] = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}

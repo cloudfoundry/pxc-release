@@ -20,6 +20,10 @@ type FakeOsHelper struct {
 		result1 string
 		result2 error
 	}
+	runCommandReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	RunCommandWithTimeoutStub        func(timeout int, logFileName string, executable string, args ...string) error
 	runCommandWithTimeoutMutex       sync.RWMutex
 	runCommandWithTimeoutArgsForCall []struct {
@@ -29,6 +33,9 @@ type FakeOsHelper struct {
 		args        []string
 	}
 	runCommandWithTimeoutReturns struct {
+		result1 error
+	}
+	runCommandWithTimeoutReturnsOnCall map[int]struct {
 		result1 error
 	}
 	StartCommandStub        func(logFileName string, executable string, args ...string) (*exec.Cmd, error)
@@ -42,6 +49,10 @@ type FakeOsHelper struct {
 		result1 *exec.Cmd
 		result2 error
 	}
+	startCommandReturnsOnCall map[int]struct {
+		result1 *exec.Cmd
+		result2 error
+	}
 	WaitForCommandStub        func(cmd *exec.Cmd) chan error
 	waitForCommandMutex       sync.RWMutex
 	waitForCommandArgsForCall []struct {
@@ -50,12 +61,18 @@ type FakeOsHelper struct {
 	waitForCommandReturns struct {
 		result1 chan error
 	}
+	waitForCommandReturnsOnCall map[int]struct {
+		result1 chan error
+	}
 	FileExistsStub        func(filename string) bool
 	fileExistsMutex       sync.RWMutex
 	fileExistsArgsForCall []struct {
 		filename string
 	}
 	fileExistsReturns struct {
+		result1 bool
+	}
+	fileExistsReturnsOnCall map[int]struct {
 		result1 bool
 	}
 	ReadFileStub        func(filename string) (string, error)
@@ -67,6 +84,10 @@ type FakeOsHelper struct {
 		result1 string
 		result2 error
 	}
+	readFileReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	WriteStringToFileStub        func(filename string, contents string) error
 	writeStringToFileMutex       sync.RWMutex
 	writeStringToFileArgsForCall []struct {
@@ -74,6 +95,9 @@ type FakeOsHelper struct {
 		contents string
 	}
 	writeStringToFileReturns struct {
+		result1 error
+	}
+	writeStringToFileReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SleepStub        func(duration time.Duration)
@@ -87,6 +111,7 @@ type FakeOsHelper struct {
 
 func (fake *FakeOsHelper) RunCommand(executable string, args ...string) (string, error) {
 	fake.runCommandMutex.Lock()
+	ret, specificReturn := fake.runCommandReturnsOnCall[len(fake.runCommandArgsForCall)]
 	fake.runCommandArgsForCall = append(fake.runCommandArgsForCall, struct {
 		executable string
 		args       []string
@@ -95,6 +120,9 @@ func (fake *FakeOsHelper) RunCommand(executable string, args ...string) (string,
 	fake.runCommandMutex.Unlock()
 	if fake.RunCommandStub != nil {
 		return fake.RunCommandStub(executable, args...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.runCommandReturns.result1, fake.runCommandReturns.result2
 }
@@ -119,8 +147,23 @@ func (fake *FakeOsHelper) RunCommandReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeOsHelper) RunCommandReturnsOnCall(i int, result1 string, result2 error) {
+	fake.RunCommandStub = nil
+	if fake.runCommandReturnsOnCall == nil {
+		fake.runCommandReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.runCommandReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeOsHelper) RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error {
 	fake.runCommandWithTimeoutMutex.Lock()
+	ret, specificReturn := fake.runCommandWithTimeoutReturnsOnCall[len(fake.runCommandWithTimeoutArgsForCall)]
 	fake.runCommandWithTimeoutArgsForCall = append(fake.runCommandWithTimeoutArgsForCall, struct {
 		timeout     int
 		logFileName string
@@ -131,6 +174,9 @@ func (fake *FakeOsHelper) RunCommandWithTimeout(timeout int, logFileName string,
 	fake.runCommandWithTimeoutMutex.Unlock()
 	if fake.RunCommandWithTimeoutStub != nil {
 		return fake.RunCommandWithTimeoutStub(timeout, logFileName, executable, args...)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.runCommandWithTimeoutReturns.result1
 }
@@ -154,8 +200,21 @@ func (fake *FakeOsHelper) RunCommandWithTimeoutReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeOsHelper) RunCommandWithTimeoutReturnsOnCall(i int, result1 error) {
+	fake.RunCommandWithTimeoutStub = nil
+	if fake.runCommandWithTimeoutReturnsOnCall == nil {
+		fake.runCommandWithTimeoutReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.runCommandWithTimeoutReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeOsHelper) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
 	fake.startCommandMutex.Lock()
+	ret, specificReturn := fake.startCommandReturnsOnCall[len(fake.startCommandArgsForCall)]
 	fake.startCommandArgsForCall = append(fake.startCommandArgsForCall, struct {
 		logFileName string
 		executable  string
@@ -165,6 +224,9 @@ func (fake *FakeOsHelper) StartCommand(logFileName string, executable string, ar
 	fake.startCommandMutex.Unlock()
 	if fake.StartCommandStub != nil {
 		return fake.StartCommandStub(logFileName, executable, args...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.startCommandReturns.result1, fake.startCommandReturns.result2
 }
@@ -189,8 +251,23 @@ func (fake *FakeOsHelper) StartCommandReturns(result1 *exec.Cmd, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeOsHelper) StartCommandReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.StartCommandStub = nil
+	if fake.startCommandReturnsOnCall == nil {
+		fake.startCommandReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startCommandReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeOsHelper) WaitForCommand(cmd *exec.Cmd) chan error {
 	fake.waitForCommandMutex.Lock()
+	ret, specificReturn := fake.waitForCommandReturnsOnCall[len(fake.waitForCommandArgsForCall)]
 	fake.waitForCommandArgsForCall = append(fake.waitForCommandArgsForCall, struct {
 		cmd *exec.Cmd
 	}{cmd})
@@ -198,6 +275,9 @@ func (fake *FakeOsHelper) WaitForCommand(cmd *exec.Cmd) chan error {
 	fake.waitForCommandMutex.Unlock()
 	if fake.WaitForCommandStub != nil {
 		return fake.WaitForCommandStub(cmd)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.waitForCommandReturns.result1
 }
@@ -221,8 +301,21 @@ func (fake *FakeOsHelper) WaitForCommandReturns(result1 chan error) {
 	}{result1}
 }
 
+func (fake *FakeOsHelper) WaitForCommandReturnsOnCall(i int, result1 chan error) {
+	fake.WaitForCommandStub = nil
+	if fake.waitForCommandReturnsOnCall == nil {
+		fake.waitForCommandReturnsOnCall = make(map[int]struct {
+			result1 chan error
+		})
+	}
+	fake.waitForCommandReturnsOnCall[i] = struct {
+		result1 chan error
+	}{result1}
+}
+
 func (fake *FakeOsHelper) FileExists(filename string) bool {
 	fake.fileExistsMutex.Lock()
+	ret, specificReturn := fake.fileExistsReturnsOnCall[len(fake.fileExistsArgsForCall)]
 	fake.fileExistsArgsForCall = append(fake.fileExistsArgsForCall, struct {
 		filename string
 	}{filename})
@@ -230,6 +323,9 @@ func (fake *FakeOsHelper) FileExists(filename string) bool {
 	fake.fileExistsMutex.Unlock()
 	if fake.FileExistsStub != nil {
 		return fake.FileExistsStub(filename)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.fileExistsReturns.result1
 }
@@ -253,8 +349,21 @@ func (fake *FakeOsHelper) FileExistsReturns(result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeOsHelper) FileExistsReturnsOnCall(i int, result1 bool) {
+	fake.FileExistsStub = nil
+	if fake.fileExistsReturnsOnCall == nil {
+		fake.fileExistsReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.fileExistsReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeOsHelper) ReadFile(filename string) (string, error) {
 	fake.readFileMutex.Lock()
+	ret, specificReturn := fake.readFileReturnsOnCall[len(fake.readFileArgsForCall)]
 	fake.readFileArgsForCall = append(fake.readFileArgsForCall, struct {
 		filename string
 	}{filename})
@@ -262,6 +371,9 @@ func (fake *FakeOsHelper) ReadFile(filename string) (string, error) {
 	fake.readFileMutex.Unlock()
 	if fake.ReadFileStub != nil {
 		return fake.ReadFileStub(filename)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.readFileReturns.result1, fake.readFileReturns.result2
 }
@@ -286,8 +398,23 @@ func (fake *FakeOsHelper) ReadFileReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeOsHelper) ReadFileReturnsOnCall(i int, result1 string, result2 error) {
+	fake.ReadFileStub = nil
+	if fake.readFileReturnsOnCall == nil {
+		fake.readFileReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.readFileReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeOsHelper) WriteStringToFile(filename string, contents string) error {
 	fake.writeStringToFileMutex.Lock()
+	ret, specificReturn := fake.writeStringToFileReturnsOnCall[len(fake.writeStringToFileArgsForCall)]
 	fake.writeStringToFileArgsForCall = append(fake.writeStringToFileArgsForCall, struct {
 		filename string
 		contents string
@@ -296,6 +423,9 @@ func (fake *FakeOsHelper) WriteStringToFile(filename string, contents string) er
 	fake.writeStringToFileMutex.Unlock()
 	if fake.WriteStringToFileStub != nil {
 		return fake.WriteStringToFileStub(filename, contents)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.writeStringToFileReturns.result1
 }
@@ -315,6 +445,18 @@ func (fake *FakeOsHelper) WriteStringToFileArgsForCall(i int) (string, string) {
 func (fake *FakeOsHelper) WriteStringToFileReturns(result1 error) {
 	fake.WriteStringToFileStub = nil
 	fake.writeStringToFileReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeOsHelper) WriteStringToFileReturnsOnCall(i int, result1 error) {
+	fake.WriteStringToFileStub = nil
+	if fake.writeStringToFileReturnsOnCall == nil {
+		fake.writeStringToFileReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.writeStringToFileReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

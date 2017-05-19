@@ -14,17 +14,24 @@ type FakeClusterHealthChecker struct {
 	healthyClusterReturns     struct {
 		result1 bool
 	}
+	healthyClusterReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeClusterHealthChecker) HealthyCluster() bool {
 	fake.healthyClusterMutex.Lock()
+	ret, specificReturn := fake.healthyClusterReturnsOnCall[len(fake.healthyClusterArgsForCall)]
 	fake.healthyClusterArgsForCall = append(fake.healthyClusterArgsForCall, struct{}{})
 	fake.recordInvocation("HealthyCluster", []interface{}{})
 	fake.healthyClusterMutex.Unlock()
 	if fake.HealthyClusterStub != nil {
 		return fake.HealthyClusterStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.healthyClusterReturns.result1
 }
@@ -38,6 +45,18 @@ func (fake *FakeClusterHealthChecker) HealthyClusterCallCount() int {
 func (fake *FakeClusterHealthChecker) HealthyClusterReturns(result1 bool) {
 	fake.HealthyClusterStub = nil
 	fake.healthyClusterReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeClusterHealthChecker) HealthyClusterReturnsOnCall(i int, result1 bool) {
+	fake.HealthyClusterStub = nil
+	if fake.healthyClusterReturnsOnCall == nil {
+		fake.healthyClusterReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.healthyClusterReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }
