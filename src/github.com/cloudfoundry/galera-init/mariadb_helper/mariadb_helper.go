@@ -346,7 +346,10 @@ func (m MariaDBHelper) RunPostStartSQL() error {
 				"filePath": file,
 			})
 		} else {
-			db.Exec(string(sqlString))
+			if _, err := db.Exec(string(sqlString)); err != nil {
+				return err
+			}
+
 		}
 	}
 

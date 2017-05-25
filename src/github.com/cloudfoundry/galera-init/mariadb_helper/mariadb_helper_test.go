@@ -449,6 +449,11 @@ var _ = Describe("MariaDBHelper", func() {
 
 			helper.RunPostStartSQL()
 		})
+
+		It("returns an error when the database failes to execute a query", func() {
+			err := helper.RunPostStartSQL()
+			Expect(err).To(MatchError("all expectations were already fulfilled, call to exec 'some fake query' query with args [] was not expected"))
+		})
 	})
 
 	Describe("TestDatabaseCleanup", func() {
