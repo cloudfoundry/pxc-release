@@ -121,7 +121,7 @@ func (u upgrader) stopStandaloneDatabaseSynchronously() (err error) {
 	}
 
 	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
-		if !u.mariadbHelper.IsDatabaseReachable() {
+		if !u.mariadbHelper.IsProcessRunning() {
 			return nil
 		}
 

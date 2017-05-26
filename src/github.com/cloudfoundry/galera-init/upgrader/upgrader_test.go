@@ -50,12 +50,13 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
-			expectedPollingCounts := DBReachablePollingAttempts + 1
+			expectedPollingCounts := DBReachablePollingAttempts
 			err := upgrader.Upgrade()
 			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.StopStandaloneMysqldCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.IsProcessRunningCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -125,16 +126,16 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		Context("when we issue a stop to the DB and it hasn't stopped after polling "+string(DBReachablePollingAttempts)+" times", func() {
-			expectedPollingCounts := DBReachablePollingAttempts + 1
+			expectedPollingCounts := DBReachablePollingAttempts
 			BeforeEach(func() {
-				fakeDbHelper.IsDatabaseReachableStub = func() bool {
+				fakeDbHelper.IsProcessRunningStub = func() bool {
 					return true
 				}
 			})
 
 			It("returns an error", func() {
 				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
+				Expect(fakeDbHelper.IsProcessRunningCallCount()).To(Equal(expectedPollingCounts))
 				Expect(err).To(HaveOccurred())
 			})
 		})
