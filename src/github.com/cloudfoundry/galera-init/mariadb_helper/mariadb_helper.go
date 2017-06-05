@@ -173,14 +173,28 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 	}
 	defer CloseDBConnection(db)
 
-	err = db.Ping()
+	var (
+		unused string
+		value  string
+	)
+
+	err = db.QueryRow(`SHOW GLOBAL VARIABLES LIKE 'wsrep\_on'`).Scan(&unused, &value)
 	if err != nil {
-		m.logger.Info("database not reachable", lager.Data{"err": err})
 		return false
 	}
 
-	m.logger.Info(fmt.Sprintf("database is reachable"))
-	return true
+	if value == "OFF" {
+		m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+		return true
+	}
+
+	err = db.QueryRow(`SHOW STATUS LIKE 'wsrep\_ready'`).Scan(&unused, &value)
+	if err != nil {
+		return false
+	}
+
+	m.logger.Info(fmt.Sprintf("Database is reachable, Galera is %s", value))
+	return value == "ON"
 }
 
 func (m MariaDBHelper) Seed() error {

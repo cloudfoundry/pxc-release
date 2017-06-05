@@ -22,8 +22,12 @@ import (
 )
 
 var _ = Describe("MariaDBHelper", func() {
-	const lastInsertId = -1
-	const rowsAffected = 1
+	const (
+		lastInsertId           = -1
+		rowsAffected           = 1
+		fakeSupplementalQuery1 = "some fake query"
+		fakeSupplementalQuery2 = "another fake query"
+	)
 
 	var (
 		helper     *mariadb_helper.MariaDBHelper
@@ -63,8 +67,8 @@ var _ = Describe("MariaDBHelper", func() {
 		sqlFile2, _ := ioutil.TempFile(os.TempDir(), "fake_sql_file")
 		defer sqlFile2.Close()
 
-		ioutil.WriteFile(sqlFile1.Name(), []byte("some fake query"), 755)
-		ioutil.WriteFile(sqlFile2.Name(), []byte("another fake query"), 755)
+		ioutil.WriteFile(sqlFile1.Name(), []byte(fakeSupplementalQuery1), 755)
+		ioutil.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)
 
 		dbConfig = config.DBHelper{
 			DaemonPath:  "/mysqld",
@@ -194,6 +198,79 @@ var _ = Describe("MariaDBHelper", func() {
 			Expect(output).To(Equal("some output"))
 			Expect(err.Error()).To(Equal("some error"))
 		})
+	})
+
+	Describe("IsDatabaseReachable", func() {
+
+		galeraEnabledQuery := `SHOW GLOBAL VARIABLES LIKE 'wsrep\\_on'`
+		galeraReadyQuery := `SHOW STATUS LIKE 'wsrep\\_ready'`
+
+		Describe("when galera is enabled", func() {
+			BeforeEach(func() {
+				mock.ExpectQuery(galeraEnabledQuery).
+					WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
+						AddRow("wsrep_on", "ON"))
+			})
+
+			Describe("when the ready check fails", func() {
+				BeforeEach(func() {
+					mock.ExpectQuery(galeraReadyQuery).
+						WillReturnError(fmt.Errorf("WHy did this fail?"))
+				})
+
+				It("returns false", func() {
+					Expect(helper.IsDatabaseReachable()).To(BeFalse())
+				})
+			})
+
+			Describe("when the ready check returns ON", func() {
+				BeforeEach(func() {
+					mock.ExpectQuery(galeraReadyQuery).
+						WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
+							AddRow("wsrep_ready", "ON"))
+				})
+
+				It("returns true", func() {
+					Expect(helper.IsDatabaseReachable()).To(BeTrue())
+				})
+			})
+
+			Describe("when the ready check returns OFF", func() {
+				BeforeEach(func() {
+					mock.ExpectQuery(galeraReadyQuery).
+						WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
+							AddRow("wsrep_ready", "OFF"))
+				})
+
+				It("returns false", func() {
+					Expect(helper.IsDatabaseReachable()).To(BeFalse())
+				})
+			})
+		})
+
+		Describe("when galera is disabled", func() {
+			BeforeEach(func() {
+				mock.ExpectQuery(galeraEnabledQuery).
+					WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
+						AddRow("wsrep_on", "OFF"))
+			})
+
+			It("returns true", func() {
+				Expect(helper.IsDatabaseReachable()).To(BeTrue())
+			})
+		})
+
+		Describe("when db is unreachable", func() {
+			BeforeEach(func() {
+				mock.ExpectQuery(galeraEnabledQuery).
+					WillReturnError(fmt.Errorf("Database isn't up yet"))
+			})
+
+			It("returns false", func() {
+				Expect(helper.IsDatabaseReachable()).To(BeFalse())
+			})
+		})
+
 	})
 
 	Describe("Seed", func() {
@@ -444,15 +521,16 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("RunPostStartSQL", func() {
 		It("runs the contents of the specified files", func() {
-			mock.ExpectExec("some fake query").WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-			mock.ExpectExec("another fake query").WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+			mock.ExpectExec(fakeSupplementalQuery1).WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+			mock.ExpectExec(fakeSupplementalQuery2).WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
-			helper.RunPostStartSQL()
+			err := helper.RunPostStartSQL()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns an error when the database failes to execute a query", func() {
 			err := helper.RunPostStartSQL()
-			Expect(err).To(MatchError("all expectations were already fulfilled, call to exec 'some fake query' query with args [] was not expected"))
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
