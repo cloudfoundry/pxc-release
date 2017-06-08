@@ -31,10 +31,6 @@ var _ = Describe("Starter", func() {
 	var errorChan chan error
 	var grastateFile *os.File
 
-	ensureManageReadOnlyUser := func() {
-		Expect(fakeDBHelper.ManageReadOnlyUserCallCount()).To(Equal(1))
-	}
-
 	ensureSeedDatabases := func() {
 		Expect(fakeDBHelper.SeedCallCount()).To(BeNumerically(">=", 1))
 	}
@@ -107,7 +103,6 @@ var _ = Describe("Starter", func() {
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
 				ensureBootstrap()
 				ensureSeedDatabases()
-				ensureManageReadOnlyUser()
 				ensureRunPostStartSQLs()
 				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
@@ -154,7 +149,6 @@ var _ = Describe("Starter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureBootstrap()
 					ensureSeedDatabases()
-					ensureManageReadOnlyUser()
 					ensureRunPostStartSQLs()
 					ensureTestDatabaseCleanup()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
@@ -218,7 +212,6 @@ var _ = Describe("Starter", func() {
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
 				ensureSeedDatabases()
-				ensureManageReadOnlyUser()
 				ensureRunPostStartSQLs()
 				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
@@ -299,18 +292,6 @@ var _ = Describe("Starter", func() {
 					_, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(expectedErr))
-				})
-			})
-
-			Context("when creating read only user fails", func() {
-				BeforeEach(func() {
-					fakeDBHelper.ManageReadOnlyUserReturns(errors.New("some error"))
-				})
-
-				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("some error"))
 				})
 			})
 

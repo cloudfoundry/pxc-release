@@ -93,11 +93,6 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 		return "", err
 	}
 
-	err = s.createOrDeleteReadOnlyUser()
-	if err != nil {
-		return "", err
-	}
-
 	err = s.runPostStartSQL()
 	if err != nil {
 		return "", err
@@ -202,17 +197,6 @@ func (s *starter) seedDatabases() error {
 	}
 
 	s.logger.Info("Seeding databases succeeded.")
-	return nil
-}
-
-func (s *starter) createOrDeleteReadOnlyUser() error {
-	err := s.mariaDBHelper.ManageReadOnlyUser()
-	if err != nil {
-		s.logger.Info(fmt.Sprintf("There was a problem creating the read only user: '%s'", err.Error()))
-		return err
-	}
-
-	s.logger.Info("Creating read only user succeeded.")
 	return nil
 }
 

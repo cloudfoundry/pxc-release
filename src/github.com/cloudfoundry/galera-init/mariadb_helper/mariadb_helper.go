@@ -33,7 +33,6 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
-	ManageReadOnlyUser() error
 	RunPostStartSQL() error
 	TestDatabaseCleanup() error
 }
@@ -243,101 +242,10 @@ func (m MariaDBHelper) Seed() error {
 	return nil
 }
 
-func (m MariaDBHelper) ManageReadOnlyUser() error {
-	db, err := OpenDBConnection(m.config)
-	if err != nil {
-		m.logger.Error("database not reachable", err)
-		return err
-	}
-	defer CloseDBConnection(db)
-
-	if m.config.ReadOnlyPassword == "" || !m.config.ReadOnlyUserEnabled {
-		m.logger.Info("Read Only User is disabled or password is not provided, deleting Read Only User if exists")
-		if err := m.deleteReadOnlyUser(db); err != nil {
-			return err
-		}
-	} else {
-
-		if err := m.grantUserReadOnly(db); err != nil {
-			return err
-		}
-
-		if err := m.setReadOnlyUserPassword(db); err != nil {
-			return err
-		}
-
-		if err := m.flushPrivileges(db); err != nil {
-			return err
-		}
-	}
-	return nil
-
-}
-
-func (m MariaDBHelper) grantUserReadOnly(db *sql.DB) error {
-	createUserQuery := fmt.Sprintf(
-		"GRANT SELECT, PROCESS ON *.* TO '%s' IDENTIFIED BY '%s'",
-		m.config.ReadOnlyUser,
-		m.config.ReadOnlyPassword,
-	)
-
-	if _, err := db.Exec(createUserQuery); err != nil {
-		m.logger.Error("Unable to create Read Only user", err)
-
-		return err
-	}
-
-	return nil
-}
-
-func (m MariaDBHelper) setReadOnlyUserPassword(db *sql.DB) error {
-	setPasswordQuery := fmt.Sprintf(
-		"SET PASSWORD FOR '%s'@'%%' = PASSWORD('%s')",
-		m.config.ReadOnlyUser,
-		m.config.ReadOnlyPassword,
-	)
-
-	if _, err := db.Exec(setPasswordQuery); err != nil {
-		m.logger.Error("Unable to set password for Read Only user", err)
-
-		return err
-	}
-
-	return nil
-}
-
 func (m MariaDBHelper) flushPrivileges(db *sql.DB) error {
 	if _, err := db.Exec("FLUSH PRIVILEGES"); err != nil {
 		m.logger.Error("Error flushing privileges", err)
 		return err
-	}
-
-	return nil
-}
-
-func (m MariaDBHelper) deleteReadOnlyUser(db *sql.DB) error {
-	deleteUserQuery := fmt.Sprintf(
-		"DROP USER %s",
-		m.config.ReadOnlyUser,
-	)
-	existingUserQuery := fmt.Sprintf(
-		"SELECT User FROM mysql.user WHERE User = '%s'",
-		m.config.ReadOnlyUser,
-	)
-
-	rows, err := db.Query(existingUserQuery)
-	if err != nil {
-		m.logger.Error("Error checking if read only user exists", err)
-		return err
-	}
-
-	userExists := rows.Next()
-
-	if userExists {
-		if _, err := db.Exec(deleteUserQuery); err != nil {
-			m.logger.Error("Unable to delete Read Only user", err)
-			return err
-		}
 	}
 
 	return nil

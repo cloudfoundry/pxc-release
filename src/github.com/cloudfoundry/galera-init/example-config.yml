@@ -13,9 +13,6 @@ Db:
   User: testUser
   # Specifies the password for connecting to MySQL
   Password:
-  ReadOnlyUserEnabled: true
-  ReadOnlyUser: testROUser
-  ReadOnlyPassword: testROPassword
   PreseededDatabases:
   - DBName: testDbName1
     User: testUser1
