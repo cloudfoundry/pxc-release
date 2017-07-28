@@ -39,7 +39,7 @@ func main() {
 		actionTaken, err = bootstrapper.RejoinUnsafe()
 	} else {
 		logger.Error("Invalid repair mode:", errors.New(fmt.Sprintf("%s", rootConfig.RepairMode)))
-		printHumanReadableErr(err)
+		fmt.Printf("Invalid repair mode: %s", rootConfig.RepairMode)
 		os.Exit(1)
 	}
 
@@ -47,7 +47,7 @@ func main() {
 		logger.Error("Failed to repair cluster", err, lager.Data{
 			"config": rootConfig,
 		})
-		printHumanReadableErr(err)
+		printHumanReadableErr(err, rootConfig.RepairMode)
 		os.Exit(1)
 	}
 
@@ -60,13 +60,21 @@ func main() {
 	fmt.Println("Successfully repaired cluster")
 }
 
-func printHumanReadableErr(err error) {
+func printHumanReadableErr(err error, mode string) {
+	var docsLink string
+
+	if mode == "bootstrap" {
+		docsLink = "https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md"
+	} else {
+		docsLink = "https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/cluster-behavior.md#forcing-a-node-to-rejoin-the-cluster-unsafe-procedure"
+	}
+
 	fmt.Printf(`
 		##################################################################################
 		Error: %s
 
 		Reference the docs for more information:
-		https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md
+		%s
 		##################################################################################
-		`, err)
+		`, err, docsLink)
 }
