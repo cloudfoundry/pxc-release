@@ -16,9 +16,8 @@ import (
 )
 
 const (
-	StopStandaloneCommand = "stop-stand-alone"
-	StopCommand           = "stop"
-	StatusCommand         = "status"
+	StopCommand   = "stop"
+	StatusCommand = "status"
 )
 
 //go:generate counterfeiter . DBHelper
@@ -28,7 +27,6 @@ type DBHelper interface {
 	StartMysqldInJoin() (*exec.Cmd, error)
 	StartMysqldInBootstrap() (*exec.Cmd, error)
 	StopMysqld() error
-	StopStandaloneMysqld() error
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
@@ -125,15 +123,6 @@ func (m MariaDBHelper) StopMysqld() error {
 	err := m.runMysqlDaemon(StopCommand)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error stopping node: %s", err.Error()))
-	}
-	return err
-}
-
-func (m MariaDBHelper) StopStandaloneMysqld() error {
-	m.logger.Info("Stopping standalone node")
-	err := m.runMysqlDaemon(StopStandaloneCommand)
-	if err != nil {
-		m.logger.Info(fmt.Sprintf("Error stopping standalone node: %s", err.Error()))
 	}
 	return err
 }

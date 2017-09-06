@@ -51,15 +51,6 @@ type FakeDBHelper struct {
 	stopMysqldReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StopStandaloneMysqldStub        func() error
-	stopStandaloneMysqldMutex       sync.RWMutex
-	stopStandaloneMysqldArgsForCall []struct{}
-	stopStandaloneMysqldReturns     struct {
-		result1 error
-	}
-	stopStandaloneMysqldReturnsOnCall map[int]struct {
-		result1 error
-	}
 	UpgradeStub        func() (output string, err error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct{}
@@ -290,46 +281,6 @@ func (fake *FakeDBHelper) StopMysqldReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.stopMysqldReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) StopStandaloneMysqld() error {
-	fake.stopStandaloneMysqldMutex.Lock()
-	ret, specificReturn := fake.stopStandaloneMysqldReturnsOnCall[len(fake.stopStandaloneMysqldArgsForCall)]
-	fake.stopStandaloneMysqldArgsForCall = append(fake.stopStandaloneMysqldArgsForCall, struct{}{})
-	fake.recordInvocation("StopStandaloneMysqld", []interface{}{})
-	fake.stopStandaloneMysqldMutex.Unlock()
-	if fake.StopStandaloneMysqldStub != nil {
-		return fake.StopStandaloneMysqldStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.stopStandaloneMysqldReturns.result1
-}
-
-func (fake *FakeDBHelper) StopStandaloneMysqldCallCount() int {
-	fake.stopStandaloneMysqldMutex.RLock()
-	defer fake.stopStandaloneMysqldMutex.RUnlock()
-	return len(fake.stopStandaloneMysqldArgsForCall)
-}
-
-func (fake *FakeDBHelper) StopStandaloneMysqldReturns(result1 error) {
-	fake.StopStandaloneMysqldStub = nil
-	fake.stopStandaloneMysqldReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) StopStandaloneMysqldReturnsOnCall(i int, result1 error) {
-	fake.StopStandaloneMysqldStub = nil
-	if fake.stopStandaloneMysqldReturnsOnCall == nil {
-		fake.stopStandaloneMysqldReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.stopStandaloneMysqldReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -588,8 +539,6 @@ func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	defer fake.startMysqldInBootstrapMutex.RUnlock()
 	fake.stopMysqldMutex.RLock()
 	defer fake.stopMysqldMutex.RUnlock()
-	fake.stopStandaloneMysqldMutex.RLock()
-	defer fake.stopStandaloneMysqldMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
 	fake.isDatabaseReachableMutex.RLock()

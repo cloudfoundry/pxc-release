@@ -65,7 +65,7 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 		newNodeState = SingleNode
 	case NeedsBootstrap:
 		if s.clusterHealthChecker.HealthyCluster() {
-			mysqldChan, err = s.startNodeAsJoiner()
+			mysqldChan, err = s.joinCluster()
 		} else {
 			mysqldChan, err = s.bootstrapNode()
 		}
@@ -134,20 +134,6 @@ func (s *starter) bootstrapNode() (chan error, error) {
 	errorChan := s.osHelper.WaitForCommand(cmd)
 	s.logger.Info("mysqld exit")
 	return errorChan, nil
-}
-
-func (s *starter) startNodeAsJoiner() (chan error, error) {
-	s.logger.Info("Joining an existing cluster")
-	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
-	if err != nil {
-		return nil, err
-	}
-
-	s.mysqlCmd = cmd // could we remove it?
-	s.logger.Info("waiting for joiner node")
-	mysqldChan := s.osHelper.WaitForCommand(cmd)
-	s.logger.Info("mysqld exit")
-	return mysqldChan, nil
 }
 
 func (s *starter) joinCluster() (chan error, error) {

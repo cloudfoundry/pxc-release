@@ -5,12 +5,7 @@ set -e
 mode=$1
 
 case "$mode" in
-  'start')
-      echo "Starting MySQL"
-      exec /var/vcap/packages/mariadb/bin/mysqld_safe
-      ;;
-
-  'stop' | 'stop-stand-alone')
+  'stop')
       echo "Stopping the cluster"
       /var/vcap/packages/mariadb/support-files/mysql.server stop
       ;;

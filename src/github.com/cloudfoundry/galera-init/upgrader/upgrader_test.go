@@ -55,7 +55,7 @@ var _ = Describe("Upgrader", func() {
 			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.StopStandaloneMysqldCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StopMysqldCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsProcessRunningCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -114,7 +114,7 @@ var _ = Describe("Upgrader", func() {
 
 		Context("when the mysqld stop script fails", func() {
 			BeforeEach(func() {
-				fakeDbHelper.StopStandaloneMysqldStub = func() error {
+				fakeDbHelper.StopMysqldStub = func() error {
 					return errors.New("exited 1")
 				}
 			})

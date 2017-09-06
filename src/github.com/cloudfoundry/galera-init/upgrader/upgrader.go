@@ -114,7 +114,7 @@ func (u upgrader) startStandaloneDatabaseSynchronously() (err error) {
 }
 
 func (u upgrader) stopStandaloneDatabaseSynchronously() (err error) {
-	err = u.mariadbHelper.StopStandaloneMysqld()
+	err = u.mariadbHelper.StopMysqld()
 	if err != nil {
 		u.logger.Info("Failed to stop standalone mysqld", lager.Data{"err": err})
 		return
