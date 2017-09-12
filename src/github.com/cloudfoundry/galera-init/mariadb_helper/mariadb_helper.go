@@ -13,6 +13,7 @@ import (
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/go-sql-driver/mysql"
+	"time"
 )
 
 const (
@@ -23,10 +24,10 @@ const (
 //go:generate counterfeiter . DBHelper
 
 type DBHelper interface {
-	StartMysqldInMode(command string) error
+	StartMysqldInStandAlone()
 	StartMysqldInJoin() (*exec.Cmd, error)
 	StartMysqldInBootstrap() (*exec.Cmd, error)
-	StopMysqld() error
+	StopMysqld()
 	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
@@ -80,20 +81,14 @@ var CloseDBConnection = func(db *sql.DB) error {
 
 func (m MariaDBHelper) IsProcessRunning() bool {
 	err := m.runMysqlDaemon(StatusCommand)
-	if err == nil {
-		//exit 0 means process is running
-		return true
-	}
-	return false
+	return err == nil
 }
 
-func (m MariaDBHelper) StartMysqldInMode(command string) error {
-	m.logger.Info("Starting mysqld with '" + command + "' command.")
-	err := m.runMysqlDaemon(command)
+func (m MariaDBHelper) StartMysqldInStandAlone() {
+	err := m.runMysqlDaemon("stand-alone")
 	if err != nil {
-		m.logger.Info(fmt.Sprintf("Error starting node: %s", err.Error()))
+		m.logger.Fatal("Error staring mysqld in stand-alone", err)
 	}
-	return err
 }
 
 func (m MariaDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
@@ -118,18 +113,35 @@ func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StopMysqld() error {
+func (m MariaDBHelper) StopMysqld() {
 	m.logger.Info("Stopping node")
 	err := m.runMysqlDaemon(StopCommand)
 	if err != nil {
-		m.logger.Info(fmt.Sprintf("Error stopping node: %s", err.Error()))
+		m.logger.Fatal("Error stopping mysqld", err)
 	}
-	return err
+
+	for {
+		if !m.IsProcessRunning() {
+			m.logger.Info("mysqld has been stopped")
+			return
+		}
+
+		m.logger.Info("mysqld is still running...")
+		m.osHelper.Sleep(1 * time.Second)
+	}
 }
 
 func (m MariaDBHelper) runMysqlDaemon(mode string) error {
-	return m.osHelper.RunCommandWithTimeout(
-		10,
+	runCommandErr := m.osHelper.RunCommand(
+		"bash",
+		m.config.DaemonPath,
+		mode)
+
+	return runCommandErr
+}
+
+func (m MariaDBHelper) startMysqlDaemon(mode string) (*exec.Cmd, error) {
+	return m.osHelper.StartCommand(
 		m.logFileLocation,
 		"bash",
 		m.config.DaemonPath,
@@ -144,7 +156,7 @@ func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd
 }
 
 func (m MariaDBHelper) Upgrade() (output string, err error) {
-	return m.osHelper.RunCommand(
+	return m.osHelper.RunCommandWithOutput(
 		m.config.UpgradePath,
 		fmt.Sprintf("-u%s", m.config.User),
 		fmt.Sprintf("-p%s", m.config.Password),

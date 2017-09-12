@@ -24,7 +24,7 @@ const (
 type StartManager interface {
 	Execute() error
 	GetMysqlCmd() (*exec.Cmd, error)
-	Shutdown() error
+	Shutdown()
 }
 
 type startManager struct {
@@ -65,11 +65,7 @@ func (m *startManager) Execute() error {
 
 	if m.mariaDBHelper.IsProcessRunning() {
 		m.logger.Info("mysqld process is already running, shutting down before continuing")
-		err = m.Shutdown()
-		if err != nil {
-			m.logger.Error("Failed to shutdown mysql process", err)
-			return err
-		}
+		m.Shutdown()
 	}
 
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
@@ -156,9 +152,9 @@ func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
 	return m.startCaller.GetMysqlCmd()
 }
 
-func (m *startManager) Shutdown() error {
+func (m *startManager) Shutdown() {
 	m.logger.Info("Shutting down mysqld")
-	return m.mariaDBHelper.StopMysqld()
+	m.mariaDBHelper.StopMysqld()
 }
 
 func (m *startManager) writeStringToFile(contents string) error {

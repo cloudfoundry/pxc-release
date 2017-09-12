@@ -104,84 +104,98 @@ var _ = Describe("MariaDBHelper", func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
-	Describe("Start", func() {
+	Describe("StartMysqldInStandAlone", func() {
 
 		It("calls the mysql daemon with the command option", func() {
-			helper.StartMysqldInMode("bootstrap")
-			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
+			helper.StartMysqldInStandAlone()
 
-			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
-			Expect(timeout).To(Equal(10))
-			Expect(logDestination).To(Equal(logFile))
+			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
+			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{dbConfig.DaemonPath, "bootstrap"}))
+			Expect(args).To(Equal([]string{dbConfig.DaemonPath, "stand-alone"}))
 		})
 
-		Context("when an error occurs", func() {
-			BeforeEach(func() {
-				fakeOs.RunCommandWithTimeoutReturns(errors.New("some error"))
-			})
+		Context("when an error occurs while shelling out", func() {
+			It("should panic", func() {
+				fakeOs.RunCommandStub = func(command string, args ...string) error {
+					return errors.New("starting somehow failed")
+				}
 
-			It("returns the error", func() {
-				err := helper.StartMysqldInMode("bootstrap")
-				Expect(err).To(HaveOccurred())
+				Expect(func() { helper.StartMysqldInStandAlone() }).Should(Panic())
 			})
 		})
 	})
 
-	Describe("Stop", func() {
+	Describe("StopMysqld", func() {
 		It("calls the mysql daemon with the stop command", func() {
-			helper.StopMysqld()
-			Expect(fakeOs.RunCommandWithTimeoutCallCount()).To(Equal(1))
+			statusCommandCallCount := 0
+			fakeOs.RunCommandStub = func(command string, args ...string) error {
+				if args[1] == mariadb_helper.StatusCommand {
+					if statusCommandCallCount >= 3 {
+						return errors.New("error because no process")
+					}
 
-			timeout, logDestination, executable, args := fakeOs.RunCommandWithTimeoutArgsForCall(0)
-			Expect(timeout).To(Equal(10))
-			Expect(logDestination).To(Equal(logFile))
+					statusCommandCallCount++
+					return nil
+				}
+
+				return nil
+			}
+
+			helper.StopMysqld()
+
+			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("bash"))
 			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StopCommand}))
+
+			Expect(fakeOs.RunCommandCallCount()).To(Equal(5))
+			Expect(fakeOs.SleepCallCount()).To(Equal(3))
 		})
 
 		Context("when an error occurs", func() {
-			BeforeEach(func() {
-				fakeOs.RunCommandWithTimeoutReturns(errors.New("some error"))
-			})
 
-			It("returns the error", func() {
-				err := helper.StopMysqld()
-				Expect(err).To(HaveOccurred())
+			It("panics with the error", func() {
+				fakeOs.RunCommandStub = func(command string, args ...string) error {
+					return errors.New("stopping somehow failed")
+				}
+
+				Expect(func() { helper.StopMysqld() }).Should(Panic())
 			})
 		})
 	})
 
 	Describe("IsProcessRunning", func() {
 		It("returns true if `mysql.server status` exits zero", func() {
-			fakeOs.RunCommandReturns(" * MySQL running (2391)", nil)
+			fakeOs.RunCommandReturns(nil)
 
 			isRunning := helper.IsProcessRunning()
 			Expect(isRunning).To(BeTrue())
+
+			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
+			executable, args := fakeOs.RunCommandArgsForCall(0)
+			Expect(executable).To(Equal("bash"))
+			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StatusCommand}))
 		})
 
 		It("returns false if `mysql.server status` exits non-zero", func() {
-			fakeOs.RunCommandWithTimeoutStub = func(_ int, _, _ string, args ...string) error {
-				mode := args[1]
-				if mode == mariadb_helper.StatusCommand {
-					return errors.New("not running error")
-				} else {
-					return nil
-				}
-			}
+			fakeOs.RunCommandReturns(errors.New("error checking status"))
 
 			isRunning := helper.IsProcessRunning()
 			Expect(isRunning).To(BeFalse())
+
+			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
+			executable, args := fakeOs.RunCommandArgsForCall(0)
+			Expect(executable).To(Equal("bash"))
+			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StatusCommand}))
 		})
 	})
 
 	Describe("Upgrade", func() {
 		It("calls the mysql upgrade script", func() {
 			helper.Upgrade()
-			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
+			Expect(fakeOs.RunCommandWithOutputCallCount()).To(Equal(1))
 
-			executable, args := fakeOs.RunCommandArgsForCall(0)
+			executable, args := fakeOs.RunCommandWithOutputArgsForCall(0)
 			Expect(executable).To(Equal(dbConfig.UpgradePath))
 			Expect(args).To(Equal([]string{
 				fmt.Sprintf("-u%s", dbConfig.User),
@@ -190,7 +204,8 @@ var _ = Describe("MariaDBHelper", func() {
 		})
 
 		It("returns the output and error", func() {
-			fakeOs.RunCommandReturns("some output", errors.New("some error"))
+			fakeOs.RunCommandWithOutputReturns("some output", errors.New("some error"))
+
 			output, err := helper.Upgrade()
 			Expect(output).To(Equal("some output"))
 			Expect(err.Error()).To(Equal("some error"))

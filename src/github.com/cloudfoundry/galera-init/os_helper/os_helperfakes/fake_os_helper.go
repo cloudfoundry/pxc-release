@@ -10,33 +10,31 @@ import (
 )
 
 type FakeOsHelper struct {
-	RunCommandStub        func(executable string, args ...string) (string, error)
+	RunCommandStub        func(executable string, args ...string) error
 	runCommandMutex       sync.RWMutex
 	runCommandArgsForCall []struct {
 		executable string
 		args       []string
 	}
 	runCommandReturns struct {
-		result1 string
-		result2 error
+		result1 error
 	}
 	runCommandReturnsOnCall map[int]struct {
+		result1 error
+	}
+	RunCommandWithOutputStub        func(executable string, args ...string) (string, error)
+	runCommandWithOutputMutex       sync.RWMutex
+	runCommandWithOutputArgsForCall []struct {
+		executable string
+		args       []string
+	}
+	runCommandWithOutputReturns struct {
 		result1 string
 		result2 error
 	}
-	RunCommandWithTimeoutStub        func(timeout int, logFileName string, executable string, args ...string) error
-	runCommandWithTimeoutMutex       sync.RWMutex
-	runCommandWithTimeoutArgsForCall []struct {
-		timeout     int
-		logFileName string
-		executable  string
-		args        []string
-	}
-	runCommandWithTimeoutReturns struct {
-		result1 error
-	}
-	runCommandWithTimeoutReturnsOnCall map[int]struct {
-		result1 error
+	runCommandWithOutputReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
 	}
 	StartCommandStub        func(logFileName string, executable string, args ...string) (*exec.Cmd, error)
 	startCommandMutex       sync.RWMutex
@@ -109,7 +107,7 @@ type FakeOsHelper struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeOsHelper) RunCommand(executable string, args ...string) (string, error) {
+func (fake *FakeOsHelper) RunCommand(executable string, args ...string) error {
 	fake.runCommandMutex.Lock()
 	ret, specificReturn := fake.runCommandReturnsOnCall[len(fake.runCommandArgsForCall)]
 	fake.runCommandArgsForCall = append(fake.runCommandArgsForCall, struct {
@@ -122,9 +120,9 @@ func (fake *FakeOsHelper) RunCommand(executable string, args ...string) (string,
 		return fake.RunCommandStub(executable, args...)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	return fake.runCommandReturns.result1, fake.runCommandReturns.result2
+	return fake.runCommandReturns.result1
 }
 
 func (fake *FakeOsHelper) RunCommandCallCount() int {
@@ -139,77 +137,75 @@ func (fake *FakeOsHelper) RunCommandArgsForCall(i int) (string, []string) {
 	return fake.runCommandArgsForCall[i].executable, fake.runCommandArgsForCall[i].args
 }
 
-func (fake *FakeOsHelper) RunCommandReturns(result1 string, result2 error) {
+func (fake *FakeOsHelper) RunCommandReturns(result1 error) {
 	fake.RunCommandStub = nil
 	fake.runCommandReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeOsHelper) RunCommandReturnsOnCall(i int, result1 error) {
+	fake.RunCommandStub = nil
+	if fake.runCommandReturnsOnCall == nil {
+		fake.runCommandReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.runCommandReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeOsHelper) RunCommandWithOutput(executable string, args ...string) (string, error) {
+	fake.runCommandWithOutputMutex.Lock()
+	ret, specificReturn := fake.runCommandWithOutputReturnsOnCall[len(fake.runCommandWithOutputArgsForCall)]
+	fake.runCommandWithOutputArgsForCall = append(fake.runCommandWithOutputArgsForCall, struct {
+		executable string
+		args       []string
+	}{executable, args})
+	fake.recordInvocation("RunCommandWithOutput", []interface{}{executable, args})
+	fake.runCommandWithOutputMutex.Unlock()
+	if fake.RunCommandWithOutputStub != nil {
+		return fake.RunCommandWithOutputStub(executable, args...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.runCommandWithOutputReturns.result1, fake.runCommandWithOutputReturns.result2
+}
+
+func (fake *FakeOsHelper) RunCommandWithOutputCallCount() int {
+	fake.runCommandWithOutputMutex.RLock()
+	defer fake.runCommandWithOutputMutex.RUnlock()
+	return len(fake.runCommandWithOutputArgsForCall)
+}
+
+func (fake *FakeOsHelper) RunCommandWithOutputArgsForCall(i int) (string, []string) {
+	fake.runCommandWithOutputMutex.RLock()
+	defer fake.runCommandWithOutputMutex.RUnlock()
+	return fake.runCommandWithOutputArgsForCall[i].executable, fake.runCommandWithOutputArgsForCall[i].args
+}
+
+func (fake *FakeOsHelper) RunCommandWithOutputReturns(result1 string, result2 error) {
+	fake.RunCommandWithOutputStub = nil
+	fake.runCommandWithOutputReturns = struct {
 		result1 string
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeOsHelper) RunCommandReturnsOnCall(i int, result1 string, result2 error) {
-	fake.RunCommandStub = nil
-	if fake.runCommandReturnsOnCall == nil {
-		fake.runCommandReturnsOnCall = make(map[int]struct {
+func (fake *FakeOsHelper) RunCommandWithOutputReturnsOnCall(i int, result1 string, result2 error) {
+	fake.RunCommandWithOutputStub = nil
+	if fake.runCommandWithOutputReturnsOnCall == nil {
+		fake.runCommandWithOutputReturnsOnCall = make(map[int]struct {
 			result1 string
 			result2 error
 		})
 	}
-	fake.runCommandReturnsOnCall[i] = struct {
+	fake.runCommandWithOutputReturnsOnCall[i] = struct {
 		result1 string
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeOsHelper) RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error {
-	fake.runCommandWithTimeoutMutex.Lock()
-	ret, specificReturn := fake.runCommandWithTimeoutReturnsOnCall[len(fake.runCommandWithTimeoutArgsForCall)]
-	fake.runCommandWithTimeoutArgsForCall = append(fake.runCommandWithTimeoutArgsForCall, struct {
-		timeout     int
-		logFileName string
-		executable  string
-		args        []string
-	}{timeout, logFileName, executable, args})
-	fake.recordInvocation("RunCommandWithTimeout", []interface{}{timeout, logFileName, executable, args})
-	fake.runCommandWithTimeoutMutex.Unlock()
-	if fake.RunCommandWithTimeoutStub != nil {
-		return fake.RunCommandWithTimeoutStub(timeout, logFileName, executable, args...)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.runCommandWithTimeoutReturns.result1
-}
-
-func (fake *FakeOsHelper) RunCommandWithTimeoutCallCount() int {
-	fake.runCommandWithTimeoutMutex.RLock()
-	defer fake.runCommandWithTimeoutMutex.RUnlock()
-	return len(fake.runCommandWithTimeoutArgsForCall)
-}
-
-func (fake *FakeOsHelper) RunCommandWithTimeoutArgsForCall(i int) (int, string, string, []string) {
-	fake.runCommandWithTimeoutMutex.RLock()
-	defer fake.runCommandWithTimeoutMutex.RUnlock()
-	return fake.runCommandWithTimeoutArgsForCall[i].timeout, fake.runCommandWithTimeoutArgsForCall[i].logFileName, fake.runCommandWithTimeoutArgsForCall[i].executable, fake.runCommandWithTimeoutArgsForCall[i].args
-}
-
-func (fake *FakeOsHelper) RunCommandWithTimeoutReturns(result1 error) {
-	fake.RunCommandWithTimeoutStub = nil
-	fake.runCommandWithTimeoutReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeOsHelper) RunCommandWithTimeoutReturnsOnCall(i int, result1 error) {
-	fake.RunCommandWithTimeoutStub = nil
-	if fake.runCommandWithTimeoutReturnsOnCall == nil {
-		fake.runCommandWithTimeoutReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.runCommandWithTimeoutReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeOsHelper) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
@@ -490,8 +486,8 @@ func (fake *FakeOsHelper) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.runCommandMutex.RLock()
 	defer fake.runCommandMutex.RUnlock()
-	fake.runCommandWithTimeoutMutex.RLock()
-	defer fake.runCommandWithTimeoutMutex.RUnlock()
+	fake.runCommandWithOutputMutex.RLock()
+	defer fake.runCommandWithOutputMutex.RUnlock()
 	fake.startCommandMutex.RLock()
 	defer fake.startCommandMutex.RUnlock()
 	fake.waitForCommandMutex.RLock()

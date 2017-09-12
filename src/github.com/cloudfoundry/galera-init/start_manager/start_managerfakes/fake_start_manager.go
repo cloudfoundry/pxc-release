@@ -29,17 +29,11 @@ type FakeStartManager struct {
 		result1 *exec.Cmd
 		result2 error
 	}
-	ShutdownStub        func() error
+	ShutdownStub        func()
 	shutdownMutex       sync.RWMutex
 	shutdownArgsForCall []struct{}
-	shutdownReturns     struct {
-		result1 error
-	}
-	shutdownReturnsOnCall map[int]struct {
-		result1 error
-	}
-	invocations      map[string][][]interface{}
-	invocationsMutex sync.RWMutex
+	invocations         map[string][][]interface{}
+	invocationsMutex    sync.RWMutex
 }
 
 func (fake *FakeStartManager) Execute() error {
@@ -125,44 +119,20 @@ func (fake *FakeStartManager) GetMysqlCmdReturnsOnCall(i int, result1 *exec.Cmd,
 	}{result1, result2}
 }
 
-func (fake *FakeStartManager) Shutdown() error {
+func (fake *FakeStartManager) Shutdown() {
 	fake.shutdownMutex.Lock()
-	ret, specificReturn := fake.shutdownReturnsOnCall[len(fake.shutdownArgsForCall)]
 	fake.shutdownArgsForCall = append(fake.shutdownArgsForCall, struct{}{})
 	fake.recordInvocation("Shutdown", []interface{}{})
 	fake.shutdownMutex.Unlock()
 	if fake.ShutdownStub != nil {
-		return fake.ShutdownStub()
+		fake.ShutdownStub()
 	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.shutdownReturns.result1
 }
 
 func (fake *FakeStartManager) ShutdownCallCount() int {
 	fake.shutdownMutex.RLock()
 	defer fake.shutdownMutex.RUnlock()
 	return len(fake.shutdownArgsForCall)
-}
-
-func (fake *FakeStartManager) ShutdownReturns(result1 error) {
-	fake.ShutdownStub = nil
-	fake.shutdownReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeStartManager) ShutdownReturnsOnCall(i int, result1 error) {
-	fake.ShutdownStub = nil
-	if fake.shutdownReturnsOnCall == nil {
-		fake.shutdownReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.shutdownReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeStartManager) Invocations() map[string][][]interface{} {

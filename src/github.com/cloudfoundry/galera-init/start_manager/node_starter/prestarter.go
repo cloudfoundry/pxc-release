@@ -137,8 +137,3 @@ func (s *prestarter) waitForDatabaseToAcceptConnections(mysqldChan chan error) e
 		}
 	}
 }
-
-func (s *prestarter) shutdownMysqld() error {
-	s.logger.Info("Shutting down mysqld after prestart")
-	return s.mariaDBHelper.StopMysqld()
-}

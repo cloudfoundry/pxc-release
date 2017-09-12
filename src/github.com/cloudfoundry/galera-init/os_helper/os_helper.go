@@ -1,7 +1,6 @@
 package os_helper
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -9,10 +8,9 @@ import (
 )
 
 //go:generate counterfeiter . OsHelper
-
 type OsHelper interface {
-	RunCommand(executable string, args ...string) (string, error)
-	RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error
+	RunCommand(executable string, args ...string) error
+	RunCommandWithOutput(executable string, args ...string) (string, error)
 	StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error)
 	WaitForCommand(cmd *exec.Cmd) chan error
 	FileExists(filename string) bool
@@ -28,42 +26,20 @@ func NewImpl() *OsHelperImpl {
 }
 
 // Runs command with stdout and stderr pipes connected to process
-func (h OsHelperImpl) RunCommand(executable string, args ...string) (string, error) {
+func (h OsHelperImpl) RunCommandWithOutput(executable string, args ...string) (string, error) {
 	cmd := exec.Command(executable, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(out), err
 	}
 	return string(out), nil
+
 }
 
 // Runs command with stdout and stderr pipes connected to process
-func (h OsHelperImpl) RunCommandWithTimeout(timeout int, logFileName string, executable string, args ...string) error {
+func (h OsHelperImpl) RunCommand(executable string, args ...string) error {
 	cmd := exec.Command(executable, args...)
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-
-	maxRunTime := time.Duration(timeout) * time.Second
-	errChannel := make(chan error, 1)
-	readyChan := make(chan interface{})
-	go func() {
-		cmd.Start()
-		close(readyChan)
-		errChannel <- cmd.Wait()
-	}()
-
-	<-readyChan
-	select {
-	case <-time.After(maxRunTime):
-		cmd.Process.Kill()
-		return errors.New("Command timed out")
-	case err := <-errChannel:
-		return err
-	}
+	return cmd.Run()
 }
 
 func (h OsHelperImpl) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {

@@ -33,12 +33,7 @@ func main() {
 		panic("manager start failed")
 	}
 
-	err = managerStop(startManager)
-
-	if err != nil {
-		cfg.Logger.Info(err.Error())
-		panic("manager stop failed.")
-	}
+	managerStop(startManager)
 
 	cfg.Logger.Info("Process exited without error.")
 }
@@ -92,7 +87,7 @@ func managerStart(startManager start_manager.StartManager) error {
 
 }
 
-func managerStop(startManager start_manager.StartManager) error {
-	return startManager.Shutdown()
+func managerStop(startManager start_manager.StartManager) {
+	startManager.Shutdown()
 
 }

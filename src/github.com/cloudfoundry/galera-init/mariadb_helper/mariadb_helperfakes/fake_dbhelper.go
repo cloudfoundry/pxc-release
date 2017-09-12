@@ -9,21 +9,13 @@ import (
 )
 
 type FakeDBHelper struct {
-	StartMysqldInModeStub        func(command string) error
-	startMysqldInModeMutex       sync.RWMutex
-	startMysqldInModeArgsForCall []struct {
-		command string
-	}
-	startMysqldInModeReturns struct {
-		result1 error
-	}
-	startMysqldInModeReturnsOnCall map[int]struct {
-		result1 error
-	}
-	StartMysqldInJoinStub        func() (*exec.Cmd, error)
-	startMysqldInJoinMutex       sync.RWMutex
-	startMysqldInJoinArgsForCall []struct{}
-	startMysqldInJoinReturns     struct {
+	StartMysqldInStandAloneStub        func()
+	startMysqldInStandAloneMutex       sync.RWMutex
+	startMysqldInStandAloneArgsForCall []struct{}
+	StartMysqldInJoinStub              func() (*exec.Cmd, error)
+	startMysqldInJoinMutex             sync.RWMutex
+	startMysqldInJoinArgsForCall       []struct{}
+	startMysqldInJoinReturns           struct {
 		result1 *exec.Cmd
 		result2 error
 	}
@@ -42,19 +34,13 @@ type FakeDBHelper struct {
 		result1 *exec.Cmd
 		result2 error
 	}
-	StopMysqldStub        func() error
+	StopMysqldStub        func()
 	stopMysqldMutex       sync.RWMutex
 	stopMysqldArgsForCall []struct{}
-	stopMysqldReturns     struct {
-		result1 error
-	}
-	stopMysqldReturnsOnCall map[int]struct {
-		result1 error
-	}
-	UpgradeStub        func() (output string, err error)
-	upgradeMutex       sync.RWMutex
-	upgradeArgsForCall []struct{}
-	upgradeReturns     struct {
+	UpgradeStub           func() (output string, err error)
+	upgradeMutex          sync.RWMutex
+	upgradeArgsForCall    []struct{}
+	upgradeReturns        struct {
 		result1 string
 		result2 error
 	}
@@ -111,52 +97,20 @@ type FakeDBHelper struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDBHelper) StartMysqldInMode(command string) error {
-	fake.startMysqldInModeMutex.Lock()
-	ret, specificReturn := fake.startMysqldInModeReturnsOnCall[len(fake.startMysqldInModeArgsForCall)]
-	fake.startMysqldInModeArgsForCall = append(fake.startMysqldInModeArgsForCall, struct {
-		command string
-	}{command})
-	fake.recordInvocation("StartMysqldInMode", []interface{}{command})
-	fake.startMysqldInModeMutex.Unlock()
-	if fake.StartMysqldInModeStub != nil {
-		return fake.StartMysqldInModeStub(command)
+func (fake *FakeDBHelper) StartMysqldInStandAlone() {
+	fake.startMysqldInStandAloneMutex.Lock()
+	fake.startMysqldInStandAloneArgsForCall = append(fake.startMysqldInStandAloneArgsForCall, struct{}{})
+	fake.recordInvocation("StartMysqldInStandAlone", []interface{}{})
+	fake.startMysqldInStandAloneMutex.Unlock()
+	if fake.StartMysqldInStandAloneStub != nil {
+		fake.StartMysqldInStandAloneStub()
 	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.startMysqldInModeReturns.result1
 }
 
-func (fake *FakeDBHelper) StartMysqldInModeCallCount() int {
-	fake.startMysqldInModeMutex.RLock()
-	defer fake.startMysqldInModeMutex.RUnlock()
-	return len(fake.startMysqldInModeArgsForCall)
-}
-
-func (fake *FakeDBHelper) StartMysqldInModeArgsForCall(i int) string {
-	fake.startMysqldInModeMutex.RLock()
-	defer fake.startMysqldInModeMutex.RUnlock()
-	return fake.startMysqldInModeArgsForCall[i].command
-}
-
-func (fake *FakeDBHelper) StartMysqldInModeReturns(result1 error) {
-	fake.StartMysqldInModeStub = nil
-	fake.startMysqldInModeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) StartMysqldInModeReturnsOnCall(i int, result1 error) {
-	fake.StartMysqldInModeStub = nil
-	if fake.startMysqldInModeReturnsOnCall == nil {
-		fake.startMysqldInModeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.startMysqldInModeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+func (fake *FakeDBHelper) StartMysqldInStandAloneCallCount() int {
+	fake.startMysqldInStandAloneMutex.RLock()
+	defer fake.startMysqldInStandAloneMutex.RUnlock()
+	return len(fake.startMysqldInStandAloneArgsForCall)
 }
 
 func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
@@ -245,44 +199,20 @@ func (fake *FakeDBHelper) StartMysqldInBootstrapReturnsOnCall(i int, result1 *ex
 	}{result1, result2}
 }
 
-func (fake *FakeDBHelper) StopMysqld() error {
+func (fake *FakeDBHelper) StopMysqld() {
 	fake.stopMysqldMutex.Lock()
-	ret, specificReturn := fake.stopMysqldReturnsOnCall[len(fake.stopMysqldArgsForCall)]
 	fake.stopMysqldArgsForCall = append(fake.stopMysqldArgsForCall, struct{}{})
 	fake.recordInvocation("StopMysqld", []interface{}{})
 	fake.stopMysqldMutex.Unlock()
 	if fake.StopMysqldStub != nil {
-		return fake.StopMysqldStub()
+		fake.StopMysqldStub()
 	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.stopMysqldReturns.result1
 }
 
 func (fake *FakeDBHelper) StopMysqldCallCount() int {
 	fake.stopMysqldMutex.RLock()
 	defer fake.stopMysqldMutex.RUnlock()
 	return len(fake.stopMysqldArgsForCall)
-}
-
-func (fake *FakeDBHelper) StopMysqldReturns(result1 error) {
-	fake.StopMysqldStub = nil
-	fake.stopMysqldReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) StopMysqldReturnsOnCall(i int, result1 error) {
-	fake.StopMysqldStub = nil
-	if fake.stopMysqldReturnsOnCall == nil {
-		fake.stopMysqldReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.stopMysqldReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeDBHelper) Upgrade() (output string, err error) {
@@ -531,8 +461,8 @@ func (fake *FakeDBHelper) TestDatabaseCleanupReturnsOnCall(i int, result1 error)
 func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.startMysqldInModeMutex.RLock()
-	defer fake.startMysqldInModeMutex.RUnlock()
+	fake.startMysqldInStandAloneMutex.RLock()
+	defer fake.startMysqldInStandAloneMutex.RUnlock()
 	fake.startMysqldInJoinMutex.RLock()
 	defer fake.startMysqldInJoinMutex.RUnlock()
 	fake.startMysqldInBootstrapMutex.RLock()

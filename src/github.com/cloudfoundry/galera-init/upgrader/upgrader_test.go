@@ -52,37 +52,11 @@ var _ = Describe("Upgrader", func() {
 		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
 			expectedPollingCounts := DBReachablePollingAttempts
 			err := upgrader.Upgrade()
-			Expect(fakeDbHelper.StartMysqldInModeCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StartMysqldInStandAloneCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.StopMysqldCallCount()).To(Equal(1))
-			Expect(fakeDbHelper.IsProcessRunningCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the mysqld start command fails", func() {
-			It("quits early and returns an error", func() {
-				fakeDbHelper.StartMysqldInModeStub = func(mode string) error {
-					return errors.New("BOOM")
-				}
-				err := upgrader.Upgrade()
-				Expect(err).To(HaveOccurred())
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when the database server is not available after "+string(DBReachablePollingAttempts)+" attempts to reconnect", func() {
-			BeforeEach(func() {
-				fakeDbHelper.IsDatabaseReachableStub = func() bool {
-					return false
-				}
-			})
-
-			It("returns an error", func() {
-				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(DBReachablePollingAttempts))
-				Expect(err).To(HaveOccurred())
-			})
 		})
 
 		Context("when the upgrade script returns an acceptable error", func() {
@@ -111,35 +85,6 @@ var _ = Describe("Upgrader", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
-
-		Context("when the mysqld stop script fails", func() {
-			BeforeEach(func() {
-				fakeDbHelper.StopMysqldStub = func() error {
-					return errors.New("exited 1")
-				}
-			})
-
-			It("considers the upgrade a failure", func() {
-				err := upgrader.Upgrade()
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("when we issue a stop to the DB and it hasn't stopped after polling "+string(DBReachablePollingAttempts)+" times", func() {
-			expectedPollingCounts := DBReachablePollingAttempts
-			BeforeEach(func() {
-				fakeDbHelper.IsProcessRunningStub = func() bool {
-					return true
-				}
-			})
-
-			It("returns an error", func() {
-				err := upgrader.Upgrade()
-				Expect(fakeDbHelper.IsProcessRunningCallCount()).To(Equal(expectedPollingCounts))
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
 	})
 
 	Describe("NeedsUpgrade", func() {
