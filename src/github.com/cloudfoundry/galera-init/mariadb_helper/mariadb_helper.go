@@ -132,7 +132,7 @@ func (m MariaDBHelper) StopMysqld() {
 }
 
 func (m MariaDBHelper) runMysqlDaemon(mode string) error {
-	runCommandErr := m.osHelper.RunCommand(
+	_, runCommandErr := m.osHelper.RunCommand(
 		"bash",
 		m.config.DaemonPath,
 		mode)
@@ -156,7 +156,7 @@ func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd
 }
 
 func (m MariaDBHelper) Upgrade() (output string, err error) {
-	return m.osHelper.RunCommandWithOutput(
+	return m.osHelper.RunCommand(
 		m.config.UpgradePath,
 		fmt.Sprintf("-u%s", m.config.User),
 		fmt.Sprintf("-p%s", m.config.Password),

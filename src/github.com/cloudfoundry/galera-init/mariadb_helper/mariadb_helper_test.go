@@ -117,8 +117,8 @@ var _ = Describe("MariaDBHelper", func() {
 
 		Context("when an error occurs while shelling out", func() {
 			It("should panic", func() {
-				fakeOs.RunCommandStub = func(command string, args ...string) error {
-					return errors.New("starting somehow failed")
+				fakeOs.RunCommandStub = func(command string, args ...string) (string, error) {
+					return "", errors.New("starting somehow failed")
 				}
 
 				Expect(func() { helper.StartMysqldInStandAlone() }).Should(Panic())
@@ -129,17 +129,17 @@ var _ = Describe("MariaDBHelper", func() {
 	Describe("StopMysqld", func() {
 		It("calls the mysql daemon with the stop command", func() {
 			statusCommandCallCount := 0
-			fakeOs.RunCommandStub = func(command string, args ...string) error {
+			fakeOs.RunCommandStub = func(command string, args ...string) (string, error) {
 				if args[1] == mariadb_helper.StatusCommand {
 					if statusCommandCallCount >= 3 {
-						return errors.New("error because no process")
+						return "", errors.New("error because no process")
 					}
 
 					statusCommandCallCount++
-					return nil
+					return "", nil
 				}
 
-				return nil
+				return "", nil
 			}
 
 			helper.StopMysqld()
@@ -155,8 +155,8 @@ var _ = Describe("MariaDBHelper", func() {
 		Context("when an error occurs", func() {
 
 			It("panics with the error", func() {
-				fakeOs.RunCommandStub = func(command string, args ...string) error {
-					return errors.New("stopping somehow failed")
+				fakeOs.RunCommandStub = func(command string, args ...string) (string, error) {
+					return "", errors.New("stopping somehow failed")
 				}
 
 				Expect(func() { helper.StopMysqld() }).Should(Panic())
@@ -166,7 +166,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("IsProcessRunning", func() {
 		It("returns true if `mysql.server status` exits zero", func() {
-			fakeOs.RunCommandReturns(nil)
+			fakeOs.RunCommandReturns("", nil)
 
 			isRunning := helper.IsProcessRunning()
 			Expect(isRunning).To(BeTrue())
@@ -178,7 +178,7 @@ var _ = Describe("MariaDBHelper", func() {
 		})
 
 		It("returns false if `mysql.server status` exits non-zero", func() {
-			fakeOs.RunCommandReturns(errors.New("error checking status"))
+			fakeOs.RunCommandReturns("", errors.New("error checking status"))
 
 			isRunning := helper.IsProcessRunning()
 			Expect(isRunning).To(BeFalse())
@@ -193,9 +193,9 @@ var _ = Describe("MariaDBHelper", func() {
 	Describe("Upgrade", func() {
 		It("calls the mysql upgrade script", func() {
 			helper.Upgrade()
-			Expect(fakeOs.RunCommandWithOutputCallCount()).To(Equal(1))
+			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 
-			executable, args := fakeOs.RunCommandWithOutputArgsForCall(0)
+			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal(dbConfig.UpgradePath))
 			Expect(args).To(Equal([]string{
 				fmt.Sprintf("-u%s", dbConfig.User),
@@ -204,7 +204,7 @@ var _ = Describe("MariaDBHelper", func() {
 		})
 
 		It("returns the output and error", func() {
-			fakeOs.RunCommandWithOutputReturns("some output", errors.New("some error"))
+			fakeOs.RunCommandReturns("some output", errors.New("some error"))
 
 			output, err := helper.Upgrade()
 			Expect(output).To(Equal("some output"))

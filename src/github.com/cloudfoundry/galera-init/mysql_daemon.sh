@@ -7,7 +7,7 @@ mode=$1
 case "$mode" in
   'stop')
       echo "Stopping the cluster"
-      /var/vcap/packages/mariadb/support-files/mysql.server stop &
+      /var/vcap/packages/mariadb/support-files/mysql.server stop > /dev/null 2>&1  &
       ;;
 
   'bootstrap')

@@ -9,8 +9,7 @@ import (
 
 //go:generate counterfeiter . OsHelper
 type OsHelper interface {
-	RunCommand(executable string, args ...string) error
-	RunCommandWithOutput(executable string, args ...string) (string, error)
+	RunCommand(executable string, args ...string) (string, error)
 	StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error)
 	WaitForCommand(cmd *exec.Cmd) chan error
 	FileExists(filename string) bool
@@ -26,20 +25,13 @@ func NewImpl() *OsHelperImpl {
 }
 
 // Runs command with stdout and stderr pipes connected to process
-func (h OsHelperImpl) RunCommandWithOutput(executable string, args ...string) (string, error) {
+func (h OsHelperImpl) RunCommand(executable string, args ...string) (string, error) {
 	cmd := exec.Command(executable, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(out), err
 	}
 	return string(out), nil
-
-}
-
-// Runs command with stdout and stderr pipes connected to process
-func (h OsHelperImpl) RunCommand(executable string, args ...string) error {
-	cmd := exec.Command(executable, args...)
-	return cmd.Run()
 }
 
 func (h OsHelperImpl) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
