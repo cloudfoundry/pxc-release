@@ -29,9 +29,9 @@ type DBHelper struct {
 	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
 	User               string              `yaml:"User" validate:"nonzero"`
 	Password           string              `yaml:"Password"`
-	Port               int                 `yaml:"Port"`
 	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
 	PostStartSQLFiles  []string            `yaml:"PostStartSQLFiles"`
+	Socket             string              `yaml:"Socket"`
 }
 
 type StartManager struct {
@@ -68,7 +68,6 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig.AddDefaults(Config{
 		Db: DBHelper{
 			User: "root",
-			Port: 3306,
 		},
 		Manager: StartManager{
 			GrastateFileLocation: "/var/vcap/store/mysql/grastate.dat",

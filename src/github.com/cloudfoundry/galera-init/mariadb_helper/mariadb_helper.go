@@ -66,8 +66,8 @@ var OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
 	c := mysql.Config{
 		User:   config.User,
 		Passwd: config.Password,
-		Net:    "tcp",
-		Addr:   fmt.Sprintf("localhost:%d", config.Port),
+		Net:    "unix",
+		Addr:   config.Socket,
 	}
 	db, err := sql.Open("mysql", c.FormatDSN())
 	if err != nil {

@@ -19,7 +19,7 @@ case "$mode" in
 
   'stand-alone')
       echo "Starting the node in stand-alone mode"
-      /var/vcap/packages/mariadb/bin/mysqld_safe --wsrep-on=OFF --wsrep-desync=ON --wsrep-OSU-method=RSU --wsrep-provider='none' &
+      /var/vcap/packages/mariadb/bin/mysqld_safe --wsrep-on=OFF --wsrep-desync=ON --wsrep-OSU-method=RSU --wsrep-provider='none' --skip-networking &
       ;;
 
   'status')
