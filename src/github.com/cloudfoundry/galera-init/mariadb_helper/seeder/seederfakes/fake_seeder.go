@@ -38,6 +38,15 @@ type FakeSeeder struct {
 	createUserReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UpdateUserStub        func() error
+	updateUserMutex       sync.RWMutex
+	updateUserArgsForCall []struct{}
+	updateUserReturns     struct {
+		result1 error
+	}
+	updateUserReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GrantUserPrivilegesStub        func() error
 	grantUserPrivilegesMutex       sync.RWMutex
 	grantUserPrivilegesArgsForCall []struct{}
@@ -174,6 +183,46 @@ func (fake *FakeSeeder) CreateUserReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeSeeder) UpdateUser() error {
+	fake.updateUserMutex.Lock()
+	ret, specificReturn := fake.updateUserReturnsOnCall[len(fake.updateUserArgsForCall)]
+	fake.updateUserArgsForCall = append(fake.updateUserArgsForCall, struct{}{})
+	fake.recordInvocation("UpdateUser", []interface{}{})
+	fake.updateUserMutex.Unlock()
+	if fake.UpdateUserStub != nil {
+		return fake.UpdateUserStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.updateUserReturns.result1
+}
+
+func (fake *FakeSeeder) UpdateUserCallCount() int {
+	fake.updateUserMutex.RLock()
+	defer fake.updateUserMutex.RUnlock()
+	return len(fake.updateUserArgsForCall)
+}
+
+func (fake *FakeSeeder) UpdateUserReturns(result1 error) {
+	fake.UpdateUserStub = nil
+	fake.updateUserReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSeeder) UpdateUserReturnsOnCall(i int, result1 error) {
+	fake.UpdateUserStub = nil
+	if fake.updateUserReturnsOnCall == nil {
+		fake.updateUserReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateUserReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeSeeder) GrantUserPrivileges() error {
 	fake.grantUserPrivilegesMutex.Lock()
 	ret, specificReturn := fake.grantUserPrivilegesReturnsOnCall[len(fake.grantUserPrivilegesArgsForCall)]
@@ -223,6 +272,8 @@ func (fake *FakeSeeder) Invocations() map[string][][]interface{} {
 	defer fake.isExistingUserMutex.RUnlock()
 	fake.createUserMutex.RLock()
 	defer fake.createUserMutex.RUnlock()
+	fake.updateUserMutex.RLock()
+	defer fake.updateUserMutex.RUnlock()
 	fake.grantUserPrivilegesMutex.RLock()
 	defer fake.grantUserPrivilegesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

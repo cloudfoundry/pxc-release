@@ -35,7 +35,7 @@ var _ = Describe("MariaDBHelper", func() {
 		fakeSeeder *seederfakes.FakeSeeder
 		testLogger lagertest.TestLogger
 		logFile    string
-		dbConfig   config.DBHelper
+		dbConfig   *config.DBHelper
 		fakeDB     *sql.DB
 		mock       sqlmock.Sqlmock
 	)
@@ -48,7 +48,7 @@ var _ = Describe("MariaDBHelper", func() {
 
 		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
-		mariadb_helper.OpenDBConnection = func(config.DBHelper) (*sql.DB, error) {
+		mariadb_helper.OpenDBConnection = func(*config.DBHelper) (*sql.DB, error) {
 			return fakeDB, nil
 		}
 		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
@@ -70,7 +70,7 @@ var _ = Describe("MariaDBHelper", func() {
 		ioutil.WriteFile(sqlFile1.Name(), []byte(fakeSupplementalQuery1), 755)
 		ioutil.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)
 
-		dbConfig = config.DBHelper{
+		dbConfig = &config.DBHelper{
 			DaemonPath:  "/mysqld",
 			UpgradePath: "/mysql_upgrade",
 			User:        "user",
@@ -296,12 +296,13 @@ var _ = Describe("MariaDBHelper", func() {
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 				})
 
-				It("creates the specified databases without creating users", func() {
+				It("creates the specified databases if they don't exist and updates the users", func() {
 					helper.Seed()
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
 					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
 					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
+					Expect(fakeSeeder.UpdateUserCallCount()).To(Equal(2))
 					Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(2))
 				})
 			})
@@ -315,7 +316,7 @@ var _ = Describe("MariaDBHelper", func() {
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 				})
 
-				It("creates the specified databases and creates users", func() {
+				It("creates the specified databases if they don't exist and creates users", func() {
 					helper.Seed()
 
 					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
@@ -340,6 +341,10 @@ var _ = Describe("MariaDBHelper", func() {
 					Expect(err).To(HaveOccurred())
 
 					fakeSeeder.GrantUserPrivilegesReturns(errors.New("Error"))
+					err = helper.Seed()
+					Expect(err).To(HaveOccurred())
+
+					fakeSeeder.UpdateUserReturns(errors.New("Error"))
 					err = helper.Seed()
 					Expect(err).To(HaveOccurred())
 				})

@@ -24,7 +24,7 @@ var _ = Describe("MariaDB Helper", func() {
 			fakeOs     *os_helperfakes.FakeOsHelper
 			testLogger lagertest.TestLogger
 			logFile    string
-			dbConfig   config.DBHelper
+			dbConfig   *config.DBHelper
 			db         *sql.DB
 		)
 
@@ -48,23 +48,26 @@ var _ = Describe("MariaDB Helper", func() {
 			// MySQL mandates usernames are <= 16 chars
 			user0 := getUUIDWithPrefix("MARIADB")[:16]
 			user1 := getUUIDWithPrefix("MARIADB")[:16]
+			databaseA := getUUIDWithPrefix("MARIADB_CTRL_DB")
+			databaseB := getUUIDWithPrefix("MARIADB_CTRL_DB")
 
-			dbConfig = config.DBHelper{
+			dbConfig = &config.DBHelper{
 				User:     testConfig.User,
 				Password: testConfig.Password,
+				// Same user for multiple databases, and same database for multiple users
 				PreseededDatabases: []config.PreseededDatabase{
 					config.PreseededDatabase{
-						DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
+						DBName:   databaseA,
 						User:     user0,
 						Password: "password0",
 					},
 					config.PreseededDatabase{
-						DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
+						DBName:   databaseB,
 						User:     user0,
 						Password: "password0",
 					},
 					config.PreseededDatabase{
-						DBName:   getUUIDWithPrefix("MARIADB_CTRL_DB"),
+						DBName:   databaseB,
 						User:     user1,
 						Password: "password1",
 					},
@@ -85,7 +88,7 @@ var _ = Describe("MariaDB Helper", func() {
 			)
 
 			//override db connection to use test DB
-			mariadb_helper.OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
+			mariadb_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 				return openRootDBConnection(testConfig)
 			}
 
@@ -98,85 +101,101 @@ var _ = Describe("MariaDB Helper", func() {
 		})
 
 		AfterEach(func() {
-
 			defer db.Close()
 
 			for _, preseededDB := range dbConfig.PreseededDatabases {
 				_, err := db.Exec(
-					fmt.Sprintf("DROP DATABASE IF EXISTS %s", preseededDB.DBName))
-				testLogger.Error("Error cleaning up test DB's", err)
+					fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", preseededDB.DBName))
+				Expect(err).NotTo(HaveOccurred())
 
 				_, err = db.Exec(
-					fmt.Sprintf("DROP USER %s", preseededDB.User))
-				testLogger.Error("Error cleaning up test users", err)
+					fmt.Sprintf("DROP USER IF EXISTS '%s'", preseededDB.User))
+				Expect(err).NotTo(HaveOccurred())
 			}
 		})
 
-		const mysqlAccessDenied uint16 = 1044
-		var ensureSeedSucceeds = func() {
-			err := helper.Seed()
-			Expect(err).NotTo(HaveOccurred())
-
-			for _, preseededDB := range dbConfig.PreseededDatabases {
-				//check that DB exists
-				dbRows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", preseededDB.DBName))
+		Context("Seeding databases and users", func() {
+			const mysqlAccessDenied uint16 = 1044
+			var ensureSeedSucceeds = func() {
+				err := helper.Seed()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(dbRows.Err()).NotTo(HaveOccurred())
-				Expect(dbRows.Next()).To(BeTrue(), fmt.Sprintf("Expected DB to exist: %s", preseededDB.DBName))
 
-				//check that user can login to DB
-				userDb, err := openDBConnection(TestDBConfig{
-					Host:     testConfig.Host,
-					Port:     testConfig.Port,
-					User:     preseededDB.User,
-					Password: preseededDB.Password,
-					DBName:   preseededDB.DBName,
+				for _, preseededDB := range dbConfig.PreseededDatabases {
+					//check that DB exists
+					dbRows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", preseededDB.DBName))
+					Expect(err).NotTo(HaveOccurred())
+					Expect(dbRows.Err()).NotTo(HaveOccurred())
+					Expect(dbRows.Next()).To(BeTrue(), fmt.Sprintf("Expected DB to exist: %s", preseededDB.DBName))
+
+					//check that user can login to DB
+					userDb, err := openDBConnection(TestDBConfig{
+						Host:     testConfig.Host,
+						Port:     testConfig.Port,
+						User:     preseededDB.User,
+						Password: preseededDB.Password,
+						DBName:   preseededDB.DBName,
+					})
+					Expect(err).NotTo(HaveOccurred())
+					defer userDb.Close()
+
+					//check that user has CREATE permission
+					_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
+					Expect(err).NotTo(HaveOccurred())
+
+					//check that user has INSERT permission
+					_, err = userDb.Exec("INSERT INTO testTable (ID) VALUES (1)")
+
+					//check that user does not have LOCK TABLES permission
+					_, err = userDb.Exec("LOCK TABLES testTable READ")
+					Expect(err).To(HaveOccurred())
+					e, found := err.(*mysql.MySQLError)
+					Expect(found).To(BeTrue())
+					Expect(e.Number).To(Equal(mysqlAccessDenied))
+
+					//check that user has DROP permission
+					_, err = userDb.Exec("DROP TABLE testTable")
+					Expect(err).NotTo(HaveOccurred())
+				}
+			}
+
+			It("seeds databases and users the first time", func() {
+				ensureSeedSucceeds()
+			})
+
+			It("updates users if they are re-seeded with different passwords during a subsequent deploy", func() {
+				ensureSeedSucceeds()
+				dbConfig.PreseededDatabases[0].Password = "reseeded-password0"
+				dbConfig.PreseededDatabases[1].Password = "reseeded-password0"
+				dbConfig.PreseededDatabases[2].Password = "reseeded-password1"
+				ensureSeedSucceeds()
+			})
+
+			Context("when database name contains a hyphen", func() {
+				BeforeEach(func() {
+					dbNameWithHyphen := getUUIDWithPrefix("MARIADB_CTRL_DB")
+					dbNameWithHyphen = strings.Replace(dbNameWithHyphen, "_", "-", -1)
+
+					dbConfig.PreseededDatabases[0].DBName = dbNameWithHyphen
 				})
-				Expect(err).NotTo(HaveOccurred())
-				defer userDb.Close()
 
-				//check that user has CREATE permission
-				_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
-				Expect(err).NotTo(HaveOccurred())
-
-				//check that user has INSERT permission
-				_, err = userDb.Exec("INSERT INTO testTable (ID) VALUES (1)")
-
-				//check that user does not have LOCK TABLES permission
-				_, err = userDb.Exec("LOCK TABLES testTable READ")
-				Expect(err).To(HaveOccurred())
-				e, found := err.(*mysql.MySQLError)
-				Expect(found).To(BeTrue())
-				Expect(e.Number).To(Equal(mysqlAccessDenied))
-			}
-		}
-
-		It("seeds databases and users", ensureSeedSucceeds)
-
-		Context("when database name contains a hyphen", func() {
-
-			BeforeEach(func() {
-				dbNameWithHyphen := getUUIDWithPrefix("MARIADB_CTRL_DB")
-				dbNameWithHyphen = strings.Replace(dbNameWithHyphen, "_", "-", -1)
-
-				dbConfig.PreseededDatabases[0].DBName = dbNameWithHyphen
+				It("seeds databases and users", func() {
+					ensureSeedSucceeds()
+				})
 			})
 
-			It("seeds databases and users", ensureSeedSucceeds)
-		})
+			Context("when user name contains a hyphen", func() {
+				BeforeEach(func() {
+					userWithHyphen := getUUIDWithPrefix("MARIADB")[:16]
+					userWithHyphen = strings.Replace(userWithHyphen, "_", "-", -1)
 
-		Context("when user name contains a hyphen", func() {
+					dbConfig.PreseededDatabases[0].User = userWithHyphen
+				})
 
-			BeforeEach(func() {
-				userWithHyphen := getUUIDWithPrefix("MARIADB")[:16]
-				userWithHyphen = strings.Replace(userWithHyphen, "_", "-", -1)
-
-				dbConfig.PreseededDatabases[0].User = userWithHyphen
+				It("seeds databases and users", func() {
+					ensureSeedSucceeds()
+				})
 			})
-
-			It("seeds databases and users", ensureSeedSucceeds)
 		})
-
 	})
 
 	Describe("TestDatabaseCleanup", func() {
@@ -185,7 +204,7 @@ var _ = Describe("MariaDB Helper", func() {
 			fakeOs     *os_helperfakes.FakeOsHelper
 			testLogger lagertest.TestLogger
 			logFile    string
-			dbConfig   config.DBHelper
+			dbConfig   *config.DBHelper
 			db         *sql.DB
 		)
 
@@ -237,7 +256,7 @@ var _ = Describe("MariaDB Helper", func() {
 			)
 
 			//override db connection to use test DB
-			mariadb_helper.OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
+			mariadb_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 				return openRootDBConnection(testConfig)
 			}
 

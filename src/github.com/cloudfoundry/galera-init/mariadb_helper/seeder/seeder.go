@@ -16,6 +16,7 @@ type Seeder interface {
 	CreateDBIfNeeded() error
 	IsExistingUser() (bool, error)
 	CreateUser() error
+	UpdateUser() error
 	GrantUserPrivileges() error
 }
 
@@ -63,6 +64,21 @@ func (s seeder) CreateUser() error {
 		s.config.Password))
 	if err != nil {
 		s.logger.Error("Error creating user", err, lager.Data{
+			"user": s.config.User,
+		})
+		return err
+	}
+	return nil
+}
+
+func (s seeder) UpdateUser() error {
+	_, err := s.db.Exec(fmt.Sprintf(
+		"SET PASSWORD FOR `%s` = PASSWORD('%s')",
+		s.config.User,
+		s.config.Password,
+	))
+	if err != nil {
+		s.logger.Error("Error updating user", err, lager.Data{
 			"user": s.config.User,
 		})
 		return err

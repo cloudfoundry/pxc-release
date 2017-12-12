@@ -74,7 +74,7 @@ func managerSetup(cfg *config.Config) start_manager.StartManager {
 
 	DBHelper := mariadb_helper.NewMariaDBHelper(
 		OsHelper,
-		cfg.Db,
+		&cfg.Db,
 		cfg.LogFileLocation,
 		cfg.Logger,
 	)

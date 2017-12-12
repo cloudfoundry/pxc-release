@@ -41,12 +41,12 @@ type MariaDBHelper struct {
 	dbSeeder        s.Seeder
 	logFileLocation string
 	logger          lager.Logger
-	config          config.DBHelper
+	config          *config.DBHelper
 }
 
 func NewMariaDBHelper(
 	osHelper os_helper.OsHelper,
-	config config.DBHelper,
+	config *config.DBHelper,
 	logFileLocation string,
 	logger lager.Logger) *MariaDBHelper {
 	return &MariaDBHelper{
@@ -62,7 +62,7 @@ var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager
 }
 
 // Overridable methods to allow mocking DB connections in tests
-var OpenDBConnection = func(config config.DBHelper) (*sql.DB, error) {
+var OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 	c := mysql.Config{
 		User:   config.User,
 		Passwd: config.Password,
@@ -198,7 +198,6 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 }
 
 func (m MariaDBHelper) Seed() error {
-
 	if m.config.PreseededDatabases == nil || len(m.config.PreseededDatabases) == 0 {
 		m.logger.Info("No preseeded databases specified, skipping seeding.")
 		return nil
@@ -227,6 +226,10 @@ func (m MariaDBHelper) Seed() error {
 
 		if userAlreadyExists == false {
 			if err := seeder.CreateUser(); err != nil {
+				return err
+			}
+		} else {
+			if err := seeder.UpdateUser(); err != nil {
 				return err
 			}
 		}

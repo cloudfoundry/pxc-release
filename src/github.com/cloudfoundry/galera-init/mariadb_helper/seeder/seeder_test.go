@@ -161,6 +161,38 @@ var _ = Describe("Seeder", func() {
 		})
 	})
 
+	Describe("UpdateUser", func() {
+		var updateUserExec string
+
+		BeforeEach(func() {
+			updateUserExec = fmt.Sprintf(
+				"SET PASSWORD FOR `%s` = PASSWORD\\('%s'\\)",
+				dbConfig.User,
+				dbConfig.Password,
+			)
+		})
+
+		It("updates the user with the new password", func() {
+			mock.ExpectExec(updateUserExec).
+				WithArgs().
+				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
+
+			seeder.UpdateUser()
+		})
+
+		Context("when updating the user returns an error", func() {
+			It("bubbles the error up", func() {
+				mock.ExpectExec(updateUserExec).
+					WithArgs().
+					WillReturnError(fmt.Errorf("some error"))
+
+				err := seeder.UpdateUser()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("some error"))
+			})
+		})
+	})
+
 	Describe("GrantUserPrivileges", func() {
 		var (
 			grantAllExec         string
