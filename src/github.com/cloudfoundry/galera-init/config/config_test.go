@@ -120,7 +120,6 @@ var _ = Describe("Config", func() {
 		})
 
 		Describe("DBHelper", func() {
-			It("returns an error if Db.DaemonPath is blank", isRequiredField("Db.DaemonPath"))
 			It("returns an error if Db.UpgradePath is blank", isRequiredField("Db.UpgradePath"))
 			It("returns an error if Db.User is blank", isRequiredField("Db.User"))
 

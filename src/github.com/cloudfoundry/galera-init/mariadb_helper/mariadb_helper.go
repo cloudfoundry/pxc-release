@@ -15,11 +15,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-const (
-	StopCommand   = "stop"
-	StatusCommand = "status"
-)
-
 //go:generate counterfeiter . DBHelper
 
 type DBHelper interface {
@@ -79,12 +74,24 @@ var CloseDBConnection = func(db *sql.DB) error {
 }
 
 func (m MariaDBHelper) IsProcessRunning() bool {
-	err := m.runMysqlDaemon(StatusCommand)
+	_, err := m.osHelper.RunCommand(
+		"mysqladmin",
+		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
+		"status")
 	return err == nil
 }
 
 func (m MariaDBHelper) StartMysqldInStandAlone() {
-	err := m.runMysqlDaemon("stand-alone")
+	_, err := m.osHelper.RunCommand(
+		"mysqld",
+		"--wsrep-on=OFF",
+		"--wsrep-desync=ON",
+		"--wsrep-OSU-method=RSU",
+		"--wsrep-provider='none'",
+		"--skip-networking",
+		"--daemonize",
+	)
+
 	if err != nil {
 		m.logger.Fatal("Error starting mysqld in stand-alone", err)
 	}
@@ -114,37 +121,19 @@ func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 
 func (m MariaDBHelper) StopMysqld() {
 	m.logger.Info("Stopping node")
-	err := m.runMysqlDaemon(StopCommand)
+	_, err := m.osHelper.RunCommand(
+		"mysqladmin",
+		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
+		"shutdown")
 	if err != nil {
 		m.logger.Fatal("Error stopping mysqld", err)
 	}
-
-	if m.IsProcessRunning() {
-		m.logger.Fatal("mysqld was not stopped successfully", nil)
-	}
-}
-
-func (m MariaDBHelper) runMysqlDaemon(mode string) error {
-	_, runCommandErr := m.osHelper.RunCommand(
-		"bash",
-		m.config.DaemonPath,
-		mode)
-
-	return runCommandErr
-}
-
-func (m MariaDBHelper) startMysqlDaemon(mode string) (*exec.Cmd, error) {
-	return m.osHelper.StartCommand(
-		m.logFileLocation,
-		"bash",
-		m.config.DaemonPath,
-		mode)
 }
 
 func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
-		"/var/vcap/packages/pxc/bin/mysqld",
+		"mysqld_safe", // FIXME: This shouldn't use mysqld_safe when talking to percona
 		mysqlArgs...)
 }
 

@@ -25,7 +25,6 @@ type Config struct {
 }
 
 type DBHelper struct {
-	DaemonPath         string              `yaml:"DaemonPath" validate:"nonzero"`
 	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
 	User               string              `yaml:"User" validate:"nonzero"`
 	Password           string              `yaml:"Password"`

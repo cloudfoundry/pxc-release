@@ -14,11 +14,6 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
 )
 
-const (
-	BootstrapCommand = "bootstrap"
-	JoinCommand      = "start"
-)
-
 //go:generate counterfeiter . StartManager
 
 type StartManager interface {

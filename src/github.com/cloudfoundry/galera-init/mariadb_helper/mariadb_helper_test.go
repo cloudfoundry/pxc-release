@@ -105,14 +105,21 @@ var _ = Describe("MariaDBHelper", func() {
 	})
 
 	Describe("StartMysqldInStandAlone", func() {
-
 		It("calls the mysql daemon with the command option", func() {
+			options := []string{
+				"--wsrep-on=OFF",
+				"--wsrep-desync=ON",
+				"--wsrep-OSU-method=RSU",
+				"--wsrep-provider='none'",
+				"--skip-networking",
+				"--daemonize",
+			}
 			helper.StartMysqldInStandAlone()
 
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{dbConfig.DaemonPath, "stand-alone"}))
+			Expect(executable).To(Equal("mysqld"))
+			Expect(args).To(Equal(options))
 		})
 
 		Context("when an error occurs while shelling out", func() {
@@ -128,28 +135,13 @@ var _ = Describe("MariaDBHelper", func() {
 
 	Describe("StopMysqld", func() {
 		It("calls the mysql daemon with the stop command", func() {
-			statusCommandCallCount := 0
-			fakeOs.RunCommandStub = func(command string, args ...string) (string, error) {
-				if args[1] == mariadb_helper.StatusCommand {
-					if statusCommandCallCount >= 3 {
-						return "", errors.New("error because no process")
-					}
-
-					statusCommandCallCount++
-					return "", nil
-				}
-
-				return "", nil
-			}
+			fakeOs.RunCommandReturns("", nil)
 
 			helper.StopMysqld()
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StopCommand}))
-
-			Expect(fakeOs.RunCommandCallCount()).To(Equal(5))
-			Expect(fakeOs.SleepCallCount()).To(Equal(3))
+			Expect(executable).To(Equal("mysqladmin"))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf", "shutdown"}))
 		})
 
 		Context("when an error occurs", func() {
@@ -173,8 +165,8 @@ var _ = Describe("MariaDBHelper", func() {
 
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StatusCommand}))
+			Expect(executable).To(Equal("mysqladmin"))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf", "status"}))
 		})
 
 		It("returns false if `mysql.server status` exits non-zero", func() {
@@ -185,8 +177,8 @@ var _ = Describe("MariaDBHelper", func() {
 
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal("bash"))
-			Expect(args).To(Equal([]string{dbConfig.DaemonPath, mariadb_helper.StatusCommand}))
+			Expect(executable).To(Equal("mysqladmin"))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf", "status"}))
 		})
 	})
 
