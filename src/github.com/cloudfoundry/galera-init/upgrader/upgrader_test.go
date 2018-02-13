@@ -172,7 +172,7 @@ var _ = Describe("Upgrader", func() {
 					case lastUpgradedVersionFile:
 						return "same version", nil
 					case packageVersionFile:
-						return "same version", nil
+						return "same version\n", nil
 					}
 					return "", errors.New("unhandled case!")
 				}

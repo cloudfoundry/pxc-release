@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry/mariadb_ctrl/config"
 	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"strings"
 )
 
 //go:generate counterfeiter . Upgrader
@@ -120,7 +121,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 		return false, errors.New("MariaDB package is invalid because it is missing the version file.")
 	}
 
-	existing_version, err := u.osHelper.ReadFile(u.config.LastUpgradedVersionFile)
+	existingVersion, err := u.osHelper.ReadFile(u.config.LastUpgradedVersionFile)
 	if err != nil {
 		u.logger.Info(
 			"Cannot determine whether upgrade is required.",
@@ -132,7 +133,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 		return false, errors.New("Could not read last upgraded version file in the data dir.")
 	}
 
-	package_version, err := u.osHelper.ReadFile(u.config.PackageVersionFile)
+	packageVersion, err := u.osHelper.ReadFile(u.config.PackageVersionFile)
 	if err != nil {
 		u.logger.Info(
 			"Cannot determine whether upgrade is required.",
@@ -144,7 +145,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 		return false, errors.New("MariaDB package is invalid because the version file is not readable.")
 	}
 
-	if existing_version != package_version {
+	if strings.TrimSpace(existingVersion) != strings.TrimSpace(packageVersion) {
 		u.logger.Info("Need to upgrade to latest version.")
 		return true, nil
 	}

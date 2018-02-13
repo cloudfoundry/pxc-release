@@ -87,7 +87,7 @@ func (m MariaDBHelper) StartMysqldInStandAlone() {
 		"--wsrep-on=OFF",
 		"--wsrep-desync=ON",
 		"--wsrep-OSU-method=RSU",
-		"--wsrep-provider='none'",
+		"--wsrep-provider=none",
 		"--skip-networking",
 		"--daemonize",
 	)
