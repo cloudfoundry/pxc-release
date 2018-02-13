@@ -26,6 +26,9 @@ ln -sf /var/vcap/jobs/mysql/config/mysql_audit_logs.logrotate /etc/logrotate.d/m
 # add xtrabackup to path
 export PATH=$PATH:/var/vcap/packages/xtrabackup/bin
 
+# add pxc binaries to path
+export PATH=$PATH:/var/vcap/packages/pxc/bin
+
 # add perl libraries to perl env
 export PERL5LIB=$PERL5LIB:/var/vcap/packages/xtrabackup/lib/perl/5.18.2
 
@@ -84,7 +87,7 @@ case $1 in
 
     echo "start script: starting mariadb_ctrl..."
     su - vcap -c -o pipefail \
-    "<%= disable_sst_string %> PATH=$PATH PERL5LIB=$PERL5LIB $PXC_CTRL_PACKAGE/bin/mariadb_ctrl \
+    "PATH=$PATH PERL5LIB=$PERL5LIB $PXC_CTRL_PACKAGE/bin/mariadb_ctrl \
              -configPath=$CONFIG_FILE \
              >> $LOG_FILE 2>&1 &"
 

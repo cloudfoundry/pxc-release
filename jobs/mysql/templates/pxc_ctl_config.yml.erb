@@ -28,7 +28,6 @@ LogFileLocation: /var/vcap/sys/log/mysql/pxc_ctrl.combined.log
 PidFile: /var/vcap/sys/run/pxc_ctl/pxc_ctl.pid
 ChildPidFile: /var/vcap/sys/run/mysql/mysql.pid
 Db:
-  DaemonPath: /var/vcap/packages/mariadb_ctrl/bin/mysql_daemon.sh
   UpgradePath: /var/vcap/packages/pxc/bin/mysql_upgrade
   User: <%= p('cf_mysql.mysql.admin_username')%>
   Password: <%= p('cf_mysql.mysql.admin_password')%>
