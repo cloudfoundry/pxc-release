@@ -13,7 +13,6 @@ import (
 	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
 	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
 	"github.com/go-sql-driver/mysql"
-	"time"
 )
 
 const (
@@ -87,7 +86,7 @@ func (m MariaDBHelper) IsProcessRunning() bool {
 func (m MariaDBHelper) StartMysqldInStandAlone() {
 	err := m.runMysqlDaemon("stand-alone")
 	if err != nil {
-		m.logger.Fatal("Error staring mysqld in stand-alone", err)
+		m.logger.Fatal("Error starting mysqld in stand-alone", err)
 	}
 }
 
@@ -120,14 +119,8 @@ func (m MariaDBHelper) StopMysqld() {
 		m.logger.Fatal("Error stopping mysqld", err)
 	}
 
-	for {
-		if !m.IsProcessRunning() {
-			m.logger.Info("mysqld has been stopped")
-			return
-		}
-
-		m.logger.Info("mysqld is still running...")
-		m.osHelper.Sleep(1 * time.Second)
+	if m.IsProcessRunning() {
+		m.logger.Fatal("mysqld was not stopped successfully", nil)
 	}
 }
 
@@ -151,7 +144,7 @@ func (m MariaDBHelper) startMysqlDaemon(mode string) (*exec.Cmd, error) {
 func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
-		"/var/vcap/packages/mariadb/bin/mysqld_safe",
+		"/var/vcap/packages/pxc/bin/mysqld",
 		mysqlArgs...)
 }
 
@@ -180,6 +173,10 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 
 	err = db.QueryRow(`SHOW GLOBAL VARIABLES LIKE 'wsrep\_on'`).Scan(&unused, &value)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+			return true
+		}
 		return false
 	}
 
