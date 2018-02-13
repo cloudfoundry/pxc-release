@@ -1,0 +1,15 @@
+[submodule "src/github.com/cloudfoundry/mariadb_ctrl"]
+	path = src/github.com/cloudfoundry/mariadb_ctrl
+	url = git@github.com:cloudfoundry/mariadb_ctrl.git
+[submodule "src/github.com/cloudfoundry-incubator/cf-mysql-acceptance-tests"]
+	path = src/github.com/cloudfoundry-incubator/cf-mysql-acceptance-tests
+	url = https://github.com/cloudfoundry-incubator/cf-mysql-acceptance-tests
+[submodule "src/github.com/cloudfoundry-incubator/switchboard"]
+	path = src/github.com/cloudfoundry-incubator/switchboard
+	url = https://github.com/cloudfoundry-incubator/switchboard
+[submodule "src/github.com/onsi/ginkgo"]
+	path = src/github.com/onsi/ginkgo
+	url = https://github.com/onsi/ginkgo
+[submodule "src/github.com/cloudfoundry-incubator/galera-healthcheck"]
+	path = src/github.com/cloudfoundry-incubator/galera-healthcheck
+	url = https://github.com/cloudfoundry-incubator/galera-healthcheck

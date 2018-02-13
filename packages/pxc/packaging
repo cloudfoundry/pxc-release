@@ -1,0 +1,75 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+PERCONA_SERVER_VERSION=5.7.20-18
+
+## boost (PXC dependency, galera dependency)
+tar -xf boost/boost_1_59_0.tar.gz
+pushd boost_1_59_0
+    ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
+    ./b2 install
+popd
+
+## check (galera dependency)
+tar -xf check/check-*.tar.gz
+pushd check-*/
+    ./configure --prefix=/usr
+    make
+    make install
+popd
+
+## libaio (PXC dependency)
+tar -xf libaio/libaio_*.orig.tar.gz
+make -C libaio-*/ install
+
+## (galera dependency)
+tar -xf scons/scons-*.tar.gz
+pushd scons-*/
+    python setup.py install --prefix=/usr
+popd
+
+## PXC
+tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
+pushd Percona-XtraDB-Cluster-*/
+    cat VERSION | sed -E "s/.*=-?([0-9]+)/\1/g" | paste -sd "..-" - | tr -d '\n' > ${BOSH_INSTALL_TARGET}/VERSION
+    wsrep_iface_version="$(grep WSREP_INTERFACE_VERSION wsrep/wsrep_api.h | cut -d '"' -f2)"
+    wsrep_patch_version="$(grep 'SET(WSREP_PATCH_VERSION'  "cmake/wsrep.cmake" | cut -d '"' -f2)"
+    wsrep_version="${wsrep_iface_version}.${wsrep_patch_version}"
+    cmake . \
+        -DBUILD_CONFIG=mysql_release \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+        -DCOMPILATION_COMMENT="${COMMENT:-custom comment}" \
+        -DMYSQL_DATADIR="/var/vcap/store/mysql/data" \
+        -DMYSQL_SERVER_SUFFIX="-${wsrep_version}" \
+        -DWITH_BOOST=../boost_1_59_0/ \
+        -DWITH_EMBEDDED_SERVER=OFF \
+        -DWITH_INNODB_DISALLOW_WRITES=ON \
+        -DWITH_READLINE=system \
+        -DWITH_ROCKSDB=OFF \
+        -DWITH_SCALABILITY_METRICS=ON \
+        -DWITH_SSL=system \
+        -DWITH_TOKUDB=OFF \
+        -DWITH_UNIT_TESTS=OFF \
+        -DWITH_WSREP=ON \
+        -DWITH_ZLIB=system
+
+    make -j 4
+    make install
+
+    pushd percona-xtradb-cluster-galera
+        HOME=$PWD scons tests=0
+        install --mode=0644 -t "${BOSH_INSTALL_TARGET}/lib/mysql/plugin/" libgalera_smm.so
+        install --mode=0755 -t "${BOSH_INSTALL_TARGET}/bin" garb/garbd
+
+    popd
+popd
+
+## socat (PXC -> SST dependency)
+tar -xf socat/socat-*.tar.gz
+pushd socat-*/
+  ./configure "--prefix=${BOSH_INSTALL_TARGET}"
+  make -j4
+  make install
+popd

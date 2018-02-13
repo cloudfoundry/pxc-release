@@ -1,0 +1,5 @@
+check process mariadb_ctrl
+  with pidfile /var/vcap/sys/run/pxc_ctl/pxc_ctl.pid
+  start program "/var/vcap/jobs/mysql/bin/pxc_ctl start" with timeout <%= p('cf_mysql.mysql.startup_timeout') %> seconds
+  stop program "/var/vcap/jobs/mysql/bin/pxc_ctl stop"
+  group vcap

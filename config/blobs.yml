@@ -1,0 +1,36 @@
+boost/boost_1_59_0.tar.gz:
+  size: 83709983
+  sha: 5123209db194d66d69a9cfa5af8ff473d5941d97
+check/check-0.9.13.tar.gz:
+  size: 752880
+  sha: 09f682d2239b1353818b74d06099a17460450240
+cipher_finder/cipher_finder.jar:
+  size: 22062035
+  sha: 5e19e15e10837827f9d5104b969be9399a66eae2
+cli/cf-cli_6.32.0_linux_x86-64.tgz:
+  size: 6065317
+  sha: ad4dd01db5e6498bd38583d73c75480c700e1b5f
+golang/go1.8.3.linux-amd64.tar.gz:
+  size: 90029041
+  sha: 838c415896ef5ecd395dfabde5e7e6f8ac943c8e
+libaio/libaio_0.3.110.orig.tar.gz:
+  size: 42270
+  sha: f8f6ed15f22e528f6f415939b07854539e3360e4
+libev/libev-4.22.tar.gz:
+  size: 530094
+  sha: b5cc3f6d8d842e23fccc9b27d318ae7fa3d3bf60
+pxc/Percona-XtraDB-Cluster-5.7.20-29.24.tar.gz:
+  size: 77960822
+  sha: e8c55671eb008d7b690bb5ea94ac474598c2ad78
+pxc/pxc-5.7.20-29.24.tar.gz:
+  size: 77960822
+  sha: e8c55671eb008d7b690bb5ea94ac474598c2ad78
+scons/scons-2.3.1.tar.gz:
+  size: 499037
+  sha: 775e715e49fe5fd8e1d29551a296fdc9267509e7
+socat/socat-1.7.3.2.tar.gz:
+  size: 611707
+  sha: 28eca1f8efeadde3f96c1ac89e553c28d736d41d
+xtrabackup/percona-xtrabackup-2.4.8.tar.gz:
+  size: 57965576
+  sha: 5cc6b689b9682923211f9aace7ec6c6d22b69346
