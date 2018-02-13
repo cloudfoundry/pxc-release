@@ -71,7 +71,6 @@ var _ = Describe("MariaDBHelper", func() {
 		ioutil.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)
 
 		dbConfig = &config.DBHelper{
-			DaemonPath:  "/mysqld",
 			UpgradePath: "/mysql_upgrade",
 			User:        "user",
 			Password:    "password",
@@ -110,7 +109,7 @@ var _ = Describe("MariaDBHelper", func() {
 				"--wsrep-on=OFF",
 				"--wsrep-desync=ON",
 				"--wsrep-OSU-method=RSU",
-				"--wsrep-provider='none'",
+				"--wsrep-provider=none",
 				"--skip-networking",
 				"--daemonize",
 			}
