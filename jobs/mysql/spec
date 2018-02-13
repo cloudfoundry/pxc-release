@@ -12,6 +12,8 @@ templates:
 
 packages:
 - pxc
+- galera
+- socat
 - cf-mysql-common
 - xtrabackup
 - mariadb_ctrl

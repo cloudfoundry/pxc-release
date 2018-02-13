@@ -58,7 +58,7 @@ server-id                       = <%= index %>
 
 # GALERA options:
 wsrep_on                        = ON
-wsrep_provider                  = /var/vcap/packages/pxc/lib/mysql/plugin/libgalera_smm.so
+wsrep_provider                  = /var/vcap/packages/galera/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('cf_mysql.mysql.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE"
 wsrep_cluster_address           = gcomm://<%= cluster_ips.join(",") %>
 wsrep_node_address              = <%= node_host %>:<%= p('cf_mysql.mysql.galera_port') %>

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -eu -o pipefail
+
+tar -xf check/check-*.tar.gz
+pushd check-*/
+    ./configure --prefix=/usr
+    make
+    make install
+popd
+
+tar -xf boost/boost_1_59_0.tar.gz
+pushd boost_1_59_0
+    ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
+    ./b2 install
+popd
+
+tar -xf scons/scons-*.tar.gz
+pushd scons-*/
+    python setup.py install --prefix=/usr
+popd
+
+tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
+pushd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera
+    HOME=$PWD scons tests=0
+    install --mode=0644 -D libgalera_smm.so "${BOSH_INSTALL_TARGET}/lib/libgalera_smm.so"
+    install --mode=0755 -D garb/garbd "${BOSH_INSTALL_TARGET}/bin/garbd"
+popd

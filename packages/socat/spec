@@ -1,0 +1,5 @@
+---
+name: socat
+
+files:
+- socat/socat-*.tar.gz
