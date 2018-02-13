@@ -44,15 +44,15 @@ properties:
     description: 'The name of the Org to run acceptance tests against'
     default: ''
 
-  cf_mysql.smoke_tests.db_password:
+  db_password:
     description: 'Password for generated database user'
-  cf_mysql.smoke_tests.password:
+  password:
     description: 'Password for generated user to comply with CF password policy, if exists.'
     default: ''
-  cf_mysql.smoke_tests.standalone_tests_only:
+  standalone_tests_only:
     description: 'Instead of running the full smoke test suite, only run a minimal set of tests that do not require a running CF deployment'
     default: false
-  cf_mysql.smoke_tests.timeout_scale:
+  timeout_scale:
     description: 'scaling multiplier used to determine command timeouts'
     default: 1
 
@@ -66,7 +66,7 @@ properties:
     description: 'Hostname given for dashboard URLs (e.g. p-mysql.example.com)'
     default: ''
 
-  cf_mysql.mysql.port:
+  port:
     description: 'Port used to access MySQL'
     default: 3306
 
@@ -74,11 +74,11 @@ properties:
     description: 'Array of Services the broker provides'
     default: null
 
-  cf_mysql.proxy.api_username:
+  api_username:
     description: 'Proxy API username'
     default: proxy
-  cf_mysql.proxy.api_password:
+  api_password:
     description: 'Proxy API password'
-  cf_mysql.proxy.api_force_https:
+  api_force_https:
     description: 'Expect proxy to force redirect to HTTPS'
     default: true

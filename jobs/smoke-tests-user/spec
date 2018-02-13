@@ -8,5 +8,5 @@ templates:
 packages: []
 
 properties:
-  cf_mysql.smoke_tests.db_password:
+  db_password:
     description: 'Password for generated database user'

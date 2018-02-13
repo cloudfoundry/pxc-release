@@ -50,14 +50,14 @@ rm -f $CONFIG_DIR/my.cnf
 ln -sf $PXC_JOB_DIR/config/my.cnf $CONFIG_DIR/my.cnf
 # /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \ #FIXME
 #    -f /var/vcap/jobs/mysql/config/auto-tune.cnf \
-#    -P <%= p('cf_mysql.mysql.innodb_buffer_pool_size_percent') %>
+#    -P <%= p('innodb_buffer_pool_size_percent') %>
 
 rm -f /etc/profile.d/disable_mysql_cli_history.sh
-<% unless p('cf_mysql.mysql.cli_history') %>
+<% unless p('cli_history') %>
 ln -sf $PXC_JOB_DIR/config/disable_mysql_cli_history.sh /etc/profile.d/disable_mysql_cli_history.sh
 <% end %>
 
-ulimit -n <%= p('cf_mysql.mysql.max_open_files') %>
+ulimit -n <%= p('max_open_files') %>
 
 
 function check_mysql_filesystem() {

@@ -5,7 +5,7 @@ if_p('cf_mysql.broker.services') do |s|
   mysql_service = s.first
 end
 
-if ! p('cf_mysql.smoke_tests.standalone_tests_only')
+if ! p('standalone_tests_only')
   raise "services must be non-empty if standalone_tests_only is true" unless mysql_service
   raise "plans must be non-empty if standalone_tests_only is true" unless mysql_service['plans']
 end
@@ -26,7 +26,7 @@ end
 
 enable_tls_tests = false
 if_link('mysql') do |mysql|
-  mysql.if_p('cf_mysql.mysql.tls.ca_certificate') do
+  mysql.if_p('tls.ca_certificate') do
     enable_tls_tests = true
   end
 end
@@ -38,16 +38,16 @@ config = {
   apps_domain:         apps_domain,
   admin_user:          p('cf.admin_username'),
   admin_password:      p('cf.admin_password'),
-  test_password:       p('cf_mysql.smoke_tests.password'),
+  test_password:       p('password'),
   broker_host:         p('cf_mysql.external_host'),
   enable_tls_tests:    enable_tls_tests,
   service_name:        service_name,
   skip_ssl_validation: p('cf.skip_ssl_validation'),
   proxy: {
     dashboard_urls:      proxy_urls,
-    api_username:        p('cf_mysql.proxy.api_username'),
-    api_password:        p('cf_mysql.proxy.api_password'),
-    api_force_https:     p('cf_mysql.proxy.api_force_https'),
+    api_username:        p('api_username'),
+    api_password:        p('api_password'),
+    api_force_https:     p('api_force_https'),
     skip_ssl_validation: p('cf.skip_ssl_validation'),
   }
 }
@@ -73,7 +73,7 @@ if mysql_service
   end
 end
 
-standalone_tests_only = p('cf_mysql.smoke_tests.standalone_tests_only')
+standalone_tests_only = p('standalone_tests_only')
 config[:standalone_only] = standalone_tests_only
 
 if standalone_tests_only
@@ -90,9 +90,9 @@ if standalone_tests_only
 
   config[:standalone] = {
     host:     mysql_host,
-    port:     p('cf_mysql.mysql.port'),
+    port:     p('port'),
     username: 'smoke-tests',
-    password: p('cf_mysql.smoke_tests.db_password')
+    password: p('db_password')
   }
 end
 

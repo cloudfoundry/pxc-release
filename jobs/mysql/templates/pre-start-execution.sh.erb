@@ -28,6 +28,9 @@ fi
 # add xtrabackup to path
 export PATH=$PATH:/var/vcap/packages/xtrabackup/bin
 
+# add pxc binaries to path
+export PATH=$PATH:/var/vcap/packages/pxc/bin
+
 log "pre-start execution script: starting mariadb_ctrl in prestart mode"
 
 # Setup pidguard and logging

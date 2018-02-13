@@ -32,7 +32,7 @@ export PATH=$PATH:/var/vcap/packages/pxc/bin
 # add perl libraries to perl env
 export PERL5LIB=$PERL5LIB:/var/vcap/packages/xtrabackup/lib/perl/5.18.2
 
-ulimit -n <%= p('cf_mysql.mysql.max_open_files') %>
+ulimit -n <%= p('max_open_files') %>
 
 if [[ ! -d "$RUN_DIR" ]]; then
   mkdir -p $RUN_DIR
@@ -78,7 +78,7 @@ case $1 in
     echo "Checking for existing instance of $PROC_NAME"
     pid_guard $PIDFILE $PROC_NAME
 
-    <% if_p('cf_mysql.mysql.server_audit_events') do |_| %>
+    <% if_p('server_audit_events') do |_| %>
     mkdir -p ${SERVER_AUDIT_LOG_DIR}
     chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
     <% end %>

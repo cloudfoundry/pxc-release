@@ -1,10 +1,10 @@
 <%=
   cluster_ips = link('mysql').instances.map { |instance| instance.address }
-  galera_healthcheck_port = link('mysql').p('cf_mysql.mysql.galera_healthcheck.port')
-  mysql_port = link('mysql').p('cf_mysql.mysql.port')
+  galera_healthcheck_port = link('mysql').p('galera_healthcheck.port')
+  mysql_port = link('mysql').p('port')
 
   proxy_uris = []
-  if_p('cf_mysql.proxy.api_uri') do |api_uri|
+  if_p('api_uri') do |api_uri|
     proxy_uris = link('proxy').instances.map do |instance|
       "#{instance.index}-#{api_uri}"
     end
@@ -23,21 +23,21 @@
   config = {
     API: {
       ProxyURIs: proxy_uris,
-      Port: p('cf_mysql.proxy.api_port'),
-      AggregatorPort: p('cf_mysql.proxy.api_aggregator_port'),
-      ForceHttps: p('cf_mysql.proxy.api_force_https'),
-      Username: p('cf_mysql.proxy.api_username'),
-      Password: p('cf_mysql.proxy.api_password')
+      Port: p('api_port'),
+      AggregatorPort: p('api_aggregator_port'),
+      ForceHttps: p('api_force_https'),
+      Username: p('api_username'),
+      Password: p('api_password')
     },
     Proxy: {
-      Port: p('cf_mysql.proxy.port'),
-      HealthcheckTimeoutMillis: p('cf_mysql.proxy.healthcheck_timeout_millis'),
-      ShutdownDelaySeconds: p('cf_mysql.proxy.shutdown_delay'),
+      Port: p('port'),
+      HealthcheckTimeoutMillis: p('healthcheck_timeout_millis'),
+      ShutdownDelaySeconds: p('shutdown_delay'),
       Backends: backends,
     },
-    HealthPort: p('cf_mysql.proxy.health_port'),
+    HealthPort: p('health_port'),
     Profiling: {
-      Enabled: p('cf_mysql.proxy.profiling_enabled'),
+      Enabled: p('profiling_enabled'),
       Port: 6060
     },
     StaticDir: '/var/vcap/packages/switchboard/static',
@@ -45,9 +45,9 @@
 
   }
 
-  if p('cf_mysql.proxy.consul_enabled')
+  if p('consul_enabled')
     config[:ConsulCluster] = 'http://127.0.0.1:8500'
-    config[:ConsulServiceName] = p('cf_mysql.proxy.consul_service_name')
+    config[:ConsulServiceName] = p('consul_service_name')
   end
 
   JSON.pretty_generate(config)
