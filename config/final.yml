@@ -1,1 +1,7 @@
+---
 name: pxc
+blobstore:
+  provider: s3
+  options:
+    bucket_name: pxc-release-blobs
+
