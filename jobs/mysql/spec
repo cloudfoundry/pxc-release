@@ -9,6 +9,9 @@ templates:
   pxc_ctl_config.yml.erb: config/pxc_ctl_config.yml
   pre-start.sh.erb: bin/pre-start
   pre-start-execution.sh.erb: bin/pre-start-execution
+  galera-healthcheck_ctl.erb: bin/galera-healthcheck_ctl
+  galera_healthcheck_config.yaml.erb: config/galera_healthcheck_config.yaml
+  galera_healthcheck_setup.sql.erb: config/galera_healthcheck_setup.sql
 
 packages:
 - pxc
@@ -17,13 +20,11 @@ packages:
 - cf-mysql-common
 - xtrabackup
 - mariadb_ctrl
+- galera-healthcheck
 
 consumes:
 - name: mysql
   type: mysql
-  optional: true
-- name: arbitrator
-  type: arbitrator
   optional: true
 
 provides:

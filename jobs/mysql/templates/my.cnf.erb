@@ -2,9 +2,6 @@
   base_folder = '/var/vcap/sys/run/mysql'
 
   cluster_ips = link('mysql').instances.map { |instance| instance.address }
-  if_link('arbitrator') do
-    cluster_ips += link('arbitrator').instances.map { |instance| instance.address }
-  end
 
   def discover_external_ip
     networks = spec.networks.marshal_dump
@@ -21,7 +18,7 @@
   end
 
   def excluded_audit_users
-    return ['cluster-health-logger', 'quota-enforcer', 'galera-healthcheck'] + p('server_audit_excluded_users') + csv_excluded_audit_users
+    return ['quota-enforcer', 'galera-healthcheck'] + p('server_audit_excluded_users') + csv_excluded_audit_users
   end
 
   def csv_excluded_audit_users
@@ -57,6 +54,7 @@ nice                            = 0
 server-id                       = <%= index %>
 
 # GALERA options:
+pxc-strict-mode                 = PERMISSIVE
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/galera/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE"

@@ -22,7 +22,7 @@ source /var/vcap/packages/cf-mysql-common/pid_utils.sh
 # add mysql to path
 if [ ! -f /usr/local/bin/mysql ]; then
   log "Adding mysql to path"
-  ln -s /var/vcap/packages/pxc/bin/mysql /usr/local/bin
+  ln -sf /var/vcap/packages/pxc/bin/mysql /usr/local/bin
 fi
 
 # add xtrabackup to path
