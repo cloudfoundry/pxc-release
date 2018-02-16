@@ -1,6 +1,6 @@
 [submodule "src/github.com/cloudfoundry/mariadb_ctrl"]
 	path = src/github.com/cloudfoundry/mariadb_ctrl
-	url = git@github.com:cloudfoundry/mariadb_ctrl.git
+	url = https://github.com/cloudfoundry/mariadb_ctrl
 [submodule "src/github.com/cloudfoundry-incubator/cf-mysql-acceptance-tests"]
 	path = src/github.com/cloudfoundry-incubator/cf-mysql-acceptance-tests
 	url = https://github.com/cloudfoundry-incubator/cf-mysql-acceptance-tests
