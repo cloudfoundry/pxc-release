@@ -1,0 +1,29 @@
+#!/bin/bash
+set -e
+
+function has_upstream() {
+  git rev-parse @{u} > /dev/null 2>&1
+}
+
+echo ""
+echo "===> Uncommitted submodules changes will be clobbered <==="
+echo ""
+
+echo ""
+echo "===> Unversioned changes will be clobbered <==="
+echo ""
+
+set -x # show the commands we are running
+
+has_upstream && git pull
+
+# Update submodule pointers; Clean out any submodule changes
+git submodule sync
+git submodule foreach --recursive 'git submodule sync; git clean -d --force --force'
+
+# Update submodule content, checkout if necessary
+git submodule update --init --recursive --force
+
+set +x # stop showing commands
+
+echo "Update complete"
