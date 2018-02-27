@@ -1,7 +1,7 @@
 <%
   base_folder = '/var/vcap/sys/run/mysql'
 
-  cluster_ips = link('mysql').instances.map { |instance| instance.address }
+  instance_addresses = link('mysql').instances.map { |instance| instance.address }
 
   def discover_external_ip
     networks = spec.networks.marshal_dump
@@ -52,13 +52,16 @@ nice                            = 0
 
 [mysqld]
 server-id                       = <%= index %>
+ssl-ca=/var/vcap/jobs/mysql/certificates/server-ca.pem
+ssl-cert=/var/vcap/jobs/mysql/certificates/server-cert.pem
+ssl-key=/var/vcap/jobs/mysql/certificates/server-key.pem
 
 # GALERA options:
 pxc-strict-mode                 = PERMISSIVE
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/galera/lib/libgalera_smm.so
-wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE"
-wsrep_cluster_address           = gcomm://<%= cluster_ips.join(",") %>
+wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/mysql/certificates/galera-key.pem"
+wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_node_address              = <%= node_host %>:<%= p('galera_port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_cluster_name              = <%= p('cluster_name') %>
@@ -196,12 +199,6 @@ max_connections                 = <%= p('max_connections') %>
 
 # Event Scheduler
 event_scheduler                 = <%= p('event_scheduler') %>
-
-<% if_p('tls.server_certificate', 'tls.server_key') do %>
-# TLS configuration
-ssl_cert                        = /var/vcap/jobs/mysql/certificates/server-cert.pem
-ssl_key                         = /var/vcap/jobs/mysql/certificates/server-key.pem
-<% end %>
 
 [mysqldump]
 quick

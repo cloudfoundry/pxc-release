@@ -12,6 +12,12 @@ templates:
   galera-healthcheck_ctl.erb: bin/galera-healthcheck_ctl
   galera_healthcheck_config.yaml.erb: config/galera_healthcheck_config.yaml
   galera_healthcheck_setup.sql.erb: config/galera_healthcheck_setup.sql
+  galera-ca.pem.erb: certificates/galera-ca.pem
+  galera-cert.pem.erb: certificates/galera-cert.pem
+  galera-key.pem.erb: certificates/galera-key.pem
+  server-ca.pem.erb: certificates/server-ca.pem
+  server-cert.pem.erb: certificates/server-cert.pem
+  server-key.pem.erb: certificates/server-key.pem
 
 packages:
 - pxc
@@ -35,7 +41,6 @@ provides:
   - galera_healthcheck.port
   - galera_healthcheck.endpoint_username
   - galera_healthcheck.endpoint_password
-  - tls.ca_certificate
 - name: internal-mysql-database
   type: internal-database
 
@@ -63,12 +68,18 @@ properties:
   max_connections:
     description: 'Maximum total number of database connections for the node'
     default: 1500
-  tls.ca_certificate:
+  tls.galera.ca:
+    description: 'CA Certificate which signed the galera server certificate'
+  tls.galera.certificate:
+    description: 'Server certificate for galera cluster encryption'
+  tls.galera.private_key:
+    description: 'Private key for galera cluster encryption'
+  tls.server.ca:
     description: 'CA Certificate which signed the server certificate'
-  tls.server_certificate:
-    description: 'Server certificate presented to the client for TLS connection to the database'
-  tls.server_key:
-    description: 'Private key of the server certificate for TLS connection to the database'
+  tls.server.certificate:
+    description: 'Server certificate for mysql server encryption'
+  tls.server.private_key:
+    description: 'Private key for mysql server encryption'
   character_set_server:
     description: 'Default character set. Note that while the MariaDB default is latin1, we default to utf8.'
     default: utf8
