@@ -200,6 +200,12 @@ max_connections                 = <%= p('max_connections') %>
 # Event Scheduler
 event_scheduler                 = <%= p('event_scheduler') %>
 
+[sst]
+encrypt=4
+ssl-ca=/var/vcap/jobs/mysql/certificates/galera-ca.pem
+ssl-cert=/var/vcap/jobs/mysql/certificates/galera-cert.pem
+ssl-key=/var/vcap/jobs/mysql/certificates/galera-key.pem
+
 [mysqldump]
 quick
 quote-names
