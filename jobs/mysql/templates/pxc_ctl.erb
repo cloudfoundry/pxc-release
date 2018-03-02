@@ -7,7 +7,6 @@ set -o pipefail
 export PXC_JOB_DIR=/var/vcap/jobs/mysql
 LOG_DIR=/var/vcap/sys/log/mysql
 LOG_FILE=$LOG_DIR/pxc_ctrl.combined.log
-SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
 JOB_INDEX=<%= index %>
 CONFIG_FILE=$PXC_JOB_DIR/config/pxc_ctl_config.yml
 PXC_CTRL_PACKAGE=/var/vcap/packages/mariadb_ctrl
@@ -20,9 +19,6 @@ source /var/vcap/packages/cf-mysql-common/logging.sh
 
 output_to_logfiles ${LOG_DIR}
 
-# logrotate audit logs
-ln -sf /var/vcap/jobs/mysql/config/mysql_audit_logs.logrotate /etc/logrotate.d/mysql_audit_logs
-
 # add xtrabackup to path
 export PATH=$PATH:/var/vcap/packages/xtrabackup/bin
 
@@ -32,21 +28,12 @@ export PATH=$PATH:/var/vcap/packages/pxc/bin
 # add socat to path
 export PATH=$PATH:/var/vcap/packages/socat/bin
 
-# add perl libraries to perl env
-export PERL5LIB=$PERL5LIB:/var/vcap/packages/xtrabackup/lib/perl/5.18.2
-
 ulimit -n <%= p('max_open_files') %>
 
 if [[ ! -d "$RUN_DIR" ]]; then
   mkdir -p $RUN_DIR
 fi
 chown -R vcap:vcap $RUN_DIR
-
-chown -R vcap:vcap /var/vcap/packages #FIXME
-
-#FIXME this should not be hardocded?
-mkdir -p /var/vcap/sys/run/mysql
-chown -R vcap:vcap /var/vcap/sys/run/mysql
 
 case $1 in
 
@@ -80,13 +67,6 @@ case $1 in
 
     echo "Checking for existing instance of $PROC_NAME"
     pid_guard $PIDFILE $PROC_NAME
-
-    <% if_p('server_audit_events') do |_| %>
-    mkdir -p ${SERVER_AUDIT_LOG_DIR}
-    chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
-    <% end %>
-
-    cd $PXC_CTRL_PACKAGE
 
     echo "start script: starting mariadb_ctrl..."
     su - vcap -c -o pipefail \

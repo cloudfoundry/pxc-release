@@ -5,21 +5,39 @@ set -o pipefail
 
 ## NOTE: This script MUST ALWAYS run as root user.
 
-datadir=/var/vcap/store/mysql
 CONFIG_DIR=/etc/mysql
+datadir=/var/vcap/store/mysql
+HEALTHCHECK_LOG_DIR="/var/vcap/sys/log/galera-healthcheck"
+JOB_INDEX=<%= index %>
 LOG_DIR=/var/vcap/sys/log/mysql
 LOG_FILE=$LOG_DIR/pre-start.stdout.log
-SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
-HEALTHCHECK_LOG_DIR="/var/vcap/sys/log/galera-healthcheck"
-PXC_JOB_DIR=/var/vcap/jobs/mysql
-JOB_INDEX=<%= index %>
-TMP_DIR=/var/vcap/data/mysql/tmp
 PERSISTENT_TMP_DIR=/var/vcap/data/tmp
+PROC_NAME=pxc_ctl
+PXC_JOB_DIR=/var/vcap/jobs/mysql
+RUN_DIR=/var/vcap/sys/run/$PROC_NAME
 SECURE_FILE_PRIV=/var/vcap/data/mysql/files
+SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
+SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
+TMP_DIR=/var/vcap/data/mysql/tmp
 
 source /var/vcap/packages/cf-mysql-common/pid_utils.sh
 
+if [[ ! -d "$RUN_DIR" ]]; then
+  mkdir -p $RUN_DIR
+fi
+chown -R vcap:vcap $RUN_DIR
+
 log "pre-start setup script: set up ENV and logging"
+
+
+<% if_p('server_audit_events') do |_| %>
+mkdir -p ${SERVER_AUDIT_LOG_DIR}
+chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
+
+# logrotate audit logs
+ln -sf /var/vcap/jobs/mysql/config/mysql_audit_logs.logrotate /etc/logrotate.d/mysql_audit_logs
+<% end %>
+
 
 if [[ ! -d "$TMP_DIR" ]]; then
   log "pre-start setup script: directory $TMP_DIR does not exist, creating it now"

@@ -15,7 +15,7 @@ CONFIG_FILE=$PXC_JOB_DIR/config/pxc_ctl_config.yml
 MARIADB_CTRL_PACKAGE=/var/vcap/packages/mariadb_ctrl
 MARIADB_CTRL_PREFIX_CMD="${MARIADB_CTRL_PREFIX_CMD:-bash -c -o pipefail}"
 LOG_DIR=/var/vcap/sys/log/mysql
-LOG_FILE=$LOG_DIR/pre-start.stdout.log
+LOG_FILE=$LOG_DIR/pxc_ctrl.combined.log
 
 source /var/vcap/packages/cf-mysql-common/pid_utils.sh
 
@@ -47,7 +47,7 @@ cd $MARIADB_CTRL_PACKAGE
 #   The rejoin-unsafe errand only works on nodes that have a galera-healthcheck process running.
 set +e
 $MARIADB_CTRL_PREFIX_CMD \
-"PATH=$PATH $MARIADB_CTRL_PACKAGE/bin/mariadb_ctrl-prestart \
+"PATH=$PATH $MARIADB_CTRL_PACKAGE/bin/mariadb_ctrl \
          -configPath=$CONFIG_FILE \
          >> $LOG_FILE 2>&1"
 status=$?
