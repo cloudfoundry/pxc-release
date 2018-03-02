@@ -140,8 +140,7 @@ func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd
 func (m MariaDBHelper) Upgrade() (output string, err error) {
 	return m.osHelper.RunCommand(
 		m.config.UpgradePath,
-		fmt.Sprintf("-u%s", m.config.User),
-		fmt.Sprintf("-p%s", m.config.Password),
+		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
 	)
 }
 
