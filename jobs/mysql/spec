@@ -3,10 +3,10 @@ name: mysql
 
 templates:
   db_init.erb: config/db_init
+  galera-init-config.yml.erb: config/galera-init-config.yml
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
   pxc_ctl.erb: bin/pxc_ctl
-  pxc_ctl_config.yml.erb: config/pxc_ctl_config.yml
   pre-start.sh.erb: bin/pre-start
   pre-start-execution.sh.erb: bin/pre-start-execution
   galera-healthcheck_ctl.erb: bin/galera-healthcheck_ctl

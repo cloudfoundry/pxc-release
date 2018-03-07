@@ -8,7 +8,7 @@ export PXC_JOB_DIR=/var/vcap/jobs/mysql
 LOG_DIR=/var/vcap/sys/log/mysql
 LOG_FILE=$LOG_DIR/galera-init.log
 JOB_INDEX=<%= index %>
-CONFIG_FILE=$PXC_JOB_DIR/config/pxc_ctl_config.yml
+CONFIG_FILE=$PXC_JOB_DIR/config/galera-init-config.yml
 PXC_CTRL_PACKAGE=/var/vcap/packages/galera-init
 PROC_NAME=pxc_ctl
 RUN_DIR=/var/vcap/sys/run/$PROC_NAME
