@@ -1,4 +1,4 @@
-package mariadb_helper_test
+package db_helper_test
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestMariadb_helper(t *testing.T) {
+func TestDB_helper(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "MariaDB Helper Suite")
+	RunSpecs(t, "DB Helper Suite")
 }

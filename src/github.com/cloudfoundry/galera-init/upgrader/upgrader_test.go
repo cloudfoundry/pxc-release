@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
-	. "github.com/cloudfoundry/mariadb_ctrl/upgrader"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
+	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
+	. "github.com/cloudfoundry/galera-init/upgrader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -15,15 +15,15 @@ import (
 var _ = Describe("Upgrader", func() {
 	var upgrader Upgrader
 	var fakeOs *os_helperfakes.FakeOsHelper
-	var fakeDbHelper *mariadb_helperfakes.FakeDBHelper
+	var fakeDbHelper *db_helperfakes.FakeDBHelper
 	var testLogger *lagertest.TestLogger
 
 	lastUpgradedVersionFile := "/var/vcap/store/mysql/mysql_upgrade_info"
-	packageVersionFile := "/var/vcap/package/mariadb/VERSION"
+	packageVersionFile := "/var/vcap/package/db_package/VERSION"
 
 	BeforeEach(func() {
 		fakeOs = new(os_helperfakes.FakeOsHelper)
-		fakeDbHelper = new(mariadb_helperfakes.FakeDBHelper)
+		fakeDbHelper = new(db_helperfakes.FakeDBHelper)
 		testLogger = lagertest.NewTestLogger("upgrader")
 
 		upgrader = NewUpgrader(
@@ -104,7 +104,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the mariadb package version file does not exist", func() {
+		Context("when the package version file does not exist", func() {
 			It("returns the error", func() {
 				fakeOs.FileExistsStub = func(filename string) bool {
 					switch filename {
@@ -142,7 +142,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when we fail to read the package version file in the MariaDB package", func() {
+		Context("when we fail to read the package version file in the DB package", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 
@@ -163,7 +163,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the last upgraded version in the mysqld datadir matches the Mariadb package version", func() {
+		Context("when the last upgraded version in the mysqld datadir matches the DB package version", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 
@@ -185,7 +185,7 @@ var _ = Describe("Upgrader", func() {
 			})
 		})
 
-		Context("when the version in the mysqld datadir does not match the Mariadb package version", func() {
+		Context("when the version in the mysqld datadir does not match the DB package version", func() {
 			BeforeEach(func() {
 				fakeOs.FileExistsReturns(true)
 

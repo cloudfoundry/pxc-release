@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
 	"github.com/go-sql-driver/mysql"
 	"github.com/nu7hatch/gouuid"
 
@@ -17,10 +17,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("MariaDB Helper", func() {
+var _ = Describe("DB Helper", func() {
 	Describe("Seed", func() {
 		var (
-			helper     *mariadb_helper.MariaDBHelper
+			helper     *db_helper.GaleraDBHelper
 			fakeOs     *os_helperfakes.FakeOsHelper
 			testLogger lagertest.TestLogger
 			logFile    string
@@ -46,10 +46,10 @@ var _ = Describe("MariaDB Helper", func() {
 
 		BeforeEach(func() {
 			// MySQL mandates usernames are <= 16 chars
-			user0 := getUUIDWithPrefix("MARIADB")[:16]
-			user1 := getUUIDWithPrefix("MARIADB")[:16]
-			databaseA := getUUIDWithPrefix("MARIADB_CTRL_DB")
-			databaseB := getUUIDWithPrefix("MARIADB_CTRL_DB")
+			user0 := getUUIDWithPrefix("GALERA_INIT")[:16]
+			user1 := getUUIDWithPrefix("GALERA_INIT")[:16]
+			databaseA := getUUIDWithPrefix("GALERA_INIT_DB")
+			databaseB := getUUIDWithPrefix("GALERA_INIT_DB")
 
 			dbConfig = &config.DBHelper{
 				User:     testConfig.User,
@@ -75,12 +75,12 @@ var _ = Describe("MariaDB Helper", func() {
 			}
 
 			fakeOs = new(os_helperfakes.FakeOsHelper)
-			testLogger = *lagertest.NewTestLogger("mariadb_helper")
+			testLogger = *lagertest.NewTestLogger("db_helper")
 			logFile = "/log-file.log"
 		})
 
 		JustBeforeEach(func() {
-			helper = mariadb_helper.NewMariaDBHelper(
+			helper = db_helper.NewDBHelper(
 				fakeOs,
 				dbConfig,
 				logFile,
@@ -88,7 +88,7 @@ var _ = Describe("MariaDB Helper", func() {
 			)
 
 			//override db connection to use test DB
-			mariadb_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
+			db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 				return openRootDBConnection(testConfig)
 			}
 
@@ -172,7 +172,7 @@ var _ = Describe("MariaDB Helper", func() {
 
 			Context("when database name contains a hyphen", func() {
 				BeforeEach(func() {
-					dbNameWithHyphen := getUUIDWithPrefix("MARIADB_CTRL_DB")
+					dbNameWithHyphen := getUUIDWithPrefix("GALERA_INIT_DB")
 					dbNameWithHyphen = strings.Replace(dbNameWithHyphen, "_", "-", -1)
 
 					dbConfig.PreseededDatabases[0].DBName = dbNameWithHyphen
@@ -185,7 +185,7 @@ var _ = Describe("MariaDB Helper", func() {
 
 			Context("when user name contains a hyphen", func() {
 				BeforeEach(func() {
-					userWithHyphen := getUUIDWithPrefix("MARIADB")[:16]
+					userWithHyphen := getUUIDWithPrefix("GALERA_INIT")[:16]
 					userWithHyphen = strings.Replace(userWithHyphen, "_", "-", -1)
 
 					dbConfig.PreseededDatabases[0].User = userWithHyphen
@@ -200,7 +200,7 @@ var _ = Describe("MariaDB Helper", func() {
 
 	Describe("TestDatabaseCleanup", func() {
 		var (
-			helper     *mariadb_helper.MariaDBHelper
+			helper     *db_helper.GaleraDBHelper
 			fakeOs     *os_helperfakes.FakeOsHelper
 			testLogger lagertest.TestLogger
 			logFile    string
@@ -245,10 +245,10 @@ var _ = Describe("MariaDB Helper", func() {
 
 		BeforeEach(func() {
 			fakeOs = new(os_helperfakes.FakeOsHelper)
-			testLogger = *lagertest.NewTestLogger("mariadb_helper")
+			testLogger = *lagertest.NewTestLogger("db_helper")
 			logFile = "/log-file.log"
 
-			helper = mariadb_helper.NewMariaDBHelper(
+			helper = db_helper.NewDBHelper(
 				fakeOs,
 				dbConfig,
 				logFile,
@@ -256,7 +256,7 @@ var _ = Describe("MariaDB Helper", func() {
 			)
 
 			//override db connection to use test DB
-			mariadb_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
+			db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 				return openRootDBConnection(testConfig)
 			}
 

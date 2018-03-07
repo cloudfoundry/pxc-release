@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/galera-init/os_helper"
 )
 
 type FakeOsHelper struct {

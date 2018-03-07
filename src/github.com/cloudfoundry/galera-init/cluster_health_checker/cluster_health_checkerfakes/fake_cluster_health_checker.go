@@ -4,7 +4,7 @@ package cluster_health_checkerfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
+	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 )
 
 type FakeClusterHealthChecker struct {

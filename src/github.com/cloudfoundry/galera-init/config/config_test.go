@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf-experimental/service-config"
 
-	"github.com/cloudfoundry/mariadb_ctrl/config"
+	"github.com/cloudfoundry/galera-init/config"
 )
 
 var _ = Describe("Config", func() {
@@ -22,7 +22,7 @@ var _ = Describe("Config", func() {
 
 		BeforeEach(func() {
 			serviceConfig = service_config.New()
-			flags := flag.NewFlagSet("mariadb_ctrl", flag.ExitOnError)
+			flags := flag.NewFlagSet("galera-init", flag.ExitOnError)
 			serviceConfig.AddFlags(flags)
 
 			serviceConfig.AddDefaults(config.Config{

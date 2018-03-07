@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/cluster_health_checkerfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter/node_starterfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/upgrader/upgraderfakes"
+	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
+	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter/node_starterfakes"
+	"github.com/cloudfoundry/galera-init/upgrader/upgraderfakes"
 
-	. "github.com/cloudfoundry/mariadb_ctrl/start_manager"
+	. "github.com/cloudfoundry/galera-init/start_manager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,7 +25,7 @@ var _ = Describe("StartManager", func() {
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_helperfakes.FakeOsHelper
 	var fakeUpgrader *upgraderfakes.FakeUpgrader
-	var fakeDBHelper *mariadb_helperfakes.FakeDBHelper
+	var fakeDBHelper *db_helperfakes.FakeDBHelper
 	var fakeStarter *node_starterfakes.FakeStarter
 	var fakeHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
 	var startNodeReturn string
@@ -82,7 +82,7 @@ var _ = Describe("StartManager", func() {
 		fakeOs = new(os_helperfakes.FakeOsHelper)
 		fakeUpgrader = new(upgraderfakes.FakeUpgrader)
 		fakeStarter = new(node_starterfakes.FakeStarter)
-		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
+		fakeDBHelper = new(db_helperfakes.FakeDBHelper)
 		fakeHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
 
 		fakeDBHelper.IsProcessRunningReturns(false)

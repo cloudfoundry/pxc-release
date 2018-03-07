@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/galera-init/cluster_health_checker"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/os_helper"
 	"io/ioutil"
 	"strings"
 )
@@ -30,7 +30,7 @@ type Starter interface {
 }
 
 type starter struct {
-	mariaDBHelper        mariadb_helper.DBHelper
+	dbHelper             db_helper.DBHelper
 	osHelper             os_helper.OsHelper
 	clusterHealthChecker cluster_health_checker.ClusterHealthChecker
 	config               config.StartManager
@@ -39,14 +39,14 @@ type starter struct {
 }
 
 func NewStarter(
-	mariaDBHelper mariadb_helper.DBHelper,
+	dbHelper db_helper.DBHelper,
 	osHelper os_helper.OsHelper,
 	config config.StartManager,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 ) Starter {
 	return &starter{
-		mariaDBHelper:        mariaDBHelper,
+		dbHelper:             dbHelper,
 		osHelper:             osHelper,
 		config:               config,
 		logger:               logger,
@@ -125,7 +125,7 @@ func (s *starter) bootstrapNode() (chan error, error) {
 	}
 
 	s.logger.Info("Bootstrapping node")
-	cmd, err := s.mariaDBHelper.StartMysqldInBootstrap()
+	cmd, err := s.dbHelper.StartMysqldInBootstrap()
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (s *starter) bootstrapNode() (chan error, error) {
 
 func (s *starter) joinCluster() (chan error, error) {
 	s.logger.Info("Joining a multi-node cluster")
-	cmd, err := s.mariaDBHelper.StartMysqldInJoin()
+	cmd, err := s.dbHelper.StartMysqldInJoin()
 
 	if err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func (s *starter) waitForDatabaseToAcceptConnections(mysqldChan chan error) erro
 			s.logger.Info("Database process exited, stop trying to connect to database")
 			return errors.New("Mysqld exited with error; aborting. Review the mysqld error logs for more information.")
 		default:
-			if s.mariaDBHelper.IsDatabaseReachable() {
+			if s.dbHelper.IsDatabaseReachable() {
 				s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
 				return nil
 			} else {
@@ -176,7 +176,7 @@ func (s *starter) waitForDatabaseToAcceptConnections(mysqldChan chan error) erro
 }
 
 func (s *starter) seedDatabases() error {
-	err := s.mariaDBHelper.Seed()
+	err := s.dbHelper.Seed()
 	if err != nil {
 		s.logger.Info(fmt.Sprintf("There was a problem seeding the database: '%s'", err.Error()))
 		return err
@@ -187,7 +187,7 @@ func (s *starter) seedDatabases() error {
 }
 
 func (s *starter) runPostStartSQL() error {
-	err := s.mariaDBHelper.RunPostStartSQL()
+	err := s.dbHelper.RunPostStartSQL()
 	if err != nil {
 		s.logger.Info(fmt.Sprintf("There was a problem running post start sql: '%s'", err.Error()))
 		return err
@@ -198,7 +198,7 @@ func (s *starter) runPostStartSQL() error {
 }
 
 func (s *starter) runTestDatabaseCleanup() error {
-	err := s.mariaDBHelper.TestDatabaseCleanup()
+	err := s.dbHelper.TestDatabaseCleanup()
 	if err != nil {
 		s.logger.Info("There was a problem cleaning up test databases", lager.Data{
 			"errMessage": err.Error(),

@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 )
 
 type FakeStarter struct {

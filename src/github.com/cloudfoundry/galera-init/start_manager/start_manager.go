@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
-	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
+	"github.com/cloudfoundry/galera-init/cluster_health_checker"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/os_helper"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
+	"github.com/cloudfoundry/galera-init/upgrader"
 )
 
 //go:generate counterfeiter . StartManager
@@ -25,7 +25,7 @@ type StartManager interface {
 type startManager struct {
 	osHelper      os_helper.OsHelper
 	config        config.StartManager
-	mariaDBHelper mariadb_helper.DBHelper
+	dbHelper      db_helper.DBHelper
 	upgrader      upgrader.Upgrader
 	startCaller   node_starter.Starter
 	logger        lager.Logger
@@ -37,7 +37,7 @@ type startManager struct {
 func New(
 	osHelper os_helper.OsHelper,
 	config config.StartManager,
-	mariaDBHelper mariadb_helper.DBHelper,
+	dbHelper db_helper.DBHelper,
 	upgrader upgrader.Upgrader,
 	startCaller node_starter.Starter,
 	logger lager.Logger,
@@ -47,7 +47,7 @@ func New(
 		osHelper:      osHelper,
 		config:        config,
 		logger:        logger,
-		mariaDBHelper: mariaDBHelper,
+		dbHelper:      dbHelper,
 		upgrader:      upgrader,
 		startCaller:   startCaller,
 		healthChecker: healthChecker,
@@ -58,7 +58,7 @@ func (m *startManager) Execute() error {
 	var newNodeState string
 	var err error
 
-	if m.mariaDBHelper.IsProcessRunning() {
+	if m.dbHelper.IsProcessRunning() {
 		m.logger.Info("mysqld process is already running, shutting down before continuing")
 		m.Shutdown()
 	}
@@ -149,7 +149,7 @@ func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
 
 func (m *startManager) Shutdown() {
 	m.logger.Info("Shutting down mysqld")
-	m.mariaDBHelper.StopMysqld()
+	m.dbHelper.StopMysqld()
 }
 
 func (m *startManager) writeStringToFile(contents string) error {

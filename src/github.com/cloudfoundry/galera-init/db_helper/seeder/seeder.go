@@ -6,7 +6,7 @@ import (
 	"database/sql"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
+	"github.com/cloudfoundry/galera-init/config"
 	_ "github.com/go-sql-driver/mysql"
 )
 

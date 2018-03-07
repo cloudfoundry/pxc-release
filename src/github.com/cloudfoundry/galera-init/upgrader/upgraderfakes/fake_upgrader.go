@@ -4,7 +4,7 @@ package upgraderfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
+	"github.com/cloudfoundry/galera-init/upgrader"
 )
 
 type FakeUpgrader struct {

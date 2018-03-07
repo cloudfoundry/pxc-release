@@ -7,13 +7,13 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
-	"github.com/cloudfoundry/mariadb_ctrl/upgrader"
+	"github.com/cloudfoundry/galera-init/cluster_health_checker"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/os_helper"
+	"github.com/cloudfoundry/galera-init/start_manager"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
+	"github.com/cloudfoundry/galera-init/upgrader"
 )
 
 func main() {
@@ -46,7 +46,7 @@ func main() {
 		panic("could not write pid")
 	}
 
-	cfg.Logger.Info("mariadb_ctrl started")
+	cfg.Logger.Info("galera-init started")
 
 }
 
@@ -72,7 +72,7 @@ func deletePidFile(cfg *config.Config) error {
 func managerSetup(cfg *config.Config) start_manager.StartManager {
 	OsHelper := os_helper.NewImpl()
 
-	DBHelper := mariadb_helper.NewMariaDBHelper(
+	DBHelper := db_helper.NewDBHelper(
 		OsHelper,
 		&cfg.Db,
 		cfg.LogFileLocation,

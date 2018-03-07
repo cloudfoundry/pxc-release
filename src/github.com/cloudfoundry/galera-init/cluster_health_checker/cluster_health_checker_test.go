@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker"
+	. "github.com/cloudfoundry/galera-init/cluster_health_checker"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

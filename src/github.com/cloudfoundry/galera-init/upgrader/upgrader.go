@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/os_helper"
 	"strings"
 )
 
@@ -19,10 +19,10 @@ type Upgrader interface {
 }
 
 type upgrader struct {
-	osHelper      os_helper.OsHelper
-	config        config.Upgrader
-	logger        lager.Logger
-	mariadbHelper mariadb_helper.DBHelper
+	osHelper os_helper.OsHelper
+	config   config.Upgrader
+	logger   lager.Logger
+	dbHelper db_helper.DBHelper
 }
 
 var (
@@ -34,13 +34,13 @@ func NewUpgrader(
 	osHelper os_helper.OsHelper,
 	config config.Upgrader,
 	logger lager.Logger,
-	mariadbHelper mariadb_helper.DBHelper) Upgrader {
+	dbHelper db_helper.DBHelper) Upgrader {
 
 	return upgrader{
-		osHelper:      osHelper,
-		config:        config,
-		logger:        logger,
-		mariadbHelper: mariadbHelper,
+		osHelper: osHelper,
+		config:   config,
+		logger:   logger,
+		dbHelper: dbHelper,
 	}
 }
 
@@ -48,7 +48,7 @@ func (u upgrader) Upgrade() (err error) {
 	u.startStandaloneDatabaseSynchronously()
 
 	u.logger.Info("Performing upgrade")
-	output, upgrade_err := u.mariadbHelper.Upgrade()
+	output, upgrade_err := u.dbHelper.Upgrade()
 
 	if upgrade_err != nil {
 		acceptableErrorsCompiled, _ := regexp.Compile(
@@ -83,10 +83,10 @@ func (u upgrader) Upgrade() (err error) {
 }
 
 func (u upgrader) startStandaloneDatabaseSynchronously() {
-	u.mariadbHelper.StartMysqldInStandAlone()
+	u.dbHelper.StartMysqldInStandAlone()
 
 	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
-		if u.mariadbHelper.IsDatabaseReachable() {
+		if u.dbHelper.IsDatabaseReachable() {
 			return
 		}
 
@@ -97,7 +97,7 @@ func (u upgrader) startStandaloneDatabaseSynchronously() {
 }
 
 func (u upgrader) stopStandaloneDatabaseSynchronously() {
-	u.mariadbHelper.StopMysqld()
+	u.dbHelper.StopMysqld()
 }
 
 func (u upgrader) NeedsUpgrade() (bool, error) {
@@ -118,7 +118,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 				"reason":             "Package version file does not exist",
 				"packageVersionFile": u.config.PackageVersionFile,
 			})
-		return false, errors.New("MariaDB package is invalid because it is missing the version file.")
+		return false, errors.New("DB package is invalid because it is missing the version file.")
 	}
 
 	existingVersion, err := u.osHelper.ReadFile(u.config.LastUpgradedVersionFile)
@@ -142,7 +142,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 				"packageVersionFile": u.config.PackageVersionFile,
 				"err":                err,
 			})
-		return false, errors.New("MariaDB package is invalid because the version file is not readable.")
+		return false, errors.New("DB package is invalid because the version file is not readable.")
 	}
 
 	if strings.TrimSpace(existingVersion) != strings.TrimSpace(packageVersion) {

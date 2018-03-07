@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
+	"github.com/cloudfoundry/galera-init/config"
+	s "github.com/cloudfoundry/galera-init/db_helper/seeder"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

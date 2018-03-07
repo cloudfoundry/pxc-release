@@ -3,7 +3,7 @@ package os_helper_test
 import (
 	"os/exec"
 
-	. "github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	. "github.com/cloudfoundry/galera-init/os_helper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -1,4 +1,4 @@
-package mariadb_helper_test
+package db_helper_test
 
 import (
 	"database/sql"
@@ -11,17 +11,17 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder/seederfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/db_helper/seeder"
+	"github.com/cloudfoundry/galera-init/db_helper/seeder/seederfakes"
+	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("MariaDBHelper", func() {
+var _ = Describe("GaleraDBHelper", func() {
 	const (
 		lastInsertId           = -1
 		rowsAffected           = 1
@@ -30,7 +30,7 @@ var _ = Describe("MariaDBHelper", func() {
 	)
 
 	var (
-		helper     *mariadb_helper.MariaDBHelper
+		helper     *db_helper.GaleraDBHelper
 		fakeOs     *os_helperfakes.FakeOsHelper
 		fakeSeeder *seederfakes.FakeSeeder
 		testLogger lagertest.TestLogger
@@ -44,19 +44,19 @@ var _ = Describe("MariaDBHelper", func() {
 		var err error
 		fakeOs = new(os_helperfakes.FakeOsHelper)
 		fakeSeeder = new(seederfakes.FakeSeeder)
-		testLogger = *lagertest.NewTestLogger("mariadb_helper")
+		testLogger = *lagertest.NewTestLogger("db_helper")
 
 		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
-		mariadb_helper.OpenDBConnection = func(*config.DBHelper) (*sql.DB, error) {
+		db_helper.OpenDBConnection = func(*config.DBHelper) (*sql.DB, error) {
 			return fakeDB, nil
 		}
-		mariadb_helper.CloseDBConnection = func(*sql.DB) error {
+		db_helper.CloseDBConnection = func(*sql.DB) error {
 			// fakeDB is closed in AfterEach to allow assertions against mock expectations
 			return nil
 		}
 
-		mariadb_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
+		db_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
 			return fakeSeeder
 		}
 
@@ -91,7 +91,7 @@ var _ = Describe("MariaDBHelper", func() {
 	})
 
 	JustBeforeEach(func() {
-		helper = mariadb_helper.NewMariaDBHelper(
+		helper = db_helper.NewDBHelper(
 			fakeOs,
 			dbConfig,
 			logFile,

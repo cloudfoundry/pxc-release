@@ -5,11 +5,11 @@ import (
 	"os/exec"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/mariadb_ctrl/cluster_health_checker/cluster_health_checkerfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/mariadb_helperfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper/os_helperfakes"
-	"github.com/cloudfoundry/mariadb_ctrl/start_manager/node_starter"
+	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
+	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +23,7 @@ var _ = Describe("Starter", func() {
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_helperfakes.FakeOsHelper
 	var fakeClusterHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
-	var fakeDBHelper *mariadb_helperfakes.FakeDBHelper
+	var fakeDBHelper *db_helperfakes.FakeDBHelper
 	var fakeCommandBootstrapStr string
 	var fakeCommandBootstrap *exec.Cmd
 	var fakeCommandJoinStr string
@@ -63,7 +63,7 @@ var _ = Describe("Starter", func() {
 		errorChan = make(chan error, 1)
 		fakeOs.WaitForCommandReturns(errorChan)
 		fakeClusterHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
-		fakeDBHelper = new(mariadb_helperfakes.FakeDBHelper)
+		fakeDBHelper = new(db_helperfakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
 		grastateFile, _ = ioutil.TempFile(os.TempDir(), "grastateFile")
@@ -227,10 +227,10 @@ var _ = Describe("Starter", func() {
 				})
 			})
 
-			Context("when mariadb exits before starting successfully", func() {
+			Context("when db exits before starting successfully", func() {
 				expectedErr := "Mysqld exited with error; aborting. Review the mysqld error logs for more information."
 				It("forwards the error", func() {
-					errorChan <- errors.New("mariadb exited")
+					errorChan <- errors.New("db exited")
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
 					var err error

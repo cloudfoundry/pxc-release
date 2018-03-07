@@ -1,4 +1,4 @@
-package mariadb_helper
+package db_helper
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/mariadb_ctrl/config"
-	s "github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
-	"github.com/cloudfoundry/mariadb_ctrl/os_helper"
+	"github.com/cloudfoundry/galera-init/config"
+	s "github.com/cloudfoundry/galera-init/db_helper/seeder"
+	"github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/go-sql-driver/mysql"
 )
 
@@ -30,7 +30,7 @@ type DBHelper interface {
 	TestDatabaseCleanup() error
 }
 
-type MariaDBHelper struct {
+type GaleraDBHelper struct {
 	osHelper        os_helper.OsHelper
 	dbSeeder        s.Seeder
 	logFileLocation string
@@ -38,12 +38,12 @@ type MariaDBHelper struct {
 	config          *config.DBHelper
 }
 
-func NewMariaDBHelper(
+func NewDBHelper(
 	osHelper os_helper.OsHelper,
 	config *config.DBHelper,
 	logFileLocation string,
-	logger lager.Logger) *MariaDBHelper {
-	return &MariaDBHelper{
+	logger lager.Logger) *GaleraDBHelper {
+	return &GaleraDBHelper{
 		osHelper:        osHelper,
 		config:          config,
 		logFileLocation: logFileLocation,
@@ -73,7 +73,7 @@ var CloseDBConnection = func(db *sql.DB) error {
 	return db.Close()
 }
 
-func (m MariaDBHelper) IsProcessRunning() bool {
+func (m GaleraDBHelper) IsProcessRunning() bool {
 	_, err := m.osHelper.RunCommand(
 		"mysqladmin",
 		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
@@ -81,7 +81,7 @@ func (m MariaDBHelper) IsProcessRunning() bool {
 	return err == nil
 }
 
-func (m MariaDBHelper) StartMysqldInStandAlone() {
+func (m GaleraDBHelper) StartMysqldInStandAlone() {
 	_, err := m.osHelper.RunCommand(
 		"mysqld",
 		"--wsrep-on=OFF",
@@ -97,7 +97,7 @@ func (m MariaDBHelper) StartMysqldInStandAlone() {
 	}
 }
 
-func (m MariaDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
+func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
 	cmd, err := m.startMysqldAsChildProcess()
 
@@ -108,7 +108,7 @@ func (m MariaDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
+func (m GaleraDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
 	cmd, err := m.startMysqldAsChildProcess("--wsrep-new-cluster")
 
@@ -119,7 +119,7 @@ func (m MariaDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (m MariaDBHelper) StopMysqld() {
+func (m GaleraDBHelper) StopMysqld() {
 	m.logger.Info("Stopping node")
 	_, err := m.osHelper.RunCommand(
 		"mysqladmin",
@@ -130,21 +130,21 @@ func (m MariaDBHelper) StopMysqld() {
 	}
 }
 
-func (m MariaDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
+func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
 		"mysqld_safe", // FIXME: This shouldn't use mysqld_safe when talking to percona
 		mysqlArgs...)
 }
 
-func (m MariaDBHelper) Upgrade() (output string, err error) {
+func (m GaleraDBHelper) Upgrade() (output string, err error) {
 	return m.osHelper.RunCommand(
 		m.config.UpgradePath,
 		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
 	)
 }
 
-func (m MariaDBHelper) IsDatabaseReachable() bool {
+func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
 
 	db, err := OpenDBConnection(m.config)
@@ -182,7 +182,7 @@ func (m MariaDBHelper) IsDatabaseReachable() bool {
 	return value == "ON"
 }
 
-func (m MariaDBHelper) Seed() error {
+func (m GaleraDBHelper) Seed() error {
 	if m.config.PreseededDatabases == nil || len(m.config.PreseededDatabases) == 0 {
 		m.logger.Info("No preseeded databases specified, skipping seeding.")
 		return nil
@@ -231,7 +231,7 @@ func (m MariaDBHelper) Seed() error {
 	return nil
 }
 
-func (m MariaDBHelper) flushPrivileges(db *sql.DB) error {
+func (m GaleraDBHelper) flushPrivileges(db *sql.DB) error {
 	if _, err := db.Exec("FLUSH PRIVILEGES"); err != nil {
 		m.logger.Error("Error flushing privileges", err)
 		return err
@@ -240,7 +240,7 @@ func (m MariaDBHelper) flushPrivileges(db *sql.DB) error {
 	return nil
 }
 
-func (m MariaDBHelper) RunPostStartSQL() error {
+func (m GaleraDBHelper) RunPostStartSQL() error {
 	m.logger.Info("Running Post Start SQL Queries")
 
 	db, err := OpenDBConnection(m.config)
@@ -267,7 +267,7 @@ func (m MariaDBHelper) RunPostStartSQL() error {
 	return nil
 }
 
-func (m MariaDBHelper) TestDatabaseCleanup() error {
+func (m GaleraDBHelper) TestDatabaseCleanup() error {
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		panic("")
@@ -292,7 +292,7 @@ func (m MariaDBHelper) TestDatabaseCleanup() error {
 	return m.dropDatabasesNamed(db, names)
 }
 
-func (m MariaDBHelper) deletePermissionsToCreateTestDatabases(db *sql.DB) error {
+func (m GaleraDBHelper) deletePermissionsToCreateTestDatabases(db *sql.DB) error {
 	_, err := db.Exec(`DELETE FROM mysql.db WHERE Db IN('test', 'test\_%')`)
 	if err != nil {
 		m.logger.Error("error deleting permissions for test databases", err)
@@ -302,7 +302,7 @@ func (m MariaDBHelper) deletePermissionsToCreateTestDatabases(db *sql.DB) error 
 	return nil
 }
 
-func (m MariaDBHelper) testDatabaseNames(db *sql.DB) ([]string, error) {
+func (m GaleraDBHelper) testDatabaseNames(db *sql.DB) ([]string, error) {
 	var allTestDatabaseNames []string
 	testDatabaseNames, err := m.showDatabaseNamesLike("test", db)
 	if err != nil {
@@ -320,7 +320,7 @@ func (m MariaDBHelper) testDatabaseNames(db *sql.DB) ([]string, error) {
 	return allTestDatabaseNames, nil
 }
 
-func (m MariaDBHelper) showDatabaseNamesLike(pattern string, db *sql.DB) ([]string, error) {
+func (m GaleraDBHelper) showDatabaseNamesLike(pattern string, db *sql.DB) ([]string, error) {
 	rows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", pattern))
 	if err != nil {
 		return nil, err
@@ -345,7 +345,7 @@ func (m MariaDBHelper) showDatabaseNamesLike(pattern string, db *sql.DB) ([]stri
 	return dbNames, nil
 }
 
-func (m MariaDBHelper) dropDatabasesNamed(db *sql.DB, names []string) error {
+func (m GaleraDBHelper) dropDatabasesNamed(db *sql.DB, names []string) error {
 	for _, n := range names {
 		_, err := db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", n))
 		if err != nil {

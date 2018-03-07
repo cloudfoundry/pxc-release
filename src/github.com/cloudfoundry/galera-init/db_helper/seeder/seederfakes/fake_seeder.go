@@ -4,7 +4,7 @@ package seederfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/mariadb_ctrl/mariadb_helper/seeder"
+	"github.com/cloudfoundry/galera-init/db_helper/seeder"
 	_ "github.com/go-sql-driver/mysql"
 )
 
