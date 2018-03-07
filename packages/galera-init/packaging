@@ -9,7 +9,7 @@ export GOPATH=$BOSH_INSTALL_TARGET
 export GOROOT=$(readlink -nf /var/vcap/packages/golang)
 export PATH=$GOROOT/bin:$PATH
 
-go build -o $GOPATH/bin/mariadb_ctrl github.com/cloudfoundry/mariadb_ctrl/cmd/start
+go build -o $GOPATH/bin/galera-init github.com/cloudfoundry/galera-init/cmd/start
 
 # clean up source artifacts
 rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg

@@ -161,7 +161,7 @@ server_audit_excl_users         = <%= excluded_audit_users.join(',') %>
 server_audit_file_rotations     = 0
 <% end %>
 
-# These are mandatory MySQL settings for MariaDB Galera to work
+# These are mandatory MySQL settings for Galera to work
 binlog_format                   = ROW
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2

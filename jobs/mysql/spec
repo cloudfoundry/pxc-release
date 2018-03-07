@@ -25,7 +25,7 @@ packages:
 - socat
 - cf-mysql-common
 - xtrabackup
-- mariadb_ctrl
+- galera-init
 - galera-healthcheck
 
 consumes:
@@ -81,7 +81,7 @@ properties:
   tls.server.private_key:
     description: 'Private key for mysql server encryption'
   character_set_server:
-    description: 'Default character set. Note that while the MariaDB default is latin1, we default to utf8.'
+    description: 'Default character set. Note that while the MySQL default is latin1, we default to utf8.'
     default: utf8
   collation_server:
     description: 'Default collation. Use SHOW COLLATION to view the valid collations for your character set.'
@@ -178,7 +178,7 @@ properties:
     description: 'Additional database users to exclude from audit logging, will be combined with uses specified in server_audit_excluded_users'
   cluster_name:
     description: 'A unique name for this cluster. ONLY set before first deployment. DO NOT attempt to change an existing multi-node cluster.'
-    default: 'cf-mariadb-galera-cluster'
+    default: 'galera-cluster'
   cluster_health.log_interval:
     description: 'Time in seconds between log entries for cluster health'
     default: 30

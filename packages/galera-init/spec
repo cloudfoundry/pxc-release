@@ -1,8 +1,8 @@
 ---
-name: mariadb_ctrl
+name: galera-init
 dependencies:
   - golang
 files:
-  - github.com/cloudfoundry/mariadb_ctrl/**/*.go
+  - github.com/cloudfoundry/galera-init/**/*.go
 excluded_files:
   - "**/*_test.go"
