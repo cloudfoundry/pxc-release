@@ -5,8 +5,6 @@ LogFileLocation: testPath
 PidFile: testPidFile
 ChildPidFile: childTestFile
 Db:
-  # Specifies the location of the script that starts and stops mysql using mysqld_safe and mysql.server
-  DaemonPath: testDaemonPath
   # Specifies the location of the script that performs the MySQL upgrade
   UpgradePath: testUpgradePath
   # Specifies the user name for MySQL

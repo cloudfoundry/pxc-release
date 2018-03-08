@@ -133,7 +133,7 @@ func (m GaleraDBHelper) StopMysqld() {
 func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
-		"mysqld_safe", // FIXME: This shouldn't use mysqld_safe when talking to percona
+		"mysqld",
 		mysqlArgs...)
 }
 
