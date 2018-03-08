@@ -15,6 +15,7 @@ PERSISTENT_TMP_DIR=/var/vcap/data/tmp
 PROC_NAME=pxc_ctl
 PXC_JOB_DIR=/var/vcap/jobs/mysql
 RUN_DIR=/var/vcap/sys/run/$PROC_NAME
+MYSQL_RUN_DIR=/var/vcap/sys/run/$PROC_NAME
 SECURE_FILE_PRIV=/var/vcap/data/mysql/files
 SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
 SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
@@ -26,6 +27,11 @@ if [[ ! -d "$RUN_DIR" ]]; then
   mkdir -p $RUN_DIR
 fi
 chown -R vcap:vcap $RUN_DIR
+
+if [[ ! -d "$MYSQL_RUN_DIR" ]]; then
+  mkdir -p $MYSQL_RUN_DIR
+fi
+chown -R vcap:vcap $MYSQL_RUN_DIR
 
 log "pre-start setup script: set up ENV and logging"
 
