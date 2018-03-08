@@ -12,10 +12,9 @@ JOB_INDEX=<%= index %>
 LOG_DIR=/var/vcap/sys/log/mysql
 LOG_FILE=$LOG_DIR/pre-start.stdout.log
 PERSISTENT_TMP_DIR=/var/vcap/data/tmp
-PROC_NAME=pxc_ctl
 PXC_JOB_DIR=/var/vcap/jobs/mysql
-RUN_DIR=/var/vcap/sys/run/$PROC_NAME
-MYSQL_RUN_DIR=/var/vcap/sys/run/$PROC_NAME
+RUN_DIR=/var/vcap/sys/run/pxc_ctl
+MYSQL_RUN_DIR=/var/vcap/sys/run/mysql
 SECURE_FILE_PRIV=/var/vcap/data/mysql/files
 SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
 SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
