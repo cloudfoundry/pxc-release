@@ -14,10 +14,10 @@ cli/cf-cli_6.32.0_linux_x86-64.tgz:
   size: 6065317
   object_id: 69a43003-39c2-48d4-753e-d646448e790a
   sha: ad4dd01db5e6498bd38583d73c75480c700e1b5f
-golang/go1.8.3.linux-amd64.tar.gz:
-  size: 90029041
-  object_id: a076937a-eaba-4396-5e1a-e8a4d026303f
-  sha: 838c415896ef5ecd395dfabde5e7e6f8ac943c8e
+golang/go1.9.4.linux-amd64.tar.gz:
+  size: 105600650
+  object_id: 9e762b60-6e37-456f-7733-0af833ebf886
+  sha: ed1bd37c356338a5a04923c183931a96687f202e
 libaio/libaio_0.3.110.orig.tar.gz:
   size: 42270
   object_id: 1643495a-6b6c-44e1-6237-63bfc0e7df5c
