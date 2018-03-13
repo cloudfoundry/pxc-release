@@ -34,7 +34,7 @@ export PATH=$PATH:/var/vcap/packages/pxc/bin
 # add socat to path
 export PATH=$PATH:/var/vcap/packages/socat/bin
 
-log "pre-start execution script: starting mariadb_ctrl in prestart mode"
+log "pre-start execution script: starting galera-init in prestart mode"
 
 # Setup pidguard and logging
 log "pre-start execution script: checking for existing instance of $PROC_NAME"
