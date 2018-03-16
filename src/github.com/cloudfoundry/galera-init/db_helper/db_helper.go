@@ -76,7 +76,7 @@ var CloseDBConnection = func(db *sql.DB) error {
 func (m GaleraDBHelper) IsProcessRunning() bool {
 	_, err := m.osHelper.RunCommand(
 		"mysqladmin",
-		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
+		"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf",
 		"status")
 	return err == nil
 }
@@ -84,6 +84,7 @@ func (m GaleraDBHelper) IsProcessRunning() bool {
 func (m GaleraDBHelper) StartMysqldInStandAlone() {
 	_, err := m.osHelper.RunCommand(
 		"mysqld",
+		"--defaults-file=/var/vcap/jobs/mysql-clustered/config/my.cnf",
 		"--wsrep-on=OFF",
 		"--wsrep-desync=ON",
 		"--wsrep-OSU-method=RSU",
@@ -99,7 +100,7 @@ func (m GaleraDBHelper) StartMysqldInStandAlone() {
 
 func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
-	cmd, err := m.startMysqldAsChildProcess()
+	cmd, err := m.startMysqldAsChildProcess("--defaults-file=/var/vcap/jobs/mysql-clustered/config/my.cnf")
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
@@ -110,7 +111,7 @@ func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 
 func (m GaleraDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
-	cmd, err := m.startMysqldAsChildProcess("--wsrep-new-cluster")
+	cmd, err := m.startMysqldAsChildProcess("--defaults-file=/var/vcap/jobs/mysql-clustered/config/my.cnf", "--wsrep-new-cluster")
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
@@ -123,7 +124,7 @@ func (m GaleraDBHelper) StopMysqld() {
 	m.logger.Info("Stopping node")
 	_, err := m.osHelper.RunCommand(
 		"mysqladmin",
-		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
+		"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf",
 		"shutdown")
 	if err != nil {
 		m.logger.Fatal("Error stopping mysqld", err)
@@ -140,7 +141,7 @@ func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cm
 func (m GaleraDBHelper) Upgrade() (output string, err error) {
 	return m.osHelper.RunCommand(
 		m.config.UpgradePath,
-		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
+		"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf",
 	)
 }
 

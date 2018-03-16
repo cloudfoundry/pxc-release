@@ -140,7 +140,7 @@ var _ = Describe("GaleraDBHelper", func() {
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf", "shutdown"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf", "shutdown"}))
 		})
 
 		Context("when an error occurs", func() {
@@ -165,7 +165,7 @@ var _ = Describe("GaleraDBHelper", func() {
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf", "status"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf", "status"}))
 		})
 
 		It("returns false if `mysql.server status` exits non-zero", func() {
@@ -177,7 +177,7 @@ var _ = Describe("GaleraDBHelper", func() {
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf", "status"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf", "status"}))
 		})
 	})
 
@@ -188,7 +188,7 @@ var _ = Describe("GaleraDBHelper", func() {
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal(dbConfig.UpgradePath))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf"}))
 		})
 
 		It("returns the output and error", func() {
