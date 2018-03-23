@@ -1,6 +1,6 @@
 ---
 
 - type: replace
-  path: /instance_groups/name=database/jobs/name=mysql/properties/remote_admin_access?
+  path: /instance_groups/name=database/jobs/name=mysql-clustered/properties/remote_admin_access?
   value: true
 
