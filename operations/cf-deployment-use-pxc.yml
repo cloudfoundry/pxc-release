@@ -5,7 +5,11 @@
     version: latest
 
 - type: replace
-  path: /instance_groups/name=database/jobs/name=mysql/release
+  path: /instance_groups/name=database/jobs/name=mysql/name
+  value: mysql-clustered
+
+- type: replace
+  path: /instance_groups/name=database/jobs/name=mysql-clustered/release
   value: pxc
 
 - type: replace
@@ -14,14 +18,14 @@
   - z1
 
 - type: replace
-  path: /instance_groups/name=database/jobs/name=mysql/properties
+  path: /instance_groups/name=database/jobs/name=mysql-clustered?/properties
   value:
     admin_password: "((cf_mysql_mysql_admin_password))"
     port: 33306
     binlog_enabled: false
     cluster_health:
       password: "((cf_mysql_mysql_cluster_health_password))"
-    galera_healthcheck:
+    galera_agent:
       db_password: "((cf_mysql_mysql_galera_healthcheck_password))"
       endpoint_username: galera_healthcheck
       endpoint_password: "((cf_mysql_mysql_galera_healthcheck_endpoint_password))"

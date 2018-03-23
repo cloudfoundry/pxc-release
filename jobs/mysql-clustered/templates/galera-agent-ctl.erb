@@ -1,0 +1,49 @@
+#!/bin/bash -e
+
+job_dir=/var/vcap/jobs/mysql-clustered
+run_dir=/var/vcap/sys/run/galera-agent
+log_dir=/var/vcap/sys/log/galera-agent
+package_dir=/var/vcap/packages/galera-agent
+pidfile=$run_dir/galera-agent.pid
+
+export GOROOT=/var/vcap/packages/golang
+export PATH=$GOROOT/bin:$PWD/bin:$PATH
+
+source /var/vcap/packages/pxc-utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    log "Starting galera-agent..."
+    pid_guard $pidfile "Galera Healthcheck"
+
+    mkdir -p $run_dir
+    chown -R vcap:vcap $run_dir
+
+    mkdir -p $log_dir
+    chown -R vcap:vcap $log_dir
+
+    cd $package_dir
+
+    ulimit -n <%= p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
+
+    su - vcap -c -o pipefail \
+      "$package_dir/bin/galera-agent \
+        -configPath=$job_dir/config/galera-agent-config.yaml \
+        >>$log_dir/galera-agent.stdout.log \
+        2>>$log_dir/galera-agent.stderr.log &"
+
+    log "Starting galera-agent... done"
+    ;;
+
+  stop)
+    log "Stopping galera-agent..."
+    kill_and_wait $pidfile
+    log "Stopping galera-agent... done"
+    ;;
+
+  *)
+    echo "Usage: galera-agent-ctl {start|stop}"
+    ;;
+
+esac

@@ -2,8 +2,8 @@
 name: proxy
 
 templates:
-  switchboard_ctl.erb: bin/switchboard_ctl
-  switchboard.yml.erb: config/switchboard.yml
+  proxy-ctl.erb: bin/proxy-ctl
+  proxy.yml.erb: config/proxy.yml
   post-start.erb: bin/post-start
 
 consumes:
@@ -11,7 +11,7 @@ consumes:
   type: proxy
   optional: true
 - name: mysql
-  type: mysql
+  type: mysql-clustered
   optional: true
 - name: arbitrator
   type: arbitrator
@@ -30,16 +30,16 @@ provides:
   type: database
 
 packages:
-- switchboard
-- cf-mysql-common
+- proxy
+- pxc-utils
 
 properties:
 
   port:
     description: 'Port the mysql server listens on'
     default: 3306
-  galera_healthcheck.port:
-    description: 'Port galera_healthcheck sidecar process listens on'
+  galera_agent.port:
+    description: 'Port galera_agent sidecar process listens on'
     default: 9200
 
   port:
@@ -72,11 +72,11 @@ properties:
     default: 1936
   consul_enabled:
     description: |
-      Enable discovery of switchboard through consul
+      Enable discovery of proxy through consul
     default: false
   consul_service_name:
     description: |
-      If consul_enabled is true, switchboard will register with consul using this name
+      If consul_enabled is true, proxy will register with consul using this name
     default: "mysql"
   max_open_files:
     description: |
@@ -84,7 +84,7 @@ properties:
     default: 3000
   profiling_enabled:
     description: |
-      When set to true, the switchboard will listen on port 6060 and enable
+      When set to true, the proxy will listen on port 6060 and enable
       profiling of the process
     default: false
   startup_delay:

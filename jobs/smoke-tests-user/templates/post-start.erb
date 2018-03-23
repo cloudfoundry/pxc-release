@@ -2,5 +2,5 @@
 set -eux
 
 /var/vcap/packages/pxc/bin/mysql \
-  --defaults-file="/var/vcap/jobs/mysql/config/mylogin.cnf" \
+  --defaults-file="/var/vcap/jobs/mysql-clustered/config/mylogin.cnf" \
   < "/var/vcap/jobs/smoke-tests-user/config/smoke_tests_user_setup.sql"

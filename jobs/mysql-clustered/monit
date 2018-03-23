@@ -1,0 +1,13 @@
+<% if p('pxc_enabled') == true %>
+check process galera-init
+  with pidfile /var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
+  start program "/var/vcap/jobs/mysql-clustered/bin/pxc-ctl start" with timeout <%= p('startup_timeout') %> seconds
+  stop program "/var/vcap/jobs/mysql-clustered/bin/pxc-ctl stop"
+  group vcap
+
+check process galera-agent
+  with pidfile /var/vcap/sys/run/galera-agent/galera-agent.pid
+  start program "/var/vcap/jobs/mysql-clustered/bin/galera-agent-ctl start" with timeout 60 seconds
+  stop program "/var/vcap/jobs/mysql-clustered/bin/galera-agent-ctl stop" with timeout 10 seconds
+  group vcap
+<% end %>

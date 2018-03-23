@@ -2,7 +2,7 @@
 name: smoke-tests
 packages:
 - golang
-- acceptance-tests
+- smoke-tests
 - cli
 
 templates:

@@ -1,0 +1,8 @@
+---
+name: migrate-to-pxc
+dependencies:
+  - golang
+files:
+  - migrate-to-pxc/**/*.go
+excluded_files:
+  - "**/*_test.go"

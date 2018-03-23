@@ -1,0 +1,54 @@
+<%=
+  cluster_ips = link('mysql').instances.map { |instance| instance.address }
+  galera_agent_port = link('mysql').p('galera_agent.port')
+  mysql_port = link('mysql').p('port')
+
+  proxy_uris = []
+  if_p('api_uri') do |api_uri|
+    proxy_uris = link('proxy').instances.map do |instance|
+      "#{instance.index}-#{api_uri}"
+    end
+  end
+
+  backends = cluster_ips.map.with_index do |ip, n|
+    {
+      Host: ip,
+      Port: mysql_port,
+      StatusPort: galera_agent_port,
+      StatusEndpoint: 'api/v1/status',
+      Name: "backend-#{n}"
+    }
+  end
+
+  config = {
+    API: {
+      ProxyURIs: proxy_uris,
+      Port: p('api_port'),
+      AggregatorPort: p('api_aggregator_port'),
+      ForceHttps: p('api_force_https'),
+      Username: p('api_username'),
+      Password: p('api_password')
+    },
+    Proxy: {
+      Port: p('port'),
+      HealthcheckTimeoutMillis: p('healthcheck_timeout_millis'),
+      ShutdownDelaySeconds: p('shutdown_delay'),
+      Backends: backends,
+    },
+    HealthPort: p('health_port'),
+    Profiling: {
+      Enabled: p('profiling_enabled'),
+      Port: 6060
+    },
+    StaticDir: '/var/vcap/packages/proxy/static',
+    PidFile: '/var/vcap/sys/run/proxy/proxy.pid'
+
+  }
+
+  if p('consul_enabled')
+    config[:ConsulCluster] = 'http://127.0.0.1:8500'
+    config[:ConsulServiceName] = p('consul_service_name')
+  end
+
+  JSON.pretty_generate(config)
+%>

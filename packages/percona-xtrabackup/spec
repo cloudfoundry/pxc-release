@@ -1,0 +1,10 @@
+---
+name: percona-xtrabackup
+
+dependencies: []
+
+files:
+- boost/boost_1_59_0.tar.gz
+- libaio/libaio_*.orig.tar.gz
+- libev/libev-*.tar.gz
+- xtrabackup/percona-xtrabackup-*.tar.gz
