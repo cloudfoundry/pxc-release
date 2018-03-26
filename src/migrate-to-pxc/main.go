@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	rootPassword := os.Getenv("MYSQL_ROOT_PASSWORD")
+	mysqlAdminUsername := os.Getenv("MYSQL_USERNAME")
+	mysqlAdminPassword := os.Getenv("MYSQL_PASSWORD")
 
 	fmt.Println("starting mysql servers...")
 	//Start mariadb
@@ -23,13 +24,20 @@ func main() {
 		panic(err)
 	}
 
-	//Wait for db
-	time.Sleep(15 * time.Second)
+	dsn := fmt.Sprintf("%s:%s@unix(%s)/", mysqlAdminUsername, mysqlAdminPassword, "/var/vcap/sys/run/mysql/mysqld.sock")
 
-	dsn := fmt.Sprintf("%s:%s@unix(%s)/", "root", rootPassword, "/var/vcap/sys/run/mysql/mysqld.sock")
-	mariadbDatabaseConnection, err := sql.Open("mysql", dsn)
-	if err != nil {
-		panic(err)
+	var mariadbDatabaseConnection *sql.DB
+
+	for tries := 0; tries < 20; tries++ {
+		mariadbDatabaseConnection, err = sql.Open("mysql", dsn)
+		if err == nil {
+			break
+		}
+
+		if tries == 19 {
+			panic(err)
+		}
+		time.Sleep(5 * time.Second)
 	}
 
 	fmt.Println("retrieving databases...")

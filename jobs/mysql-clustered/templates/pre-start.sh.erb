@@ -99,7 +99,7 @@ function check_mysql_disk_capacity() {
   fi
 }
 
-if ! test -d ${datadir}; then
+if [ ! -d "${datadir}" ]; then
   log "pre-start setup script: making ${datadir} and running /var/vcap/packages/pxc/bin/mysqld"
   mkdir -p ${datadir}
   check_mysql_filesystem
@@ -120,6 +120,9 @@ rm -f /etc/my.cnf
 # environment variable all the way down to wsrep_sst_xtrabackup-v2 for SSTs
 GALERA_INIT_PREFIX_CMD="su vcap -c -o pipefail" ${PXC_JOB_DIR}/bin/pre-start-execution
 
-
-# MYSQL_ROOT_PASSWORD="<%= p('admin_password') %>" /var/vcap/packages/migrate-to-pxc/bin/migrate-to-pxc
+if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/mysql-clustered/migrated-successfully" ]; then
+  MYSQL_USERNAME="<%= p('admin_username') %>" MYSQL_PASSWORD="<%= p('admin_password') %>" /var/vcap/packages/migrate-to-pxc/bin/migrate-to-pxc
+  mv /var/vcap/store/mysql /var/vcap/store/mysql-migration-backup
+  echo "DO NOT DELETE THIS FILE; YOU WILL LOSE DATA" > /var/vcap/store/mysql-clustered/migrated-successfully
+fi
 <% end %>
