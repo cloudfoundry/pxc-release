@@ -163,24 +163,6 @@ properties:
     default: false
   roadmin_password:
     description: 'Password for the MySQL server read-only admin user'
-  server_audit_events:
-    description: 'Enable audit logging and specify types of events that will be logged. If null, then logging is disabled'
-    example: 'connect,query_ddl,query_dml,query_dcl'
-  server_audit_file_rotations:
-    default: 30
-    description: 'Number of audit file rotations to keep'
-  server_audit_file_rotate_size_in_mb:
-    default: 100
-    description: 'Size in MB of each audit log file'
-  server_audit_excluded_users:
-    description: 'Other database users to exclude from audit logging'
-    default: []
-    example: |
-      - monitoring_user
-      - other_excluded_user
-      - bot_user
-  server_audit_excluded_users_csv:
-    description: 'Additional database users to exclude from audit logging, will be combined with uses specified in server_audit_excluded_users'
   cluster_name:
     description: 'A unique name for this cluster. ONLY set before first deployment. DO NOT attempt to change an existing multi-node cluster.'
     default: 'galera-cluster'

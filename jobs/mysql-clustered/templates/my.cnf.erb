@@ -17,18 +17,6 @@
     network.ip
   end
 
-  def excluded_audit_users
-    return ['quota-enforcer', 'galera-agent'] + p('server_audit_excluded_users') + csv_excluded_audit_users
-  end
-
-  def csv_excluded_audit_users
-    if_p('server_audit_excluded_users_csv') do |user_csv|
-      return user_csv.split(',')
-    end.else do
-      return []
-    end
-  end
-
   node_host = discover_external_ip
   if_p('advertise_host') do |advertise_host|
     node_host = advertise_host
@@ -146,17 +134,6 @@ innodb_strict_mode              = OFF
 
 max_heap_table_size             = <%= p('max_heap_table_size') %>
 tmp_table_size                  = <%= p('tmp_table_size') %>
-
-<% if_p('server_audit_events') do |server_audit_events| %>
-# Audit logging
-plugin-load                     = server_audit=server_audit.so
-server_audit_logging            = ON
-server_audit_events             = <%= server_audit_events %>
-server_audit_output_type        = file
-server_audit_file_path          = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
-server_audit_excl_users         = <%= excluded_audit_users.join(',') %>
-server_audit_file_rotations     = 0
-<% end %>
 
 # These are mandatory MySQL settings for Galera to work
 binlog_format                   = ROW
