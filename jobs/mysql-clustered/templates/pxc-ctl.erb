@@ -28,7 +28,7 @@ export PATH=$PATH:/var/vcap/packages/pxc/bin
 # add socat to path
 export PATH=$PATH:/var/vcap/packages/socat/bin
 
-ulimit -n <%= p('pxc.mysql.max_open_files') %>
+ulimit -n <%= p('max_open_files') %>
 
 if [[ ! -d "$RUN_DIR" ]]; then
   mkdir -p $RUN_DIR

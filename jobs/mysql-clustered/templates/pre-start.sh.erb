@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-<% if p('pxc.mysql.pxc_enabled') == true %>
+<% if p('pxc_enabled') == true %>
 set -e
 set -o pipefail
 
@@ -35,7 +35,7 @@ chown -R vcap:vcap $MYSQL_RUN_DIR
 log "pre-start setup script: set up ENV and logging"
 
 
-<% if_p('pxc.mysql.server_audit_events') do |_| %>
+<% if_p('server_audit_events') do |_| %>
 mkdir -p ${SERVER_AUDIT_LOG_DIR}
 chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
 
@@ -67,14 +67,14 @@ chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
 
 # /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \ #FIXME
 #    -f /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf \ #FIXME
-#    -P <%= p('pxc.mysql.innodb_buffer_pool_size_percent') %>
+#    -P <%= p('innodb_buffer_pool_size_percent') %>
 
 rm -f /etc/profile.d/disable_mysql_cli_history.sh
-<% unless p('pxc.mysql.cli_history') %>
+<% unless p('cli_history') %>
 ln -sf $PXC_JOB_DIR/config/disable_mysql_cli_history.sh /etc/profile.d/disable_mysql_cli_history.sh
 <% end %>
 
-ulimit -n <%= p('pxc.mysql.max_open_files') %>
+ulimit -n <%= p('max_open_files') %>
 
 
 function check_mysql_filesystem() {
@@ -121,7 +121,7 @@ rm -f /etc/my.cnf
 GALERA_INIT_PREFIX_CMD="su vcap -c -o pipefail" ${PXC_JOB_DIR}/bin/pre-start-execution
 
 if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/mysql-clustered/migrated-successfully" ]; then
-  MYSQL_USERNAME="<%= p('pxc.mysql.admin_username') %>" MYSQL_PASSWORD="<%= p('pxc.mysql.admin_password') %>" /var/vcap/packages/migrate-to-pxc/bin/migrate-to-pxc
+  MYSQL_USERNAME="<%= p('admin_username') %>" MYSQL_PASSWORD="<%= p('admin_password') %>" /var/vcap/packages/migrate-to-pxc/bin/migrate-to-pxc
   mv /var/vcap/store/mysql /var/vcap/store/mysql-migration-backup
   echo "DO NOT DELETE THIS FILE; YOU WILL LOSE DATA" > /var/vcap/store/mysql-clustered/migrated-successfully
 fi

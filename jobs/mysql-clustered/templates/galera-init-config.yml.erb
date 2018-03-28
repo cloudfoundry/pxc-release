@@ -25,10 +25,10 @@ PidFile: /var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
 ChildPidFile: /var/vcap/sys/run/mysql-clustered/mysql.pid
 Db:
   UpgradePath: /var/vcap/packages/pxc/bin/mysql_upgrade
-  User: <%= p('pxc.mysql.admin_username')%>
-  Password: <%= p('pxc.mysql.admin_password')%>
+  User: <%= p('admin_username')%>
+  Password: <%= p('admin_password')%>
   PreseededDatabases:
-  <% p('pxc.mysql.seeded_databases').each do |seed| %>
+  <% p('seeded_databases').each do |seed| %>
   - DBName: <%= seed["name"] %>
     User: <%= seed["username"]%>
     Password: <%= seed["password"] %>
@@ -46,4 +46,4 @@ Manager:
   - <%= ip %>
   <% end %>
   BootstrapNode: <%= spec.bootstrap %>
-  ClusterProbeTimeout: <%= p('pxc.mysql.cluster_probe_timeout') %>
+  ClusterProbeTimeout: <%= p('cluster_probe_timeout') %>

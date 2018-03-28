@@ -39,115 +39,115 @@ provides:
 - name: mysql-clustered
   type: mysql-clustered
   properties:
-  - pxc.mysql.port
-  - pxc.mysql.galera_agent.port
-  - pxc.mysql.galera_agent.endpoint_username
-  - pxc.mysql.galera_agent.endpoint_password
+  - port
+  - galera_agent.port
+  - galera_agent.endpoint_username
+  - galera_agent.endpoint_password
 - name: internal-mysql-database
   type: internal-database
 
 properties:
 
-  pxc.mysql.pxc_enabled:
+  pxc_enabled:
     default: true
-  pxc.mysql.admin_username:
+  admin_username:
     description: 'Username for the MySQL server admin user'
     default: 'root'
-  pxc.mysql.admin_password:
+  admin_password:
     description: 'Password for the MySQL server admin user'
-  pxc.mysql.previous_admin_username:
+  previous_admin_username:
     description: 'Optional. Previous username of the MySQL server admin user to be removed. Use this when changing the admin_username to avoid leaving around an unused user with root access.'
-  pxc.mysql.remote_admin_access:
+  remote_admin_access:
     description: 'When enabled, admin and roadmin will be able to connect from any remote host.'
     default: false
-  pxc.mysql.port:
+  port:
     description: 'Port the mysql server should bind to'
     default: 3306
-  pxc.mysql.advertise_host:
+  advertise_host:
     description: |
       Optional. IP address used to reach mysql from other cluster members
       If not provided, the IP is automatically determined.
-  pxc.mysql.galera_port:
+  galera_port:
     description: 'Port which Galera Cluster uses for communication across nodes'
     default: 4567
-  pxc.mysql.max_connections:
+  max_connections:
     description: 'Maximum total number of database connections for the node'
     default: 1500
-  pxc.mysql.tls.galera.ca:
+  tls.galera.ca:
     description: 'CA Certificate which signed the galera server certificate'
-  pxc.mysql.tls.galera.certificate:
+  tls.galera.certificate:
     description: 'Server certificate for galera cluster encryption'
-  pxc.mysql.tls.galera.private_key:
+  tls.galera.private_key:
     description: 'Private key for galera cluster encryption'
-  pxc.mysql.tls.server.ca:
+  tls.server.ca:
     description: 'CA Certificate which signed the server certificate'
-  pxc.mysql.tls.server.certificate:
+  tls.server.certificate:
     description: 'Server certificate for mysql server encryption'
-  pxc.mysql.tls.server.private_key:
+  tls.server.private_key:
     description: 'Private key for mysql server encryption'
-  pxc.mysql.character_set_server:
+  character_set_server:
     description: 'Default character set. Note that while the MySQL default is latin1, we default to utf8.'
     default: utf8
-  pxc.mysql.collation_server:
+  collation_server:
     description: 'Default collation. Use SHOW COLLATION to view the valid collations for your character set.'
     default: utf8_unicode_ci
-  pxc.mysql.max_open_files:
+  max_open_files:
     description: 'Configure this number to be comfortably larger than the maximum number of tables you expect the database to support.'
     default: 65536
-  pxc.mysql.innodb_buffer_pool_size:
+  innodb_buffer_pool_size:
     description: 'Optional, the size in bytes of the memory buffer InnoDB uses to cache data and indexes of its tables'
-  pxc.mysql.innodb_buffer_pool_size_percent:
+  innodb_buffer_pool_size_percent:
     description: "Set this to an integer which represents the percentage of system RAM to reserve for InnoDB's buffer pool"
     default: 50
-  pxc.mysql.innodb_buffer_pool_instances:
+  innodb_buffer_pool_instances:
     description: 'Optional, number of buffer pool instances for InnoDB used if innodb_buffer_pool_size > 1GB'
-  pxc.mysql.innodb_lock_wait_timeout:
+  innodb_lock_wait_timeout:
     description: 'Optional, time in seconds that an InnoDB transaction waits for an InnoDB row lock'
-  pxc.mysql.innodb_log_buffer_size:
+  innodb_log_buffer_size:
     description: 'Size in bytes of the buffer for writing log files to disk. Increasing this means larger transactions can run without needing to perform disk I/O before committing.'
     default: 32M
-  pxc.mysql.innodb_flush_log_at_trx_commit:
+  innodb_flush_log_at_trx_commit:
     description: 'Optional, control balance between performance and full ACID compliance. Valid values are: 0, 1, 2'
     default: 1
-  pxc.mysql.innodb_flush_method:
+  innodb_flush_method:
     description: 'Advanced configuration variable, consult the documentation before changing. Controls how MySQL opens data files; by default uses fsync(). Set to O_DIRECT if innodb_buffer_pool is sufficiently large that you can use O_DIRECT thus avoiding double-buffering.'
-  pxc.mysql.innodb_large_prefix_enabled:
+  innodb_large_prefix_enabled:
     description: 'Whether innodb_large_prefix is enabled'
     default: true
-  pxc.mysql.innodb_strict_mode:
+  innodb_strict_mode:
     description: 'Whether innodb_strict_mode is enabled'
     default: false
-  pxc.mysql.max_allowed_packet:
+  max_allowed_packet:
     description: 'The maximum size in bytes of a packet or a generated/intermediate string'
     default: 256M
-  pxc.mysql.max_heap_table_size:
+  max_heap_table_size:
     description: 'The maximum size (in rows) to which user-created MEMORY tables are permitted to grow'
     default: 16777216
-  pxc.mysql.table_definition_cache_size:
+  table_definition_cache_size:
     description: 'Set this to a number relative to the number of tables the server will manage.'
     default: 8192
-  pxc.mysql.table_open_cache:
+  table_open_cache:
     description: 'Configure the number of table handles to keep open'
     default: 2000
-  pxc.mysql.tmp_table_size:
+  tmp_table_size:
     description: 'The maximum size (in bytes) of internal in-memory temporary tables'
     default: 33554432
-  pxc.mysql.wsrep_max_ws_rows:
+  wsrep_max_ws_rows:
     description: 'Maximum permitted number of rows per writeset.'
     default: 0
-  pxc.mysql.wsrep_max_ws_size:
+  wsrep_max_ws_size:
     description: 'Maximum permitted size in bytes per writeset.'
     default: 1073741824
-  pxc.mysql.skip_name_resolve:
+  skip_name_resolve:
     description: 'Do not restrict connections to database based on hostname'
     default: true
-  pxc.mysql.gcache_size:
+  gcache_size:
     description: 'Cache size used by galera (maximum amount of data possible in an IST), in MB'
     default: 512
-  pxc.mysql.ib_log_file_size:
+  ib_log_file_size:
     description: 'Size of the ib_log_file used by innodb, in MB'
     default: 1024
-  pxc.mysql.seeded_databases:
+  seeded_databases:
     description: 'Set of databases to seed'
     default: {}
     example: |
@@ -157,69 +157,69 @@ properties:
       - name: db2
         username: user2
         password: pw2
-  pxc.mysql.roadmin_enabled:
+  roadmin_enabled:
     description: 'Whether read only user is enabled'
     default: false
-  pxc.mysql.roadmin_password:
+  roadmin_password:
     description: 'Password for the MySQL server read-only admin user'
-  pxc.mysql.cluster_name:
+  cluster_name:
     description: 'A unique name for this cluster. ONLY set before first deployment. DO NOT attempt to change an existing multi-node cluster.'
     default: 'galera-cluster'
-  pxc.mysql.cluster_health.log_interval:
+  cluster_health.log_interval:
     description: 'Time in seconds between log entries for cluster health'
     default: 30
-  pxc.mysql.cluster_health.password:
+  cluster_health.password:
     description: 'Password for the cluster logger health user'
 
-  pxc.mysql.galera_agent.endpoint_username:
+  galera_agent.endpoint_username:
     description: 'Username used by the sidecar endpoints for Basic Auth'
     default: galera-agent
-  pxc.mysql.galera_agent.endpoint_password:
+  galera_agent.endpoint_password:
     description: 'Password used by the sidecar endpoints for Basic Auth'
-  pxc.mysql.galera_agent.port:
+  galera_agent.port:
     description: 'Port used by sidecar process to listen on'
     default: 9200
-  pxc.mysql.galera_agent.db_password:
+  galera_agent.db_password:
     description: 'Password used by the sidecar to connect to the database'
 
 
-  pxc.mysql.cluster_probe_timeout:
+  cluster_probe_timeout:
     description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'
     default: 10
 
-  pxc.mysql.userstat:
+  userstat:
     default: false
     description: 'Enables user statistics, adding several new information schema tables and new FLUSH and SHOW commands.'
 
-  pxc.mysql.binlog_enabled:
+  binlog_enabled:
     default: true
     description: 'Enable binlogs across all nodes'
-  pxc.mysql.binlog_expire_days:
+  binlog_expire_days:
     default: 7
     description: 'Time in days to store binlogs before purging'
-  pxc.mysql.cli_history:
+  cli_history:
     description: "When set to false, disables cli history on the mysql vms."
     default: true
-  pxc.mysql.wsrep_debug:
+  wsrep_debug:
     description: "When set to on, enables additional debugging output for the database server error log."
     default: "OFF"
-  pxc.mysql.log_conflicts:
+  log_conflicts:
     default: true
     description: 'Defines whether the node logs additional information about conflicts. The values that were in conflict are logged, so it is possible for user data to end up in the logs.'
-  pxc.mysql.log_queries_not_using_indexes:
+  log_queries_not_using_indexes:
     default: false
     description: "Queries that don't use an index, or that perform a full index scan where the index doesn't limit the number of rows, will be logged to the slow query log."
-  pxc.mysql.event_scheduler:
+  event_scheduler:
     default: "OFF"
     description: Events are named database objects containing SQL statements that are to be executed at a later stage, either once off, or at regular intervals.
-  pxc.mysql.startup_timeout:
+  startup_timeout:
     default: 60
     description: 'Number of seconds that monit should wait for mysql to start before giving up'
-  pxc.mysql.enable_local_file:
+  enable_local_file:
     default: true
     description: 'Allow or disallow clients to access local files'
 
-  pxc.mysql.long_query_time:
+  long_query_time:
     default: 10
     description: 'Threshold in seconds above which SQL queries get logged in the slow query log file'
 
