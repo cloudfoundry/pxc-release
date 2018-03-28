@@ -39,10 +39,10 @@ provides:
 - name: mysql-clustered
   type: mysql-clustered
   properties:
-  - port
-  - galera_agent.port
-  - galera_agent.endpoint_username
-  - galera_agent.endpoint_password
+  - pxc.mysql.port
+  - pxc.mysql.galera_agent.port
+  - pxc.mysql.galera_agent.endpoint_username
+  - pxc.mysql.galera_agent.endpoint_password
 - name: internal-mysql-database
   type: internal-database
 

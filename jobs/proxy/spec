@@ -21,11 +21,11 @@ provides:
 - name: proxy
   type: proxy
   properties:
-  - api_username
-  - api_password
-  - api_port
-  - api_aggregator_port
-  - port
+  - pxc.proxy.api_username
+  - pxc.proxy.api_password
+  - pxc.proxy.api_port
+  - pxc.proxy.api_aggregator_port
+  - pxc.proxy.port
 - name: mysql-database
   type: database
 
