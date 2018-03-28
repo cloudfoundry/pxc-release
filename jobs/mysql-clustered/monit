@@ -1,7 +1,7 @@
-<% if p('pxc_enabled') == true %>
+<% if p('pxc.mysql.pxc_enabled') == true %>
 check process galera-init
   with pidfile /var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
-  start program "/var/vcap/jobs/mysql-clustered/bin/pxc-ctl start" with timeout <%= p('startup_timeout') %> seconds
+  start program "/var/vcap/jobs/mysql-clustered/bin/pxc-ctl start" with timeout <%= p('pxc.mysql.startup_timeout') %> seconds
   stop program "/var/vcap/jobs/mysql-clustered/bin/pxc-ctl stop"
   group vcap
 

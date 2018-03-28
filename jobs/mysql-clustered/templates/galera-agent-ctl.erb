@@ -25,7 +25,7 @@ case $1 in
 
     cd $package_dir
 
-    ulimit -n <%= p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
+    ulimit -n <%= p('pxc.mysql.max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
 
     su - vcap -c -o pipefail \
       "$package_dir/bin/galera-agent \

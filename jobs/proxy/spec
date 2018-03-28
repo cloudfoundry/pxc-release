@@ -34,67 +34,59 @@ packages:
 - pxc-utils
 
 properties:
-
-  port:
-    description: 'Port the mysql server listens on'
-    default: 3306
-  galera_agent.port:
-    description: 'Port galera_agent sidecar process listens on'
-    default: 9200
-
-  port:
+  pxc.proxy.port:
     description: "Port for the proxy to listen on"
     default: 3306
-  healthcheck_timeout_millis:
+  pxc.proxy.healthcheck_timeout_millis:
     description: "Timeout (milliseconds) before assuming a backend is unhealthy"
     default: 5000
-  api_port:
+  pxc.proxy.api_port:
     description: "Port for the proxy API to listen on"
     default: 8080
-  api_aggregator_port:
+  pxc.proxy.api_aggregator_port:
     description: "Port for the proxy aggregator API to listen on"
     default: 8082
-  api_uri:
+  pxc.proxy.api_uri:
     description: |
       Optional, Base URI registered to the proxies.
       Used by the proxy aggregator.
     example: "proxy-cf-mysql.my-system-domain.com"
-  api_force_https:
+  pxc.proxy.api_force_https:
     description: "Redirect all HTTP requests to the API to HTTPS"
     default: true
-  api_username:
+  pxc.proxy.api_username:
     description: "Username for Basic Auth used to secure API"
     default: proxy
-  api_password:
+  pxc.proxy.api_password:
     description: "Password for Basic Auth used to secure API"
-  health_port:
+  pxc.proxy.health_port:
     description: "Port for checking the health of the proxy process"
     default: 1936
-  consul_enabled:
+  pxc.proxy.consul_enabled:
     description: |
       Enable discovery of proxy through consul
     default: false
-  consul_service_name:
+  pxc.proxy.consul_service_name:
     description: |
       If consul_enabled is true, proxy will register with consul using this name
     default: "mysql"
-  max_open_files:
+  pxc.proxy.max_open_files:
     description: |
       Configure this number to be twice as large as mysql.max_connections
     default: 3000
-  profiling_enabled:
+  pxc.proxy.profiling_enabled:
     description: |
       When set to true, the proxy will listen on port 6060 and enable
       profiling of the process
     default: false
-  startup_delay:
+  pxc.proxy.startup_delay:
     description: |
       If using a load balancer above the proxies,
       enter your load balancer's healthy total threshold time here in seconds.
       E.g., if your LB polls every 30 seconds and requires 3 successful attempts,
       then set this property to 90 seconds.
     default: 0
-  shutdown_delay:
+  pxc.proxy.shutdown_delay:
     description: |
       If using a load balancer above the proxies,
       enter your load balancer's unhealthy total threshold time here in seconds.

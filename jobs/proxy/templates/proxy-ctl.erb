@@ -11,7 +11,7 @@ export PATH=$GOROOT/bin:$PWD/bin:$PATH
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 
-ulimit -n <%= p('max_open_files') %>
+ulimit -n <%= p('pxc.proxy.max_open_files') %>
 
 case $1 in
 
@@ -36,7 +36,7 @@ case $1 in
 
   stop)
     log "Stopping proxy..."
-    kill_and_wait $pidfile <%= p('shutdown_delay').to_i + 20 %>
+    kill_and_wait $pidfile <%= p('pxc.proxy.shutdown_delay').to_i + 20 %>
     log "Stopping proxy... done"
     ;;
 

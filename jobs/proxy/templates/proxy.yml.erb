@@ -4,7 +4,7 @@
   mysql_port = link('mysql').p('port')
 
   proxy_uris = []
-  if_p('api_uri') do |api_uri|
+  if_p('pxc.proxy.api_uri') do |api_uri|
     proxy_uris = link('proxy').instances.map do |instance|
       "#{instance.index}-#{api_uri}"
     end
@@ -23,21 +23,21 @@
   config = {
     API: {
       ProxyURIs: proxy_uris,
-      Port: p('api_port'),
-      AggregatorPort: p('api_aggregator_port'),
-      ForceHttps: p('api_force_https'),
-      Username: p('api_username'),
-      Password: p('api_password')
+      Port: p('pxc.proxy.api_port'),
+      AggregatorPort: p('pxc.proxy.api_aggregator_port'),
+      ForceHttps: p('pxc.proxy.api_force_https'),
+      Username: p('pxc.proxy.api_username'),
+      Password: p('pxc.proxy.api_password')
     },
     Proxy: {
-      Port: p('port'),
-      HealthcheckTimeoutMillis: p('healthcheck_timeout_millis'),
-      ShutdownDelaySeconds: p('shutdown_delay'),
+      Port: p('pxc.proxy.port'),
+      HealthcheckTimeoutMillis: p('pxc.proxy.healthcheck_timeout_millis'),
+      ShutdownDelaySeconds: p('pxc.proxy.shutdown_delay'),
       Backends: backends,
     },
-    HealthPort: p('health_port'),
+    HealthPort: p('pxc.proxy.health_port'),
     Profiling: {
-      Enabled: p('profiling_enabled'),
+      Enabled: p('pxc.proxy.profiling_enabled'),
       Port: 6060
     },
     StaticDir: '/var/vcap/packages/proxy/static',
@@ -45,9 +45,9 @@
 
   }
 
-  if p('consul_enabled')
+  if p('pxc.proxy.consul_enabled')
     config[:ConsulCluster] = 'http://127.0.0.1:8500'
-    config[:ConsulServiceName] = p('consul_service_name')
+    config[:ConsulServiceName] = p('pxc.proxy.consul_service_name')
   end
 
   JSON.pretty_generate(config)

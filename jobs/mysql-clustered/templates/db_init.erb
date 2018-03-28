@@ -1,5 +1,5 @@
 <%
-  if p('remote_admin_access')
+  if p('pxc.mysql.remote_admin_access')
     hosts = ['%']
   else
     hosts = %w{localhost 127.0.0.1 ::1}
@@ -8,34 +8,34 @@
 %>
 
 DELETE FROM mysql.user WHERE User='';
-<% if_p('previous_admin_username') do |previous_username| %>
+<% if_p('pxc.mysql.previous_admin_username') do |previous_username| %>
   <%
-    if previous_username == p('admin_username')
+    if previous_username == p('pxc.mysql.admin_username')
       raise "admin_username must not equal previous_admin_username"
     end
   %>
 DELETE FROM mysql.user WHERE User='<%= previous_username %>';
 <% end %>
-<% if p('admin_username') != 'root' %>
+<% if p('pxc.mysql.admin_username') != 'root' %>
 DELETE FROM mysql.user WHERE User='root';
 <% end %>
 
 <% hosts.each do |host| %>
-CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
-SET PASSWORD FOR '<%= p('admin_username') %>'@'<%= host %>' = PASSWORD('<%= p('admin_password') %>');
-GRANT ALL PRIVILEGES ON *.* TO '<%= p('admin_username') %>'@'<%= host %>' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS '<%= p('pxc.mysql.admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('pxc.mysql.admin_password') %>';
+SET PASSWORD FOR '<%= p('pxc.mysql.admin_username') %>'@'<%= host %>' = PASSWORD('<%= p('pxc.mysql.admin_password') %>');
+GRANT ALL PRIVILEGES ON *.* TO '<%= p('pxc.mysql.admin_username') %>'@'<%= host %>' WITH GRANT OPTION;
 
-  <% if p('roadmin_enabled') %>
-CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED BY '<%= p('roadmin_password') %>';
-SET PASSWORD FOR 'roadmin'@'<%= host %>' = PASSWORD('<%= p('roadmin_password') %>');
+  <% if p('pxc.mysql.roadmin_enabled') %>
+CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED BY '<%= p('pxc.mysql.roadmin_password') %>';
+SET PASSWORD FOR 'roadmin'@'<%= host %>' = PASSWORD('<%= p('pxc.mysql.roadmin_password') %>');
 GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
   <% end %>
 <% end %>
 
-DELETE FROM mysql.user WHERE User='<%= p('admin_username') %>' AND Host NOT IN (<%= quoted_hosts_string %>);
+DELETE FROM mysql.user WHERE User='<%= p('pxc.mysql.admin_username') %>' AND Host NOT IN (<%= quoted_hosts_string %>);
 
 DELETE FROM mysql.user WHERE User='roadmin' AND Host NOT IN (<%= quoted_hosts_string %>);
-<% unless p('roadmin_enabled') %>
+<% unless p('pxc.mysql.roadmin_enabled') %>
 DELETE FROM mysql.user WHERE User='roadmin';
 <% end %>
 
