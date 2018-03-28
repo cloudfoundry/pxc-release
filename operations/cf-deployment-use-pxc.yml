@@ -60,7 +60,7 @@
   path: /instance_groups/name=database/jobs/name=proxy/properties
   value:
     pxc:
-      mysql:
+      proxy:
         api_password: "((cf_mysql_proxy_api_password))"
         consul_enabled: true
         consul_service_name: "sql-db"
