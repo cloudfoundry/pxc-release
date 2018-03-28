@@ -24,12 +24,12 @@ func main() {
 		panic(err)
 	}
 
-	dsn := fmt.Sprintf("%s:%s@unix(%s)/", mysqlAdminUsername, mysqlAdminPassword, "/var/vcap/sys/run/mysql/mysqld.sock")
+	mariadbConnectionString := fmt.Sprintf("%s:%s@unix(%s)/", mysqlAdminUsername, mysqlAdminPassword, "/var/vcap/sys/run/mysql/mysqld.sock")
 
 	var mariadbDatabaseConnection *sql.DB
 
 	for tries := 0; tries < 20; tries++ {
-		mariadbDatabaseConnection, err = sql.Open("mysql", dsn)
+		mariadbDatabaseConnection, err = sql.Open("mysql", mariadbConnectionString)
 		if err == nil {
 			break
 		}
