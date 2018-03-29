@@ -2,7 +2,9 @@
   path: /releases/name=cf-mysql
   value:
     name: pxc
-    version: latest
+    version: 0.1.0
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/pxc-release?v=0.1.0
+    sha: af9dc9f7218b1abff77f873e37cf465387ed9172
 
 - type: replace
   path: /instance_groups/name=database/jobs/name=mysql/name
