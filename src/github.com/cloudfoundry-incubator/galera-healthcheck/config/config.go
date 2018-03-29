@@ -22,6 +22,7 @@ type Config struct {
 	PidFile               string      `yaml:"PidFile" validate:"nonzero"`
 	Logger                lager.Logger
 	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
+	MyCnfPath             string                `yaml:"MyCnfPath" validate:"nonzero"`
 	SidecarEndpoint       SidecarEndpointConfig `yaml:"SidecarEndpoint" validate:"nonzero"`
 }
 

@@ -44,6 +44,7 @@ func (m *mysqldCmd) RecoverSeqno() (string, error) {
 	os.RemoveAll(errorLogFile) //ensure log is empty
 
 	cmd := exec.Command(m.mysqldconfig.MysqldPath,
+		fmt.Sprintf("--defaults-file=%s", m.mysqldconfig.MyCnfPath),
 		"--wsrep-recover",
 		fmt.Sprintf("--log-error=%s", errorLogFile))
 

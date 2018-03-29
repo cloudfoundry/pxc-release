@@ -44,6 +44,7 @@ var _ = Describe("Config", func() {
 					"ServiceName": "mariadb_ctrl"
 				},
 				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld",
+				"MyCnfPath": "/path/to/my.cnf",
 				"SidecarEndpoint": {
 					"Username": "username",
 					"Password": "password"
