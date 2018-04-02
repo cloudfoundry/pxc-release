@@ -33,10 +33,10 @@ func (m *MonitClient) GetLogger(req *http.Request) lager.Logger {
 }
 
 func (m *MonitClient) StartServiceBootstrap(req *http.Request) (string, error) {
-	if m.monitConfig.ServiceName == "mariadb_ctrl" {
-		return m.startService("bootstrap", true)
-	} else {
+	if m.monitConfig.ServiceName == "garbd" {
 		return "", errors.New("bootstrapping arbitrator not allowed")
+	} else {
+		return m.startService("bootstrap", true)
 	}
 }
 
@@ -51,7 +51,7 @@ func (m *MonitClient) StartServiceSingleNode(req *http.Request) (string, error) 
 }
 
 func (m *MonitClient) startService(startMode string, sstDisabled bool) (string, error) {
-	if m.monitConfig.ServiceName == "mariadb_ctrl" {
+	if m.monitConfig.ServiceName != "garbd" {
 		mySqlStartMode := mysql_start_mode.NewMysqlStartMode(m.monitConfig.MysqlStateFilePath, startMode)
 		err := mySqlStartMode.Start()
 		if err != nil {
