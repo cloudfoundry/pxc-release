@@ -2,6 +2,7 @@
 Port: <%= p('galera_agent.port') %>
 PidFile: '/var/vcap/sys/run/galera-agent/galera-agent.pid'
 MysqldPath: '/var/vcap/packages/pxc/bin/mysqld'
+MyCnfPath: '/var/vcap/jobs/mysql-clustered/config/my.cnf'
 DB:
   User: 'galera-agent'
   Password: '<%= p('galera_agent.db_password') %>'

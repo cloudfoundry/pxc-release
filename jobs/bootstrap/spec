@@ -1,0 +1,11 @@
+---
+name: bootstrap
+packages:
+  - bootstrap
+templates:
+  errand.sh.erb: bin/run
+  config.yml.erb: config/config.yml
+
+consumes:
+- name: mysql-clustered
+  type: mysql-clustered

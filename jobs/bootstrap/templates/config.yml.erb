@@ -1,0 +1,17 @@
+<%=
+  mysql_link = link('mysql-clustered')
+  cluster_ips = mysql_link.instances.map { |instance| instance.address }
+  galera_agent_port = mysql_link.p('galera_agent.port')
+  galera_agent_username = mysql_link.p('galera_agent.endpoint_username')
+  galera_agent_password = mysql_link.p('galera_agent.endpoint_password')
+
+  config = {
+    HealthcheckURLs: cluster_ips.map {|ip| "http://#{ip}:#{galera_agent_port}" },
+    Username: galera_agent_username,
+    Password: galera_agent_password,
+    LogFilePath: '/var/vcap/sys/log/bootstrap/bootstrap.log',
+    RepairMode: 'bootstrap'
+  }
+
+  JSON.pretty_generate(config)
+%>
