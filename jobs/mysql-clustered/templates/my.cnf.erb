@@ -17,6 +17,19 @@
     network.ip
   end
 
+  def csv_excluded_audit_users
+    if_p('server_audit_excluded_users_csv') do |user_csv|
+      return user_csv.split(',')
+    end.else do
+      return []
+    end
+  end
+
+  def excluded_audit_users
+    users = p('server_audit_excluded_users') + csv_excluded_audit_users
+    ["'galera-agent'@'127.0.0.1'"] + users.collect {|user| "'#{user}'@'%'"}
+  end
+
   node_host = discover_external_ip
   if_p('advertise_host') do |advertise_host|
     node_host = advertise_host
@@ -173,6 +186,13 @@ max_connections                 = <%= p('max_connections') %>
 
 # Event Scheduler
 event_scheduler                 = <%= p('event_scheduler') %>
+
+<% if p('server_audit_logs_enabled') %>
+plugin-load                     = audit_log=audit_log.so
+audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
+audit_log_format                = JSON
+audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
+<% end %>
 
 [sst]
 encrypt=4

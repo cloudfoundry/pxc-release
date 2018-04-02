@@ -2,6 +2,7 @@
 name: mysql-clustered
 
 templates:
+  audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
   db_init.erb: config/db_init
   galera-init-config.yml.erb: config/galera-init-config.yml
   my.cnf.erb: config/my.cnf
@@ -223,3 +224,21 @@ properties:
     default: 10
     description: 'Threshold in seconds above which SQL queries get logged in the slow query log file'
 
+  server_audit_logs_enabled:
+    default: false
+    description: 'Enable audit logging'
+  server_audit_file_rotations:
+    default: 30
+    description: 'Number of audit file rotations to keep'
+  server_audit_file_rotate_size_in_mb:
+    default: 100
+    description: 'Size in MB of each audit log file'
+  server_audit_excluded_users:
+    default: []
+    description: 'Database users to exclude from audit logging'
+    example: |
+      - monitoring_user
+      - other_excluded_user
+      - bot_user
+  server_audit_excluded_users_csv:
+    description: 'Additional database users to exclude from audit logging, will be combined with uses specified in server_audit_excluded_users'

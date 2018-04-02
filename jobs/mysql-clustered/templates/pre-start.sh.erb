@@ -34,15 +34,13 @@ chown -R vcap:vcap $MYSQL_RUN_DIR
 
 log "pre-start setup script: set up ENV and logging"
 
-
-<% if_p('server_audit_events') do |_| %>
+<% if p('server_audit_logs_enabled') %>
 mkdir -p ${SERVER_AUDIT_LOG_DIR}
 chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
 
 # logrotate audit logs
-ln -sf /var/vcap/jobs/mysql-clustered/config/mysql_audit_logs.logrotate /etc/logrotate.d/mysql_audit_logs
+ln -sf /var/vcap/jobs/mysql-clustered/config/mysql_clustered_audit_logs.logrotate /etc/logrotate.d/mysql_clustered_audit_logs
 <% end %>
-
 
 if [[ ! -d "$TMP_DIR" ]]; then
   log "pre-start setup script: directory $TMP_DIR does not exist, creating it now"
