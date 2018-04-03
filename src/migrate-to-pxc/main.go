@@ -44,9 +44,17 @@ func main() {
 	// Get all the database names
 	query := "select schema_name from information_schema.schemata where schema_name NOT IN ('performance_schema', 'mysql', 'information_schema')"
 
-	rows, err := mariadbDatabaseConnection.Query(query)
-	if err != nil {
-		panic(err)
+	var rows *sql.Rows
+	for tries := 0; tries < 20; tries++ {
+		rows, err = mariadbDatabaseConnection.Query(query)
+		if err == nil {
+			break
+		}
+
+		if tries == 19 {
+			panic(err)
+		}
+		time.Sleep(5 * time.Second)
 	}
 
 	var databaseNames []string
