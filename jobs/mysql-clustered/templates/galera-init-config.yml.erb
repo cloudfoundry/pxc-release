@@ -35,6 +35,7 @@ Db:
   <% end %>
   PostStartSQLFiles:
   - /var/vcap/jobs/mysql-clustered/config/galera-agent-setup.sql
+  - /var/vcap/jobs/mysql-clustered/config/cluster_health_logger_setup.sql
   Socket: /var/vcap/sys/run/mysql-clustered/mysqld.sock
 Upgrader:
   PackageVersionFile: /var/vcap/packages/pxc/VERSION

@@ -27,7 +27,7 @@
 
   def excluded_audit_users
     users = p('server_audit_excluded_users') + csv_excluded_audit_users
-    ["'galera-agent'@'127.0.0.1'"] + users.collect {|user| "'#{user}'@'%'"}
+    ["'galera-agent'@'127.0.0.1'", "'cluster-health-logger'@'127.0.0.1'"] + users.collect {|user| "'#{user}'@'%'"}
   end
 
   node_host = discover_external_ip

@@ -17,20 +17,23 @@ templates:
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-key.pem.erb: certificates/galera-key.pem
+  cluster_health_logger_ctl.sh.erb: bin/cluster_health_logger_ctl
+  cluster_health_logger_config.yml.erb: config/cluster_health_logger_config.yml
+  cluster_health_logger_setup.sql.erb: config/cluster_health_logger_setup.sql
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
   server-key.pem.erb: certificates/server-key.pem
 
 packages:
-- percona-xtrabackup
-- libgalera
 - galera-agent
-- pxc-utils
-- pxc
-- socat
 - galera-init
+- libgalera
 - migrate-to-pxc
-
+- percona-xtrabackup
+- pxc
+- pxc-cluster-health-logger
+- pxc-utils
+- socat
 
 consumes:
 - name: mysql-clustered

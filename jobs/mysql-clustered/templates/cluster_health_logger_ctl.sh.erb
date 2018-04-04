@@ -1,0 +1,40 @@
+#!/bin/bash -e
+
+source /var/vcap/packages/pxc-utils/pid_utils.sh
+source /var/vcap/packages/pxc-utils/logging.sh
+
+JOB_DIR=/var/vcap/jobs/mysql-clustered
+CONFIG_DIR=${JOB_DIR}/config
+RUN_DIR=/var/vcap/sys/run/mysql-clustered
+PID_FILE=${RUN_DIR}/cluster_health_logger.pid
+BIN_FILE=/var/vcap/packages/pxc-cluster-health-logger/bin/pxc-cluster-health-logger
+LOG_DIR=/var/vcap/sys/log/mysql-clustered
+
+output_to_logfiles ${LOG_DIR}
+
+case $1 in
+
+  start)
+    echo "Starting cluster_health_logger..."
+    pid_guard ${PID_FILE} "cluster_health_logger"
+    mkdir -p ${RUN_DIR}
+    echo $$ > ${PID_FILE}
+
+    chown -R vcap:vcap ${RUN_DIR}
+
+    exec chpst -u vcap:vcap ${BIN_FILE} -configPath=${CONFIG_DIR}/cluster_health_logger_config.yml
+
+    ;;
+
+  stop)
+    echo "stop script: stopping cluster_health_logger..."
+
+    kill_and_wait ${PID_FILE}
+    echo "stop script: completed stopping cluster_health_logger"
+    ;;
+
+  *)
+    echo "Usage: cluster_health_logger_ctl {start|stop}"
+    ;;
+
+esac

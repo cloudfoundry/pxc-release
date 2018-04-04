@@ -10,4 +10,10 @@ check process galera-agent
   start program "/var/vcap/jobs/mysql-clustered/bin/galera-agent-ctl start" with timeout 60 seconds
   stop program "/var/vcap/jobs/mysql-clustered/bin/galera-agent-ctl stop" with timeout 10 seconds
   group vcap
+
+check process cluster_health_logger
+  with pidfile /var/vcap/sys/run/mysql-clustered/cluster_health_logger.pid
+  start program "/var/vcap/jobs/mysql-clustered/bin/cluster_health_logger_ctl start"
+  stop program "/var/vcap/jobs/mysql-clustered/bin/cluster_health_logger_ctl stop"
+  group vcap
 <% end %>
