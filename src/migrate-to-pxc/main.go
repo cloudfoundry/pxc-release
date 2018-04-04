@@ -10,16 +10,29 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"migrate-to-pxc/disk"
+	"syscall"
+)
+
+var (
+	err error
 )
 
 func main() {
+
+	err = disk.RoomToMigrate(syscall.Statfs)
+
+	if err != nil {
+		panic(err)
+	}
+
 	mysqlAdminUsername := os.Getenv("MYSQL_USERNAME")
 	mysqlAdminPassword := os.Getenv("MYSQL_PASSWORD")
 
 	fmt.Println("starting mysql servers...")
 	//Start mariadb
 	mariadbCmd := exec.Command("/var/vcap/packages/mariadb/bin/mysqld_safe", "--defaults-file=/var/vcap/jobs/mysql/config/my.cnf", "--wsrep-on=OFF", "--wsrep-desync=ON", "--wsrep-OSU-method=RSU", "--wsrep-provider='none'", "--skip-networking")
-	err := mariadbCmd.Start()
+	err = mariadbCmd.Start()
 	if err != nil {
 		panic(err)
 	}
