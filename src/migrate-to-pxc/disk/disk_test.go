@@ -10,20 +10,29 @@ import (
 )
 
 var _ = Describe("Disk", func() {
-	It("returns an error message when there is not enough disk space", func() {
-		fakeStatsFunc := func(path string, stat *syscall.Statfs_t) error {
-			stat.Blocks = 100
-			stat.Bfree = 54
-			return nil
-		}
-		err := disk.RoomToMigrate(fakeStatsFunc)
-		Expect(err).To(MatchError("Cannot continue, insufficient disk space to complete migration"))
+	var (
+		blockSize uint32 = 500000
+		twoAndAHalfGBOfBlocks uint64 = 5
+	)
+
+	Context("when there isn't enough free space to copy the data in the mysql dir", func() {
+		It("returns an error message", func() {
+			fakeStatsFunc := func(path string, stat *syscall.Statfs_t) error {
+				stat.Blocks = 100
+				stat.Bfree = 54 - twoAndAHalfGBOfBlocks
+				stat.Bsize = blockSize
+				return nil
+			}
+			err := disk.RoomToMigrate(fakeStatsFunc)
+			Expect(err).To(MatchError("Cannot continue, insufficient disk space to complete migration"))
+		})
 	})
 
-	It("returns true when there is enough disk space", func() {
+	It("returns nil when there is enough disk space", func() {
 		fakeStatsFunc := func(path string, stat *syscall.Statfs_t) error {
 			stat.Blocks = 100
-			stat.Bfree = 55
+			stat.Bfree = 55 - twoAndAHalfGBOfBlocks
+			stat.Bsize = blockSize
 			return nil
 		}
 		err := disk.RoomToMigrate(fakeStatsFunc)
@@ -37,4 +46,5 @@ var _ = Describe("Disk", func() {
 		err := disk.RoomToMigrate(fakeStatsFunc)
 		Expect(err).To(HaveOccurred())
 	})
+
 })

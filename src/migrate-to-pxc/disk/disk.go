@@ -6,19 +6,24 @@ import (
 )
 
 func RoomToMigrate(diskUsageSyscall func(path string, stat *syscall.Statfs_t) error) error {
-	var stats syscall.Statfs_t
+	var stat syscall.Statfs_t
 
-	err := diskUsageSyscall("/var/vcap/store", &stats)
+	err := diskUsageSyscall("/var/vcap/store", &stat)
 
 	if err != nil {
 		return err
 	}
 
-	totalBlocks := stats.Blocks
-	freeBlocks := stats.Bfree
+	totalBlocks := stat.Blocks
+	freeBlocks := stat.Bfree
+	usedBlocks := totalBlocks - freeBlocks
 
-	if 100 * freeBlocks / totalBlocks < 55 {
+	emptyDBSizeBytes := 2500000
+	emptyDBSizeBlocks := uint64(emptyDBSizeBytes) / uint64(stat.Bsize)
+
+	if 100 * (usedBlocks - emptyDBSizeBlocks) / totalBlocks > 45 {
 		return errors.New("Cannot continue, insufficient disk space to complete migration")
 	}
+
 	return nil
 }
