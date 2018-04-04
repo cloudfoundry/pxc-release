@@ -1,8 +1,0 @@
----
-- type: replace
-  path: /releases/name=pxc/version
-  value: latest
-- type: remove
-  path: /releases/name=pxc/url
-- type: remove
-  path: /releases/name=pxc/sha

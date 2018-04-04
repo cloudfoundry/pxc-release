@@ -1,10 +1,9 @@
+---
 - type: replace
   path: /releases/name=cf-mysql
   value:
     name: pxc
-    version: 0.1.0
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/pxc-release?v=0.1.0
-    sha: af9dc9f7218b1abff77f873e37cf465387ed9172
+    version: latest
 
 - type: replace
   path: /instance_groups/name=database/jobs/name=mysql/name
@@ -64,7 +63,7 @@
     consul_service_name: "sql-db"
 
 - type: replace
-  path: /variables?/-
+  path: /variables/-
   value:
     name: pxc_galera_ca
     type: certificate
@@ -73,7 +72,7 @@
       common_name: pxc_galera_ca
 
 - type: replace
-  path: /variables?/-
+  path: /variables/-
   value:
     name: pxc_server_ca
     type: certificate
@@ -82,7 +81,7 @@
       common_name: pxc_server_ca
 
 - type: replace
-  path: /variables?/-
+  path: /variables/-
   value:
     name: galera_server_certificate
     type: certificate
@@ -91,7 +90,7 @@
       extended_key_usage: [ "server_auth", "client_auth" ]
 
 - type: replace
-  path: /variables?/-
+  path: /variables/-
   value:
     name: mysql_server_certificate
     type: certificate
