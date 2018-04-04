@@ -18,7 +18,7 @@ func RoomToMigrate(diskUsageSyscall func(path string, stat *syscall.Statfs_t) er
 	freeBlocks := stat.Bfree
 	usedBlocks := totalBlocks - freeBlocks
 
-	emptyDBSizeBytes := 2500000
+	emptyDBSizeBytes := 2500000000
 	emptyDBSizeBlocks := uint64(emptyDBSizeBytes) / uint64(stat.Bsize)
 
 	if 100 * (usedBlocks - emptyDBSizeBlocks) / totalBlocks > 45 {

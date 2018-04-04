@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("Disk", func() {
 	var (
-		blockSize uint32 = 500000
+		blockSize uint32 = 500000000
 		twoAndAHalfGBOfBlocks uint64 = 5
 	)
 
