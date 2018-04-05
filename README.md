@@ -30,7 +30,7 @@ The typical topology is 2 proxy nodes and 3 mysql-clustered nodes. The proxies c
 ### Database nodes
 
 The number of mysql nodes should always be odd, with a minimum count of three, to avoid [split-brain](http://en.wikipedia.org/wiki/Split-brain\_\(computing\)).
-When the failed node comes back online, it will automatically rejoin the cluster and sync data from one of the healthy nodes.
+When a failed node comes back online, it will automatically rejoin the cluster and sync data from one of the healthy nodes.
 
 ### Proxy nodes
 
@@ -47,14 +47,15 @@ Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment)
 
 <a name='deploying-with-non-cf-deployments'></a>
 ### Using PXC release with other deployments
-1. Get the latest bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
+1. Get the latest pxc bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
 2. Add the release from bosh.io to your manifest
-3. Configure the properties from the /jobs/spec sections for the mysql-clustered and the proxy jobs. You can use the manifest and ops-files in cf-deployment as a guide to configuring these properties. See [Deploying CF with pxc-release](#deploying-with-cf-deployment)
+3. Configure the properties from the job spec sections for the [mysql-clustered](jobs/mysql-clustered/spec) and the [proxy](jobs/mysql-clustered-spec) jobs. You can use the manifest and ops-files in cf-deployment as a guide to configuring these properties. See [Deploying CF with pxc-release](#deploying-with-cf-deployment)
 
 <a name='migrating-with-cf-deployment'></a>
 ## Migrating from cf-mysql-release
 
 Requirements:
+
 [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release/) v36.12.0 or greater
 
 <a name='migrating-with-cf-deployment'></a>
@@ -69,33 +70,31 @@ After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-depl
 ### Using PXC release with other deployments
 
 1. Make backups according to your usual backup procedure.
-1. Get the latest bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
-2. Add the release from bosh.io to your manifest
-2. ⚠️ **Scale down to 1 node and make sure your persistent disk has room for doubling the size of the mysql data.**
+1. Get the latest pxc bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
+2. Add the release to your manifest
+2. ⚠️ **Scale down to 1 node and ensure the persistent disk has enough free space to double the size of the mysql data.**
 3. Make the following changes to your bosh manifest:
    * Add the `mysql-clustered` job from `pxc-release` to the instance group that has the `mysql` job from `cf-mysql-release`
-   * Configure the `pxc-release` with the same credentials and property values as your `cf-mysql-release`
+   * Configure the `mysql-clustered` job with the same credentials and property values as the `mysql` job
    * To run the migration:
-      * Set the `cf_mysql_enabled: false` property on the `mysql` job in `cf-mysql-release`
-      * Set the `pxc_enabled: true` property on `mysql-clustered` job in `pxc-release`
-      * Switch the proxies to use the proxy job from the `pxc-release` instead of the `cf-mysql-release`
+      * Set the `cf_mysql_enabled: false` property on the `mysql` job
+      * Set the `pxc_enabled: true` property on `mysql-clustered` job
+      * Switch the proxies to use the proxy job from `pxc-release` instead of `cf-mysql-release`
       * Deploy using BOSH
 
    * To prepare for the migration, but not run it immediately:
-      * Set the `cf_mysql_enabled: true` property on the `mysql` job in `cf-mysql-release`
-      * Set the `pxc_enabled: false` property on `mysql-clustered` job in `pxc-release`
+      * Set the `cf_mysql_enabled: true` property on the `mysql` job
+      * Set the `pxc_enabled: false` property on `mysql-clustered` job
       * Deploy using BOSH
       * The MySQL will run as normal with only the `cf-mysql-release` running
       * In order to trigger the migration, redeploy with `cf_mysql_enabled: false` and `pxc_enabled: true`
 
    * ⚠️ **Do not enable both releases or disable both releases. Only enable one at a time.**
-4. The migration is triggered by setting `cf_mysql_enabled: false` and `pxc_enabled: true`. The `pre-start` script for the `mysql-clustered` job in `pxc-release` starts both the Mariadb MySQL from the `cf-mysql-release` and the Percona MySQL from `pxc-release`. The migration MySQL dumps the MariaDB MySQL and MySQL loads that data into the Percona MySQL. This is done using pipes, so the dump is not written to disk, to reduce the use of disk space. The MariaDB MySQL is then stopped, leaving only the Percona MySQL running.
-
-    Note:
-   * ⚠️ **This migration will require downtime for your MySQL DB.**
-5. After the migration, you can optionally do the following to clean up your deployment:
-   * The data from the MariaDB MySQL is left in the `/var/vcap/store/mysql` data dir after the migration. After the migration succeeds, you can delete the `/var/vcap/store/mysql` folder. The data for the Percona MySQL is stored in `/var/vcap/store/mysql-clustered`.
-   * Make your next deployment with just the pxc-release per [Deploying new deployments](#deploying-new-deployments). Nothing bad will happen if you keep deploying both releases though.
+4. The migration is triggered by deploying with `cf_mysql_enabled: false` and `pxc_enabled: true`. The `pre-start` script for the `mysql-clustered` job in `pxc-release` starts both the Mariadb MySQL from the `cf-mysql-release` and the Percona MySQL from `pxc-release`. The migration dumps the MariaDB MySQL and loads that data into the Percona MySQL. This is done using pipes, so the dump is not written to disk, in order to reduce the use of disk space. The MariaDB MySQL is then stopped, leaving only the Percona MySQL running.
+   * ⚠️ **MySQL DB will experience downtime during the migration**
+5. After the migration, you can optionally clean up your deployment:
+   * The migration will make a copy of the MySQL data on the persistent disk. To reduce disk usage, you can delete the old copy of the data in `/var/vcap/store/mysql` after you feel comfortable in the success of your migration. Do **NOT** delete the new copy of the data in `/var/vcap/store/mysql-clustered`.
+   * Deploy only the `pxc-release` and not the `cf-mysql-release` in future deployments per [Deploying new deployments](#deploying-new-deployments), to free up disk space used by the `cf-mysql-release`.
    
 6. Scale back up to the recommended 3 nodes, if desired.
 
