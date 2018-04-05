@@ -22,11 +22,82 @@ For more details see the [proxy documentation](/docs/proxy.md).
 
 <a name='deploying'></a>
 # Deploying
-Instructions on deploying pxc-release with cf-deployment coming soon
 
-<a name='migrating'></a>
-# Migrating from cf-mysql-release
-Instructions on migrating to pxc-release from cf-mysql-release coming soon
+## Deployment Components and Topology
+
+The typical topology is 2 proxy nodes and 3 mysql-clustered nodes. The proxies can be separate vms or co-located with the mysql-clustered nodes.
+
+### Database nodes
+
+The number of mysql nodes should always be odd, with a minimum count of three, to avoid [split-brain](http://en.wikipedia.org/wiki/Split-brain\_\(computing\)).
+When the failed node comes back online, it will automatically rejoin the cluster and sync data from one of the healthy nodes.
+
+### Proxy nodes
+
+Two proxy instances are recommended. The second proxy is intended to be used in a failover capacity. You can also choose to place a load balancer in front of both proxies, or use [BOSH DNS](https://bosh.io/docs/dns.html) to send traffic to both proxies.
+
+In the event the first proxy fails, the second proxy will still be able to route requests to the mysql nodes.
+
+The proxies both will route traffic to the lowest-indexed healthy galera node, according to the galera index (not bosh index).
+<a name='deploying-new-deployments'></a>
+## Deploying new deployments
+<a name='deploying-with-cf-deployment'></a>
+### Deploying CF with pxc-release
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/use-pxc.yml` ops file. (Currently in a PR here: https://github.com/cloudfoundry/cf-deployment/pull/453/files soon to be widely available)
+
+<a name='deploying-with-non-cf-deployments'></a>
+### Using PXC release with other deployments
+1. Get the latest bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
+2. Add the release from bosh.io to your manifest
+3. Configure the properties from the /jobs/spec sections for the mysql-clustered and the proxy jobs. You can use the manifest and ops-files in cf-deployment as a guide to configuring these properties. See [Deploying CF with pxc-release](#deploying-with-cf-deployment)
+
+<a name='migrating-with-cf-deployment'></a>
+## Migrating from cf-mysql-release
+
+Requirements:
+[cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release/) v36.12.0 or greater
+
+<a name='migrating-with-cf-deployment'></a>
+### Migrating CF with pxc-release
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/migrate-cf-mysql-to-pxc.yml` ops file. (Currently in a PR here: https://github.com/cloudfoundry/cf-deployment/pull/453/files soon to be widely available) It is advisable to take a backup first.
+
+The ops file will trigger the same migration procedure described in [Using PXC release with other deployments](#migrating-with-non-cf-deployments)
+
+After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-deployment) docs for your next deploy.
+
+<a name='migrating-with-non-cf-deployments'></a>
+### Using PXC release with other deployments
+
+1. Make backups according to your usual backup procedure.
+1. Get the latest bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
+2. Add the release from bosh.io to your manifest
+2. ⚠️ **Scale down to 1 node and make sure your persistent disk has room for doubling the size of the mysql data.**
+3. Make the following changes to your bosh manifest:
+   * Add the `mysql-clustered` job from `pxc-release` to the instance group that has the `mysql` job from `cf-mysql-release`
+   * Configure the `pxc-release` with the same credentials and property values as your `cf-mysql-release`
+   * To run the migration:
+      * Set the `cf_mysql_enabled: false` property on the `mysql` job in `cf-mysql-release`
+      * Set the `pxc_enabled: true` property on `mysql-clustered` job in `pxc-release`
+      * Switch the proxies to use the proxy job from the `pxc-release` instead of the `cf-mysql-release`
+      * Deploy using BOSH
+
+   * To prepare for the migration, but not run it immediately:
+      * Set the `cf_mysql_enabled: true` property on the `mysql` job in `cf-mysql-release`
+      * Set the `pxc_enabled: false` property on `mysql-clustered` job in `pxc-release`
+      * Deploy using BOSH
+      * The MySQL will run as normal with only the `cf-mysql-release` running
+      * In order to trigger the migration, redeploy with `cf_mysql_enabled: false` and `pxc_enabled: true`
+
+   * ⚠️ **Do not enable both releases or disable both releases. Only enable one at a time.**
+4. The migration is triggered by setting `cf_mysql_enabled: false` and `pxc_enabled: true`. The `pre-start` script for the `mysql-clustered` job in `pxc-release` starts both the Mariadb MySQL from the `cf-mysql-release` and the Percona MySQL from `pxc-release`. The migration MySQL dumps the MariaDB MySQL and MySQL loads that data into the Percona MySQL. This is done using pipes, so the dump is not written to disk, to reduce the use of disk space. The MariaDB MySQL is then stopped, leaving only the Percona MySQL running.
+
+    Note:
+   * ⚠️ **This migration will require downtime for your MySQL DB.**
+5. After the migration, you can optionally do the following to clean up your deployment:
+   * The data from the MariaDB MySQL is left in the `/var/vcap/store/mysql` data dir after the migration. After the migration succeeds, you can delete the `/var/vcap/store/mysql` folder. The data for the Percona MySQL is stored in `/var/vcap/store/mysql-clustered`.
+   * Make your next deployment with just the pxc-release per [Deploying new deployments](#deploying-new-deployments). Nothing bad will happen if you keep deploying both releases though.
+   
+6. Scale back up to the recommended 3 nodes, if desired.
 
 <a name='contribution-guide'></a>
 # Contribution Guide
