@@ -1,0 +1,84 @@
+name: pxc
+
+update:
+  canaries: 1
+  canary_watch_time: 10000-600000
+  update_watch_time: 10000-600000
+  max_in_flight: 1
+  serial: true
+
+instance_groups:
+- name: mysql
+  instances: 3
+  azs: [z1, z2, z3]
+  networks: [{name: default}]
+  vm_type: default
+  stemcell: default
+  persistent_disk: 10000
+  jobs:
+  - name: mysql-clustered
+    release: pxc
+    properties:
+      admin_password: ((cf_mysql_mysql_admin_password))
+      cluster_health:
+        password: ((cf_mysql_mysql_cluster_health_password))
+      galera_agent:
+        endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
+        db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
+      tls:
+        galera: ((galera_server_certificate))
+        server: ((mysql_server_certificate))
+  - name: bootstrap
+    release: pxc
+
+- name: proxy
+  instances: 2
+  azs: [z1, z2]
+  networks: [{name: default}]
+  vm_type: default
+  stemcell: default
+  jobs:
+  - name: proxy
+    release: pxc
+    properties:
+      api_password: ((cf_mysql_proxy_api_password))
+
+variables:
+- name: cf_mysql_mysql_admin_password
+  type: password
+- name: cf_mysql_mysql_cluster_health_password
+  type: password
+- name: cf_mysql_mysql_galera_healthcheck_db_password
+  type: password
+- name: cf_mysql_mysql_galera_healthcheck_endpoint_password
+  type: password
+- name: cf_mysql_proxy_api_password
+  type: password
+- name: pxc_galera_ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: pxc_galera_ca
+- name: pxc_server_ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: pxc_server_ca
+- name: galera_server_certificate
+  type: certificate
+  options:
+    ca: pxc_galera_ca
+    extended_key_usage: [ "server_auth", "client_auth" ]
+- name: mysql_server_certificate
+  type: certificate
+  options:
+    ca: pxc_server_ca
+    common_name: mysql_server_certificate
+
+releases:
+- name: pxc
+  version: latest
+stemcells:
+- alias: default
+  os: ubuntu-trusty
+  version: latest
