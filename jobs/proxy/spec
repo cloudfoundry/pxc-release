@@ -11,7 +11,7 @@ consumes:
   type: proxy
   optional: true
 - name: mysql
-  type: mysql-clustered
+  type: mysql
   optional: true
 - name: arbitrator
   type: arbitrator

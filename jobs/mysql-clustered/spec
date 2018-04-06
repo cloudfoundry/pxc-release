@@ -36,13 +36,13 @@ packages:
 - socat
 
 consumes:
-- name: mysql-clustered
-  type: mysql-clustered
+- name: mysql
+  type: mysql
   optional: true
 
 provides:
-- name: mysql-clustered
-  type: mysql-clustered
+- name: mysql
+  type: mysql
   properties:
   - port
   - galera_agent.port

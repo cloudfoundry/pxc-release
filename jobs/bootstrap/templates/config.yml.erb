@@ -1,5 +1,5 @@
 <%=
-  mysql_link = link('mysql-clustered')
+  mysql_link = link('mysql')
   cluster_ips = mysql_link.instances.map { |instance| instance.address }
   galera_agent_port = mysql_link.p('galera_agent.port')
   galera_agent_username = mysql_link.p('galera_agent.endpoint_username')

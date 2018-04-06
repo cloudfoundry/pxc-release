@@ -119,7 +119,7 @@ rm -f /etc/my.cnf
 GALERA_INIT_PREFIX_CMD="su vcap -c -o pipefail" ${PXC_JOB_DIR}/bin/pre-start-execution
 
 if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/mysql-clustered/migrated-successfully" ]; then
-  node_count=<%= link('mysql-clustered').instances.length %>
+  node_count=<%= link('mysql').instances.length %>
   if [ ${node_count} -ne 1 ]; then
     echo "You must scale to 1 node before migrating to pxc" 1>&2
     exit 1

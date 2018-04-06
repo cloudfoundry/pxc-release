@@ -1,7 +1,7 @@
 <%
   base_folder = '/var/vcap/sys/run/mysql-clustered'
 
-  instance_addresses = link('mysql-clustered').instances.map { |instance| instance.address }
+  instance_addresses = link('mysql').instances.map { |instance| instance.address }
 
   def discover_external_ip
     networks = spec.networks.marshal_dump

@@ -7,5 +7,5 @@ templates:
   config.yml.erb: config/config.yml
 
 consumes:
-- name: mysql-clustered
-  type: mysql-clustered
+- name: mysql
+  type: mysql

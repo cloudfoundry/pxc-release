@@ -17,7 +17,7 @@ def discover_external_ip
 %>
 
 <%
-  cluster_ips = link('mysql-clustered').instances.map(&:address)
+  cluster_ips = link('mysql').instances.map(&:address)
 %>
 
 LogFileLocation: /var/vcap/sys/log/mysql-clustered/galera-init.log
