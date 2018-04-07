@@ -20,9 +20,25 @@
   value: 1
 
 - type: replace
+  path: /instance_groups/name=database/jobs/name=mysql/consumes?/mysql
+  value:
+    from: mysql-legacy
+
+- type: replace
+  path: /instance_groups/name=database/jobs/name=mysql/provides?/mysql
+  value:
+    as: mysql-legacy
+
+- type: replace
   path: /instance_groups/name=database/jobs/-
   value:
     name: mysql-clustered
+    provides:
+      mysql:
+        as: mysql-clustered
+    consumes:
+      mysql:
+        from: mysql-clustered
     properties:
       pxc_enabled: true
       admin_password: "((cf_mysql_mysql_admin_password))"
@@ -64,6 +80,11 @@
 - type: replace
   path: /instance_groups/name=database/jobs/name=proxy/release
   value: pxc
+
+- type: replace
+  path: /instance_groups/name=database/jobs/name=proxy/consumes?/mysql
+  value:
+    from: mysql-clustered
 
 - type: replace
   path: /instance_groups/name=database/jobs/name=proxy/properties
