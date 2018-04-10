@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -eux
+
+echo -e "\n>>>>>>>> Running Unit Tests Script for PXC release..."
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# This script assumes that it lives one directory below the release directory.
+RELEASE_DIR="$( cd "${MY_DIR}/.." && pwd )"
+
+function verify_config_file_updated_with_tests() {
+  pushd "${RELEASE_DIR}/jobs/mysql-clustered/templates" > /dev/null
+    oldsha=$(cat my.cnf.erb.shasum)
+    newsha=$(shasum my.cnf.erb | awk '{print $1}')
+
+    if [ "$oldsha" != "$newsha" ]; then
+      echo -e "\n\nDetected my.cnf.erb change without sha being updated"
+      echo "Did you update my.cnf.erb without updating the tuning tests?"
+      echo "Please update the tests and then run 'shasum my.cnf.erb | awk '{print \$1}' > my.cnf.erb.shasum'"
+      exit 1
+    fi
+  popd > /dev/null
+}
+
+echo -e "\n>>>>>>>> Verifying shasum of my.cnf.erb..."
+verify_config_file_updated_with_tests
+
+# shellcheck source=/dev/null
+source "${RELEASE_DIR}/.envrc"
+
+echo -e "\n>>>>>>>> Testing our bash scripts fatally..."
+# Custom shellcheck exclusions
+# TODO: port over a download logs script for pxc
+#shellcheck --shell=bash "${RELEASE_DIR}/scripts/download-logs"
+
+echo -e "\n>>>>>>>> Testing the rest of our bash scripts..."
+# Things we have yet to address
+pushd "${RELEASE_DIR}"
+set +e
+egrep -lR '#!/bin/bash|#!/usr/bin/env bash' scripts src | \
+  egrep -v "(scripts/download-logs|scripts/test-unit|scripts/test-sample-stubs)" | \
+  xargs shellcheck --shell=bash
+set -e
+popd
+
+# Remove and reinstall the ginkgo binary as it might be from the wrong target architecture
+rm -rf "${RELEASE_DIR}/bin/ginkgo"
+go install -v github.com/onsi/ginkgo/ginkgo
+go get github.com/maxbrunsfeld/counterfeiter
+
+echo -e "\n>>>>>>>> Testing Switchboard..."
+"${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/switchboard/bin/test" "$@"
+
+echo -e "\n>>>>>>>> Testing Galera Healthcheck..."
+"${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/galera-healthcheck/bin/test" "$@"
+
+# TODO: fix galera init
+#echo -e "\n>>>>>>>> Testing Galera Init..."
+#"${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-unit" "$@"
+
+echo -e "\n>>>>>>>> Testing Bootstrapper..."
+"${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bin/test" "$@"
+
+echo -e "\n>>>>>>>> Testing Cluster Health Logger..."
+"${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/bin/test" "$@"
+
+echo -e "\n>>>>>>>> Testing Migrate To PXC..."
+"${RELEASE_DIR}/src/migrate-to-pxc/bin/test" "$@"
