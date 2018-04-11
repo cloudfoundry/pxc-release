@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -eu
+
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+RELEASE_DIR="$( cd "${MY_DIR}/.." && pwd )"
+
+source "${RELEASE_DIR}/.envrc"
+
+# Remove and reinstall the ginkgo binary as it might be from the wrong target architecture
+rm -rf "${RELEASE_DIR}/bin/ginkgo"
+go install -v github.com/onsi/ginkgo/ginkgo
+go get github.com/maxbrunsfeld/counterfeiter
+
+
+echo -e "\n>>>>>>>> Testing Galera Init Integration..."
+"${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-integration" "$@"
