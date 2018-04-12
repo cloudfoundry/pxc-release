@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"migrate-to-pxc/disk"
-	"syscall"
+	"github.com/cloudfoundry/gosigar"
 )
 
 var (
@@ -19,8 +19,9 @@ var (
 )
 
 func main() {
-
-	err = disk.RoomToMigrate(syscall.Statfs)
+	// Create a Sigar to gather system info
+	concreteSigar := sigar.ConcreteSigar{}
+	err = disk.RoomToMigrate(&concreteSigar)
 
 	if err != nil {
 		panic(err)
