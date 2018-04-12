@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["id.go"],
+    importpath = "github.com/pivotal-cf/paraphernalia/serve/requestid",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_oklog_ulid//:go_default_library"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    size = "small",
+    srcs = [
+        "id_test.go",
+        "requestid_suite_test.go",
+    ],
+    importpath = "github.com/pivotal-cf/paraphernalia/serve/requestid_test",
+    deps = [
+        ":go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

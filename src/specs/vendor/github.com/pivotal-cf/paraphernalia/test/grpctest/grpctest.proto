@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package io.pivotal.paraphernalia.grpctest;
+
+option go_package = "github.com/pivotal-cf/paraphernalia/test/grpctest";
+
+message Empty {}
+
+// A simple service which implements the bare minimum endpoints.
+service TestService {
+  // An empty request with an empty response.
+  rpc SimpleCall(Empty) returns (Empty);
+}
