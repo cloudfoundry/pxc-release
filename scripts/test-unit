@@ -49,14 +49,15 @@ go install -v github.com/onsi/ginkgo/ginkgo
 go get github.com/maxbrunsfeld/counterfeiter
 
 echo -e "\n>>>>>>>> Testing Switchboard..."
+if [ ]
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/switchboard/bin/test" "$@"
 
 echo -e "\n>>>>>>>> Testing Galera Healthcheck..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/galera-healthcheck/bin/test" "$@"
 
 # TODO: fix galera init
-#echo -e "\n>>>>>>>> Testing Galera Init..."
-#"${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-unit" "$@"
+echo -e "\n>>>>>>>> Testing Galera Init..."
+"${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-unit" "$@"
 
 echo -e "\n>>>>>>>> Testing Bootstrapper..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bin/test" "$@"
