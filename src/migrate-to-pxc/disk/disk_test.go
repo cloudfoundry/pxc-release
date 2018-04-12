@@ -4,18 +4,18 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"errors"
+	"github.com/cloudfoundry/gosigar"
 	"migrate-to-pxc/disk"
 	"migrate-to-pxc/disk/diskfakes"
-	"github.com/cloudfoundry/gosigar"
-	"errors"
 )
 
 var _ = Describe("Disk", func() {
 	Context("when there isn't enough free space to copy the data in the mysql dir", func() {
 		It("returns an error message", func() {
 			fakeFileSystemUsage := sigar.FileSystemUsage{
-				Total:     10000000000,
-				Used:      8000000000,
+				Total: 10000000,
+				Used:  8000000,
 			}
 			var fakeSigar diskfakes.FakeSigar
 
@@ -27,8 +27,8 @@ var _ = Describe("Disk", func() {
 
 	It("returns nil when there is enough disk space", func() {
 		fakeFileSystemUsage := sigar.FileSystemUsage{
-			Total:     10000000000,
-			Used:      7000000000,
+			Total: 10000000,
+			Used:  7000000,
 		}
 		var fakeSigar diskfakes.FakeSigar
 
