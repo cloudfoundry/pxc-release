@@ -1,0 +1,8 @@
+---
+name: thermostat
+
+dependencies:
+- golang
+
+files:
+- thermostat/**

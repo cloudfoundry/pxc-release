@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eo pipefail
+
+/var/vcap/packages/mysql-restore/bin/restore $* 2>&1 | tee -a  /var/vcap/sys/log/mysql/restore.log
+

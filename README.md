@@ -2,7 +2,7 @@
 
 Alpha Percona Xtradb Cluster release **Not ready for production use**
 
-pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster). 
+pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster).
 This release is intended as a drop-in replacement for [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release).
 
 <a name='components'></a>
@@ -95,8 +95,31 @@ After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-depl
 5. After the migration, you can optionally clean up your deployment:
    * The migration will make a copy of the MySQL data on the persistent disk. To reduce disk usage, you can delete the old copy of the data in `/var/vcap/store/mysql` after you feel comfortable in the success of your migration. Do **NOT** delete the new copy of the data in `/var/vcap/store/mysql-clustered`.
    * Deploy only the `pxc-release` and not the `cf-mysql-release` in future deployments per [Deploying new deployments](#deploying-new-deployments), to free up disk space used by the `cf-mysql-release`.
-   
+
 6. Scale back up to the recommended 3 nodes, if desired.
+
+<a name='standalone-deployment'></a>
+## Standalone deployment
+
+The release can be deployed standalone from the base manifest [pxc-deployment.yml](pxc-deployment.yml) and operations files in [operations](operations). We support deploying a singleton (non-clustered) deployment and a clustered deployment
+
+<a name='singleton-deployment'></a>
+### Singleton deployment
+
+To deploy a singleton deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml):
+
+```bash
+bosh -d <deployment> deploy pxc-deployment.yml
+```
+
+<a name='clustered-deployment'></a>
+### Clustered deployment
+
+To deploy a clustered deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml) and apply the [use-clustered](operations/use-clustered.yml) opsfile:
+
+```
+bosh -d <deployment> deploy --ops-file operations/use-clustered.yml pxc-deployment.yml
+```
 
 <a name='contribution-guide'></a>
 # Contribution Guide
@@ -120,7 +143,7 @@ Follow these steps to make a contribution to any of our open source repositories
 ## General Workflow
 
 1. Fork the repository
-1. Check out `develop` of pxc-release
+1. Check out `master` of pxc-release
 1. Create a feature branch (`git checkout -b <my_new_branch>`)
 1. Make changes on your branch
 1. Deploy your changes using pxc as the database for cf-deployment to your dev environment and run [CF Acceptance Tests (CATS)](https://github.com/cloudfoundry/cf-acceptance-tests/)

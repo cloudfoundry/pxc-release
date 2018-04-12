@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+export PATH=$PATH:/var/vcap/packages/pxc/bin
+
+# add mysql-restore to path for convenience
+ln -fs /var/vcap/jobs/mysql/bin/restore /usr/local/sbin/mysql-restore
+
+if ! mysqladmin ping
+then
+/var/vcap/jobs/mysql/bin/mysql_ctl start
+fi

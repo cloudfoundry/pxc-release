@@ -1,0 +1,79 @@
+#!/bin/bash
+
+set -e
+
+PROC_NAME=mysql
+RUN_DIR=/var/vcap/sys/run/$PROC_NAME
+PIDFILE=$RUN_DIR/$PROC_NAME.pid
+LOG_DIR=/var/vcap/sys/log/mysql
+CONFIG_DIR=/var/vcap/jobs/mysql/config
+TMPDIR=/var/vcap/data/mysql/tmp
+export TMPDIR
+
+source /var/vcap/packages/pxc-utils/pid_utils.sh
+
+ulimit -n 65536
+
+<% if ['read-heavy', 'write-heavy'].include? p('workload') %>
+AUTO_TUNE_FLAGS="-P 75.0"
+<% else %>
+AUTO_TUNE_FLAGS="-P 50.0"
+<% end %>
+
+case $1 in
+
+  start)
+    mkdir -p "${RUN_DIR}"
+    chown vcap:vcap "${RUN_DIR}"
+
+    mkdir -p "${RUN_DIR}/lf-state"
+    chown vcap:vcap "${RUN_DIR}/lf-state"
+
+    pid_guard $PIDFILE $PROC_NAME
+
+    mkdir -p "${LOG_DIR}"
+    chown vcap:vcap "${LOG_DIR}"
+
+    mkdir -p "${TMPDIR}"
+    chown vcap:vcap "${TMPDIR}"
+
+    mkdir -p /var/vcap/store/mysql/
+    chown vcap:vcap /var/vcap/store/mysql
+
+    chmod 0640 /var/vcap/jobs/mysql/scripts/init.sql
+    chown vcap:vcap /var/vcap/jobs/mysql/scripts/init.sql
+
+    # add mysql to path for convenience
+    ln -fs /var/vcap/packages/pxc/bin/mysql /usr/local/bin
+
+    # call auto-tune-generator to calculate cnf properties
+    /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \
+      ${AUTO_TUNE_FLAGS} \
+      -f ${CONFIG_DIR}/auto-tune.cnf
+
+    if [ ! -d "/var/vcap/store/mysql/data" ]; then
+      mkdir /var/vcap/store/mysql/data
+      chown vcap:vcap /var/vcap/store/mysql/data
+      chpst -u vcap:vcap \
+        /var/vcap/packages/pxc/bin/mysqld \
+        --defaults-file=${CONFIG_DIR}/my.cnf \
+        --initialize
+    fi
+
+    exec chpst -u vcap:vcap \
+      /var/vcap/packages/pxc/bin/mysqld \
+      --defaults-file=/var/vcap/jobs/mysql/config/my.cnf \
+      --init-file=/var/vcap/jobs/mysql/scripts/init.sql \
+      --daemonize \
+      ${@:2} #allow additional configuration on start for better operability
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE 25 0
+    ;;
+
+  *)
+    echo "Usage: mysql_ctl {start|stop}"
+    ;;
+
+esac

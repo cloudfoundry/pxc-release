@@ -1,0 +1,81 @@
+-- Seed database with users
+SET SESSION SQL_LOG_BIN = 0;
+<% for host in ["localhost", "127.0.0.1"] %>
+  CREATE USER IF NOT EXISTS 'admin'@'<%= host %>';
+  ALTER USER 'admin'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
+  GRANT ALL PRIVILEGES ON *.* TO 'admin'@'<%= host %>' WITH GRANT OPTION;
+<% end %>
+
+DROP USER IF EXISTS 'root'@'localhost';
+DELETE FROM mysql.user WHERE user = 'admin' AND host NOT IN ('127.0.0.1', 'localhost');
+DELETE FROM mysql.user WHERE user = 'mysql-metrics' AND host != 'localhost';
+FLUSH PRIVILEGES;
+
+CREATE DATABASE IF NOT EXISTS <%= p('default_schema') %>;
+
+<% if_p('read_only_admin_password') do %>
+  CREATE USER IF NOT EXISTS 'roadmin'@'%';
+  ALTER USER 'roadmin'@'%' IDENTIFIED BY '<%= p('read_only_admin_password') %>';
+  GRANT SELECT, PROCESS ON *.* TO 'roadmin'@'%';
+<% end.else do %>
+  DROP USER IF EXISTS 'roadmin'@'%';
+<% end %>
+
+<% if_p('mysql_metrics_password') do %>
+  CREATE USER IF NOT EXISTS 'mysql-metrics'@'localhost';
+  ALTER USER 'mysql-metrics'@'localhost' IDENTIFIED BY '<%= p('mysql_metrics_password') %>';
+  GRANT REPLICATION CLIENT ON *.* TO 'mysql-metrics'@'localhost';
+  <% if p('leader_follower.enabled') %>
+  GRANT SELECT ON replication_monitoring.* TO 'mysql-metrics'@'localhost';
+  <% end %>
+<% end.else do %>
+  DROP USER IF EXISTS 'mysql-metrics'@'localhost';
+<% end %>
+
+CREATE USER IF NOT EXISTS 'broker-admin'@'%';
+ALTER USER 'broker-admin'@'%' IDENTIFIED BY '<%= p('broker_admin_password') %>';
+GRANT CREATE USER ON *.* TO 'broker-admin'@'%';
+GRANT SHOW VIEW ON mysql.* TO 'broker-admin'@'%' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON `%`.* to 'broker-admin'@'%' WITH GRANT OPTION;
+
+<% if_p('mysql_backup_password') do %>
+
+CREATE USER IF NOT EXISTS 'mysql-backup'@'localhost';
+ALTER USER 'mysql-backup'@'localhost' IDENTIFIED BY '<%= p('mysql_backup_password') %>';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to 'mysql-backup'@'localhost';
+
+<% end.else do %>
+DROP USER IF EXISTS 'mysql-backup'@'localhost';
+<% end %>
+
+ALTER DATABASE `<%= p('default_schema') %>` DEFAULT CHARACTER SET '<%= p('default_char_set') %>';
+<% if_p('default_collation') do |value| %>
+ALTER DATABASE `<%= p('default_schema') %>` DEFAULT COLLATE '<%= value %>';
+<% end %>
+
+<% if p('leader_follower.enabled') %>
+<% if_p('replication_admin_password') do %>
+CREATE USER IF NOT EXISTS 'replication-admin'@'%' IDENTIFIED BY '<%= p('replication_admin_password') %>';
+ALTER USER 'replication-admin'@'%' IDENTIFIED BY '<%= p('replication_admin_password') %>';
+
+GRANT SUPER, RELOAD, REPLICATION CLIENT ON *.* TO 'replication-admin'@'%';
+GRANT SELECT ON performance_schema.replication_connection_configuration TO 'replication-admin'@'%';
+GRANT SELECT ON performance_schema.replication_connection_status TO 'replication-admin'@'%';
+GRANT SELECT ON performance_schema.replication_applier_status_by_worker TO 'replication-admin'@'%';
+GRANT SELECT ON performance_schema.replication_applier_status TO 'replication-admin'@'%';
+  <% if_p('mysql_metrics_password') do %>
+  GRANT ALL PRIVILEGES ON replication_monitoring.* TO 'replication-admin'@'%';
+  <% end %>
+<% end %>
+
+<% if_p('replication_password') do %>
+CREATE USER IF NOT EXISTS 'replication'@'%' IDENTIFIED BY '<%= p('replication_password') %>';
+ALTER USER 'replication'@'%' IDENTIFIED BY '<%= p('replication_password') %>';
+GRANT REPLICATION SLAVE ON *.* TO 'replication'@'%';
+<% end %>
+
+<% else %>
+DROP USER IF EXISTS 'replication-admin'@'%';
+DROP USER IF EXISTS 'replication'@'%';
+<% end %>
+SET SESSION SQL_LOG_BIN = 1;

@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+mkdir -p ${BOSH_INSTALL_TARGET}/src
+cp -a . ${BOSH_INSTALL_TARGET}/src
+export GOPATH=$BOSH_INSTALL_TARGET
+
+export GOROOT=$(readlink -nf /var/vcap/packages/golang)
+export PATH=$GOROOT/bin:$PATH
+
+pushd ${GOPATH}/src
+    go test -c ./thermostat
+    mkdir ${BOSH_INSTALL_TARGET}/bin
+    cp thermostat.test ${BOSH_INSTALL_TARGET}/bin/thermostat
+popd

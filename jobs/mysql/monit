@@ -1,0 +1,5 @@
+check process mysql
+  with pidfile /var/vcap/sys/run/mysql/mysql.pid
+  start program "/var/vcap/jobs/mysql/bin/mysql_ctl start"
+  stop program "/var/vcap/jobs/mysql/bin/mysql_ctl stop" with timeout 30 seconds
+  group vcap

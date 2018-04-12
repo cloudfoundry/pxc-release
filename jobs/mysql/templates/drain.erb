@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eo pipefail
+
+PROC_NAME=mysql
+RUN_DIR=/var/vcap/sys/run/$PROC_NAME
+PIDFILE=$RUN_DIR/$PROC_NAME.pid
+
+echo 0
+
+if [ ! -f $PIDFILE ]; then
+    exit 0
+fi
+
+pid=$(head -1 "${PIDFILE}")
+kill -TERM $pid
+
+echo "$(date) Drain called" >> /var/vcap/sys/log/mysql/drain.log
+
+timeout=10
+while [ -f $PIDFILE ]; do
+    kill -0 $pid > /dev/null 2>&1 || break
+    echo "$(date) Waiting for MySQL (pid ${pid}, pidfile ${PIDFILE}) to go away, sleeping ${timeout} seconds" >> /var/vcap/sys/log/mysql/drain.log
+    sleep $timeout
+done
+
+echo "$(date) Drain exited" >> /var/vcap/sys/log/mysql/drain.log
+
+exit 0
