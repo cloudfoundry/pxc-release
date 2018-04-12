@@ -25,23 +25,11 @@ function verify_config_file_updated_with_tests() {
 echo -e "\n>>>>>>>> Verifying shasum of my.cnf.erb..."
 verify_config_file_updated_with_tests
 
-# shellcheck source=/dev/null
 source "${RELEASE_DIR}/.envrc"
 
 echo -e "\n>>>>>>>> Testing our bash scripts fatally..."
-# Custom shellcheck exclusions
 # TODO: port over a download logs script for pxc
 #shellcheck --shell=bash "${RELEASE_DIR}/scripts/download-logs"
-
-echo -e "\n>>>>>>>> Testing the rest of our bash scripts..."
-# Things we have yet to address
-pushd "${RELEASE_DIR}"
-set +e
-egrep -lR '#!/bin/bash|#!/usr/bin/env bash' scripts src | \
-  egrep -v "(scripts/download-logs|scripts/test-unit|scripts/test-sample-stubs)" | \
-  xargs shellcheck --shell=bash
-set -e
-popd
 
 # Remove and reinstall the ginkgo binary as it might be from the wrong target architecture
 rm -rf "${RELEASE_DIR}/bin/ginkgo"
@@ -49,13 +37,11 @@ go install -v github.com/onsi/ginkgo/ginkgo
 go get github.com/maxbrunsfeld/counterfeiter
 
 echo -e "\n>>>>>>>> Testing Switchboard..."
-if [ ]
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/switchboard/bin/test" "$@"
 
 echo -e "\n>>>>>>>> Testing Galera Healthcheck..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/galera-healthcheck/bin/test" "$@"
 
-# TODO: fix galera init
 echo -e "\n>>>>>>>> Testing Galera Init..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-unit" "$@"
 
