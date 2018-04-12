@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -eux
+
+go generate $(go list ./... | grep -v /vendor/)

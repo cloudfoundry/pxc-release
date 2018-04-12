@@ -2,28 +2,27 @@ package disk
 
 import (
 	"errors"
-	"syscall"
+	"github.com/cloudfoundry/gosigar"
 )
 
-func RoomToMigrate(diskUsageSyscall func(path string, stat *syscall.Statfs_t) error) error {
-	var stat syscall.Statfs_t
 
-	err := diskUsageSyscall("/var/vcap/store", &stat)
+//go:generate counterfeiter . Sigar
+type Sigar interface {
+	GetFileSystemUsage(string) (sigar.FileSystemUsage, error)
+}
 
+func RoomToMigrate(systemInfoGatherer Sigar) error {
+
+	fileSystemUsage, err := systemInfoGatherer.GetFileSystemUsage("/var/vcap/store")
 	if err != nil {
 		return err
 	}
 
-	totalBlocks := stat.Blocks
-	freeBlocks := stat.Bfree
-	usedBlocks := totalBlocks - freeBlocks
-
-	emptyDBSizeBytes := 2500000000
-	emptyDBSizeBlocks := uint64(emptyDBSizeBytes) / uint64(stat.Bsize)
-
-	if 100 * (usedBlocks - emptyDBSizeBlocks) / totalBlocks > 45 {
+	emptyDBSizeBytes := uint64(2500000000) // Approximate size of an empty Percona installation
+	usedBytes := fileSystemUsage.Used
+	totalBytes := fileSystemUsage.Total
+	if 100*(usedBytes-emptyDBSizeBytes)/totalBytes > 45 {
 		return errors.New("Cannot continue, insufficient disk space to complete migration")
 	}
-
 	return nil
 }

@@ -5,46 +5,43 @@ import (
 	. "github.com/onsi/gomega"
 
 	"migrate-to-pxc/disk"
-	"syscall"
+	"migrate-to-pxc/disk/diskfakes"
+	"github.com/cloudfoundry/gosigar"
 	"errors"
 )
 
 var _ = Describe("Disk", func() {
-	var (
-		blockSize uint32 = 500000000
-		twoAndAHalfGBOfBlocks uint64 = 5
-	)
-
 	Context("when there isn't enough free space to copy the data in the mysql dir", func() {
 		It("returns an error message", func() {
-			fakeStatsFunc := func(path string, stat *syscall.Statfs_t) error {
-				stat.Blocks = 100
-				stat.Bfree = 54 - twoAndAHalfGBOfBlocks
-				stat.Bsize = blockSize
-				return nil
+			fakeFileSystemUsage := sigar.FileSystemUsage{
+				Total:     10000000000,
+				Used:      8000000000,
 			}
-			err := disk.RoomToMigrate(fakeStatsFunc)
+			var fakeSigar diskfakes.FakeSigar
+
+			fakeSigar.GetFileSystemUsageReturns(fakeFileSystemUsage, nil)
+			err := disk.RoomToMigrate(&fakeSigar)
 			Expect(err).To(MatchError("Cannot continue, insufficient disk space to complete migration"))
 		})
 	})
 
 	It("returns nil when there is enough disk space", func() {
-		fakeStatsFunc := func(path string, stat *syscall.Statfs_t) error {
-			stat.Blocks = 100
-			stat.Bfree = 55 - twoAndAHalfGBOfBlocks
-			stat.Bsize = blockSize
-			return nil
+		fakeFileSystemUsage := sigar.FileSystemUsage{
+			Total:     10000000000,
+			Used:      7000000000,
 		}
-		err := disk.RoomToMigrate(fakeStatsFunc)
+		var fakeSigar diskfakes.FakeSigar
+
+		fakeSigar.GetFileSystemUsageReturns(fakeFileSystemUsage, nil)
+		err := disk.RoomToMigrate(&fakeSigar)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("returns error when the syscall errors", func() {
-		fakeStatsFunc := func(path string, stat *syscall.Statfs_t) error {
-			return errors.New("syscall error")
-		}
-		err := disk.RoomToMigrate(fakeStatsFunc)
+	It("returns error when GetFileSystemUsage errors", func() {
+		var fakeSigar diskfakes.FakeSigar
+
+		fakeSigar.GetFileSystemUsageReturns(sigar.FileSystemUsage{}, errors.New("GetFileSystemUsage"))
+		err := disk.RoomToMigrate(&fakeSigar)
 		Expect(err).To(HaveOccurred())
 	})
-
 })

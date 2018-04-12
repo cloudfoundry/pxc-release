@@ -3,4 +3,6 @@
 MIGRATE_TO_PXC_BIN_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 RELEASE_DIR="${MIGRATE_TO_PXC_BIN_DIR}/../../.."
 
+${RELEASE_DIR}/src/migrate-to-pxc/bin/regenerate-fakes
+
 ginkgo -r "${RELEASE_DIR}/src/migrate-to-pxc/disk/"
