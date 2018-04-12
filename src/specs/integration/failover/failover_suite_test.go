@@ -14,7 +14,7 @@ func TestFailover(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	requiretdEnvs := []string{
+	requiredEnvs := []string{
 		"BOSH_ENVIRONMENT",
 		"BOSH_CA_CERT",
 		"BOSH_CLIENT",
@@ -25,5 +25,5 @@ var _ = BeforeSuite(func() {
 		"PROXY_USERNAME",
 		"PROXY_PASSWORD",
 	}
-	helpers.CheckForRequiredEnvVars(requiretdEnvs)
+	helpers.CheckForRequiredEnvVars(requiredEnvs)
 })
