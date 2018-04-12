@@ -106,6 +106,7 @@ var _ = Describe("GaleraDBHelper", func() {
 	Describe("StartMysqldInStandAlone", func() {
 		It("calls the mysql daemon with the command option", func() {
 			options := []string{
+				"--defaults-file=/var/vcap/jobs/mysql-clustered/config/my.cnf",
 				"--wsrep-on=OFF",
 				"--wsrep-desync=ON",
 				"--wsrep-OSU-method=RSU",
