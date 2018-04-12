@@ -108,7 +108,6 @@ if [ ! -d "${datadir}" ]; then
          --user=vcap \
          --initialize \
          --datadir=${datadir} >> $LOG_FILE 2>> $LOG_FILE
- #FIXME: do we need --defaults-file
 fi
 chown -R vcap:vcap ${datadir}
 
