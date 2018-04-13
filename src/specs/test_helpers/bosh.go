@@ -76,6 +76,5 @@ func buildUAA() (boshuaa.UAA, error) {
 	// If nothing is provided default system certificates are used.
 	config.CACert = BoshCaCert()
 
-	fmt.Println("about to build factory")
 	return factory.New(config)
 }
