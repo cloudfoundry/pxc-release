@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	"gopkg.in/yaml.v2"
-	"os"
 	helpers "specs/test_helpers"
 )
 
@@ -66,61 +65,22 @@ func verifyDataExists(expectedString string, databaseConnection *sql.DB) {
 }
 
 var _ = Describe("CF PXC MySQL Scaling", func() {
-	var (
-		pxcConnectionString string
-	)
-
 	BeforeEach(func() {
-		var mysqlUsername = os.Getenv("MYSQL_USERNAME")
-		var mysqlPassword = os.Getenv("MYSQL_PASSWORD")
+		helpers.DbSetup("scaling_test_table")
 
-		pxcConnectionString = fmt.Sprintf(
-			"%s:%s@tcp(%s:%d)/",
-			mysqlUsername,
-			mysqlPassword,
-			helpers.BoshEnvironment(),
-			3306)
-		databaseConnection, err := sql.Open("mysql", pxcConnectionString)
-		Expect(err).NotTo(HaveOccurred())
-
-		statement := "CREATE DATABASE IF NOT EXISTS scaling_test"
-		_, err = databaseConnection.Exec(statement)
-		Expect(err).NotTo(HaveOccurred())
-
-		pxcConnectionString = fmt.Sprintf(
-			"%s:%s@tcp(%s:%d)/scaling_test",
-			mysqlUsername,
-			mysqlPassword,
-			helpers.BoshEnvironment(),
-			3306)
-
-		statement = "USE scaling_test"
-		_, err = databaseConnection.Exec(statement)
-		Expect(err).NotTo(HaveOccurred())
-
-		statement = "CREATE TABLE IF NOT EXISTS scaling_test_table (test_data varchar(255))"
-		_, err = databaseConnection.Exec(statement)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = scaleDeployment(3)
+		err := scaleDeployment(3)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		databaseConnection, err := sql.Open("mysql", pxcConnectionString)
-		Expect(err).NotTo(HaveOccurred())
-
-		statement := "DROP DATABASE scaling_test"
-		_, err = databaseConnection.Exec(statement)
-		Expect(err).NotTo(HaveOccurred())
+		helpers.DbCleanup()
 	})
 
 	It("proxies failover to another node after a partition of mysql node", func() {
-		databaseConnection, err := sql.Open("mysql", pxcConnectionString)
-		Expect(err).NotTo(HaveOccurred())
+		databaseConnection := helpers.DbConn()
 
 		query := "INSERT INTO scaling_test_table VALUES('data written with 3 nodes')"
-		_, err = databaseConnection.Query(query)
+		_, err := databaseConnection.Query(query)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = scaleDeployment(1)
