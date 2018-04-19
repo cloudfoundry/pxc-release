@@ -5,6 +5,8 @@ import (
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
+	. "github.com/onsi/gomega"
+	"io/ioutil"
 	"os"
 )
 
@@ -53,6 +55,17 @@ func BoshClientSecret() string {
 
 func BoshCaCert() string {
 	return os.Getenv("BOSH_CA_CERT")
+}
+
+func BoshGwUser() string {
+	return os.Getenv("BOSH_GW_USER")
+}
+
+func BoshGwPrivateKey() []byte {
+	path := os.Getenv("BOSH_GW_PRIVATE_KEY_PATH")
+	key, err := ioutil.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	return key
 }
 
 func buildUAA() (boshuaa.UAA, error) {
