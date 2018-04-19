@@ -54,7 +54,10 @@ func BoshClientSecret() string {
 }
 
 func BoshCaCert() string {
-	return os.Getenv("BOSH_CA_CERT")
+	path := os.Getenv("BOSH_CA_CERT_PATH")
+	key, err := ioutil.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	return string(key)
 }
 
 func BoshGwUser() string {

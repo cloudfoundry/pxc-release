@@ -15,7 +15,7 @@ func TestScaling(t *testing.T) {
 var _ = BeforeSuite(func() {
 	requiredEnvs := []string{
 		"BOSH_ENVIRONMENT",
-		"BOSH_CA_CERT",
+		"BOSH_CA_CERT_PATH",
 		"BOSH_CLIENT",
 		"BOSH_CLIENT_SECRET",
 		"BOSH_DEPLOYMENT",
