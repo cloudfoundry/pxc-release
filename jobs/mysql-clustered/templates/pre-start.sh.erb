@@ -67,6 +67,9 @@ chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
 #    -f /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf \ #FIXME
 #    -P <%= p('innodb_buffer_pool_size_percent') %>
 
+ln -sf $PXC_JOB_DIR/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
+chmod 440 /etc/sudoers.d/pxc-sudoers
+
 rm -f /etc/profile.d/disable_mysql_cli_history.sh
 <% unless p('cli_history') %>
 ln -sf $PXC_JOB_DIR/config/disable_mysql_cli_history.sh /etc/profile.d/disable_mysql_cli_history.sh

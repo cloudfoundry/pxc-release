@@ -9,6 +9,7 @@ templates:
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
   pxc-ctl.erb: bin/pxc-ctl
+  pxc-sudoers: config/pxc-sudoers
   pre-start.sh.erb: bin/pre-start
   pre-start-execution.sh.erb: bin/pre-start-execution
   galera-agent-ctl.erb: bin/galera-agent-ctl
