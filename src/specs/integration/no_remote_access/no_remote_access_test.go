@@ -21,7 +21,7 @@ var _ = Describe("CF PXC No Remote Admin Access", func() {
 			"%s:%s@tcp(%s:%d)/",
 			mysqlUsername,
 			mysqlPassword,
-			helpers.BoshEnvironment(),
+			helpers.DbHost(),
 			3306)
 		databaseConnection, err := sql.Open("mysql", pxcConnectionString)
 		Expect(err).NotTo(HaveOccurred())

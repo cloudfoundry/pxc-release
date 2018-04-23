@@ -1,0 +1,7 @@
+---
+name: smoke-tests
+dependencies:
+  - golang
+files:
+  - specs/**/*
+  - github.com/onsi/ginkgo/**/*

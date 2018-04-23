@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -eux
+
+export GOPATH=${PWD}
+export GOROOT=$(readlink -nf /var/vcap/packages/golang)
+export PATH=${GOROOT}/bin:${GOPATH}/bin:${PATH}
+
+mkdir src
+mv github.com src/
+mv specs src/
+
+go install github.com/onsi/ginkgo/ginkgo
+
+ginkgo build src/specs/integration/connection
+cp src/specs/integration/connection/connection.test ${BOSH_INSTALL_TARGET}/

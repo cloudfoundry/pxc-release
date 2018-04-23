@@ -16,12 +16,12 @@ func DbSetup(tableName string) {
 		"%s:%s@tcp(%s:%d)/",
 		mysqlUsername,
 		mysqlPassword,
-		BoshEnvironment(),
+		DbHost(),
 		3306)
 	databaseConnection, err := sql.Open("mysql", pxcConnectionString)
 	Expect(err).NotTo(HaveOccurred())
 
-	statement := "CREATE DATABASE IF NOT EXISTS integration_test"
+	statement := "CREATE DATABASE IF NOT EXISTS pxc_release_test_db"
 	_, err = databaseConnection.Exec(statement)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -35,10 +35,10 @@ func DbConn() *sql.DB {
 	var mysqlPassword = os.Getenv("MYSQL_PASSWORD")
 
 	pxcConnectionString := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/integration_test",
+		"%s:%s@tcp(%s:%d)/pxc_release_test_db",
 		mysqlUsername,
 		mysqlPassword,
-		BoshEnvironment(),
+		DbHost(),
 		3306)
 
 	databaseConnection, err := sql.Open("mysql", pxcConnectionString)
@@ -48,7 +48,16 @@ func DbConn() *sql.DB {
 }
 
 func DbCleanup() {
-	statement := "DROP DATABASE integration_test"
+	statement := "DROP DATABASE pxc_release_test_db"
 	_, err := DbConn().Exec(statement)
 	Expect(err).NotTo(HaveOccurred())
 }
+
+func DbHost() string {
+	dbHost, hostExists := os.LookupEnv("MYSQL_HOST")
+	if hostExists {
+		return dbHost
+	}
+	return os.Getenv("BOSH_ENVIRONMENT")
+}
+

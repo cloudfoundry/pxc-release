@@ -1,0 +1,14 @@
+---
+name: smoke-tests-user
+
+templates:
+  post-start.erb: bin/post-start
+  smoke_tests_user_setup.sql.erb: config/smoke_tests_user_setup.sql
+
+packages: []
+
+consumes:
+- name: smoke_tests
+  type: smoke_tests
+
+properties: {}

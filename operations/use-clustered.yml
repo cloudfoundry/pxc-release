@@ -30,6 +30,12 @@
             private_key: ((mysql_server_certificate.private_key))
     - name: bootstrap
       release: pxc
+    - name: smoke-tests
+      release: pxc
+      properties:
+        db_password: ((smoke_tests_db_password))
+    - name: smoke-tests-user
+      release: pxc
 
   - name: proxy
     instances: 2
@@ -77,6 +83,8 @@
     options:
       ca: pxc_server_ca
       common_name: mysql_server_certificate
+  - name: smoke_tests_db_password
+    type: password
 
 - type: replace
   path: /update?/serial?

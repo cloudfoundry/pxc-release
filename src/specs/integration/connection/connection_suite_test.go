@@ -1,15 +1,16 @@
-package no_remote_access_test
+package connection_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helpers "specs/test_helpers"
 	"testing"
+	helpers "specs/test_helpers"
 )
 
-func TestScaling(t *testing.T) {
+
+func TestConnection(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "PXC Acceptance Tests -- No Remote Admin Access")
+	RunSpecs(t, "PXC Acceptance Tests -- Connection")
 }
 
 var _ = BeforeSuite(func() {

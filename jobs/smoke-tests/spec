@@ -1,0 +1,25 @@
+---
+name: smoke-tests
+packages:
+- smoke-tests
+
+templates:
+  errand.sh.erb: bin/run
+
+provides:
+- name: smoke_tests
+  type: smoke_tests
+  properties:
+  - db_username
+  - db_password
+
+consumes:
+- name: proxy
+  type: proxy
+
+properties:
+  db_username:
+    description: 'Username for generated database user'
+    default: 'smoke-tests-user'
+  db_password:
+    description: 'Password for generated database user'
