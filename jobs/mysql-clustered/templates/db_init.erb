@@ -1,10 +1,12 @@
 <%
   if p('remote_admin_access')
     hosts = ['%']
+    old_hosts = %w{localhost 127.0.0.1 ::1}
   else
     hosts = %w{localhost 127.0.0.1 ::1}
+    old_hosts = ['%']
   end
-  quoted_hosts_string = hosts.map {|host| "'#{host}'"}.join(', ')
+  all_hosts = hosts + old_hosts
 %>
 
 DELETE FROM mysql.user WHERE User='';
@@ -14,10 +16,15 @@ DELETE FROM mysql.user WHERE User='';
       raise "admin_username must not equal previous_admin_username"
     end
   %>
-DELETE FROM mysql.user WHERE User='<%= previous_username %>';
+  <% all_hosts.each do |host| %>
+DROP USER IF EXISTS '<%= previous_username %>'@'<%= host %>';
+  <% end %>
 <% end %>
+
 <% if p('admin_username') != 'root' %>
-DELETE FROM mysql.user WHERE User='root';
+  <% all_hosts.each do |host| %>
+DROP USER IF EXISTS 'root'@'<%= host %>';
+  <% end %>
 <% end %>
 
 <% hosts.each do |host| %>
@@ -32,12 +39,15 @@ GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
   <% end %>
 <% end %>
 
-DELETE FROM mysql.user WHERE User='<%= p('admin_username') %>' AND Host NOT IN (<%= quoted_hosts_string %>);
-
-DELETE FROM mysql.user WHERE User='roadmin' AND Host NOT IN (<%= quoted_hosts_string %>);
-<% unless p('roadmin_enabled') %>
-DELETE FROM mysql.user WHERE User='roadmin';
+<% old_hosts.each do |old_host| %>
+DROP USER IF EXISTS '<%= p('admin_username') %>'@'<%= old_host %>';
+DROP USER IF EXISTS 'roadmin'@'<%= old_host %>';
 <% end %>
 
+<% unless p('roadmin_enabled') %>
+  <% hosts.each do |host| %>
+DROP USER IF EXISTS 'roadmin'@'<%= host %>';
+  <% end %>
+<% end %>
 
 FLUSH PRIVILEGES;
