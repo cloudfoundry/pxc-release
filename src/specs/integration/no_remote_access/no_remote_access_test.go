@@ -28,7 +28,7 @@ var _ = Describe("CF PXC No Remote Admin Access", func() {
 
 		query := "show variables"
 		_, err = databaseConnection.Query(query)
-		Expect(err).To(MatchError(MatchRegexp("is not allowed to connect to this MySQL server")))
+		Expect(err).To(MatchError(MatchRegexp("is not allowed to connect to this MySQL server|Access denied for user")))
 	})
 
 })
