@@ -5,6 +5,7 @@ templates:
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
   audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
   db_init.erb: config/db_init
+  drain.sh: bin/drain
   galera-init-config.yml.erb: config/galera-init-config.yml
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
