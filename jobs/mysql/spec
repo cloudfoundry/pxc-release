@@ -10,7 +10,7 @@ consumes:
   type: mysql
 
 packages:
-- generate-auto-tune-mysql
+- auto-tune-mysql
 - mysql-restore
 - pxc
 - pxc-utils

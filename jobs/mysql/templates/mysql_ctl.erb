@@ -47,7 +47,7 @@ case $1 in
     ln -fs /var/vcap/packages/pxc/bin/mysql /usr/local/bin
 
     # call auto-tune-generator to calculate cnf properties
-    /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \
+    /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
       ${AUTO_TUNE_FLAGS} \
       -f ${CONFIG_DIR}/auto-tune.cnf
 

@@ -27,9 +27,9 @@ templates:
   server-key.pem.erb: certificates/server-key.pem
 
 packages:
+- auto-tune-mysql
 - galera-agent
 - galera-init
-- generate-auto-tune-mysql
 - libgalera
 - migrate-to-pxc
 - percona-xtrabackup

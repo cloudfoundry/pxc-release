@@ -1,5 +1,5 @@
 ---
-name: generate-auto-tune-mysql
+name: auto-tune-mysql
 
 dependencies:
   - golang

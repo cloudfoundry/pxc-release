@@ -63,7 +63,7 @@ mkdir -p "${HEALTHCHECK_LOG_DIR}"
 chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
 
 
- /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \
+ /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
     -f /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf \
     -P <%= p('innodb_buffer_pool_size_percent') %>
 
