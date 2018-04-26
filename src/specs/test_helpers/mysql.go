@@ -30,6 +30,23 @@ func DbSetup(tableName string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func DbConnNoDb() *sql.DB {
+	var mysqlUsername = os.Getenv("MYSQL_USERNAME")
+	var mysqlPassword = os.Getenv("MYSQL_PASSWORD")
+
+	pxcConnectionString := fmt.Sprintf(
+		"%s:%s@tcp(%s:%d)/",
+		mysqlUsername,
+		mysqlPassword,
+		DbHost(),
+		3306)
+
+	databaseConnection, err := sql.Open("mysql", pxcConnectionString)
+	Expect(err).NotTo(HaveOccurred())
+
+	return databaseConnection
+}
+
 func DbConn() *sql.DB {
 	var mysqlUsername = os.Getenv("MYSQL_USERNAME")
 	var mysqlPassword = os.Getenv("MYSQL_PASSWORD")

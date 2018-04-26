@@ -63,9 +63,9 @@ mkdir -p "${HEALTHCHECK_LOG_DIR}"
 chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
 
 
-# /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \ #FIXME
-#    -f /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf \ #FIXME
-#    -P <%= p('innodb_buffer_pool_size_percent') %>
+ /var/vcap/packages/generate-auto-tune-mysql/bin/generate-auto-tune-mysql \
+    -f /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf \
+    -P <%= p('innodb_buffer_pool_size_percent') %>
 
 ln -sf $PXC_JOB_DIR/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
 chmod 440 /etc/sudoers.d/pxc-sudoers

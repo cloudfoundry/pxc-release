@@ -29,6 +29,7 @@ templates:
 packages:
 - galera-agent
 - galera-init
+- generate-auto-tune-mysql
 - libgalera
 - migrate-to-pxc
 - percona-xtrabackup
