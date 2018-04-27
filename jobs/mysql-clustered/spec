@@ -58,6 +58,9 @@ properties:
 
   pxc_enabled:
     default: true
+  pxc_strict_mode:
+    description: 'pxc_strict_mode. Defaults to MASTER.'
+    default: MASTER
   admin_username:
     description: 'Username for the MySQL server admin user'
     default: 'root'

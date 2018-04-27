@@ -55,7 +55,7 @@ ssl-cert=/var/vcap/jobs/mysql-clustered/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/mysql-clustered/certificates/server-key.pem
 
 # GALERA options:
-pxc-strict-mode                 = PERMISSIVE
+pxc-strict-mode                 = <%= p('pxc_strict_mode') %>
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/libgalera/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/mysql-clustered/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/mysql-clustered/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/mysql-clustered/certificates/galera-key.pem"
