@@ -124,6 +124,9 @@
   value:
     name: bootstrap
     release: pxc
+    consumes:
+      mysql:
+        from: mysql-clustered
 
 - type: replace
   path: /variables/-
