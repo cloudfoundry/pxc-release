@@ -1,0 +1,164 @@
+#!/bin/bash
+set -eu
+
+set -o pipefail
+
+datestring="$(date +%Y-%m-%d-%H-%M-%S)"
+output_dir=""
+output_file="${datestring}-mysql-logs.tar.gz.gpg"
+extra_logs=""
+bosh=""
+tempdir="$(mktemp -d)"
+
+function usage(){
+  >&2 echo "Usage:
+  -o (Required) The output directory
+  -X (Optional) Include audit and binary logs
+
+  This tool requires the bosh v2 cli and the following environment variables to be set:
+    BOSH_ENVIRONMENT
+    BOSH_CLIENT_SECRET
+    BOSH_CLIENT
+    BOSH_CA_CERT
+    BOSH_DEPLOYMENT
+
+  Optionally if you require communicating with your BOSH director through a gateway, you must set:
+    BOSH_GW_PRIVATE_KEY
+    BOSH_GW_USER
+    BOSH_GW_HOST
+  "
+  exit 1
+}
+
+function check_fast_fails() {
+  set +u
+  if [ -z "${BOSH_ENVIRONMENT}" ] || [ -z "${BOSH_CLIENT_SECRET}" ] || [ -z "${BOSH_CLIENT}" ] || [ -z "${BOSH_CA_CERT}" ] || [ -z "${BOSH_DEPLOYMENT}" ] ; then
+    echo "BOSH_DEPLOYMENT, BOSH_ENVIRONMENT, BOSH_CLIENT_SECRET, BOSH_CLIENT, and BOSH_CA_CERT are required environment variables"
+    usage
+  fi
+  set -u
+
+  if [ -z "${output_dir}" ]; then
+    usage
+  fi
+}
+
+function check_bosh_cli() {
+  if bosh --version 2>/dev/null | grep -q "version 2." ; then
+    bosh="bosh"
+  fi
+
+  if bosh2 --version 2>/dev/null | grep -q "version 2." ; then
+    bosh="bosh2"
+  fi
+
+  if [ -z "${bosh}" ]; then
+    echo "bosh v2 cli was not found on your PATH"
+    exit 1
+  fi
+}
+
+function get_vm_and_deployments_info() {
+  echo "Retrieving deployment and vm info..."
+
+  $bosh --tty deployments &> "${tempdir}/deployments"
+  $bosh --tty instances --details &> "${tempdir}/instances.details"
+  $bosh --tty vms --vitals &> "${tempdir}/vms.vitals"
+}
+
+function download_logs() {
+  echo "Downloading deployment logs..."
+  $bosh logs --dir="${tempdir}"
+
+  for node in $($bosh instances --column="Instance" | grep -E "(database|mysql)/"); do
+    echo -e "\\nDownloading logs for: ${node}"
+    download_logs_from_node "${node}"
+  done
+
+  pushd "${tempdir}" > /dev/null
+    tar czf "${tempdir}/mysql-logs.tar.gz" ./*
+  popd > /dev/null
+}
+
+function download_logs_from_node() {
+  local node
+  node="${1}"
+
+  local node_specific_log_containing_directory
+  node_specific_log_containing_directory="${tempdir}/${node}"
+
+  mkdir -p "${node_specific_log_containing_directory}"
+
+  scpfiles "${node}" "${node_specific_log_containing_directory}/gralogs/" "/var/vcap/store/mysql-clustered/GRA*.log"
+  scpfiles "${node}" "${node_specific_log_containing_directory}/innobackup/" "/var/vcap/store/mysql-clustered/innobackup.*.log"
+
+  if [ -n "${extra_logs}" ]; then
+    scpfiles "${node}" "${node_specific_log_containing_directory}/binlogs/" "/var/vcap/store/mysql-clustered/mysql-bin.*"
+    scpfiles "${node}" "${node_specific_log_containing_directory}/auditlogs/" "/var/vcap/store/mysql_audit_logs/*"
+  fi
+}
+
+function scpfiles() {
+  local node
+  node="${1}"
+
+  local logdir
+  logdir="${2}"
+
+  local files
+  files="${3}"
+
+  local sshoutput=""
+
+  set +e
+  sshoutput=$(bosh ssh "${node}" -c "ls ${files} | wc -l")
+  if [ $? == 1 ]; then
+    echo -e "\\n\\nFailed to perform \"bosh ssh\", ensure that BOSH_GW_PRIVATE_KEY and BOSH_GW_HOST are set\\n\\n"
+    exit 1
+  fi
+  set -e
+
+  if ! echo "${sshoutput}" | grep -q "stdout | 0"; then
+    mkdir -p "${logdir}"
+    echo "Retrieving ${files}"
+    $bosh scp "${node}:${files}" "${logdir}"
+  fi
+}
+
+function encrypt_logs() {
+  echo "Specify a passphrase of 6-8 words long. Do not use a private passphrase, you will need to share this passphrase with anyone who will decrypt this archive."
+  gpg -c --yes --cipher-algo AES256 --symmetric --force-mdc -o "${output_dir}/${output_file}" "${tempdir}/mysql-logs.tar.gz"
+
+  echo "Encrypted logs saved at ${output_dir}/${output_file}"
+}
+
+function cleanup() {
+  rm -r "${tempdir}"
+}
+
+function main() {
+  while getopts "o:X" opt; do
+    case $opt in
+      o)
+        output_dir=$OPTARG
+        ;;
+      X)
+        extra_logs="true"
+        ;;
+      *)
+        echo "Unknown arguments"
+        usage
+        ;;
+    esac
+  done
+
+  check_fast_fails
+  check_bosh_cli
+  get_vm_and_deployments_info
+  download_logs
+  encrypt_logs
+  cleanup
+}
+
+
+main "${@:-}"
