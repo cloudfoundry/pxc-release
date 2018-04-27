@@ -25,7 +25,7 @@ func DbSetup(tableName string) {
 	_, err = databaseConnection.Exec(statement)
 	Expect(err).NotTo(HaveOccurred())
 
-	statement = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (test_data varchar(255))", tableName)
+	statement = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (test_data varchar(255) PRIMARY KEY)", tableName)
 	_, err = DbConn().Exec(statement)
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -77,4 +77,3 @@ func DbHost() string {
 	}
 	return os.Getenv("BOSH_ENVIRONMENT")
 }
-
