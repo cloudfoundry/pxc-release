@@ -20,14 +20,8 @@
           endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
           db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
         tls:
-          galera:
-            ca: ((galera_server_certificate.ca))
-            certificate: ((galera_server_certificate.certificate))
-            private_key: ((galera_server_certificate.private_key))
-          server:
-            ca: ((mysql_server_certificate.ca))
-            certificate: ((mysql_server_certificate.certificate))
-            private_key: ((mysql_server_certificate.private_key))
+          galera: ((galera_server_certificate))
+          server: ((mysql_server_certificate))
     - name: bootstrap
       release: pxc
     - name: smoke-tests

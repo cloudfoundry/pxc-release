@@ -84,18 +84,10 @@ properties:
   max_connections:
     description: 'Maximum total number of database connections for the node'
     default: 1500
-  tls.galera.ca:
-    description: 'CA Certificate which signed the galera server certificate'
-  tls.galera.certificate:
-    description: 'Server certificate for galera cluster encryption'
-  tls.galera.private_key:
-    description: 'Private key for galera cluster encryption'
-  tls.server.ca:
-    description: 'CA Certificate which signed the server certificate'
-  tls.server.certificate:
-    description: 'Server certificate for mysql server encryption'
-  tls.server.private_key:
-    description: 'Private key for mysql server encryption'
+  tls.galera:
+    description: 'TLS certificate for galera cluster encryption'
+  tls.server:
+    description: 'TLS certificate for client-server encryption'
   character_set_server:
     description: 'Default character set. Note that while the MySQL default is latin1, we default to utf8.'
     default: utf8
