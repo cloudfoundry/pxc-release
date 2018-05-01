@@ -128,7 +128,10 @@ if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/migrated-successfully" 
 
   MYSQL_USERNAME="<%= p('admin_username') %>" MYSQL_PASSWORD="<%= p('admin_password') %>" /var/vcap/packages/migrate-to-pxc/bin/migrate-to-pxc
 
+  #Prevent cf-mysql-release from starting again with an empty DB
   mv /var/vcap/store/mysql /var/vcap/store/mysql-migration-backup
+  mkdir /var/vcap/store/mysql
+  chmod 000 /var/vcap/store/mysql
 
   echo "DO NOT DELETE THIS FILE; YOU WILL LOSE DATA" > /var/vcap/store/migrated-successfully
 fi
