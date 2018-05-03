@@ -28,12 +28,18 @@ provides:
   - port
 - name: mysql-database
   type: database
+  properties:
+  - port
+  - type
 
 packages:
 - proxy
 - pxc-utils
 
 properties:
+  type:
+    description: "Used by consumers of the database link to configure database properties"
+    default: mysql
   port:
     description: "Port for the proxy to listen on"
     default: 3306
