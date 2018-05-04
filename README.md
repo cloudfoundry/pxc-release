@@ -23,33 +23,53 @@ For more details see the [proxy documentation](/docs/proxy.md).
 <a name='deploying'></a>
 # Deploying
 
-## Deployment Components and Topology
+## Deployment Topology
 
-The typical topology is 2 proxy nodes and 3 mysql-clustered nodes. The proxies can be separate vms or co-located with the mysql-clustered nodes.
+`pxc-release` supports 2 different deployment toplogies: a standalone mysql deployment and a clustered (Galera) mysql deployment. There is currently no supported path for migrating between the two topologies.
 
-### Database nodes
+### Standalone Mysql Topology
+
+The standalone topology uses the `mysql` BOSH job.
+
+### Clustered Mysql Topology
+The typical clustered topology is 2 proxy nodes and 3 mysql nodes running the `mysql-clustered` BOSH job. The proxies can be separate vms or co-located with the mysql-clustered nodes.
+
+#### Database nodes
 
 The number of mysql nodes should always be odd, with a minimum count of three, to avoid [split-brain](http://en.wikipedia.org/wiki/Split-brain\_\(computing\)).
 When a failed node comes back online, it will automatically rejoin the cluster and sync data from one of the healthy nodes.
 
-### Proxy nodes
+#### Proxy nodes
 
 Two proxy instances are recommended. The second proxy is intended to be used in a failover capacity. You can also choose to place a load balancer in front of both proxies, or use [BOSH DNS](https://bosh.io/docs/dns.html) to send traffic to both proxies.
 
 In the event the first proxy fails, the second proxy will still be able to route requests to the mysql nodes.
 
 The proxies both will route traffic to the lowest-indexed healthy galera node, according to the galera index (not bosh index).
-<a name='deploying-new-deployments'></a>
-## Deploying new deployments
-<a name='deploying-with-cf-deployment'></a>
-### Deploying CF with pxc-release
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/use-pxc.yml` ops file. (Currently in a PR here: https://github.com/cloudfoundry/cf-deployment/pull/453/files soon to be widely available)
 
-<a name='deploying-with-non-cf-deployments'></a>
-### Using PXC release with other deployments
-1. Get the latest pxc bosh release from [bosh.io](http://bosh.io/releases/github.com/cloudfoundry-incubator/pxc-release)
-2. Add the release from bosh.io to your manifest
-3. Configure the properties from the job spec sections for the [mysql-clustered](jobs/mysql-clustered/spec) and the [proxy](jobs/mysql-clustered-spec) jobs. You can use the manifest and ops-files in cf-deployment as a guide to configuring these properties. See [Deploying CF with pxc-release](#deploying-with-cf-deployment)
+<a name='deploying-new-deployments'></a>
+## Deploying
+<a name='deploying-with-cf-deployment'></a>
+### Deploying CF with pxc-release (using the clustered topology)
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/use-pxc.yml` ops file.
+
+<a name='deploying-clustered></a>
+### Deploying pxc-release clustered
+
+To deploy a clustered deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml) and apply the [use-clustered](operations/use-clustered.yml) opsfile:
+
+```
+bosh -d <deployment> deploy --ops-file operations/use-clustered.yml pxc-deployment.yml
+```
+
+<a name='deploying-standalone'></a>
+### Deploying pxc-release standalone
+
+To deploy a standalone deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml):
+
+```bash
+bosh -d <deployment> deploy pxc-deployment.yml
+```
 
 <a name='migrating-with-cf-deployment'></a>
 ## Migrating from cf-mysql-release
@@ -97,29 +117,6 @@ After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-depl
    * Deploy only the `pxc-release` and not the `cf-mysql-release` in future deployments per [Deploying new deployments](#deploying-new-deployments), to free up disk space used by the `cf-mysql-release`.
 
 6. Scale back up to the recommended 3 nodes, if desired.
-
-<a name='standalone-deployment'></a>
-## Standalone deployment
-
-The release can be deployed standalone from the base manifest [pxc-deployment.yml](pxc-deployment.yml) and operations files in [operations](operations). We support deploying a singleton (non-clustered) deployment and a clustered deployment
-
-<a name='singleton-deployment'></a>
-### Singleton deployment
-
-To deploy a singleton deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml):
-
-```bash
-bosh -d <deployment> deploy pxc-deployment.yml
-```
-
-<a name='clustered-deployment'></a>
-### Clustered deployment
-
-To deploy a clustered deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml) and apply the [use-clustered](operations/use-clustered.yml) opsfile:
-
-```
-bosh -d <deployment> deploy --ops-file operations/use-clustered.yml pxc-deployment.yml
-```
 
 <a name='contribution-guide'></a>
 # Contribution Guide
