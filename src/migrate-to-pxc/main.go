@@ -9,9 +9,9 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/cloudfoundry/gosigar"
 	_ "github.com/go-sql-driver/mysql"
 	"migrate-to-pxc/disk"
-	"github.com/cloudfoundry/gosigar"
 )
 
 var (
@@ -83,7 +83,6 @@ func main() {
 	dumpArgs := []string{
 		"/var/vcap/packages/pxc/bin/mysqldump",
 		"--defaults-file=/var/vcap/jobs/mysql/config/mylogin.cnf",
-		"--verbose",
 		"--databases",
 	}
 
@@ -92,7 +91,6 @@ func main() {
 	loadArgs := []string{
 		"/var/vcap/packages/pxc/bin/mysql",
 		"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf",
-		"--verbose",
 	}
 
 	dumpCmd := exec.Command(dumpArgs[0], dumpArgs[1:]...)
