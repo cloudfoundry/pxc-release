@@ -6,10 +6,10 @@ check/check-0.9.13.tar.gz:
   size: 752880
   object_id: 36e0876b-8632-42f4-59be-24375401f0e3
   sha: sha256:ca6589c34f9c60ffd4c3e198ce581e944a9f040ca9352ed54068dd61bebb5cb7
-golang/go1.10.2.linux-amd64.tar.gz:
-  size: 132481801
-  object_id: 45574c21-35ed-48af-6320-1a01c09be8f4
-  sha: 77f0ac48994946c0d3349baf2d973ed6decb15ca
+golang/go1.9.6.linux-amd64.tar.gz:
+  size: 118279574
+  object_id: d4af0e62-857e-49b4-4eec-026fa051b700
+  sha: 012c86a6b555272fe36fb9cdb45082ffc5ea5c7c
 libaio/libaio_0.3.110.orig.tar.gz:
   size: 42270
   object_id: ffce712d-c4f3-4a3b-764a-42f949b43ad3
