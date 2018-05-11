@@ -7,6 +7,8 @@ builds:
     version: 0.5.0
   8ad89bea-e6cb-4a37-57a4-df9232f7a77c:
     version: 0.1.0
+  9aefb170-a774-492c-5ecf-0303a7ffc438:
+    version: 0.6.0
   c0b9faf6-e5cb-4ae4-7a43-190866a1a6f3:
     version: 0.4.0
 format-version: "2"
