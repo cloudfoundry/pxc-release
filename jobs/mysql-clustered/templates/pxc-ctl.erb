@@ -72,7 +72,7 @@ case $1 in
     su - vcap -c -o pipefail \
     "PATH=$PATH PERL5LIB=$PERL5LIB $PXC_CTRL_PACKAGE/bin/galera-init \
              -configPath=$CONFIG_FILE \
-             >> $LOG_FILE 2>&1 &"
+             >> $LOG_FILE 2>&1" &
 
     echo $! > $LAUNCHER_PID_FILE
 
