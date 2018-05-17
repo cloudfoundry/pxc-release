@@ -13,7 +13,6 @@ datadir=/var/vcap/store/mysql-clustered
 HEALTHCHECK_LOG_DIR="/var/vcap/sys/log/galera-agent"
 JOB_INDEX=<%= index %>
 LOG_DIR=/var/vcap/sys/log/mysql-clustered
-LOG_FILE=$LOG_DIR/pre-start.stdout.log
 PXC_JOB_DIR=/var/vcap/jobs/mysql-clustered
 RUN_DIR=/var/vcap/sys/run/pxc-ctl
 MYSQL_RUN_DIR=/var/vcap/sys/run/mysql-clustered
@@ -21,6 +20,7 @@ SECURE_FILE_PRIV=/var/vcap/data/mysql-clustered/files
 SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
 SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
 
+source /var/vcap/packages/pxc-utils/logging.sh
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 
 if [[ ! -d "$RUN_DIR" ]]; then
@@ -53,11 +53,7 @@ mkdir -p $SECURE_FILE_PRIV
 chmod 0750 $SECURE_FILE_PRIV
 chown -R vcap:vcap $SECURE_FILE_PRIV
 
-mkdir -p $LOG_DIR
-touch $LOG_FILE
 touch $SLOW_QUERY_LOG_FILE
-chown -R vcap:vcap $LOG_DIR
-date >> $LOG_FILE 2>> $LOG_FILE
 date >> $SLOW_QUERY_LOG_FILE 2>> $SLOW_QUERY_LOG_FILE
 mkdir -p "${HEALTHCHECK_LOG_DIR}"
 chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
@@ -79,11 +75,9 @@ ulimit -n <%= p('max_open_files') %>
 
 
 function check_mysql_disk_persistence() {
-  if [[ $(mountpoint -d /var/vcap/store) == $(mountpoint -d /) ]]
+  if [[ (! -d /var/vcap/store) || $(mountpoint -d /var/vcap/store) == $(mountpoint -d /) ]]
   then
-    echo "###################################################################################################################################" >> "${LOG_FILE}"
-    echo "!!! Data directory (${datadir}) is on the same filesystem as /. Have you attached persistent disk? !!!" >> "${LOG_FILE}"
-    echo "####################################################################################################################################" >> "${LOG_FILE}"
+    err "Persistent disk not found"
     exit 1
   fi
 }
@@ -93,9 +87,7 @@ function check_mysql_disk_capacity() {
   local minimum_required_space_in_mb=5000
   if [[ "${datadir_capacity}" -lt "${minimum_required_space_in_mb}" ]]
   then
-    echo "########################################################################################" >> "${LOG_FILE}"
-    echo "!!! Datadir capacity is ${datadir_capacity}MB, which is under the minimum required: ${minimum_required_space}MB !!!" >> "${LOG_FILE}"
-    echo "########################################################################################" >> "${LOG_FILE}"
+    err "Datadir capacity is ${datadir_capacity}MB, which is under the minimum required: ${minimum_required_space}MB"
     exit 1
   fi
 }
@@ -111,7 +103,7 @@ if [ ! -d "${datadir}" ]; then
          --basedir=/var/vcap/packages/pxc \
          --user=vcap \
          --initialize \
-         --datadir=${datadir} >> $LOG_FILE 2>> $LOG_FILE
+         --datadir=${datadir}
 fi
 chown -R vcap:vcap ${datadir}
 
@@ -122,7 +114,7 @@ GALERA_INIT_PREFIX_CMD="su vcap -c -o pipefail" ${PXC_JOB_DIR}/bin/pre-start-exe
 if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/migrated-successfully" ]; then
   node_count=<%= link('mysql').instances.length %>
   if [ ${node_count} -ne 1 ]; then
-    echo "You must scale to 1 node before migrating to pxc" 1>&2
+    err "You must scale to 1 node before migrating to pxc"
     exit 1
   fi
 
