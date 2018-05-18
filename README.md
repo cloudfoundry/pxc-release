@@ -5,35 +5,23 @@ Alpha Percona Xtradb Cluster release **Not ready for production use**
 pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster).
 This release is intended as a drop-in replacement for [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release).
 
-<a name='components'></a>
-# Components
-
-<a name='mysql-server'></a>
-## MySQL Server
-
-<a name='proxy'></a>
-## Proxy
-
-Traffic to the MySQL cluster is routed through one or more proxy nodes. The current proxy implementation is [Switchboard](https://github.com/cloudfoundry-incubator/switchboard). This proxy acts as an intermediary between the client and the MySQL server, providing failover between MySQL nodes. The number of nodes is configured by the proxy job instance count in the deployment manifest.
-
-**NOTE:** If the number of proxy nodes is set to zero, apps will be bound to the IP address of the first MySQL node in the cluster. If that IP address should change for any reason (e.g. loss of a VM) or a proxy was subsequently added, one would need to re-bind all apps to the IP address of the new node.
-
-For more details see the [proxy documentation](/docs/proxy.md).
-
 <a name='deploying'></a>
 # Deploying
 
 ## Deployment Topology
 
-`pxc-release` supports 2 different deployment toplogies: a standalone mysql deployment and a clustered (Galera) mysql deployment. There is currently no supported path for migrating between the two topologies.
+### Which Topology Should I Use?
 
-### Standalone Mysql Topology
+If you were previously using the `cf-mysql` release, we recommend using the `mysql-clustered` job. Even if you were deploying the `cf-mysql` release with only one node, this is probably the best choice for you. It will be relatively easy to migrate to, and the properties will mostly be familiar.
 
-The standalone topology uses the `mysql` BOSH job.
+If you are using pxc for creating deployments with alternative replication strategies like leader-follower, then the `mysql` job is for you.
 
-### Clustered Mysql Topology
+### Galera Clustered Mysql Topology (`mysql-clustered` job)
+The `mysql-clustered` BOSH job runs mysql using Galera replication, across 1 or several nodes.
+
 The typical clustered topology is 2 proxy nodes and 3 mysql nodes running the `mysql-clustered` BOSH job. The proxies can be separate vms or co-located with the mysql-clustered nodes.
 
+You can also run this topology with a single mysql node running the `mysql-clustered` BOSH job and a single proxy job. In this case you would have a galera cluster of size 1, which does not provide high-availability.
 #### Database nodes
 
 The number of mysql nodes should always be odd, with a minimum count of three, to avoid [split-brain](http://en.wikipedia.org/wiki/Split-brain\_\(computing\)).
@@ -46,6 +34,17 @@ Two proxy instances are recommended. The second proxy is intended to be used in 
 In the event the first proxy fails, the second proxy will still be able to route requests to the mysql nodes.
 
 The proxies both will route traffic to the lowest-indexed healthy galera node, according to the galera index (not bosh index).
+
+Traffic to the MySQL cluster is routed through one or more proxy nodes. The current proxy implementation is [Switchboard](https://github.com/cloudfoundry-incubator/switchboard). This proxy acts as an intermediary between the client and the MySQL server, providing failover between MySQL nodes. The number of nodes is configured by the proxy job instance count in the deployment manifest.
+
+**NOTE:** If the number of proxy nodes is set to zero, apps will be bound to the IP address of the first MySQL node in the cluster. If that IP address should change for any reason (e.g. loss of a VM) or a proxy was subsequently added, one would need to re-bind all apps to the IP address of the new node.
+
+For more details see the [proxy documentation](/docs/proxy.md).
+
+
+### Non-Galera Mysql Topology (`mysql` job)
+
+The `mysql` BOSH job runs standard mysql 5.7 without Galera.
 
 <a name='deploying-new-deployments'></a>
 ## Deploying
