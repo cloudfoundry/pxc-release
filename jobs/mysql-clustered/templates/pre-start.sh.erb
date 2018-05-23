@@ -87,7 +87,7 @@ function check_mysql_disk_capacity() {
   local minimum_required_space_in_mb=5000
   if [[ "${datadir_capacity}" -lt "${minimum_required_space_in_mb}" ]]
   then
-    err "Datadir capacity is ${datadir_capacity}MB, which is under the minimum required: ${minimum_required_space}MB"
+    err "Datadir capacity is ${datadir_capacity}MB, which is under the minimum required: ${minimum_required_space_in_mb}MB"
     exit 1
   fi
 }
