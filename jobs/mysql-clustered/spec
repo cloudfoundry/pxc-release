@@ -19,6 +19,8 @@ templates:
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-key.pem.erb: certificates/galera-key.pem
+  gra-log-purger_ctl.sh.erb: bin/gra-log-purger_ctl
+  gra-log-purger.sh.erb: bin/gra-log-purger.sh
   cluster_health_logger_ctl.sh.erb: bin/cluster_health_logger_ctl
   cluster_health_logger_config.yml.erb: config/cluster_health_logger_config.yml
   cluster_health_logger_setup.sql.erb: config/cluster_health_logger_setup.sql
@@ -30,6 +32,7 @@ packages:
 - auto-tune-mysql
 - galera-agent
 - galera-init
+- gra-log-purger
 - libgalera
 - migrate-to-pxc
 - percona-xtrabackup

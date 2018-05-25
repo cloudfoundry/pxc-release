@@ -12,6 +12,12 @@ check process galera-agent
   stop program "/var/vcap/jobs/mysql-clustered/bin/galera-agent-ctl stop" with timeout 10 seconds
   group vcap
 
+check process gra-log-purger-executable
+  with pidfile /var/vcap/sys/run/gra-log-purger/gra-log-purger.pid
+  start program "/var/vcap/jobs/mysql-clustered/bin/gra-log-purger_ctl start"
+  stop program "/var/vcap/jobs/mysql-clustered/bin/gra-log-purger_ctl stop"
+  group vcap
+
 check process cluster_health_logger
   with pidfile /var/vcap/sys/run/mysql-clustered/cluster_health_logger.pid
   start program "/var/vcap/jobs/mysql-clustered/bin/cluster_health_logger_ctl start"
