@@ -78,6 +78,9 @@ properties:
     description: |
       Optional. IP address used to reach mysql from other cluster members
       If not provided, the IP is automatically determined.
+  enable_galera:
+    default: true
+    description: 'Advanced feature. Only use this when deploying a single MySQL node with no intention to run any other components of pxc-release.'
   galera_port:
     description: 'Port which Galera Cluster uses for communication across nodes'
     default: 4567

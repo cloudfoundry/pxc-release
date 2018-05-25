@@ -54,6 +54,7 @@ ssl-ca=/var/vcap/jobs/mysql-clustered/certificates/server-ca.pem
 ssl-cert=/var/vcap/jobs/mysql-clustered/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/mysql-clustered/certificates/server-key.pem
 
+<% if p('enable_galera') %>
 # GALERA options:
 pxc-strict-mode                 = <%= p('pxc_strict_mode') %>
 wsrep_on                        = ON
@@ -72,6 +73,7 @@ wsrep_replicate_myisam          = OFF
 wsrep_debug                     = <%= p('wsrep_debug') %>
 <% if p('log_conflicts') %>
 wsrep_log_conflicts             = ON
+<% end %>
 <% end %>
 
 # Regular MYSQL options:

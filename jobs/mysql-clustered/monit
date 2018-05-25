@@ -5,6 +5,7 @@ check process galera-init
   stop program "/var/vcap/jobs/mysql-clustered/bin/pxc-ctl stop"
   group vcap
 
+<% if p('enable_galera') %>
 check process galera-agent
   with pidfile /var/vcap/sys/run/galera-agent/galera-agent.pid
   start program "/var/vcap/jobs/mysql-clustered/bin/galera-agent-ctl start" with timeout 60 seconds
@@ -16,4 +17,5 @@ check process cluster_health_logger
   start program "/var/vcap/jobs/mysql-clustered/bin/cluster_health_logger_ctl start"
   stop program "/var/vcap/jobs/mysql-clustered/bin/cluster_health_logger_ctl stop"
   group vcap
+<% end %>
 <% end %>
