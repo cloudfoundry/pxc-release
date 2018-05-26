@@ -32,7 +32,7 @@ packages:
 - auto-tune-mysql
 - galera-agent
 - galera-init
-- gra-log-purger
+- pxc-gra-log-purger
 - libgalera
 - migrate-to-pxc
 - percona-xtrabackup

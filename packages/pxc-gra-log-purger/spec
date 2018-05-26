@@ -1,5 +1,5 @@
 ---
-name: gra-log-purger
+name: pxc-gra-log-purger
 dependencies:
   - golang
 files:
