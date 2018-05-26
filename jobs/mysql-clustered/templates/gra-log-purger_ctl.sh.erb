@@ -23,7 +23,7 @@ case $1 in
     mkdir -p $log_dir
     chown -R vcap:vcap $log_dir
 
-    cd /var/vcap/packages/gra-log-purger
+    cd /var/vcap/packages/pxc-gra-log-purger
 
     su - vcap -c -o pipefail \
       "/var/vcap/packages/pxc-gra-log-purger/gra-log-purger-executable \
