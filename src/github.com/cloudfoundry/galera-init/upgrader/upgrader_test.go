@@ -18,7 +18,7 @@ var _ = Describe("Upgrader", func() {
 	var fakeDbHelper *db_helperfakes.FakeDBHelper
 	var testLogger *lagertest.TestLogger
 
-	lastUpgradedVersionFile := "/var/vcap/store/mysql-clustered/mysql_upgrade_info"
+	lastUpgradedVersionFile := "/var/vcap/store/pxc-mysql/mysql_upgrade_info"
 	packageVersionFile := "/var/vcap/package/db_package/VERSION"
 
 	BeforeEach(func() {

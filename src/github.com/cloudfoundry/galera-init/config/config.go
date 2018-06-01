@@ -68,7 +68,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 			User: "root",
 		},
 		Manager: StartManager{
-			GrastateFileLocation: "/var/vcap/store/mysql-clustered/grastate.dat",
+			GrastateFileLocation: "/var/vcap/store/pxc-mysql/grastate.dat",
 		},
 	})
 	flags.Parse(configurationOptions)
