@@ -284,7 +284,7 @@ var _ = Describe("Dedicated MySQL", func() {
 			Entry("expire_logs_days is set to 3 days", "expire_logs_days", "3"),
 			Entry("gtid-mode is enabled", "gtid_mode", "ON"),
 			Entry("binary logs are enabled", "log_bin", "ON"),
-			Entry("binary log basename is reasonable", "log_bin_basename", "/var/vcap/store/mysql/data/mysql-bin"),
+			Entry("binary log basename is reasonable", "log_bin_basename", "/var/vcap/store/pxc-mysql/mysql-bin"),
 			Entry("log-slave-updates is enabled", "log_slave_updates", "ON"),
 			Entry("trust users to create stored functions in a non strict mode", "log_bin_trust_function_creators", "ON"),
 			Entry("master-info-repository is set to TABLE", "master_info_repository", "TABLE"),
@@ -502,7 +502,7 @@ var _ = Describe("Dedicated MySQL", func() {
 			tmpDirValue, err := DbVariableValue(db, "tmpdir")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(tmpDirValue).To(Equal("/var/vcap/data/mysql/tmp"))
+			Expect(tmpDirValue).To(Equal("/var/vcap/data/pxc-mysql/tmp"))
 		})
 
 		It("innodb_tmpdir remains unset so that it can inherit its value from mysqld tmpdir config", func() {

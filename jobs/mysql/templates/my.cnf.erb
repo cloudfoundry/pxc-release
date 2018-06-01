@@ -16,7 +16,7 @@ end
 %>
 [mysqld]
 # General
-datadir = /var/vcap/store/mysql/data/
+datadir = /var/vcap/store/pxc-mysql/
 event-scheduler = ON
 lower-case-table-names = <%= p('enable_lower_case_table_names') ? 1 : 0 %>
 max-allowed-packet = <%= max_allowed_packet %>
@@ -25,7 +25,7 @@ myisam-recover-options = backup,force
 pid-file = /var/vcap/sys/run/mysql/mysql.pid
 require-secure-transport = <%= p('enforce_client_tls') ? "ON" : "OFF" %>
 table-definition-cache = 8192
-tmpdir = /var/vcap/data/mysql/tmp
+tmpdir = /var/vcap/data/pxc-mysql/tmp
 user = vcap
 userstat = <%= p('userstat.enabled') ? "ON" : "OFF" %>
 

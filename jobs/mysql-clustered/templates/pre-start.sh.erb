@@ -9,7 +9,7 @@ export TMPDIR=/var/vcap/data/mysql-clustered/tmp
 
 
 CONFIG_DIR=/etc/mysql
-datadir=/var/vcap/store/mysql-clustered
+datadir=/var/vcap/store/pxc-mysql
 HEALTHCHECK_LOG_DIR="/var/vcap/sys/log/galera-agent"
 JOB_INDEX=<%= index %>
 LOG_DIR=/var/vcap/sys/log/mysql-clustered
@@ -94,6 +94,11 @@ function check_mysql_disk_capacity() {
 
 check_mysql_disk_persistence
 check_mysql_disk_capacity
+
+# move the datadir
+if [ -d "/var/vcap/store/mysql-clustered" ]; then
+  mv "/var/vcap/store/mysql-clustered" "${datadir}"
+fi
 
 if [ ! -d "${datadir}" ]; then
   log "pre-start setup script: making ${datadir} and running /var/vcap/packages/pxc/bin/mysqld"

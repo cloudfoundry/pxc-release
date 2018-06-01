@@ -39,9 +39,9 @@ Db:
   Socket: /var/vcap/sys/run/mysql-clustered/mysqld.sock
 Upgrader:
   PackageVersionFile: /var/vcap/packages/pxc/VERSION
-  LastUpgradedVersionFile: /var/vcap/store/mysql-clustered/mysql_upgrade_info
+  LastUpgradedVersionFile: /var/vcap/store/pxc-mysql/mysql_upgrade_info
 Manager:
-  StateFileLocation: /var/vcap/store/mysql-clustered/state.txt
+  StateFileLocation: /var/vcap/store/pxc-mysql/state.txt
   ClusterIps:
   <% cluster_ips.each do |ip| %>
   - <%= ip %>

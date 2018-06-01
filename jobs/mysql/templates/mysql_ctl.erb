@@ -7,7 +7,7 @@ RUN_DIR=/var/vcap/sys/run/$PROC_NAME
 PIDFILE=$RUN_DIR/$PROC_NAME.pid
 LOG_DIR=/var/vcap/sys/log/mysql
 CONFIG_DIR=/var/vcap/jobs/mysql/config
-TMPDIR=/var/vcap/data/mysql/tmp
+TMPDIR=/var/vcap/data/pxc-mysql/tmp
 export TMPDIR
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
@@ -37,8 +37,20 @@ case $1 in
     mkdir -p "${TMPDIR}"
     chown vcap:vcap "${TMPDIR}"
 
-    mkdir -p /var/vcap/store/mysql/
-    chown vcap:vcap /var/vcap/store/mysql
+    # move existing datadir to pxc-mysql so data stays
+    if [ -d "/var/vcap/store/mysql/data" ]; then
+      mv /var/vcap/store/mysql/data /var/vcap/store/pxc-mysql
+      rm -rf /var/vcap/store/mysql
+    fi
+
+    if [ ! -d "/var/vcap/store/pxc-mysql" ]; then
+      mkdir -p /var/vcap/store/pxc-mysql/
+      chown vcap:vcap /var/vcap/store/pxc-mysql
+      chpst -u vcap:vcap \
+             /var/vcap/packages/pxc/bin/mysqld \
+             --defaults-file=${CONFIG_DIR}/my.cnf \
+             --initialize
+    fi
 
     chmod 0640 /var/vcap/jobs/mysql/scripts/init.sql
     chown vcap:vcap /var/vcap/jobs/mysql/scripts/init.sql
@@ -50,15 +62,6 @@ case $1 in
     /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
       ${AUTO_TUNE_FLAGS} \
       -f ${CONFIG_DIR}/auto-tune.cnf
-
-    if [ ! -d "/var/vcap/store/mysql/data" ]; then
-      mkdir /var/vcap/store/mysql/data
-      chown vcap:vcap /var/vcap/store/mysql/data
-      chpst -u vcap:vcap \
-        /var/vcap/packages/pxc/bin/mysqld \
-        --defaults-file=${CONFIG_DIR}/my.cnf \
-        --initialize
-    fi
 
     exec chpst -u vcap:vcap \
       /var/vcap/packages/pxc/bin/mysqld \
