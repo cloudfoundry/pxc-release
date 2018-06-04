@@ -96,8 +96,8 @@ check_mysql_disk_persistence
 check_mysql_disk_capacity
 
 # move the datadir
-if [ -d "/var/vcap/store/pxc-mysql" ]; then
-  mv "/var/vcap/store/pxc-mysql" "${datadir}"
+if [ -d "/var/vcap/store/mysql-clustered" ]; then
+  mv "/var/vcap/store/mysql-clustered" "${datadir}"
 fi
 
 if [ ! -d "${datadir}" ]; then
