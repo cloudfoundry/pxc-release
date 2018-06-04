@@ -3,12 +3,12 @@
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 source /var/vcap/packages/pxc-utils/logging.sh
 
-JOB_DIR=/var/vcap/jobs/mysql-clustered
+JOB_DIR=/var/vcap/jobs/pxc-mysql
 CONFIG_DIR=${JOB_DIR}/config
-RUN_DIR=/var/vcap/sys/run/mysql-clustered
+RUN_DIR=/var/vcap/sys/run/pxc-mysql
 PID_FILE=${RUN_DIR}/cluster_health_logger.pid
 BIN_FILE=/var/vcap/packages/pxc-cluster-health-logger/bin/pxc-cluster-health-logger
-LOG_DIR=/var/vcap/sys/log/mysql-clustered
+LOG_DIR=/var/vcap/sys/log/pxc-mysql
 
 output_to_logfiles ${LOG_DIR}
 

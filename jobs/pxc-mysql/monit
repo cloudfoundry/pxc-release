@@ -1,0 +1,27 @@
+<% if p('pxc_enabled') == true %>
+check process galera-init
+  with pidfile /var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
+  start program "/var/vcap/jobs/pxc-mysql/bin/pxc-ctl start" with timeout <%= p('startup_timeout') %> seconds
+  stop program "/var/vcap/jobs/pxc-mysql/bin/pxc-ctl stop"
+  group vcap
+
+<% if p('enable_galera') %>
+check process galera-agent
+  with pidfile /var/vcap/sys/run/galera-agent/galera-agent.pid
+  start program "/var/vcap/jobs/pxc-mysql/bin/galera-agent-ctl start" with timeout 60 seconds
+  stop program "/var/vcap/jobs/pxc-mysql/bin/galera-agent-ctl stop" with timeout 10 seconds
+  group vcap
+
+check process gra-log-purger-executable
+  with pidfile /var/vcap/sys/run/gra-log-purger/gra-log-purger.pid
+  start program "/var/vcap/jobs/pxc-mysql/bin/gra-log-purger_ctl start"
+  stop program "/var/vcap/jobs/pxc-mysql/bin/gra-log-purger_ctl stop"
+  group vcap
+
+check process cluster_health_logger
+  with pidfile /var/vcap/sys/run/pxc-mysql/cluster_health_logger.pid
+  start program "/var/vcap/jobs/pxc-mysql/bin/cluster_health_logger_ctl start"
+  stop program "/var/vcap/jobs/pxc-mysql/bin/cluster_health_logger_ctl stop"
+  group vcap
+<% end %>
+<% end %>

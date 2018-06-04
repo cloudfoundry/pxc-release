@@ -90,7 +90,7 @@ func main() {
 
 	loadArgs := []string{
 		"/var/vcap/packages/pxc/bin/mysql",
-		"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf",
+		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf",
 	}
 
 	dumpCmd := exec.Command(dumpArgs[0], dumpArgs[1:]...)

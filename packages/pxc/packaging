@@ -20,7 +20,6 @@ pushd "Percona-XtraDB-Cluster-${PERCONA_SERVER_VERSION}/"
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
         -DINSTALL_MYSQLTESTDIR= \
-        -DMYSQL_DATADIR="/var/vcap/store/mysql-clustered/data" \
         -DMYSQL_SERVER_SUFFIX="-${wsrep_version}" \
         -DWITH_BOOST=../boost_1_59_0/ \
         -DWITH_EMBEDDED_SERVER=OFF \

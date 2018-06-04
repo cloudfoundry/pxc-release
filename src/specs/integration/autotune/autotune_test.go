@@ -29,7 +29,7 @@ func deployWithBufferPoolSizePercent(bufferPoolSizePercent int) {
 		if instanceGroup.(map[interface{}]interface{})["name"] == "mysql" {
 			jobs := instanceGroup.(map[interface{}]interface{})["jobs"].([]interface{})
 			for _, job := range jobs {
-				if job.(map[interface{}]interface{})["name"] == "mysql-clustered" {
+				if job.(map[interface{}]interface{})["name"] == "pxc-mysql" {
 					properties := job.(map[interface{}]interface{})["properties"]
 					properties.(map[interface{}]interface{})["innodb_buffer_pool_size_percent"] = bufferPoolSizePercent
 					break

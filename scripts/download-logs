@@ -74,11 +74,11 @@ function download_logs_from_node() {
 
   mkdir -p "${node_specific_log_containing_directory}"
 
-  scpfiles "${node}" "${node_specific_log_containing_directory}/gralogs/" "/var/vcap/store/mysql-clustered/GRA*.log"
-  scpfiles "${node}" "${node_specific_log_containing_directory}/innobackup/" "/var/vcap/store/mysql-clustered/innobackup.*.log"
+  scpfiles "${node}" "${node_specific_log_containing_directory}/gralogs/" "/var/vcap/store/pxc-mysql/GRA*.log"
+  scpfiles "${node}" "${node_specific_log_containing_directory}/innobackup/" "/var/vcap/store/pxc-mysql/innobackup.*.log"
 
   if [ -n "${extra_logs}" ]; then
-    scpfiles "${node}" "${node_specific_log_containing_directory}/binlogs/" "/var/vcap/store/mysql-clustered/mysql-bin.*"
+    scpfiles "${node}" "${node_specific_log_containing_directory}/binlogs/" "/var/vcap/store/pxc-mysql/mysql-bin.*"
     scpfiles "${node}" "${node_specific_log_containing_directory}/auditlogs/" "/var/vcap/store/mysql_audit_logs/*"
   fi
 }

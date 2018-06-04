@@ -4,8 +4,8 @@ set -e
 set -o pipefail
 
 
-export PXC_JOB_DIR=/var/vcap/jobs/mysql-clustered
-LOG_DIR=/var/vcap/sys/log/mysql-clustered
+export PXC_JOB_DIR=/var/vcap/jobs/pxc-mysql
+LOG_DIR=/var/vcap/sys/log/pxc-mysql
 LOG_FILE=$LOG_DIR/galera-init.log
 JOB_INDEX=<%= index %>
 CONFIG_FILE=$PXC_JOB_DIR/config/galera-init-config.yml
@@ -83,7 +83,7 @@ case $1 in
     echo "stop script: stopping galera-init..."
 
     echo "stop script: stopping node $JOB_INDEX"
-    /var/vcap/packages/pxc/bin/mysqladmin --defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf shutdown
+    /var/vcap/packages/pxc/bin/mysqladmin --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf shutdown
     rm $PIDFILE
 
     echo "stop script: completed stopping galera-init"

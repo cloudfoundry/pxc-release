@@ -20,9 +20,9 @@ def discover_external_ip
   cluster_ips = link('mysql').instances.map(&:address)
 %>
 
-LogFileLocation: /var/vcap/sys/log/mysql-clustered/galera-init.log
+LogFileLocation: /var/vcap/sys/log/pxc-mysql/galera-init.log
 PidFile: /var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
-ChildPidFile: /var/vcap/sys/run/mysql-clustered/mysql.pid
+ChildPidFile: /var/vcap/sys/run/pxc-mysql/mysql.pid
 Db:
   UpgradePath: /var/vcap/packages/pxc/bin/mysql_upgrade
   User: <%= p('admin_username')%>
@@ -34,9 +34,9 @@ Db:
     Password: <%= seed["password"] %>
   <% end %>
   PostStartSQLFiles:
-  - /var/vcap/jobs/mysql-clustered/config/galera-agent-setup.sql
-  - /var/vcap/jobs/mysql-clustered/config/cluster_health_logger_setup.sql
-  Socket: /var/vcap/sys/run/mysql-clustered/mysqld.sock
+  - /var/vcap/jobs/pxc-mysql/config/galera-agent-setup.sql
+  - /var/vcap/jobs/pxc-mysql/config/cluster_health_logger_setup.sql
+  Socket: /var/vcap/sys/run/pxc-mysql/mysqld.sock
 Upgrader:
   PackageVersionFile: /var/vcap/packages/pxc/VERSION
   LastUpgradedVersionFile: /var/vcap/store/pxc-mysql/mysql_upgrade_info

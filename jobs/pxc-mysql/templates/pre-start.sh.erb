@@ -5,18 +5,18 @@ set -o pipefail
 
 ## NOTE: This script MUST ALWAYS run as root user.
 
-export TMPDIR=/var/vcap/data/mysql-clustered/tmp
+export TMPDIR=/var/vcap/data/pxc-mysql/tmp
 
 
 CONFIG_DIR=/etc/mysql
 datadir=/var/vcap/store/pxc-mysql
 HEALTHCHECK_LOG_DIR="/var/vcap/sys/log/galera-agent"
 JOB_INDEX=<%= index %>
-LOG_DIR=/var/vcap/sys/log/mysql-clustered
-PXC_JOB_DIR=/var/vcap/jobs/mysql-clustered
+LOG_DIR=/var/vcap/sys/log/pxc-mysql
+PXC_JOB_DIR=/var/vcap/jobs/pxc-mysql
 RUN_DIR=/var/vcap/sys/run/pxc-ctl
-MYSQL_RUN_DIR=/var/vcap/sys/run/mysql-clustered
-SECURE_FILE_PRIV=/var/vcap/data/mysql-clustered/files
+MYSQL_RUN_DIR=/var/vcap/sys/run/pxc-mysql
+SECURE_FILE_PRIV=/var/vcap/data/pxc-mysql/files
 SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
 SLOW_QUERY_LOG_FILE=$LOG_DIR/mysql_slow_query.log
 
@@ -40,7 +40,7 @@ mkdir -p ${SERVER_AUDIT_LOG_DIR}
 chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
 
 # logrotate audit logs
-ln -sf /var/vcap/jobs/mysql-clustered/config/mysql_clustered_audit_logs.logrotate /etc/logrotate.d/mysql_clustered_audit_logs
+ln -sf /var/vcap/jobs/pxc-mysql/config/mysql_clustered_audit_logs.logrotate /etc/logrotate.d/mysql_clustered_audit_logs
 <% end %>
 
 if [[ ! -d "$TMPDIR" ]]; then
@@ -60,7 +60,7 @@ chown -R vcap:vcap "${HEALTHCHECK_LOG_DIR}"
 
 
  /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
-    -f /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf \
+    -f /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf \
     -P <%= p('innodb_buffer_pool_size_percent') %>
 
 ln -sf $PXC_JOB_DIR/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
@@ -96,15 +96,15 @@ check_mysql_disk_persistence
 check_mysql_disk_capacity
 
 # move the datadir
-if [ -d "/var/vcap/store/mysql-clustered" ]; then
-  mv "/var/vcap/store/mysql-clustered" "${datadir}"
+if [ -d "/var/vcap/store/pxc-mysql" ]; then
+  mv "/var/vcap/store/pxc-mysql" "${datadir}"
 fi
 
 if [ ! -d "${datadir}" ]; then
   log "pre-start setup script: making ${datadir} and running /var/vcap/packages/pxc/bin/mysqld"
   mkdir -p ${datadir}
   /var/vcap/packages/pxc/bin/mysqld \
-         --defaults-file=/var/vcap/jobs/mysql-clustered/config/my.cnf \
+         --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf \
          --basedir=/var/vcap/packages/pxc \
          --user=vcap \
          --initialize \

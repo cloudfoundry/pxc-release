@@ -1,5 +1,5 @@
 <%
-  base_folder = '/var/vcap/sys/run/mysql-clustered'
+  base_folder = '/var/vcap/sys/run/pxc-mysql'
 
   instance_addresses = link('mysql').instances.map { |instance| instance.address }
 
@@ -46,20 +46,20 @@
 port                            = <%= p('port') %>
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
 
-!include                        /var/vcap/jobs/mysql-clustered/config/auto-tune.cnf
+!include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
 [mysqld]
 server-id                       = <%= index %>
-ssl-ca=/var/vcap/jobs/mysql-clustered/certificates/server-ca.pem
-ssl-cert=/var/vcap/jobs/mysql-clustered/certificates/server-cert.pem
-ssl-key=/var/vcap/jobs/mysql-clustered/certificates/server-key.pem
+ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/server-ca.pem
+ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
+ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 
 <% if p('enable_galera') %>
 # GALERA options:
 pxc-strict-mode                 = <%= p('pxc_strict_mode') %>
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/libgalera/lib/libgalera_smm.so
-wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/mysql-clustered/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/mysql-clustered/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/mysql-clustered/certificates/galera-key.pem"
+wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem"
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_node_address              = <%= node_host %>:<%= p('galera_port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
@@ -84,14 +84,14 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 port                            = <%= p('port') %>
 basedir                         = /var/vcap/packages/pxc
 datadir                         = /var/vcap/store/pxc-mysql
-tmpdir                          = /var/vcap/data/mysql-clustered/tmp
+tmpdir                          = /var/vcap/data/pxc-mysql/tmp
 language                        = /var/vcap/packages/pxc/share
-pid-file                        = /var/vcap/sys/run/mysql-clustered/mysql.pid
-log_error                       = /var/vcap/sys/log/mysql-clustered/mysql.err.log
-init_file                       = /var/vcap/jobs/mysql-clustered/config/db_init
+pid-file                        = /var/vcap/sys/run/pxc-mysql/mysql.pid
+log_error                       = /var/vcap/sys/log/pxc-mysql/mysql.err.log
+init_file                       = /var/vcap/jobs/pxc-mysql/config/db_init
 skip_external_locking           = TRUE
 symbolic-links                  = OFF
-secure_file_priv                = /var/vcap/data/mysql-clustered/files
+secure_file_priv                = /var/vcap/data/pxc-mysql/files
 table_definition_cache          = <%= p('table_definition_cache_size') %>
 table_open_cache                = <%= p('table_open_cache') %>
 
@@ -121,7 +121,7 @@ log_bin_trust_function_creators = 1
 
 # Slow query logging:
 slow_query_log                  = 1
-slow_query_log_file             = /var/vcap/sys/log/mysql-clustered/mysql_slow_query.log
+slow_query_log_file             = /var/vcap/sys/log/pxc-mysql/mysql_slow_query.log
 long_query_time                 = <%= p('long_query_time') %>
 <% if p('log_queries_not_using_indexes') %>
 log_queries_not_using_indexes   = ON
@@ -198,9 +198,9 @@ audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
 
 [sst]
 encrypt=4
-ssl-ca=/var/vcap/jobs/mysql-clustered/certificates/galera-ca.pem
-ssl-cert=/var/vcap/jobs/mysql-clustered/certificates/galera-cert.pem
-ssl-key=/var/vcap/jobs/mysql-clustered/certificates/galera-key.pem
+ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem
+ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem
+ssl-key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
 
 [mysqldump]
 quick

@@ -12,16 +12,16 @@ This release is intended as a drop-in replacement for [cf-mysql-release](https:/
 
 ### Which Topology Should I Use?
 
-If you were previously using the `cf-mysql` release, we recommend using the `mysql-clustered` job. Even if you were deploying the `cf-mysql` release with only one node, this is probably the best choice for you. It will be relatively easy to migrate to, and the properties will mostly be familiar.
+If you were previously using the `cf-mysql` release, we recommend using the `pxc-mysql` job. Even if you were deploying the `cf-mysql` release with only one node, this is probably the best choice for you. It will be relatively easy to migrate to, and the properties will mostly be familiar.
 
 If you are using pxc for creating deployments with alternative replication strategies like leader-follower, then the `mysql` job is for you.
 
-### Galera Clustered Mysql Topology (`mysql-clustered` job)
-The `mysql-clustered` BOSH job runs mysql using Galera replication, across 1 or several nodes.
+### Galera Clustered Mysql Topology (`pxc-mysql` job)
+The `pxc-mysql` BOSH job runs mysql using Galera replication, across 1 or several nodes.
 
-The typical clustered topology is 2 proxy nodes and 3 mysql nodes running the `mysql-clustered` BOSH job. The proxies can be separate vms or co-located with the mysql-clustered nodes.
+The typical clustered topology is 2 proxy nodes and 3 mysql nodes running the `pxc-mysql` BOSH job. The proxies can be separate vms or co-located with the pxc-mysql nodes.
 
-You can also run this topology with a single mysql node running the `mysql-clustered` BOSH job and a single proxy job. In this case you would have a galera cluster of size 1, which does not provide high-availability.
+You can also run this topology with a single mysql node running the `pxc-mysql` BOSH job and a single proxy job. In this case you would have a galera cluster of size 1, which does not provide high-availability.
 #### Database nodes
 
 The number of mysql nodes should always be odd, with a minimum count of three, to avoid [split-brain](http://en.wikipedia.org/wiki/Split-brain\_\(computing\)).
@@ -93,26 +93,26 @@ After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-depl
 2. Add the release to your manifest
 2. ⚠️ **Scale down to 1 node and ensure the persistent disk has enough free space to double the size of the mysql data.**
 3. Make the following changes to your bosh manifest:
-   * Add the `mysql-clustered` job from `pxc-release` to the instance group that has the `mysql` job from `cf-mysql-release`
-   * Configure the `mysql-clustered` job with the same credentials and property values as the `mysql` job
+   * Add the `pxc-mysql` job from `pxc-release` to the instance group that has the `mysql` job from `cf-mysql-release`
+   * Configure the `pxc-mysql` job with the same credentials and property values as the `mysql` job
    * To run the migration:
       * Set the `cf_mysql_enabled: false` property on the `mysql` job
-      * Set the `pxc_enabled: true` property on `mysql-clustered` job
+      * Set the `pxc_enabled: true` property on `pxc-mysql` job
       * Switch the proxies to use the proxy job from `pxc-release` instead of `cf-mysql-release`
       * Deploy using BOSH
 
    * To prepare for the migration, but not run it immediately:
       * Set the `cf_mysql_enabled: true` property on the `mysql` job
-      * Set the `pxc_enabled: false` property on `mysql-clustered` job
+      * Set the `pxc_enabled: false` property on `pxc-mysql` job
       * Deploy using BOSH
       * The MySQL will run as normal with only the `cf-mysql-release` running
       * In order to trigger the migration, redeploy with `cf_mysql_enabled: false` and `pxc_enabled: true`
 
    * ⚠️ **Do not enable both releases or disable both releases. Only enable one at a time.**
-4. The migration is triggered by deploying with `cf_mysql_enabled: false` and `pxc_enabled: true`. The `pre-start` script for the `mysql-clustered` job in `pxc-release` starts both the Mariadb MySQL from the `cf-mysql-release` and the Percona MySQL from `pxc-release`. The migration dumps the MariaDB MySQL and loads that data into the Percona MySQL. This is done using pipes, so the dump is not written to disk, in order to reduce the use of disk space. The MariaDB MySQL is then stopped, leaving only the Percona MySQL running.
+4. The migration is triggered by deploying with `cf_mysql_enabled: false` and `pxc_enabled: true`. The `pre-start` script for the `pxc-mysql` job in `pxc-release` starts both the Mariadb MySQL from the `cf-mysql-release` and the Percona MySQL from `pxc-release`. The migration dumps the MariaDB MySQL and loads that data into the Percona MySQL. This is done using pipes, so the dump is not written to disk, in order to reduce the use of disk space. The MariaDB MySQL is then stopped, leaving only the Percona MySQL running.
    * ⚠️ **MySQL DB will experience downtime during the migration**
 5. After the migration, you can optionally clean up your deployment:
-   * The migration will make a copy of the MySQL data on the persistent disk. To reduce disk usage, you can delete the old copy of the data in `/var/vcap/store/mysql` after you feel comfortable in the success of your migration. Do **NOT** delete the new copy of the data in `/var/vcap/store/mysql-clustered`.
+   * The migration will make a copy of the MySQL data on the persistent disk. To reduce disk usage, you can delete the old copy of the data in `/var/vcap/store/mysql` after you feel comfortable in the success of your migration. Do **NOT** delete the new copy of the data in `/var/vcap/store/pxc-mysql`.
    * Deploy only the `pxc-release` and not the `cf-mysql-release` in future deployments per [Deploying new deployments](#deploying-new-deployments), to free up disk space used by the `cf-mysql-release`.
 
 6. Scale back up to the recommended 3 nodes, if desired.

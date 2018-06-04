@@ -10,7 +10,7 @@
     stemcell: default
     persistent_disk: 10000
     jobs:
-    - name: mysql-clustered
+    - name: pxc-mysql
       release: pxc
       properties:
         admin_password: ((cf_mysql_mysql_admin_password))

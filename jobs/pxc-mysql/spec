@@ -1,5 +1,5 @@
 ---
-name: mysql-clustered
+name: pxc-mysql
 
 templates:
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh

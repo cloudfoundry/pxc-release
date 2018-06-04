@@ -10,11 +10,11 @@ set -o pipefail
 PROC_NAME=pxc-ctl
 RUN_DIR=/var/vcap/sys/run/$PROC_NAME
 PIDFILE=$RUN_DIR/$PROC_NAME.pid
-PXC_JOB_DIR=/var/vcap/jobs/mysql-clustered
+PXC_JOB_DIR=/var/vcap/jobs/pxc-mysql
 CONFIG_FILE=$PXC_JOB_DIR/config/galera-init-config.yml
 GALERA_INIT_PACKAGE=/var/vcap/packages/galera-init
 GALERA_INIT_PREFIX_CMD="${GALERA_INIT_PREFIX_CMD:-bash -c -o pipefail}"
-LOG_DIR=/var/vcap/sys/log/mysql-clustered
+LOG_DIR=/var/vcap/sys/log/pxc-mysql
 LOG_FILE=$LOG_DIR/galera-init.log
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
