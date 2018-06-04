@@ -106,7 +106,7 @@ var _ = Describe("GaleraDBHelper", func() {
 	Describe("StartMysqldInStandAlone", func() {
 		It("calls the mysql daemon with the command option", func() {
 			options := []string{
-				"--defaults-file=/var/vcap/jobs/mysql-clustered/config/my.cnf",
+				"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
 				"--wsrep-on=OFF",
 				"--wsrep-desync=ON",
 				"--wsrep-OSU-method=RSU",
@@ -141,7 +141,7 @@ var _ = Describe("GaleraDBHelper", func() {
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf", "shutdown"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf", "shutdown"}))
 		})
 
 		Context("when an error occurs", func() {
@@ -166,7 +166,7 @@ var _ = Describe("GaleraDBHelper", func() {
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf", "status"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf", "status"}))
 		})
 
 		It("returns false if `mysql.server status` exits non-zero", func() {
@@ -178,7 +178,7 @@ var _ = Describe("GaleraDBHelper", func() {
 			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf", "status"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf", "status"}))
 		})
 	})
 
@@ -189,7 +189,7 @@ var _ = Describe("GaleraDBHelper", func() {
 
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal(dbConfig.UpgradePath))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/mysql-clustered/config/mylogin.cnf"}))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf"}))
 		})
 
 		It("returns the output and error", func() {
