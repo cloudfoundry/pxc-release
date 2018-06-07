@@ -49,6 +49,9 @@ if [[ ! -d "$TMPDIR" ]]; then
 fi
 chown -R vcap:vcap $TMPDIR
 
+mkdir -p $LOG_DIR
+chown -R vcap:vcap $LOG_DIR
+
 mkdir -p $SECURE_FILE_PRIV
 chmod 0750 $SECURE_FILE_PRIV
 chown -R vcap:vcap $SECURE_FILE_PRIV
