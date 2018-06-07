@@ -48,7 +48,7 @@ func deployWithBufferPoolSizePercent(bufferPoolSizePercent int) {
 
 var _ = Describe("CF PXC MySQL Autotune", func() {
 	It("correctly configures innodb_buffer_pool_size", func() {
-		deployWithBufferPoolSizePercent(10)
+		deployWithBufferPoolSizePercent(15)
 
 		director, err := helpers.BuildBoshDirector()
 		Expect(err).NotTo(HaveOccurred())
@@ -86,7 +86,7 @@ var _ = Describe("CF PXC MySQL Autotune", func() {
 
 		innodbBufferPoolSizeInMb := innodbBufferPoolSizeInBytes / 1024 / 1024
 
-		expectedBufferPoolSize := vmTotalMemoryInMB * .10
+		expectedBufferPoolSize := vmTotalMemoryInMB * .15
 		if expectedBufferPoolSize > 1024 {
 			expectedBufferPoolSize = math.Ceil(expectedBufferPoolSize/1024) * 1024
 		} else {
