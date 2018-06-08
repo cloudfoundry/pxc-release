@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-set -eu -o pipefail
+set -e -o pipefail
+
+source /var/vcap/packages/python-2.7/bosh/compile.env
+
+set -u
 
 tar -xf check/check-*.tar.gz
 pushd check-*/
