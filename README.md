@@ -1,6 +1,6 @@
 # pxc-release
 
-Alpha Percona Xtradb Cluster release **Not ready for production use**
+Alpha Percona Xtradb Cluster release **Only for limited production use**
 
 pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster).
 This release is intended as a drop-in replacement for [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release).
