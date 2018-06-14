@@ -7,5 +7,5 @@ templates:
   config.yml.erb: config/config.yml
 
 consumes:
-- name: mysql
-  type: mysql
+- name: galera-agent
+  type: galera-agent

@@ -1,9 +1,9 @@
 <%=
-  mysql_link = link('mysql')
-  cluster_ips = mysql_link.instances.map { |instance| instance.address }
-  galera_agent_port = mysql_link.p('galera_agent.port')
-  galera_agent_username = mysql_link.p('galera_agent.endpoint_username')
-  galera_agent_password = mysql_link.p('galera_agent.endpoint_password')
+  galera_agent_link = link('galera-agent')
+  cluster_ips = galera_agent_link.instances.map { |instance| instance.address }
+  galera_agent_port = galera_agent_link.p('port')
+  galera_agent_username = galera_agent_link.p('endpoint_username')
+  galera_agent_password = galera_agent_link.p('endpoint_password')
 
   config = {
     HealthcheckURLs: cluster_ips.map {|ip| "http://#{ip}:#{galera_agent_port}" },

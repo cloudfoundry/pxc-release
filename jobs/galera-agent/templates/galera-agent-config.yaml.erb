@@ -1,12 +1,12 @@
 ---
-Port: <%= p('galera_agent.port') %>
+Port: <%= p('port') %>
 PidFile: '/var/vcap/sys/run/galera-agent/galera-agent.pid'
 MysqldPath: '/var/vcap/packages/pxc/bin/mysqld'
 MyCnfPath: '/var/vcap/jobs/pxc-mysql/config/my.cnf'
 DB:
   User: 'galera-agent'
-  Password: '<%= p('galera_agent.db_password') %>'
-  Port: <%= p('port') %>
+  Password: '<%= p('db_password') %>'
+  Port: <%= link('mysql').p('port') %>
 # This is the config that bosh sets up by default for monit.
 Monit:
   User: 'vcap'
@@ -18,5 +18,5 @@ Monit:
   BootstrapFilePath: '/var/vcap/jobs/pxc-mysql/bin/pre-start-execution'
   BootstrapLogFilePath: '/var/vcap/sys/log/galera-agent/pre-start-execution-during-bootstrap.stdout.log'
 SidecarEndpoint:
-  Username: <%= p('galera_agent.endpoint_username') %>
-  Password: <%= p('galera_agent.endpoint_password') %>
+  Username: <%= p('endpoint_username') %>
+  Password: <%= p('endpoint_password') %>

@@ -1,6 +1,6 @@
 <%=
   cluster_ips = link('mysql').instances.map { |instance| instance.address }
-  galera_agent_port = link('mysql').p('galera_agent.port')
+  galera_agent_port = link('galera-agent').p('port')
   mysql_port = link('mysql').p('port')
 
   proxy_uris = []

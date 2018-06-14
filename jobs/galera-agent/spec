@@ -1,0 +1,37 @@
+---
+name: galera-agent
+
+templates:
+  drain.sh.erb: bin/drain
+  galera-agent-ctl.erb: bin/galera-agent-ctl
+  galera-agent-config.yaml.erb: config/galera-agent-config.yaml
+  galera-agent-setup.sql.erb: config/galera-agent-setup.sql
+  post-start.sh: bin/post-start
+
+packages:
+- galera-agent
+
+provides:
+- name: galera-agent
+  type: galera-agent
+  properties:
+  - port
+  - endpoint_username
+  - endpoint_password
+
+consumes:
+- name: mysql
+  type: mysql
+  optional: true
+
+properties:
+  endpoint_username:
+    description: 'Username used by the sidecar endpoints for Basic Auth'
+    default: galera-agent
+  endpoint_password:
+    description: 'Password used by the sidecar endpoints for Basic Auth'
+  port:
+    description: 'Port used by sidecar process to listen on'
+    default: 9200
+  db_password:
+    description: 'Password used by the sidecar to connect to the database'

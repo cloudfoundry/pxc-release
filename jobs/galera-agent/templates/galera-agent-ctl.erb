@@ -1,13 +1,12 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 
-job_dir=/var/vcap/jobs/pxc-mysql
+set -e
+
+job_dir=/var/vcap/jobs/galera-agent
 run_dir=/var/vcap/sys/run/galera-agent
 log_dir=/var/vcap/sys/log/galera-agent
 package_dir=/var/vcap/packages/galera-agent
 pidfile=$run_dir/galera-agent.pid
-
-export GOROOT=/var/vcap/packages/golang
-export PATH=$GOROOT/bin:$PWD/bin:$PATH
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 
@@ -25,7 +24,7 @@ case $1 in
 
     cd $package_dir
 
-    ulimit -n <%= p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
+    ulimit -n <%= link('mysql').p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
 
     su - vcap -c -o pipefail \
       "$package_dir/bin/galera-agent \

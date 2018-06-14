@@ -34,7 +34,6 @@ Db:
     Password: <%= seed["password"] %>
   <% end %>
   PostStartSQLFiles:
-  - /var/vcap/jobs/pxc-mysql/config/galera-agent-setup.sql
   - /var/vcap/jobs/pxc-mysql/config/cluster_health_logger_setup.sql
   Socket: /var/vcap/sys/run/pxc-mysql/mysqld.sock
 Upgrader:

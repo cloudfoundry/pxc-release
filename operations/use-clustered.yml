@@ -16,12 +16,14 @@
         admin_password: ((cf_mysql_mysql_admin_password))
         cluster_health:
           password: ((cf_mysql_mysql_cluster_health_password))
-        galera_agent:
-          endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
-          db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
         tls:
           galera: ((galera_server_certificate))
           server: ((mysql_server_certificate))
+    - name: galera-agent
+      properties:
+        endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
+        db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
+      release: pxc
     - name: bootstrap
       release: pxc
     - name: smoke-tests

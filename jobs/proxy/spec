@@ -16,6 +16,8 @@ consumes:
 - name: arbitrator
   type: arbitrator
   optional: true
+- name: galera-agent
+  type: galera-agent
 
 provides:
 - name: proxy

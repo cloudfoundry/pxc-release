@@ -13,9 +13,6 @@ templates:
   pxc-sudoers: config/pxc-sudoers
   pre-start.sh.erb: bin/pre-start
   pre-start-execution.sh.erb: bin/pre-start-execution
-  galera-agent-ctl.erb: bin/galera-agent-ctl
-  galera-agent-config.yaml.erb: config/galera-agent-config.yaml
-  galera-agent-setup.sql.erb: config/galera-agent-setup.sql
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-key.pem.erb: certificates/galera-key.pem
@@ -30,7 +27,6 @@ templates:
 
 packages:
 - auto-tune-mysql
-- galera-agent
 - galera-init
 - pxc-gra-log-purger
 - libgalera
@@ -51,9 +47,8 @@ provides:
   type: mysql
   properties:
   - port
-  - galera_agent.port
-  - galera_agent.endpoint_username
-  - galera_agent.endpoint_password
+  - max_open_files
+  - pxc_enabled
 - name: internal-mysql-database
   type: internal-database
 
@@ -179,18 +174,6 @@ properties:
     default: 30
   cluster_health.password:
     description: 'Password for the cluster logger health user'
-
-  galera_agent.endpoint_username:
-    description: 'Username used by the sidecar endpoints for Basic Auth'
-    default: galera-agent
-  galera_agent.endpoint_password:
-    description: 'Password used by the sidecar endpoints for Basic Auth'
-  galera_agent.port:
-    description: 'Port used by sidecar process to listen on'
-    default: 9200
-  galera_agent.db_password:
-    description: 'Password used by the sidecar to connect to the database'
-
 
   cluster_probe_timeout:
     description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'
