@@ -117,6 +117,7 @@ function kill_and_wait() {
   else
     echo "Stopped"
     rm -f "${pidfile}"
+    return 0
   fi
 }
 

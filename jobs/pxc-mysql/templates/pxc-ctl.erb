@@ -83,8 +83,7 @@ case $1 in
     echo "stop script: stopping galera-init..."
 
     echo "stop script: stopping node $JOB_INDEX"
-    /var/vcap/packages/pxc/bin/mysqladmin --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf shutdown
-    rm $PIDFILE
+    kill_and_wait ${PIDFILE} 25 0
 
     echo "stop script: completed stopping galera-init"
     ;;
