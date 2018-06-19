@@ -1,14 +1,15 @@
+<% if link('mysql').p('pxc_enabled') == true %>
 #!/bin/bash -e
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 source /var/vcap/packages/pxc-utils/logging.sh
 
-JOB_DIR=/var/vcap/jobs/pxc-mysql
+JOB_DIR=/var/vcap/jobs/cluster-health-logger
 CONFIG_DIR=${JOB_DIR}/config
-RUN_DIR=/var/vcap/sys/run/pxc-mysql
+RUN_DIR=/var/vcap/sys/run/cluster-health-logger
 PID_FILE=${RUN_DIR}/cluster_health_logger.pid
 BIN_FILE=/var/vcap/packages/pxc-cluster-health-logger/bin/pxc-cluster-health-logger
-LOG_DIR=/var/vcap/sys/log/pxc-mysql
+LOG_DIR=/var/vcap/sys/log/cluster-health-logger
 
 output_to_logfiles ${LOG_DIR}
 
@@ -21,6 +22,10 @@ case $1 in
     echo $$ > ${PID_FILE}
 
     chown -R vcap:vcap ${RUN_DIR}
+
+    /var/vcap/packages/pxc/bin/mysql \
+      --defaults-file="/var/vcap/jobs/pxc-mysql/config/mylogin.cnf" \
+      < "/var/vcap/jobs/cluster-health-logger/config/cluster_health_logger_setup.sql"
 
     exec chpst -u vcap:vcap ${BIN_FILE} -configPath=${CONFIG_DIR}/cluster_health_logger_config.yml
 
@@ -38,3 +43,5 @@ case $1 in
     ;;
 
 esac
+
+<% end %>

@@ -1,0 +1,7 @@
+<% if link('mysql').p('pxc_enabled') == true %>
+check process cluster_health_logger
+  with pidfile /var/vcap/sys/run/cluster-health-logger/cluster_health_logger.pid
+  start program "/var/vcap/jobs/cluster-health-logger/bin/cluster_health_logger_ctl start"
+  stop program "/var/vcap/jobs/cluster-health-logger/bin/cluster_health_logger_ctl stop"
+  group vcap
+<% end %>

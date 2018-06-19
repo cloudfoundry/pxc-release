@@ -16,11 +16,6 @@ templates:
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-key.pem.erb: certificates/galera-key.pem
-  gra-log-purger_ctl.sh.erb: bin/gra-log-purger_ctl
-  gra-log-purger.sh.erb: bin/gra-log-purger.sh
-  cluster_health_logger_ctl.sh.erb: bin/cluster_health_logger_ctl
-  cluster_health_logger_config.yml.erb: config/cluster_health_logger_config.yml
-  cluster_health_logger_setup.sql.erb: config/cluster_health_logger_setup.sql
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
   server-key.pem.erb: certificates/server-key.pem
@@ -28,7 +23,6 @@ templates:
 packages:
 - auto-tune-mysql
 - galera-init
-- pxc-gra-log-purger
 - libgalera
 - migrate-to-pxc
 - percona-xtrabackup
@@ -169,11 +163,6 @@ properties:
   cluster_name:
     description: 'A unique name for this cluster. ONLY set before first deployment. DO NOT attempt to change an existing multi-node cluster.'
     default: 'galera-cluster'
-  cluster_health.log_interval:
-    description: 'Time in seconds between log entries for cluster health'
-    default: 30
-  cluster_health.password:
-    description: 'Password for the cluster logger health user'
 
   cluster_probe_timeout:
     description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'

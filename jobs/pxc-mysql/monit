@@ -4,18 +4,4 @@ check process galera-init
   start program "/var/vcap/jobs/pxc-mysql/bin/pxc-ctl start" with timeout <%= p('startup_timeout') %> seconds
   stop program "/var/vcap/jobs/pxc-mysql/bin/pxc-ctl stop"
   group vcap
-
-<% if p('enable_galera') %>
-check process gra-log-purger-executable
-  with pidfile /var/vcap/sys/run/gra-log-purger/gra-log-purger.pid
-  start program "/var/vcap/jobs/pxc-mysql/bin/gra-log-purger_ctl start"
-  stop program "/var/vcap/jobs/pxc-mysql/bin/gra-log-purger_ctl stop"
-  group vcap
-
-check process cluster_health_logger
-  with pidfile /var/vcap/sys/run/pxc-mysql/cluster_health_logger.pid
-  start program "/var/vcap/jobs/pxc-mysql/bin/cluster_health_logger_ctl start"
-  stop program "/var/vcap/jobs/pxc-mysql/bin/cluster_health_logger_ctl stop"
-  group vcap
-<% end %>
 <% end %>

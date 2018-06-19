@@ -1,0 +1,6 @@
+---
+Port: <%= link('mysql').p('port') %>
+User: cluster-health-logger
+Password: <%= p('db_password') %>
+LogPath: /var/vcap/sys/log/cluster-health-logger/cluster_health.log
+Interval: <%= p('log_interval') %>

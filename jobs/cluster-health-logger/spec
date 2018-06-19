@@ -1,0 +1,22 @@
+---
+name: cluster-health-logger
+
+templates:
+  cluster_health_logger_ctl.sh.erb: bin/cluster_health_logger_ctl
+  cluster_health_logger_config.yml.erb: config/cluster_health_logger_config.yml
+  cluster_health_logger_setup.sql.erb: config/cluster_health_logger_setup.sql
+
+packages:
+- pxc-utils
+- pxc-cluster-health-logger
+
+consumes:
+- name: mysql
+  type: mysql
+
+properties:
+  db_password:
+    description: 'Password for the cluster health logger user'
+  log_interval:
+    description: 'Time in seconds between log entries for cluster health'
+    default: 30

@@ -37,7 +37,7 @@ func main() {
 	}
 
 	for {
-		out, err := runCommand("sh", "/var/vcap/jobs/pxc-mysql/bin/gra-log-purger.sh", *graLogDir, strconv.Itoa(*graLogDaysToKeep))
+		out, err := runCommand("sh", "/var/vcap/jobs/gra-log-purger/bin/gra-log-purger.sh", *graLogDir, strconv.Itoa(*graLogDaysToKeep))
 		if err != nil {
 			LogErrorWithTimestamp(err)
 		}

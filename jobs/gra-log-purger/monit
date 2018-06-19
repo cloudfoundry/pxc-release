@@ -1,0 +1,7 @@
+<% if link('mysql').p('pxc_enabled') == true %>
+check process gra-log-purger
+  with pidfile /var/vcap/sys/run/gra-log-purger/gra-log-purger.pid
+  start program "/var/vcap/jobs/gra-log-purger/bin/gra-log-purger_ctl start"
+  stop program "/var/vcap/jobs/gra-log-purger/bin/gra-log-purger_ctl stop"
+  group vcap
+<% end %>
