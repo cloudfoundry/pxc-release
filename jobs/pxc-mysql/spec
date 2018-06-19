@@ -34,7 +34,6 @@ packages:
 consumes:
 - name: mysql
   type: mysql
-  optional: true
 
 provides:
 - name: mysql
