@@ -1,5 +1,6 @@
-<% if link('mysql').p('pxc_enabled') == true %>
-#!/bin/bash -e
+#!/bin/bash
+
+set -e
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 source /var/vcap/packages/pxc-utils/logging.sh
@@ -43,5 +44,3 @@ case $1 in
     ;;
 
 esac
-
-<% end %>
