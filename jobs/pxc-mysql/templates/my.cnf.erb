@@ -98,9 +98,6 @@ table_open_cache                = <%= p('table_open_cache') %>
 max_allowed_packet              = <%= p('max_allowed_packet') %>
 skip_name_resolve               = ON
 
-#enforce_storage_engine          = InnoDB
-#FIXME: mysql_upgrade fails if this is turned on
-
 sql-mode                        = NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,STRICT_ALL_TABLES
 
 <% if p('enable_local_file') %>
