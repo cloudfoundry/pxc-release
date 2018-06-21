@@ -135,9 +135,6 @@ properties:
   wsrep_max_ws_size:
     description: 'Maximum permitted size in bytes per writeset.'
     default: 1073741824
-  skip_name_resolve:
-    description: 'Do not restrict connections to database based on hostname'
-    default: true
   gcache_size:
     description: 'Cache size used by galera (maximum amount of data possible in an IST), in MB'
     default: 512

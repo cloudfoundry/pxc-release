@@ -96,9 +96,7 @@ table_definition_cache          = <%= p('table_definition_cache_size') %>
 table_open_cache                = <%= p('table_open_cache') %>
 
 max_allowed_packet              = <%= p('max_allowed_packet') %>
-<% if_p('skip_name_resolve') do |disable_dns| %>
-<%= "skip_name_resolve" if disable_dns %>
-<% end %>
+skip_name_resolve               = ON
 
 #enforce_storage_engine          = InnoDB
 #FIXME: mysql_upgrade fails if this is turned on
