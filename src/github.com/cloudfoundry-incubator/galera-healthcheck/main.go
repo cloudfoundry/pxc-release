@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -125,16 +124,6 @@ func main() {
 			})
 		}
 		logger.Info(fmt.Sprintf("Initial Response: %s", body))
-
-		// existence of pid file means the server is running
-		pid := os.Getpid()
-		err = ioutil.WriteFile(rootConfig.PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
-		if err != nil {
-			logger.Fatal("Failed to write pid file", err, lager.Data{
-				"pid":     pid,
-				"pidFile": rootConfig.PidFile,
-			})
-		}
 
 		// Used by tests to deterministically know that the healthcheck is accepting incoming connections
 		logger.Info("Healthcheck Started")

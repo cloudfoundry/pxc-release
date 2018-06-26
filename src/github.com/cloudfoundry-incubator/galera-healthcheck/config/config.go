@@ -19,7 +19,6 @@ type Config struct {
 	Port                  int         `yaml:"Port" validate:"nonzero"`
 	AvailableWhenDonor    bool        `yaml:"AvailableWhenDonor"`
 	AvailableWhenReadOnly bool        `yaml:"AvailableWhenReadOnly"`
-	PidFile               string      `yaml:"PidFile" validate:"nonzero"`
 	Logger                lager.Logger
 	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
 	MyCnfPath             string                `yaml:"MyCnfPath" validate:"nonzero"`
