@@ -1,8 +1,0 @@
----
-name: mysql-restore
-
-dependencies:
-- golang
-
-files:
-- dedicated-mysql-restore/**/*
