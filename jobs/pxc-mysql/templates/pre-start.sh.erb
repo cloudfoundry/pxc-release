@@ -108,10 +108,7 @@ if [ ! -d "${datadir}" ]; then
   mkdir -p ${datadir}
   /var/vcap/packages/pxc/bin/mysqld \
          --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf \
-         --basedir=/var/vcap/packages/pxc \
-         --user=vcap \
-         --initialize \
-         --datadir=${datadir}
+         --initialize
 fi
 chown -R vcap:vcap ${datadir}
 
