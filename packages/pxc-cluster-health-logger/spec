@@ -1,7 +1,7 @@
 ---
 name: pxc-cluster-health-logger
 dependencies:
-  - golang
+  - golang-1.9-linux
 files:
   - github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/**/*.go
 excluded_files:

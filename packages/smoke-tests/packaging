@@ -2,15 +2,14 @@
 
 set -eux
 
-export GOPATH=${PWD}
-export GOROOT=$(readlink -nf /var/vcap/packages/golang)
-export PATH=${GOROOT}/bin:${GOPATH}/bin:${PATH}
+source /var/vcap/packages/golang-1.9-linux/bosh/compile.env
+mkdir -p ${BOSH_INSTALL_TARGET}/bin
+mkdir -p ${GOPATH}/src
 
-mkdir src
-mv github.com src/
-mv specs src/
+mv github.com ${GOPATH}/src
+mv specs ${GOPATH}/src
 
 go install github.com/onsi/ginkgo/ginkgo
 
 ginkgo build src/specs/integration/connection
-cp src/specs/integration/connection/connection.test ${BOSH_INSTALL_TARGET}/
+cp ${GOPATH}/src/specs/integration/connection/connection.test ${BOSH_INSTALL_TARGET}/bin/

@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 
-set -eux
+set -eu
 
-mkdir -p ${BOSH_INSTALL_TARGET}/src
-cp -a . ${BOSH_INSTALL_TARGET}/src
-export GOPATH=$BOSH_INSTALL_TARGET
+source /var/vcap/packages/golang-1.9-linux/bosh/compile.env
+mkdir -p ${BOSH_INSTALL_TARGET}/bin
+mkdir -p ${GOPATH}/src
 
-export GOROOT=$(readlink -nf /var/vcap/packages/golang)
-export PATH=$GOROOT/bin:$PATH
+mv github.com ${GOPATH}/src
 
-go build -o $GOPATH/bin/galera-init github.com/cloudfoundry/galera-init/cmd/start
-
-# clean up source artifacts
-rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg
-
+go build -o ${BOSH_INSTALL_TARGET}/bin/galera-init github.com/cloudfoundry/galera-init/cmd/start

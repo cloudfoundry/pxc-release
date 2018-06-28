@@ -1,5 +1,0 @@
----
-name: golang
-
-files:
-  - golang/*.tar.gz

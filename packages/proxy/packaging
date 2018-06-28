@@ -2,18 +2,12 @@
 
 set -eu
 
-mkdir -p ${BOSH_INSTALL_TARGET}/src
-cp -a . ${BOSH_INSTALL_TARGET}/src
-export GOPATH=$BOSH_INSTALL_TARGET
-export REPO=$GOPATH/src/github.com/cloudfoundry-incubator/switchboard
+source /var/vcap/packages/golang-1.9-linux/bosh/compile.env
+mkdir -p ${BOSH_INSTALL_TARGET}/bin
+mkdir -p ${GOPATH}/src
 
-export GOROOT=$(readlink -nf /var/vcap/packages/golang)
-export PATH=$GOROOT/bin:$PATH
+mv github.com ${GOPATH}/src
 
-go build -o $GOPATH/bin/proxy github.com/cloudfoundry-incubator/switchboard
+go build -o ${BOSH_INSTALL_TARGET}/bin/proxy github.com/cloudfoundry-incubator/switchboard
 
-cp -r $BOSH_INSTALL_TARGET/src/github.com/cloudfoundry-incubator/switchboard/static  $BOSH_INSTALL_TARGET/static
-
-# clean up source artifacts
-rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg
-
+cp -r src/github.com/cloudfoundry-incubator/switchboard/static  ${BOSH_INSTALL_TARGET}/static

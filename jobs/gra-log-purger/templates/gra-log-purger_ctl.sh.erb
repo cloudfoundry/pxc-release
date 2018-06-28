@@ -26,7 +26,7 @@ case $1 in
     cd /var/vcap/packages/pxc-gra-log-purger
 
     su - vcap -c -o pipefail \
-      "/var/vcap/packages/pxc-gra-log-purger/gra-log-purger-executable \
+      "/var/vcap/packages/pxc-gra-log-purger/bin/gra-log-purger \
         -graLogDir=$gra_log_dir \
         -graLogDaysToKeep=$gra_log_days_to_keep \
         -pidfile=$pidfile \

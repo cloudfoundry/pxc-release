@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
 
-set -e
-set -u
+set -eu
 
-mkdir -p ${BOSH_INSTALL_TARGET}/src
-cp -a . ${BOSH_INSTALL_TARGET}/src
-export GOPATH=$BOSH_INSTALL_TARGET
-export REPO=$GOPATH/src/github.com/cloudfoundry-incubator/cf-mysql-bootstrap
+source /var/vcap/packages/golang-1.9-linux/bosh/compile.env
+mkdir -p ${BOSH_INSTALL_TARGET}/bin
+mkdir -p ${GOPATH}/src
 
-export GOROOT=$(readlink -nf /var/vcap/packages/golang)
-export PATH=$GOROOT/bin:$PATH
+mv github.com ${GOPATH}/src
 
-go install github.com/cloudfoundry-incubator/cf-mysql-bootstrap
-
-# clean up source artifacts
-rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg
-
+go build -o ${BOSH_INSTALL_TARGET}/bin/cf-mysql-bootstrap github.com/cloudfoundry-incubator/cf-mysql-bootstrap

@@ -1,7 +1,7 @@
 ---
 name: migrate-to-pxc
 dependencies:
-  - golang
+  - golang-1.9-linux
 files:
   - migrate-to-pxc/**/*.go
 excluded_files:
