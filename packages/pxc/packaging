@@ -2,7 +2,7 @@
 
 set -eu -o pipefail
 
-PERCONA_SERVER_VERSION=5.7.21-29.26
+PERCONA_SERVER_VERSION=5.7.22-29.26
 
 tar -xf boost/boost_1_59_0.tar.gz
 
