@@ -14,8 +14,13 @@ provides:
   - db_password
 
 consumes:
-- name: proxy
-  type: proxy
+- name: database
+  type: database
+  optional: true
+- name: mysql
+  type: mysql
+  optional: true
+
 
 properties:
   db_username:

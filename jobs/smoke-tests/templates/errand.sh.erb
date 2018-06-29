@@ -1,7 +1,18 @@
 #!/bin/bash
 set -eu
 
-export MYSQL_HOST="<%= link('proxy').instances.first.address %>"
+<%
+mysql_host=nil
+if_link('database') do |db_link|
+  mysql_host = db_link.instances.first.address
+end.else_if_link('mysql') do |db_link|
+  mysql_host = db_link.instances.first.address
+end.else do
+  raise "database or mysql link is required"
+end
+%>
+
+export MYSQL_HOST="<%= mysql_host %>"
 export MYSQL_USERNAME="<%= p('db_username') %>"
 export MYSQL_PASSWORD="<%= p('db_password') %>"
 

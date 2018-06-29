@@ -6,24 +6,26 @@ releases:
 
 instance_groups:
 - name: mysql
-  azs:
-  - z1
   instances: 1
-  jobs:
-  - name: mysql
-    release: pxc
-  networks:
-  - name: default
-  persistent_disk: 10000
-  properties:
-    admin_password: ((admin_password))
-    audit_log:
-      enabled: true
-    broker_admin_password: ((broker_admin_password))
-    default_schema: default_schema
-    enable_lower_case_table_names: false
-  stemcell: default
+  azs: [z1, z2, z3]
+  networks: [{name: default}]
   vm_type: default
+  stemcell: default
+  persistent_disk: 10000
+  jobs:
+  - name: pxc-mysql
+    release: pxc
+    properties:
+      admin_password: ((cf_mysql_mysql_admin_password))
+      tls:
+        galera: ((galera_server_certificate))
+        server: ((mysql_server_certificate))
+  - name: smoke-tests
+    release: pxc
+    properties:
+      db_password: ((smoke_tests_db_password))
+  - name: smoke-tests-user
+    release: pxc
 
 stemcells:
 - alias: default
@@ -37,7 +39,28 @@ update:
   update_watch_time: 10000-600000
 
 variables:
-- name: admin_password
+- name: cf_mysql_mysql_admin_password
   type: password
-- name: broker_admin_password
+- name: pxc_galera_ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: pxc_galera_ca
+- name: pxc_server_ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: pxc_server_ca
+- name: galera_server_certificate
+  type: certificate
+  options:
+    ca: pxc_galera_ca
+    extended_key_usage: [ "server_auth", "client_auth" ]
+    common_name: galera_server_certificate
+- name: mysql_server_certificate
+  type: certificate
+  options:
+    ca: pxc_server_ca
+    common_name: mysql_server_certificate
+- name: smoke_tests_db_password
   type: password

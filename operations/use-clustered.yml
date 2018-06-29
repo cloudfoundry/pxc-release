@@ -1,43 +1,20 @@
 ---
 - type: replace
-  path: /instance_groups
-  value:
-  - name: mysql
-    instances: 3
-    azs: [z1, z2, z3]
-    networks: [{name: default}]
-    vm_type: default
-    stemcell: default
-    persistent_disk: 10000
-    jobs:
-    - name: pxc-mysql
-      release: pxc
-      properties:
-        admin_password: ((cf_mysql_mysql_admin_password))
-        tls:
-          galera: ((galera_server_certificate))
-          server: ((mysql_server_certificate))
-    - name: cluster-health-logger
-      properties:
-        db_password: ((cf_mysql_mysql_cluster_health_password))
-      release: pxc
-    - name: galera-agent
-      properties:
-        endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
-        db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
-      release: pxc
-    - name: gra-log-purger
-      release: pxc
-    - name: bootstrap
-      release: pxc
-    - name: smoke-tests
-      release: pxc
-      properties:
-        db_password: ((smoke_tests_db_password))
-    - name: smoke-tests-user
-      release: pxc
+  path: /instance_groups/name=mysql/instances
+  value: 3
 
-  - name: proxy
+- type: replace
+  path: /instance_groups/name=mysql/jobs/-
+  value:
+    name: cluster-health-logger
+    properties:
+      db_password: ((cf_mysql_mysql_cluster_health_password))
+    release: pxc
+
+- type: replace
+  path: /instance_groups/-
+  value:
+    name: proxy
     instances: 2
     azs: [z1, z2]
     networks: [{name: default}]
@@ -50,42 +27,46 @@
         api_password: ((cf_mysql_proxy_api_password))
 
 - type: replace
-  path: /variables
+  path: /instance_groups/name=mysql/jobs/-
   value:
-  - name: cf_mysql_mysql_admin_password
-    type: password
-  - name: cf_mysql_mysql_cluster_health_password
-    type: password
-  - name: cf_mysql_mysql_galera_healthcheck_db_password
-    type: password
-  - name: cf_mysql_mysql_galera_healthcheck_endpoint_password
-    type: password
-  - name: cf_mysql_proxy_api_password
-    type: password
-  - name: pxc_galera_ca
-    type: certificate
-    options:
-      is_ca: true
-      common_name: pxc_galera_ca
-  - name: pxc_server_ca
-    type: certificate
-    options:
-      is_ca: true
-      common_name: pxc_server_ca
-  - name: galera_server_certificate
-    type: certificate
-    options:
-      ca: pxc_galera_ca
-      extended_key_usage: [ "server_auth", "client_auth" ]
-      common_name: galera_server_certificate
-  - name: mysql_server_certificate
-    type: certificate
-    options:
-      ca: pxc_server_ca
-      common_name: mysql_server_certificate
-  - name: smoke_tests_db_password
+    name: galera-agent
+    properties:
+      endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
+      db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
+    release: pxc
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/-
+  value:
+    name: gra-log-purger
+    release: pxc
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/-
+  value:
+    name: bootstrap
+    release: pxc
+
+- type: replace
+  path: /variables/-
+  value:
+    name: cf_mysql_mysql_cluster_health_password
     type: password
 
 - type: replace
-  path: /update?/serial?
-  value: true
+  path: /variables/-
+  value:
+    name: cf_mysql_proxy_api_password
+    type: password
+
+- type: replace
+  path: /variables/-
+  value:
+    name: cf_mysql_mysql_galera_healthcheck_db_password
+    type: password
+
+- type: replace
+  path: /variables/-
+  value:
+    name: cf_mysql_mysql_galera_healthcheck_endpoint_password
+    type: password
