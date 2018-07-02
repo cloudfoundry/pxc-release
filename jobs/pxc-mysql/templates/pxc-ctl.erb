@@ -70,7 +70,7 @@ case $1 in
 
     echo "start script: starting galera-init..."
     su - vcap -c -o pipefail \
-    "PATH=$PATH PERL5LIB=$PERL5LIB $PXC_CTRL_PACKAGE/bin/galera-init \
+    "TMPDIR=/var/vcap/data/pxc-mysql/tmp PATH=$PATH PERL5LIB=$PERL5LIB $PXC_CTRL_PACKAGE/bin/galera-init \
              -configPath=$CONFIG_FILE \
              >> $LOG_FILE 2>&1" &
 
