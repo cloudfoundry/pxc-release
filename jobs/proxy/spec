@@ -45,6 +45,8 @@ properties:
   port:
     description: "Port for the proxy to listen on"
     default: 3306
+  inactive_mysql_port:
+    description: "If configured, listens on this port and routes traffic to an inactive mysql node. Useful for queries you do not want to impact other clients"
   healthcheck_timeout_millis:
     description: "Timeout (milliseconds) before assuming a backend is unhealthy"
     default: 5000
