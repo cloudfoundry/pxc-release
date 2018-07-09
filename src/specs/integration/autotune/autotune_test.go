@@ -31,7 +31,8 @@ func deployWithBufferPoolSizePercent(bufferPoolSizePercent int) {
 			for _, job := range jobs {
 				if job.(map[interface{}]interface{})["name"] == "pxc-mysql" {
 					properties := job.(map[interface{}]interface{})["properties"]
-					properties.(map[interface{}]interface{})["innodb_buffer_pool_size_percent"] = bufferPoolSizePercent
+					engineConfig := properties.(map[interface{}]interface{})["engine_config"]
+					engineConfig.(map[interface{}]interface{})["innodb_buffer_pool_size_percent"] = bufferPoolSizePercent
 					break
 				}
 			}
@@ -48,7 +49,8 @@ func deployWithBufferPoolSizePercent(bufferPoolSizePercent int) {
 
 var _ = Describe("CF PXC MySQL Autotune", func() {
 	It("correctly configures innodb_buffer_pool_size", func() {
-		deployWithBufferPoolSizePercent(15)
+		var bufferPoolSizePercent=14
+		deployWithBufferPoolSizePercent(bufferPoolSizePercent)
 
 		director, err := helpers.BuildBoshDirector()
 		Expect(err).NotTo(HaveOccurred())
@@ -71,7 +73,6 @@ var _ = Describe("CF PXC MySQL Autotune", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		vmTotalMemoryInMB := float64(vmUsedMemInKb / vmUsedMemPercent * 100 / 1024)
-
 		var variableName, variableValue string
 		dbConn := helpers.DbConnNoDb()
 
@@ -86,7 +87,7 @@ var _ = Describe("CF PXC MySQL Autotune", func() {
 
 		innodbBufferPoolSizeInMb := innodbBufferPoolSizeInBytes / 1024 / 1024
 
-		expectedBufferPoolSize := vmTotalMemoryInMB * .15
+		expectedBufferPoolSize := vmTotalMemoryInMB * (float64(bufferPoolSizePercent)/100.0)
 		if expectedBufferPoolSize > 1024 {
 			expectedBufferPoolSize = math.Ceil(expectedBufferPoolSize/1024) * 1024
 		} else {

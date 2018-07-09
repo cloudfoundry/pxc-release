@@ -35,7 +35,7 @@ chown -R vcap:vcap ${MYSQL_RUN_DIR}
 
 log "pre-start setup script: set up ENV and logging"
 
-<% if p('server_audit_logs_enabled') %>
+<% if p('engine_config.audit_logs.enabled') %>
 mkdir -p ${SERVER_AUDIT_LOG_DIR}
 chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
 
@@ -64,7 +64,7 @@ chown -R vcap:vcap ${LOG_DIR}
 
  /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
     -f /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf \
-    -P <%= p('innodb_buffer_pool_size_percent') %>
+    -P <%= p('engine_config.innodb_buffer_pool_size_percent') %>
 
 ln -sf ${PXC_JOB_DIR}/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
 chmod 440 /etc/sudoers.d/pxc-sudoers

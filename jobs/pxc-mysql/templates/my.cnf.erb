@@ -18,7 +18,7 @@
   end
 
   def csv_excluded_audit_users
-    if_p('server_audit_excluded_users_csv') do |user_csv|
+    if_p('engine_config.audit_logs.audit_log_exclude_accounts_csv') do |user_csv|
       return user_csv.split(',')
     end.else do
       return []
@@ -26,13 +26,13 @@
   end
 
   def excluded_audit_users
-    users = p('server_audit_excluded_users') + csv_excluded_audit_users
+    users = p('ngine_config.audit_logs.audit_log_exclude_accounts') + csv_excluded_audit_users
     ["'galera-agent'@'127.0.0.1'", "'cluster-health-logger'@'127.0.0.1'"] + users.collect {|user| "'#{user}'@'%'"}
   end
 
-  node_host = discover_external_ip
-  if_p('advertise_host') do |advertise_host|
-    node_host = advertise_host
+  def bool_to_on_off(boolean)
+    return "ON" if boolean
+    "OFF"
   end
 
   if_p('innodb_flush_method') do |innodb_flush_method|
@@ -54,31 +54,29 @@ ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/server-ca.pem
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 
-<% if p('enable_galera') %>
+<% if p('engine_config.galera.enabled') %>
 # GALERA options:
-pxc-strict-mode                 = <%= p('pxc_strict_mode') %>
+pxc-strict-mode                 = MASTER
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/libgalera/lib/libgalera_smm.so
-wsrep_provider_options          = "gcache.size=<%= p('gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem"
+wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem"
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
-wsrep_node_address              = <%= node_host %>:<%= p('galera_port') %>
+wsrep_node_address              = <%= spec.address %>:<%= p('engine_config.galera.port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
-wsrep_cluster_name              = <%= p('cluster_name') %>
+wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
 wsrep_sst_method                = xtrabackup-v2
 wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
-wsrep_max_ws_rows               = <%= p('wsrep_max_ws_rows') %>
-wsrep_max_ws_size               = <%= p('wsrep_max_ws_size') %>
+wsrep_max_ws_rows               = <%= p('engine_config.galera.wsrep_max_ws_rows') %>
+wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size') %>
 wsrep_load_data_splitting       = ON
 wsrep_replicate_myisam          = OFF
-wsrep_debug                     = <%= p('wsrep_debug') %>
-<% if p('log_conflicts') %>
-wsrep_log_conflicts             = ON
-<% end %>
+wsrep_debug                     = <%= p('engine_config.galera.wsrep_debug') %>
+wsrep_log_conflicts             = <%= bool_to_on_off(p('engine_config.galera.wsrep_log_conflicts')) %>
 <% end %>
 
 # Regular MYSQL options:
-character_set_server            = <%= p('character_set_server') %>
-collation_server                = <%= p('collation_server') %>
+character_set_server            = <%= p('engine_config.character_set_server') %>
+collation_server                = <%= p('engine_config.collation_server') %>
 user                            = vcap
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
 port                            = <%= p('port') %>
@@ -92,23 +90,20 @@ init_file                       = /var/vcap/jobs/pxc-mysql/config/db_init
 skip_external_locking           = TRUE
 symbolic-links                  = OFF
 secure_file_priv                = /var/vcap/data/pxc-mysql/files
-table_definition_cache          = <%= p('table_definition_cache_size') %>
-table_open_cache                = <%= p('table_open_cache') %>
+table_definition_cache          = <%= p('engine_config.table_definition_cache') %>
+table_open_cache                = <%= p('engine_config.table_open_cache') %>
 
-max_allowed_packet              = <%= p('max_allowed_packet') %>
+max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
 skip_name_resolve               = ON
 
 sql-mode                        = NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,STRICT_ALL_TABLES
 
-<% if p('enable_local_file') %>
-local_infile                    = ON
-<% else %>
-local_infile                    = OFF
-<% end %>
-<% if p('binlog_enabled') %>
+local_infile                    = <%= bool_to_on_off(p('engine_config.local_infile')) %>
+
+<% if p('engine_config.binlog.enabled') %>
 log_bin                         = mysql-bin
 log_slave_updates               = 1
-expire_logs_days                = <%= p('binlog_expire_days') %>
+expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
 <% end %>
 
 # Required for user to create triggers when binlog is enabled
@@ -117,33 +112,21 @@ log_bin_trust_function_creators = 1
 # Slow query logging:
 slow_query_log                  = 1
 slow_query_log_file             = /var/vcap/sys/log/pxc-mysql/mysql_slow_query.log
-long_query_time                 = <%= p('long_query_time') %>
-<% if p('log_queries_not_using_indexes') %>
-log_queries_not_using_indexes   = ON
-<% end %>
+long_query_time                 = <%= p('engine_config.long_query_time') %>
+log_queries_not_using_indexes   = <%= bool_to_on_off(p('engine_config.log_queries_not_using_indexes')) %>
 
 # User statistics
-<% if p('userstat') %>
-userstat                        = 1
-<% end %>
+userstat                        = <%= bool_to_on_off(p('engine_config.userstat')) %>
 
 innodb_file_per_table           = ON
 innodb_file_format              = Barracuda
-innodb_log_file_size            = <%= p('ib_log_file_size')%>MB
+innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>MB
 innodb_support_xa               = OFF
-<% if p('innodb_large_prefix_enabled') %>
-innodb_large_prefix             = ON
-<% else %>
-innodb_large_prefix             = OFF
-<% end %>
-<% if p('innodb_strict_mode') %>
-innodb_strict_mode              = ON
-<% else %>
-innodb_strict_mode              = OFF
-<% end %>
+innodb_large_prefix             = <%= bool_to_on_off(p('engine_config.innodb_large_prefix')) %>
+innodb_strict_mode              = <%= bool_to_on_off(p('engine_config.innodb_strict_mode')) %>
 
-max_heap_table_size             = <%= p('max_heap_table_size') %>
-tmp_table_size                  = <%= p('tmp_table_size') %>
+max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
+tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
 
 # These are mandatory MySQL settings for Galera to work
 binlog_format                   = ROW
@@ -157,34 +140,27 @@ query_cache_type                = OFF
 innodb_stats_on_metadata        = ON
 innodb_stats_persistent         = OFF
 
-<%
-  if not [0, 1, 2].include?(p('innodb_flush_log_at_trx_commit'))
-    raise("innodb_flush_log_at_trx_commit value is invalid")
-  end
-%>
-innodb_flush_log_at_trx_commit  = <%= p('innodb_flush_log_at_trx_commit') %>
+innodb_flush_log_at_trx_commit  = <%= p('engine_config.innodb_flush_log_at_trx_commit') %>
 
-<% if_p('innodb_lock_wait_timeout') do |innodb_lock_wait_timeout| %>
-innodb_lock_wait_timeout        = <%= innodb_lock_wait_timeout %>
-<% end %>
-<% if_p('innodb_buffer_pool_size') do |innodb_buffer_pool_size| %>
+
+innodb_lock_wait_timeout        = <%= p('engine_config.innodb_lock_wait_timeout') %>
+<%# Due to auto-tuning of innodb_buffer_pool configs, we only re-configure them here if the operator has an explicit value %>
+<% if_p('engine_config.innodb_buffer_pool_size') do |innodb_buffer_pool_size| %>
 innodb_buffer_pool_size         = <%= innodb_buffer_pool_size %>
 <% end %>
-<% if_p('innodb_buffer_pool_instances') do |innodb_buffer_pool_instances| %>
+<% if_p('engine_config.innodb_buffer_pool_instances') do |innodb_buffer_pool_instances| %>
 innodb_buffer_pool_instances    = <%= innodb_buffer_pool_instances %>
 <% end %>
-<% if_p('innodb_flush_method') do |innodb_flush_method| %>
-innodb_flush_method             = <%= innodb_flush_method %>
-<% end %>
+innodb_flush_method             = <%= p('engine_config.innodb_flush_method') %>
 
-innodb_log_buffer_size          = <%= p('innodb_log_buffer_size') %>
+innodb_log_buffer_size          = <%= p('engine_config.innodb_log_buffer_size') %>
 
-max_connections                 = <%= p('max_connections') %>
+max_connections                 = <%= p('engine_config.max_connections') %>
 
 # Event Scheduler
-event_scheduler                 = <%= p('event_scheduler') %>
+event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
 
-<% if p('server_audit_logs_enabled') %>
+<% if p('engine_config.audit_logs.enabled') %>
 plugin-load                     = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
 audit_log_format                = JSON
@@ -199,11 +175,7 @@ ssl-key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
 
 [mysqldump]
 quick
-quote-names
-max_allowed_packet              = <%= p('max_allowed_packet') %>
+max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
 
 [mysql]
-max_allowed_packet              = <%= p('max_allowed_packet') %>
-
-[isamchk]
-key_buffer                      = 16M
+max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>

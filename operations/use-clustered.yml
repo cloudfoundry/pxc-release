@@ -4,6 +4,10 @@
   value: 3
 
 - type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/galera/enabled
+  value: true
+
+- type: replace
   path: /instance_groups/name=mysql/jobs/-
   value:
     name: cluster-health-logger

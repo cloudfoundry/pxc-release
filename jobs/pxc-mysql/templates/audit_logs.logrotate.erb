@@ -1,8 +1,8 @@
 /var/vcap/store/mysql_audit_logs/mysql_server_audit.log {
   missingok
-  rotate <%= p('server_audit_file_rotations') %>
+  rotate <%= p('engine_config.audit_logs.file_rotations') %>
   compress
   delaycompress
   copytruncate
-  size=<%= p('server_audit_file_rotate_size_in_mb') %>M
+  size=<%= p('engine_config.audit_logs.rotate_size_in_mb') %>M
 }
