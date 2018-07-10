@@ -36,10 +36,6 @@
       Backends: backends,
     },
     HealthPort: p('health_port'),
-    Profiling: {
-      Enabled: p('profiling_enabled'),
-      Port: 6060
-    },
     StaticDir: '/var/vcap/packages/proxy/static',
     PidFile: '/var/vcap/sys/run/proxy/proxy.pid'
 
