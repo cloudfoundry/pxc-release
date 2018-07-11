@@ -52,23 +52,36 @@ properties:
     default: true
 
 
+  # Admin Users
   admin_username:
     description: 'Username for the MySQL server admin user'
     default: 'root'
   admin_password:
-    description: 'Password for the MySQL server admin user'
+    description: 'Required. Password for the MySQL server admin user'
   previous_admin_username:
     description: 'Optional. Previous username of the MySQL server admin user to be removed. Use this when changing the admin_username to avoid leaving around an unused user with root access.'
+  remote_admin_access:
+    description: 'When set to true, admin and roadmin will be able to connect from any remote host.'
+    default: false
   roadmin_enabled:
-    description: 'Whether read only user is enabled'
+    description: 'When set to true, a read-only admin user called roadmin is added'
     default: false
   roadmin_password:
-    description: 'Password for the MySQL server read-only admin user'
-  remote_admin_access:
-    description: 'When enabled, admin and roadmin will be able to connect from any remote host.'
-    default: false
+    description: 'Password for the MySQL server read-only admin user. Required when roadmin_enabled is true'
 
 
+  cli_history:
+    description: 'When set to false, disables cli history on the mysql vms.'
+    default: true
+  cluster_probe_timeout:
+    description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'
+    default: 10
+  max_open_files:
+    description: 'Configure this number to be comfortably larger than the maximum number of tables you expect the database to support.'
+    default: 65536
+  monit_startup_timeout:
+    description: 'Number of seconds that monit should wait for mysql to start before giving up'
+    default: 60
   port:
     description: 'Port the mysql server should bind to'
     default: 3306
@@ -82,105 +95,19 @@ properties:
       - name: db2
         username: user2
         password: pw2
-  max_open_files:
-    description: 'Configure this number to be comfortably larger than the maximum number of tables you expect the database to support.'
-    default: 65536
-  cli_history:
-    description: "When set to false, disables cli history on the mysql vms."
-    default: true
-  cluster_probe_timeout:
-    description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'
-    default: 10
-  monit_startup_timeout:
-    default: 60
-    description: 'Number of seconds that monit should wait for mysql to start before giving up'
 
 
+  # TLS Config
   tls.galera:
-    description: 'TLS certificate for galera cluster encryption'
+    description: 'Required. TLS certificate for galera cluster encryption'
   tls.server:
-    description: 'TLS certificate for client-server encryption'
+    description: 'Required. TLS certificate for client-server encryption'
 
 
-  engine_config.character_set_server:
-    description: 'Default character set. Note that while the MySQL default is latin1, we default to utf8.'
-    default: utf8
-  engine_config.collation_server:
-    description: 'Default collation. Use SHOW COLLATION to view the valid collations for your character set.'
-    default: utf8_unicode_ci
-  engine_config.table_definition_cache:
-    description: 'Set this to a number relative to the number of tables the server will manage.'
-    default: 8192
-  engine_config.table_open_cache:
-    description: 'Configure the number of table handles to keep open'
-    default: 2000
-  engine_config.max_allowed_packet:
-    description: 'The maximum size in bytes of a packet or a generated/intermediate string'
-    default: 256M
-  engine_config.long_query_time:
-    default: 10
-    description: 'Threshold in seconds above which SQL queries get logged in the slow query log file'
-  engine_config.log_queries_not_using_indexes:
-    default: false
-    description: "Queries that don't use an index, or that perform a full index scan where the index doesn't limit the number of rows, will be logged to the slow query log."
-  engine_config.userstat:
-    default: false
-    description: 'Enables user statistics, adding several new information schema tables and new FLUSH and SHOW commands.'
-  engine_config.innodb_log_file_size:
-    description: 'Size of the ib_log_file used by innodb, in MB'
-    default: 1024
-  engine_config.innodb_large_prefix:
-    description: 'Whether innodb_large_prefix is enabled'
-    default: true
-  engine_config.innodb_strict_mode:
-    description: 'Whether innodb_strict_mode is enabled'
-    default: false
-  engine_config.max_heap_table_size:
-    description: 'The maximum size (in rows) to which user-created MEMORY tables are permitted to grow'
-    default: 16777216
-  engine_config.tmp_table_size:
-    description: 'The maximum size (in bytes) of internal in-memory temporary tables'
-    default: 33554432
-  engine_config.innodb_flush_log_at_trx_commit:
-    description: 'Control balance between performance and full ACID compliance. Valid values are: 0, 1, 2'
-    default: 1
-  engine_config.innodb_lock_wait_timeout:
-    description: 'Time in seconds that an InnoDB transaction waits for an InnoDB row lock'
-    default: 50
-  engine_config.innodb_buffer_pool_size:
-    description: 'The size in bytes of the memory buffer InnoDB uses to cache data and indexes of its tables'
-  engine_config.innodb_buffer_pool_size_percent:
-    description: "Set this to an integer which represents the percentage of system RAM to reserve for InnoDB's buffer pool"
-    default: 50
-  engine_config.innodb_buffer_pool_instances:
-    description: 'Number of buffer pool instances for InnoDB'
-  engine_config.innodb_flush_method:
-    description: 'Advanced configuration variable, consult the documentation before changing. Controls how MySQL opens data files; by default uses fsync(). Set to O_DIRECT if innodb_buffer_pool is sufficiently large that you can use O_DIRECT thus avoiding double-buffering.'
-    default: fsync
-  engine_config.innodb_log_buffer_size:
-    description: 'Size in bytes of the buffer for writing log files to disk. Increasing this means larger transactions can run without needing to perform disk I/O before committing.'
-    default: 32M
-  engine_config.max_connections:
-    description: 'Maximum total number of database connections for the node'
-    default: 1500
-  engine_config.event_scheduler:
-    default: false
-    description: Events are named database objects containing SQL statements that are to be executed at a later stage, either once off, or at regular intervals.
-  engine_config.local_infile:
-    default: true
-    description: 'Allow or disallow clients to access local files'
-
-  engine_config.binlog.enabled:
-    default: true
-    description: 'Enable binlogs across all nodes'
-  engine_config.binlog.expire_logs_days:
-    default: 7
-    description: 'Time in days to store binlogs before purging'
-
-
+  # Log Config
   engine_config.audit_logs.enabled:
-    default: false
     description: 'Enable audit logging'
+    default: false
   engine_config.audit_logs.audit_log_exclude_accounts:
     default: []
     description: 'Database users to exclude from audit logging'
@@ -189,35 +116,121 @@ properties:
       - other_excluded_user
       - bot_user
   engine_config.audit_logs.audit_log_exclude_accounts_csv:
-    description: 'Additional database users to exclude from audit logging, will be combined with uses specified in engine_config.audit_logs.audit_log_exclude_accounts'
+    description: 'Optional. Additional database users to exclude from audit logging, will be combined with uses specified in engine_config.audit_logs.audit_log_exclude_accounts'
   engine_config.audit_logs.file_rotations:
-    default: 30
     description: 'Number of audit file rotations to keep'
+    default: 30
   engine_config.audit_logs.rotate_size_in_mb:
-    default: 100
     description: 'Size in MB of each audit log file'
-
-  engine_config.galera.enabled:
+    default: 100
+  engine_config.log_queries_not_using_indexes:
+    description: 'Queries that do not use an index, or that perform a full index scan where the index does not limit the number of rows, will be logged to the slow query log.'
     default: false
+  engine_config.long_query_time:
+    description: 'Threshold in seconds above which SQL queries get logged in the slow query log file'
+    default: 10
+
+
+  # Mysql Character Set Defaults
+  engine_config.character_set_server:
+    description: 'Default character set. Note that while the MySQL default is latin1, we default to utf8.'
+    default: utf8
+  engine_config.collation_server:
+    description: 'Default collation. Use SHOW COLLATION to view the valid collations for your character set.'
+    default: utf8_unicode_ci
+
+
+  # Binlog Config
+  engine_config.binlog.enabled:
+    description: 'Enable binlogs across all nodes'
+    default: true
+  engine_config.binlog.expire_logs_days:
+    description: 'Time in days to store binlogs before purging'
+    default: 7
+
+
+  # InnoDB Config
+  engine_config.innodb_buffer_pool_size:
+    description: 'Optional. The size in bytes of the memory buffer InnoDB uses to cache data and indexes of its tables'
+  engine_config.innodb_buffer_pool_size_percent:
+    description: 'Set this to an integer which represents the percentage of system RAM to reserve for the InnoDB buffer pool'
+    default: 50
+  engine_config.innodb_buffer_pool_instances:
+    description: 'Optional. Number of buffer pool instances for InnoDB'
+  engine_config.innodb_flush_log_at_trx_commit:
+    description: 'Control balance between performance and full ACID compliance. Valid values are: 0, 1, 2'
+    default: 1
+  engine_config.innodb_flush_method:
+    description: 'Advanced configuration variable, consult the documentation before changing. Controls how MySQL opens data files; by default uses fsync(). Set to O_DIRECT if innodb_buffer_pool is sufficiently large that you can use O_DIRECT thus avoiding double-buffering.'
+    default: fsync
+  engine_config.innodb_large_prefix:
+    description: 'Whether innodb_large_prefix is enabled'
+    default: true
+  engine_config.innodb_lock_wait_timeout:
+    description: 'Time in seconds that an InnoDB transaction waits for an InnoDB row lock'
+    default: 50
+  engine_config.innodb_log_buffer_size:
+    description: 'Size in bytes of the buffer for writing log files to disk. Increasing this means larger transactions can run without needing to perform disk I/O before committing.'
+    default: 32M
+  engine_config.innodb_log_file_size:
+    description: 'Size of the ib_log_file used by innodb, in MB'
+    default: 1024
+  engine_config.innodb_strict_mode:
+    description: 'Whether innodb_strict_mode is enabled'
+    default: false
+
+
+  engine_config.event_scheduler:
+    description: 'Events are named database objects containing SQL statements that are to be executed at a later stage, either once off, or at regular intervals.'
+    default: false
+  engine_config.local_infile:
+    description: 'Allow or disallow clients to access local files'
+    default: true
+  engine_config.max_allowed_packet:
+    description: 'The maximum size in bytes of a packet or a generated/intermediate string'
+    default: 256M
+  engine_config.max_connections:
+    description: 'Maximum total number of database connections for the node'
+    default: 1500
+  engine_config.max_heap_table_size:
+    description: 'The maximum size (in rows) to which user-created MEMORY tables are permitted to grow'
+    default: 16777216
+  engine_config.table_definition_cache:
+    description: 'Set this to a number relative to the number of tables the server will manage.'
+    default: 8192
+  engine_config.table_open_cache:
+    description: 'Configure the number of table handles to keep open'
+    default: 2000
+  engine_config.tmp_table_size:
+    description: 'The maximum size (in bytes) of internal in-memory temporary tables'
+    default: 3355443 2
+  engine_config.userstat:
+    description: 'Enables user statistics, adding several new information schema tables and new FLUSH and SHOW commands.'
+    default: false
+
+
+  # Galera Config
+  engine_config.galera.enabled:
     description: 'Enable this when deploying a galera cluster'
+    default: false
+  engine_config.galera.cluster_name:
+    description: 'A unique name for this cluster. ONLY set before first deployment. DO NOT attempt to change an existing multi-node cluster.'
+    default: 'galera-cluster'
   engine_config.galera.gcache_size:
     description: 'Cache size used by galera (maximum amount of data possible in an IST), in MB'
     default: 512
   engine_config.galera.port:
     description: 'Port which Galera Cluster uses for communication across nodes'
     default: 4567
-  engine_config.galera.cluster_name:
-    description: 'A unique name for this cluster. ONLY set before first deployment. DO NOT attempt to change an existing multi-node cluster.'
-    default: 'galera-cluster'
+  engine_config.galera.wsrep_debug:
+    description: 'Enables additional debugging output for the database server error log.'
+    default: false
+  engine_config.galera.wsrep_log_conflicts:
+    description: 'Defines whether the node logs additional information about conflicts. The values that were in conflict are logged, so it is possible for user data to end up in the logs.'
+    default: true
   engine_config.galera.wsrep_max_ws_rows:
     description: 'Maximum permitted number of rows per writeset.'
     default: 0
   engine_config.galera.wsrep_max_ws_size:
     description: 'Maximum permitted size in bytes per writeset.'
     default: 1073741824
-  engine_config.galera.wsrep_debug:
-    description: "When set to on, enables additional debugging output for the database server error log."
-    default: "OFF"
-  engine_config.galera.wsrep_log_conflicts:
-    default: true
-    description: 'Defines whether the node logs additional information about conflicts. The values that were in conflict are logged, so it is possible for user data to end up in the logs.'

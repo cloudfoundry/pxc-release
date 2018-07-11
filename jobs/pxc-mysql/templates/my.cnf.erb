@@ -70,7 +70,7 @@ wsrep_max_ws_rows               = <%= p('engine_config.galera.wsrep_max_ws_rows'
 wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size') %>
 wsrep_load_data_splitting       = ON
 wsrep_replicate_myisam          = OFF
-wsrep_debug                     = <%= p('engine_config.galera.wsrep_debug') %>
+wsrep_debug                     = <%= bool_to_on_off(p('engine_config.galera.wsrep_debug')) %>
 wsrep_log_conflicts             = <%= bool_to_on_off(p('engine_config.galera.wsrep_log_conflicts')) %>
 <% end %>
 
