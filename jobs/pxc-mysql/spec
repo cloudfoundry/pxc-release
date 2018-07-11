@@ -203,7 +203,7 @@ properties:
     default: 2000
   engine_config.tmp_table_size:
     description: 'The maximum size (in bytes) of internal in-memory temporary tables'
-    default: 3355443 2
+    default: 33554432
   engine_config.userstat:
     description: 'Enables user statistics, adding several new information schema tables and new FLUSH and SHOW commands.'
     default: false
