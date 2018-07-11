@@ -67,7 +67,7 @@ properties:
     description: 'When set to true, a read-only admin user called roadmin is added'
     default: false
   roadmin_password:
-    description: 'Password for the MySQL server read-only admin user. Required when roadmin_enabled is true'
+    description: 'Required when roadmin_enabled is true. Password for the MySQL server read-only admin user.'
 
 
   cli_history:
@@ -99,7 +99,7 @@ properties:
 
   # TLS Config
   tls.galera:
-    description: 'Required. TLS certificate for galera cluster encryption'
+    description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'
   tls.server:
     description: 'Required. TLS certificate for client-server encryption'
 
