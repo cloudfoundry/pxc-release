@@ -7,6 +7,7 @@ import (
 	"time"
 
 	helpers "specs/test_helpers"
+	"strings"
 )
 
 func deleteMysqlVM(host string) error {
@@ -27,9 +28,12 @@ func deleteMysqlVM(host string) error {
 
 	var vmcid string
 	for _, instance := range instances {
-		if instance.Group == "mysql" && instance.IPs[0] == host {
-			vmcid = instance.VMID
-			break
+		if instance.Group == "mysql" {
+			hostArray := strings.Split(host, ".")
+			if instance.IPs[0] == host || (len(hostArray) > 0 && hostArray[0] == instance.ID) {
+				vmcid = instance.VMID
+				break
+			}
 		}
 	}
 
