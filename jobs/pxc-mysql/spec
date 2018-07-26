@@ -34,6 +34,9 @@ packages:
 consumes:
 - name: mysql
   type: mysql
+- name: galera-agent
+  type: galera-agent
+  optional: true
 
 provides:
 - name: mysql

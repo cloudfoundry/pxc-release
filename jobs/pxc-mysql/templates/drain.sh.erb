@@ -1,15 +1,51 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 
 <% if p('pxc_enabled') == true %>
-PIDFILE=/var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
+set -e -o pipefail
+
+pxc_ctrl_pidfile=/var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
+
+<% if_link('galera-agent') do |galera_agent_link| %>
+# If galera-agent exists, check that the cluster is healthy before draining
+cluster_nodes=(<%= link('mysql').instances.map(&:address).join(' ') %>)
+mysql_port=<%= p("port") %>
+galera_agent_port=<%= galera_agent_link.p("port") %>
+log_dir="/var/vcap/sys/log/pxc-mysql"
+mysql_pidfile=/var/vcap/sys/run/pxc-mysql/mysql.pid
+
+# If the node is not running, exit drain successfully
+if ! ps -p "$(cat ${mysql_pidfile})" >/dev/null; then
+  echo "$(date): mysql is not running: OK to drain" >> "${log_dir}/drain.log"
+  echo 0; exit 0 # drain success
+fi
+
+# Check the galera healthcheck endpoint on all of the nodes. If the http status returned is 000, there
+# is no node at that IP, so we assume we are scaling down. If the http status returned is 200 from all nodes
+# it will continue to drain. If it detects any other nodes to be unhealthy, it will fail to drain
+# and exit.
+for NODE in "${cluster_nodes[@]}"; do
+  set +e
+  status_code=$(curl -s -o "/dev/null" -w "%{http_code}" "${NODE}:${galera_agent_port}")
+  set -e
+  if [[ ${status_code} -eq 000 || ${status_code} -eq 200 ]]; then
+    continue
+  else
+    echo "$(date): galera agent returned ${status_code}; drain failed on node ${NODE}" >> "${log_dir}/drain.err.log"
+    exit -1
+  fi
+done
+<% end %>
+
+# Actually drain with a kill_and_wait on the mysql pid
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 
 set +e
-kill_and_wait ${PIDFILE} 300 0 > /dev/null
+kill_and_wait "${pxc_ctrl_pidfile}" 300 0 > /dev/null
 return_code=$?
 
 echo 0
 exit ${return_code}
+
 <% else %>
 echo 0
 exit 0
