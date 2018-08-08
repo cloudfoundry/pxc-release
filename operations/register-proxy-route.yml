@@ -6,6 +6,12 @@
     version: latest
 
 - type: replace
+  path: /releases/name=bpm?
+  value:
+    name: bpm
+    version: latest
+
+- type: replace
   path: /instance_groups/name=proxy/jobs/-
   value:
     release: routing
@@ -26,6 +32,12 @@
           registration_interval: 10s
           uris:
           - *proxy_base_uri
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=bpm?
+  value:
+    name: bpm
+    release: bpm
 
 - type: replace
   path: /instance_groups/name=proxy/jobs/name=proxy/properties/api_uri?
