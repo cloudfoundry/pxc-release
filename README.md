@@ -54,6 +54,13 @@ Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment)
 
 <a name='deploying-clustered></a>
 ### Deploying pxc-release clustered
+## first step
+upload release
+
+```
+bosh upload-release --sha1 0426855b19da66c798cc7f55d5bc88cd77194368 \
+  https://bosh.io/d/github.com/cloudfoundry-incubator/pxc-release?v=0.13.0
+```
 
 To deploy a clustered deployment, use the [pxc-deployment.yml manifest](pxc-deployment.yml) and apply the [use-clustered](operations/use-clustered.yml) opsfile:
 
