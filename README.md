@@ -83,6 +83,7 @@ Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment)
   - ⚠️ `migrate-cf-mysql-to-pxc.yml` will scale down a cluster to a single node. This is required for migration. Be sure to re-set to the appropriate number of instances when switching to `use-pxc.yml` subsequently.
 
 The ops file will trigger the same migration procedure described in [Using PXC release with other deployments](#migrating-with-non-cf-deployments)
+  - If your cf-deployment uses CredHub, be sure to also include the [secure-service-credentials-with-pxc-release.yml](https://github.com/cloudfoundry/cf-deployment/blob/master/operations/experimental/secure-service-credentials-with-pxc-release.yml) ops file.
 
 After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-deployment) docs for your next deploy.
 
