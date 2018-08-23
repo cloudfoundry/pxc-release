@@ -79,7 +79,8 @@ Requirements:
 
 <a name='migrating-with-cf-deployment'></a>
 ### Migrating CF with pxc-release
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/migrate-cf-mysql-to-pxc.yml` ops file. (Currently in a PR here: https://github.com/cloudfoundry/cf-deployment/pull/453/files soon to be widely available) It is advisable to take a backup first.
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/migrate-cf-mysql-to-pxc.yml` ops file. It is advisable to take a backup first.
+  - ⚠️ `migrate-cf-mysql-to-pxc.yml` will scale down a cluster to a single node. This is required for migration. Be sure to re-set to the appropriate number of instances when switching to `use-pxc.yml` subsequently.
 
 The ops file will trigger the same migration procedure described in [Using PXC release with other deployments](#migrating-with-non-cf-deployments)
 
