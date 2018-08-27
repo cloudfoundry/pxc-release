@@ -160,6 +160,10 @@ func connectToMariaDB(mysqlAdminUsername, mysqlAdminPassword string) (*sql.DB, e
 }
 
 func startMariaDB() error {
+	_, err := os.Stat("/var/vcap/packages/mariadb/bin")
+	if os.IsNotExist(err) {
+		return fmt.Errorf("Missing mariadb packages. Unable to migrate from cf-mysql-release to pxc-release. In order to migrate from cf-mysql-release, both releases must be deployed on the same instance group.")
+	}
 	mariadbCmd := exec.Command("/var/vcap/packages/mariadb/bin/mysqld_safe", "--defaults-file=/var/vcap/jobs/mysql/config/my.cnf", "--wsrep-on=OFF", "--wsrep-desync=ON", "--wsrep-OSU-method=RSU", "--wsrep-provider='none'", "--skip-networking")
 	err = mariadbCmd.Start()
 	return err
