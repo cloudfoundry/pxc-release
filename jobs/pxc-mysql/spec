@@ -160,6 +160,9 @@ properties:
     default: 50
   engine_config.innodb_buffer_pool_instances:
     description: 'Optional. Number of buffer pool instances for InnoDB'
+  engine_config.innodb_default_row_format:
+    description: 'Optional. The default row format of InnoDB tables'
+    default: compact
   engine_config.innodb_flush_log_at_trx_commit:
     description: 'Control balance between performance and full ACID compliance. Valid values are: 0, 1, 2'
     default: 1

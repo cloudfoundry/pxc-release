@@ -106,6 +106,7 @@ userstat                        = <%= bool_to_on_off(p('engine_config.userstat')
 
 innodb_file_per_table           = ON
 innodb_file_format              = Barracuda
+innodb_default_row_format       = <%= p('engine_config.innodb_default_row_format') %>
 innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>MB
 innodb_support_xa               = OFF
 innodb_large_prefix             = <%= bool_to_on_off(p('engine_config.innodb_large_prefix')) %>
