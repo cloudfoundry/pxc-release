@@ -4,6 +4,13 @@ releases:
 - name: pxc
   version: latest
 
+addons:
+- name: bpm
+  jobs:
+  - name: bpm
+    release: bpm
+    version: latest
+
 instance_groups:
 - name: mysql
   instances: 1

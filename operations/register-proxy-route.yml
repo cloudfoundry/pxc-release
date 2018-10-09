@@ -6,12 +6,6 @@
     version: latest
 
 - type: replace
-  path: /releases/name=bpm?
-  value:
-    name: bpm
-    version: latest
-
-- type: replace
   path: /instance_groups/name=proxy/jobs/-
   value:
     release: routing
