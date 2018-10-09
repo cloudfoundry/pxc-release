@@ -3,13 +3,14 @@ name: pxc
 releases:
 - name: pxc
   version: latest
+- name: bpm
+  version: latest
 
 addons:
 - name: bpm
   jobs:
   - name: bpm
     release: bpm
-    version: latest
 
 instance_groups:
 - name: mysql
