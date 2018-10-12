@@ -28,11 +28,5 @@
           - *proxy_base_uri
 
 - type: replace
-  path: /instance_groups/name=proxy/jobs/name=bpm?
-  value:
-    name: bpm
-    release: bpm
-
-- type: replace
   path: /instance_groups/name=proxy/jobs/name=proxy/properties/api_uri?
   value: *proxy_base_uri
