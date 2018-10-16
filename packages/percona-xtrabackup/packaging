@@ -1,19 +1,21 @@
 #!/bin/bash
 set -eu
 
+NPROC=$(nproc)
+
 ## boost (percona-xtrabackup dependency)
 tar -xf boost/boost_1_59_0.tar.gz
 
 ## libaio
 tar -xf libaio/libaio_*.orig.tar.gz
-make -C libaio-*/ install
+make -j "${NPROC}" -C libaio-*/ install
 
 ## libev (percona-xtrabackup -> xbcloud dependency)
 tar -xf libev/libev-*.tar.gz
 pushd libev-*/
   ./configure --prefix=/usr --disable-static
-  make
-  make install
+  make -j "${NPROC}"
+  make -j "${NPROC}" install
 popd
 
 ## percona-xtrabackup
@@ -24,6 +26,6 @@ pushd percona-xtrabackup-*/
         -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
         -DWITH_BOOST=../boost_1_59_0/ \
         -DWITH_MAN_PAGES=OFF
-    make -j4
-    make install
+    make -j "${NPROC}"
+    make -j "${NPROC}" install
 popd

@@ -6,17 +6,19 @@ source /var/vcap/packages/python-2.7/bosh/compile.env
 
 set -u
 
+NPROC=$(nproc)
+
 tar -xf check/check-*.tar.gz
 pushd check-*/
     ./configure --prefix=/usr
-    make
-    make install
+    make -j "${NPROC}"
+    make -j "${NPROC}" install
 popd
 
 tar -xf boost/boost_1_59_0.tar.gz
 pushd boost_1_59_0
     ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
-    ./b2 install
+    ./b2 -j "${NPROC}" install
 popd
 
 tar -xf scons/scons-*.tar.gz

@@ -3,11 +3,12 @@
 set -eu -o pipefail
 
 PERCONA_SERVER_VERSION=5.7.22-29.26
+NPROC=$(nproc)
 
 tar -xf boost/boost_1_59_0.tar.gz
 
 tar -xf libaio/libaio_*.orig.tar.gz
-make -C libaio-*/ install
+make -j "${NPROC}" -C libaio-*/ install
 
 ## PXC
 tar -xf "pxc/Percona-XtraDB-Cluster-${PERCONA_SERVER_VERSION}.tar.gz"
@@ -37,6 +38,6 @@ pushd "Percona-XtraDB-Cluster-${PERCONA_SERVER_VERSION}/"
     grep MYSQL_SERVER_VERSION include/mysql_version.h | \
         cut -d '"' -f2 > "${BOSH_INSTALL_TARGET}/VERSION"
 
-    make -j 4
-    make install
+    make -j "${NPROC}"
+    make -j "${NPROC}" install
 popd
