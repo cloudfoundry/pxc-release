@@ -28,7 +28,6 @@ var _ = Describe("Config", func() {
 				"ArbitratorNode": "false",
 				"AvailableWhenReadOnly": false,
 				"AvailableWhenDonor": true,
-				"PidFile": "fake-path",
 				"DB": {
 					"Host": "localhost",
 					"User": "vcap",
@@ -123,11 +122,6 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if Monit.Password is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "Monit.Password")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns an error if PidFile is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "PidFile")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
