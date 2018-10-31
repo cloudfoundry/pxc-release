@@ -1,6 +1,7 @@
 package os_helper
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -42,6 +43,12 @@ func (h OsHelperImpl) StartCommand(logFileName string, executable string, args .
 	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
+
+	if len(os.Getenv("APPEND_TO_PATH")) > 0 {
+		pathString := fmt.Sprintf("%s:%s", os.Getenv("PATH"), os.Getenv("APPEND_TO_PATH"))
+		os.Setenv("PATH", pathString)
+	}
+	cmd.Env = os.Environ()
 
 	cmd.Start()
 	return cmd, nil
