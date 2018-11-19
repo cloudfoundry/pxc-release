@@ -130,9 +130,8 @@ func (s *starter) bootstrapNode() (chan error, error) {
 		return nil, err
 	}
 	s.mysqlCmd = cmd
-	s.logger.Info("waiting for bootstrapping node")
+	s.logger.Info("Issusing a non-blocking Wait for mysqld in bootstrapping mode")
 	errorChan := s.osHelper.WaitForCommand(cmd)
-	s.logger.Info("mysqld exit")
 	return errorChan, nil
 }
 
@@ -145,9 +144,8 @@ func (s *starter) joinCluster() (chan error, error) {
 	}
 
 	s.mysqlCmd = cmd
-	s.logger.Info("waiting for join cluster node")
+	s.logger.Info("Issueing a non-blocking Wait for mysqld in join cluster mode")
 	mysqldChan := s.osHelper.WaitForCommand(cmd)
-	s.logger.Info("mysqld exit")
 
 	return mysqldChan, nil
 }
