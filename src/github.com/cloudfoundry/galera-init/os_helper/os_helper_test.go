@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	. "github.com/cloudfoundry/galera-init/os_helper"
 
@@ -77,5 +78,41 @@ var _ = Describe("OsHelper", func() {
 				Expect(err).To(BeNil())
 			})
 		})
+	})
+
+	Describe("KillCommand", func() {
+		var helper OsHelperImpl
+
+		It("sends the provided signal to the provided cmd process", func() {
+			cmd := exec.Command("sleep", "8")
+			Expect(cmd.Start()).To(Succeed())
+			err := helper.KillCommand(cmd, syscall.SIGKILL)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = cmd.Wait()
+			Expect(err).To(MatchError(`signal: killed`))
+		})
+
+		It("returns a useful error when unable to signal the process", func() {
+			cmd := exec.Command("sleep", "0")
+			Expect(cmd.Run()).To(Succeed())
+			err := helper.KillCommand(cmd, syscall.SIGKILL)
+			Expect(err).To(MatchError("unable-to-kill-process: os: process already finished"))
+		})
+
+		Context("when the process hasn't started", func() {
+			It("errors nicely when the cmd has no process", func() {
+				cmd := exec.Command("sleep", "8")
+				err := helper.KillCommand(cmd, syscall.SIGKILL)
+				Expect(err).To(MatchError("process-was-not-started"))
+			})
+			It("errors nicely when the cmd is nil", func() {
+				var cmd *exec.Cmd
+
+				err := helper.KillCommand(cmd, syscall.SIGKILL)
+				Expect(err).To(MatchError("process-was-not-started"))
+			})
+		})
+
 	})
 })

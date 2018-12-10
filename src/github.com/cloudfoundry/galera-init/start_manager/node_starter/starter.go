@@ -24,10 +24,9 @@ const (
 )
 
 //go:generate counterfeiter . Starter
-
 type Starter interface {
 	StartNodeFromState(string) (string, <-chan error, error)
-	GetMysqlCmd() (*exec.Cmd, error)
+	GetMysqlCmd() *exec.Cmd
 }
 
 type starter struct {
@@ -107,11 +106,8 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 	return newNodeState, mysqldChan, nil
 }
 
-func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {
-	if s.mysqlCmd != nil {
-		return s.mysqlCmd, nil
-	}
-	return nil, errors.New("mysqld has not been started")
+func (s *starter) GetMysqlCmd() *exec.Cmd {
+	return s.mysqlCmd
 }
 
 func (s *starter) bootstrapNode() (chan error, error) {

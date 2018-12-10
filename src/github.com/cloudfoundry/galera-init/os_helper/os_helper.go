@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 //go:generate counterfeiter . OsHelper
@@ -17,6 +19,7 @@ type OsHelper interface {
 	ReadFile(filename string) (string, error)
 	WriteStringToFile(filename string, contents string) error
 	Sleep(duration time.Duration)
+	KillCommand(cmd *exec.Cmd, signal os.Signal) error
 }
 
 type OsHelperImpl struct{}
@@ -84,4 +87,13 @@ func (h OsHelperImpl) WriteStringToFile(filename string, contents string) error 
 
 func (h OsHelperImpl) Sleep(duration time.Duration) {
 	time.Sleep(duration)
+}
+
+func (h OsHelperImpl) KillCommand(cmd *exec.Cmd, signal os.Signal) error {
+	if cmd == nil || cmd.Process == nil {
+		return errors.New("process-was-not-started")
+	}
+
+	err := cmd.Process.Signal(signal)
+	return errors.Wrap(err, `unable-to-kill-process`)
 }

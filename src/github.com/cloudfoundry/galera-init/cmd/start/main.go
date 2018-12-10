@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"syscall"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
@@ -28,12 +33,18 @@ func main() {
 		return
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
+	setupSignals(cancel, cfg.Logger)
+
 	startManager := managerSetup(cfg)
 
 	cfg.Logger.Info("starting")
 
-	if err := startManager.Execute(); err != nil {
-		cfg.Logger.Info(err.Error())
+	if err := startManager.Execute(ctx); err != nil {
+		cfg.Logger.Info("abnormal-termination", lager.Data{
+			"error": err.Error(),
+		})
 		if e, ok := err.(*exec.ExitError); ok {
 			if ws := e.Sys().(syscall.WaitStatus); ws.Signaled() {
 				os.Exit(int(ws.Signal()))
@@ -89,4 +100,20 @@ func managerSetup(cfg *config.Config) start_manager.StartManager {
 	)
 
 	return NodeStartManager
+}
+
+func setupSignals(shutdownMySQL func(), log lager.Logger) {
+	sigCh := make(chan os.Signal, 1)
+
+	signal.Notify(sigCh, syscall.SIGTERM)
+
+	go func() {
+		for sig := range sigCh {
+			log.Info("sigterm-received", lager.Data{
+				"signal": sig,
+			})
+			shutdownMySQL()
+			log.Info("initiating-shutdown")
+		}
+	}()
 }

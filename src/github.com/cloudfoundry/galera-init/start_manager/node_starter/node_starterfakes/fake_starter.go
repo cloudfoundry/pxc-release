@@ -9,17 +9,15 @@ import (
 )
 
 type FakeStarter struct {
-	GetMysqlCmdStub        func() (*exec.Cmd, error)
+	GetMysqlCmdStub        func() *exec.Cmd
 	getMysqlCmdMutex       sync.RWMutex
 	getMysqlCmdArgsForCall []struct {
 	}
 	getMysqlCmdReturns struct {
 		result1 *exec.Cmd
-		result2 error
 	}
 	getMysqlCmdReturnsOnCall map[int]struct {
 		result1 *exec.Cmd
-		result2 error
 	}
 	StartNodeFromStateStub        func(string) (string, <-chan error, error)
 	startNodeFromStateMutex       sync.RWMutex
@@ -40,7 +38,7 @@ type FakeStarter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStarter) GetMysqlCmd() (*exec.Cmd, error) {
+func (fake *FakeStarter) GetMysqlCmd() *exec.Cmd {
 	fake.getMysqlCmdMutex.Lock()
 	ret, specificReturn := fake.getMysqlCmdReturnsOnCall[len(fake.getMysqlCmdArgsForCall)]
 	fake.getMysqlCmdArgsForCall = append(fake.getMysqlCmdArgsForCall, struct {
@@ -51,10 +49,10 @@ func (fake *FakeStarter) GetMysqlCmd() (*exec.Cmd, error) {
 		return fake.GetMysqlCmdStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.getMysqlCmdReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeStarter) GetMysqlCmdCallCount() int {
@@ -63,36 +61,33 @@ func (fake *FakeStarter) GetMysqlCmdCallCount() int {
 	return len(fake.getMysqlCmdArgsForCall)
 }
 
-func (fake *FakeStarter) GetMysqlCmdCalls(stub func() (*exec.Cmd, error)) {
+func (fake *FakeStarter) GetMysqlCmdCalls(stub func() *exec.Cmd) {
 	fake.getMysqlCmdMutex.Lock()
 	defer fake.getMysqlCmdMutex.Unlock()
 	fake.GetMysqlCmdStub = stub
 }
 
-func (fake *FakeStarter) GetMysqlCmdReturns(result1 *exec.Cmd, result2 error) {
+func (fake *FakeStarter) GetMysqlCmdReturns(result1 *exec.Cmd) {
 	fake.getMysqlCmdMutex.Lock()
 	defer fake.getMysqlCmdMutex.Unlock()
 	fake.GetMysqlCmdStub = nil
 	fake.getMysqlCmdReturns = struct {
 		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
-func (fake *FakeStarter) GetMysqlCmdReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+func (fake *FakeStarter) GetMysqlCmdReturnsOnCall(i int, result1 *exec.Cmd) {
 	fake.getMysqlCmdMutex.Lock()
 	defer fake.getMysqlCmdMutex.Unlock()
 	fake.GetMysqlCmdStub = nil
 	if fake.getMysqlCmdReturnsOnCall == nil {
 		fake.getMysqlCmdReturnsOnCall = make(map[int]struct {
 			result1 *exec.Cmd
-			result2 error
 		})
 	}
 	fake.getMysqlCmdReturnsOnCall[i] = struct {
 		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
 func (fake *FakeStarter) StartNodeFromState(arg1 string) (string, <-chan error, error) {

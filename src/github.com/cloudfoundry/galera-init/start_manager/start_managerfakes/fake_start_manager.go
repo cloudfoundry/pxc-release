@@ -2,34 +2,23 @@
 package start_managerfakes
 
 import (
-	exec "os/exec"
+	context "context"
 	sync "sync"
 
 	start_manager "github.com/cloudfoundry/galera-init/start_manager"
 )
 
 type FakeStartManager struct {
-	ExecuteStub        func() error
+	ExecuteStub        func(context.Context) error
 	executeMutex       sync.RWMutex
 	executeArgsForCall []struct {
+		arg1 context.Context
 	}
 	executeReturns struct {
 		result1 error
 	}
 	executeReturnsOnCall map[int]struct {
 		result1 error
-	}
-	GetMysqlCmdStub        func() (*exec.Cmd, error)
-	getMysqlCmdMutex       sync.RWMutex
-	getMysqlCmdArgsForCall []struct {
-	}
-	getMysqlCmdReturns struct {
-		result1 *exec.Cmd
-		result2 error
-	}
-	getMysqlCmdReturnsOnCall map[int]struct {
-		result1 *exec.Cmd
-		result2 error
 	}
 	ShutdownStub        func()
 	shutdownMutex       sync.RWMutex
@@ -39,15 +28,16 @@ type FakeStartManager struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStartManager) Execute() error {
+func (fake *FakeStartManager) Execute(arg1 context.Context) error {
 	fake.executeMutex.Lock()
 	ret, specificReturn := fake.executeReturnsOnCall[len(fake.executeArgsForCall)]
 	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Execute", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Execute", []interface{}{arg1})
 	fake.executeMutex.Unlock()
 	if fake.ExecuteStub != nil {
-		return fake.ExecuteStub()
+		return fake.ExecuteStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -62,10 +52,17 @@ func (fake *FakeStartManager) ExecuteCallCount() int {
 	return len(fake.executeArgsForCall)
 }
 
-func (fake *FakeStartManager) ExecuteCalls(stub func() error) {
+func (fake *FakeStartManager) ExecuteCalls(stub func(context.Context) error) {
 	fake.executeMutex.Lock()
 	defer fake.executeMutex.Unlock()
 	fake.ExecuteStub = stub
+}
+
+func (fake *FakeStartManager) ExecuteArgsForCall(i int) context.Context {
+	fake.executeMutex.RLock()
+	defer fake.executeMutex.RUnlock()
+	argsForCall := fake.executeArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeStartManager) ExecuteReturns(result1 error) {
@@ -89,61 +86,6 @@ func (fake *FakeStartManager) ExecuteReturnsOnCall(i int, result1 error) {
 	fake.executeReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeStartManager) GetMysqlCmd() (*exec.Cmd, error) {
-	fake.getMysqlCmdMutex.Lock()
-	ret, specificReturn := fake.getMysqlCmdReturnsOnCall[len(fake.getMysqlCmdArgsForCall)]
-	fake.getMysqlCmdArgsForCall = append(fake.getMysqlCmdArgsForCall, struct {
-	}{})
-	fake.recordInvocation("GetMysqlCmd", []interface{}{})
-	fake.getMysqlCmdMutex.Unlock()
-	if fake.GetMysqlCmdStub != nil {
-		return fake.GetMysqlCmdStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.getMysqlCmdReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeStartManager) GetMysqlCmdCallCount() int {
-	fake.getMysqlCmdMutex.RLock()
-	defer fake.getMysqlCmdMutex.RUnlock()
-	return len(fake.getMysqlCmdArgsForCall)
-}
-
-func (fake *FakeStartManager) GetMysqlCmdCalls(stub func() (*exec.Cmd, error)) {
-	fake.getMysqlCmdMutex.Lock()
-	defer fake.getMysqlCmdMutex.Unlock()
-	fake.GetMysqlCmdStub = stub
-}
-
-func (fake *FakeStartManager) GetMysqlCmdReturns(result1 *exec.Cmd, result2 error) {
-	fake.getMysqlCmdMutex.Lock()
-	defer fake.getMysqlCmdMutex.Unlock()
-	fake.GetMysqlCmdStub = nil
-	fake.getMysqlCmdReturns = struct {
-		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeStartManager) GetMysqlCmdReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
-	fake.getMysqlCmdMutex.Lock()
-	defer fake.getMysqlCmdMutex.Unlock()
-	fake.GetMysqlCmdStub = nil
-	if fake.getMysqlCmdReturnsOnCall == nil {
-		fake.getMysqlCmdReturnsOnCall = make(map[int]struct {
-			result1 *exec.Cmd
-			result2 error
-		})
-	}
-	fake.getMysqlCmdReturnsOnCall[i] = struct {
-		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeStartManager) Shutdown() {
@@ -174,8 +116,6 @@ func (fake *FakeStartManager) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.executeMutex.RLock()
 	defer fake.executeMutex.RUnlock()
-	fake.getMysqlCmdMutex.RLock()
-	defer fake.getMysqlCmdMutex.RUnlock()
 	fake.shutdownMutex.RLock()
 	defer fake.shutdownMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

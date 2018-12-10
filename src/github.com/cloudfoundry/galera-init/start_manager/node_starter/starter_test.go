@@ -44,8 +44,7 @@ var _ = Describe("Starter", func() {
 	}
 
 	ensureMysqlCmdMatches := func(cmd string) {
-		runCmd, err := starter.GetMysqlCmd()
-		Expect(err).ToNot(HaveOccurred())
+		runCmd := starter.GetMysqlCmd()
 		Expect(runCmd.Path).To(Equal(cmd))
 	}
 

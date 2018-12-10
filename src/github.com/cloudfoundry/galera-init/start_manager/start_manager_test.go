@@ -1,21 +1,26 @@
 package start_manager_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
 	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
+	. "github.com/cloudfoundry/galera-init/start_manager"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter/node_starterfakes"
 	"github.com/cloudfoundry/galera-init/upgrader/upgraderfakes"
-
-	. "github.com/cloudfoundry/galera-init/start_manager"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("StartManager", func() {
@@ -113,7 +118,7 @@ var _ = Describe("StartManager", func() {
 			}
 		})
 		It("returns an error", func() {
-			err := mgr.Execute()
+			err := mgr.Execute(context.TODO())
 			Expect(err).To(MatchError(`some mysql error`))
 		})
 	})
@@ -127,9 +132,55 @@ var _ = Describe("StartManager", func() {
 		})
 
 		It("kills the process before continuing", func() {
-			err := mgr.Execute()
+			err := mgr.Execute(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakeDBHelper.StopMysqldCallCount()).To(Equal(1))
+		})
+	})
+
+	Context("when the configured context indicates we should shutdown", func() {
+		JustBeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeCount: 3,
+			})
+
+			fakeStarter.StartNodeFromStateStub = func(state string) (newState string, mysqlErrCh <-chan error, e error) {
+				return startNodeReturn, mysqldErrChan, startNodeReturnError
+			}
+
+			fakeOs.KillCommandStub = func(cmd *exec.Cmd, signal os.Signal) error {
+				mysqldErrChan <- nil
+				return nil
+			}
+		})
+
+		ensureTimeoutOfMySQLIfExecuteHangs := func() {
+			time.Sleep(2 * time.Second)
+			mysqldErrChan <- errors.New("failed-to-cancel")
+		}
+
+		It("should gracefully stop mysqld", func() {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			go ensureTimeoutOfMySQLIfExecuteHangs()
+
+			err := mgr.Execute(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeOs.KillCommandCallCount()).To(Equal(1))
+			_, signal := fakeOs.KillCommandArgsForCall(0)
+			Expect(signal).To(Equal(syscall.SIGTERM))
+		})
+
+		It("should return an error if terminating mysql fails", func() {
+			fakeOs.KillCommandReturns(errors.New("mysqld process does not exist"))
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			go ensureTimeoutOfMySQLIfExecuteHangs()
+
+			err := mgr.Execute(ctx)
+			Expect(err).To(MatchError(`mysqld process does not exist`))
 		})
 	})
 
@@ -144,7 +195,7 @@ var _ = Describe("StartManager", func() {
 			})
 
 			It("forwards the error", func() {
-				err := mgr.Execute()
+				err := mgr.Execute(context.TODO())
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -161,7 +212,7 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("forwards the error", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -182,7 +233,7 @@ var _ = Describe("StartManager", func() {
 			})
 
 			It("starts the node in SingleNode mode", func() {
-				err := mgr.Execute()
+				err := mgr.Execute(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
@@ -196,7 +247,7 @@ var _ = Describe("StartManager", func() {
 			})
 
 			It("starts the node in SingleNode mode", func() {
-				err := mgr.Execute()
+				err := mgr.Execute(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
@@ -219,7 +270,7 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("starts the node in NeedsBootstrap mode", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
@@ -235,7 +286,7 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("starts the node in Clustered mode", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
@@ -257,7 +308,7 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("joins the cluster", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
@@ -270,7 +321,7 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("joins the cluster", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
@@ -283,7 +334,7 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("starts the node in bootstrap mode", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
@@ -298,7 +349,7 @@ var _ = Describe("StartManager", func() {
 					})
 
 					It("starts the node in join mode", func() {
-						err := mgr.Execute()
+						err := mgr.Execute(context.TODO())
 						Expect(err).ToNot(HaveOccurred())
 						ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 						ensureStateFileContentIs("CLUSTERED")
@@ -311,7 +362,7 @@ var _ = Describe("StartManager", func() {
 					})
 
 					It("returns the error", func() {
-						actualErr := mgr.Execute()
+						actualErr := mgr.Execute(context.TODO())
 						Expect(actualErr).To(HaveOccurred())
 					})
 				})
@@ -325,12 +376,12 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("Forwards the error", func() {
-					actualErr := mgr.Execute()
+					actualErr := mgr.Execute(context.TODO())
 					Expect(actualErr).To(HaveOccurred())
 				})
 
 				It("does not write the state file", func() {
-					err := mgr.Execute()
+					err := mgr.Execute(context.TODO())
 					Expect(err).To(HaveOccurred())
 					ensureNoWriteToStateFile()
 				})
@@ -344,13 +395,13 @@ var _ = Describe("StartManager", func() {
 				})
 
 				It("Forwards the error", func() {
-					actualErr := mgr.Execute()
+					actualErr := mgr.Execute(context.TODO())
 					Expect(actualErr).To(HaveOccurred())
 					Expect(actualErr).To(Equal(err))
 				})
 
 				It("does not join the cluster or seed the databases", func() {
-					mgr.Execute()
+					mgr.Execute(context.TODO())
 					Expect(fakeStarter.StartNodeFromStateCallCount()).To(Equal(0))
 					ensureNoWriteToStateFile()
 				})
@@ -370,7 +421,7 @@ var _ = Describe("StartManager", func() {
 			})
 
 			It("starts the cluster in single node mode", func() {
-				err := mgr.Execute()
+				err := mgr.Execute(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
@@ -388,12 +439,13 @@ var _ = Describe("StartManager", func() {
 			})
 
 			It("starts the cluster in needs bootstrap mode", func() {
-				err := mgr.Execute()
+				err := mgr.Execute(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 				ensureStateFileContentIs("CLUSTERED")
 			})
 		})
+
 	})
 
 })
