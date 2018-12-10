@@ -1,6 +1,10 @@
 package main
 
 import (
+	"os"
+	"os/exec"
+	"syscall"
+
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
@@ -25,13 +29,22 @@ func main() {
 	}
 
 	startManager := managerSetup(cfg)
-	err = startManager.Execute()
 
-	if err != nil {
+	cfg.Logger.Info("starting")
+
+	if err := startManager.Execute(); err != nil {
 		cfg.Logger.Info(err.Error())
-		panic("manager start failed")
+		if e, ok := err.(*exec.ExitError); ok {
+			if ws := e.Sys().(syscall.WaitStatus); ws.Signaled() {
+				os.Exit(int(ws.Signal()))
+			} else {
+				os.Exit(ws.ExitStatus())
+			}
+		} else {
+			os.Exit(1)
+		}
 	}
-	cfg.Logger.Info("galera-init started")
+	cfg.Logger.Info("exited")
 }
 
 func managerSetup(cfg *config.Config) start_manager.StartManager {
