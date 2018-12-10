@@ -3,16 +3,17 @@ package node_starter
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
 	"github.com/cloudfoundry/galera-init/os_helper"
-	"io/ioutil"
-	"strings"
 )
 
 const (
@@ -25,7 +26,7 @@ const (
 //go:generate counterfeiter . Starter
 
 type Starter interface {
-	StartNodeFromState(string) (string, error)
+	StartNodeFromState(string) (string, <-chan error, error)
 	GetMysqlCmd() (*exec.Cmd, error)
 }
 
@@ -54,7 +55,7 @@ func NewStarter(
 	}
 }
 
-func (s *starter) StartNodeFromState(state string) (string, error) {
+func (s *starter) StartNodeFromState(state string) (string, <-chan error, error) {
 	var newNodeState string
 	var err error
 	var mysqldChan chan error
@@ -77,33 +78,33 @@ func (s *starter) StartNodeFromState(state string) (string, error) {
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
 	}
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if mysqldChan == nil {
-		return "", errors.New("Starting mysql failed, no channel created - exiting")
+		return "", nil, errors.New("Starting mysql failed, no channel created - exiting")
 	}
 
 	err = s.waitForDatabaseToAcceptConnections(mysqldChan)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	err = s.seedDatabases()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	err = s.runPostStartSQL()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	err = s.runTestDatabaseCleanup()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return newNodeState, nil
+	return newNodeState, mysqldChan, nil
 }
 
 func (s *starter) GetMysqlCmd() (*exec.Cmd, error) {

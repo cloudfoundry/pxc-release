@@ -30,6 +30,7 @@ var _ = Describe("StartManager", func() {
 	var fakeHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
 	var startNodeReturn string
 	var startNodeReturnError error
+	var mysqldErrChan chan error
 
 	const stateFileLocation = "/stateFileLocation"
 
@@ -89,10 +90,32 @@ var _ = Describe("StartManager", func() {
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 		startNodeReturn = "CLUSTERED"
 		startNodeReturnError = nil
+
+		mysqldErrChan = make(chan error, 1)
 	})
 
 	JustBeforeEach(func() {
-		fakeStarter.StartNodeFromStateReturns(startNodeReturn, startNodeReturnError)
+		fakeStarter.StartNodeFromStateStub = func(state string) (newState string, mysqlErrCh <-chan error, e error) {
+			mysqldErrChan <- nil
+			return startNodeReturn, mysqldErrChan, startNodeReturnError
+		}
+	})
+
+	Context("when the mysql process exits with an error", func() {
+		JustBeforeEach(func() {
+			mgr = createManager(managerArgs{
+				NodeCount: 3,
+			})
+
+			fakeStarter.StartNodeFromStateStub = func(state string) (newState string, mysqlErrCh <-chan error, e error) {
+				mysqldErrChan <- errors.New("some mysql error")
+				return startNodeReturn, mysqldErrChan, startNodeReturnError
+			}
+		})
+		It("returns an error", func() {
+			err := mgr.Execute()
+			Expect(err).To(MatchError(`some mysql error`))
+		})
 	})
 
 	Context("When a mysql process is already running", func() {

@@ -86,7 +86,9 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	newNodeState, err = m.startCaller.StartNodeFromState(currentState)
+	var mysqldChan <-chan error
+
+	newNodeState, mysqldChan, err = m.startCaller.StartNodeFromState(currentState)
 	if err != nil {
 		return err
 	}
@@ -96,7 +98,9 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	return nil
+	m.logger.Info("bootstrap-complete")
+	m.logger.Info("waiting-for-mysqld")
+	return <-mysqldChan
 }
 
 func (m *startManager) getCurrentNodeState() (string, error) {
