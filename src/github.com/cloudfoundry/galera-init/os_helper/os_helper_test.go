@@ -1,9 +1,10 @@
 package os_helper_test
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"syscall"
 
 	. "github.com/cloudfoundry/galera-init/os_helper"
@@ -13,44 +14,67 @@ import (
 )
 
 var _ = Describe("OsHelper", func() {
+	var (
+		helper *OsHelperImpl
+	)
+
+	BeforeEach(func() {
+		helper = NewImpl()
+	})
+
 	Describe("StartCommand", func() {
-		Context("when APPEND_TO_PATH is set", func() {
-			BeforeEach(func() {
-				os.Setenv("APPEND_TO_PATH", "/other/packages:/and/more/dirs")
-			})
+		var (
+			tempDir     string
+			logFilePath string
+		)
 
-			It("adds the path from the APPEND_TO_PATH env vars to the PATH for the command", func() {
-				pathString := os.Getenv("PATH") + ":/other/packages:/and/more/dirs"
-				h := OsHelperImpl{}
-				cmd, err := h.StartCommand("/tmp/some-logpath", "echo")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cmd.Env).To(ContainElement("PATH=" + pathString))
-			})
+		BeforeEach(func() {
+			var err error
+			tempDir, err = ioutil.TempDir(os.TempDir(), "start_command_")
+			Expect(err).NotTo(HaveOccurred())
 
-			It("Does not duplicate the PATH in the Env object", func() {
-				h := OsHelperImpl{}
-				cmd, err := h.StartCommand("/tmp/some-logpath", "echo")
-				Expect(err).NotTo(HaveOccurred())
-				pathCount := 0
-				for _, env := range cmd.Env {
-					if strings.HasPrefix(env, "PATH=") {
-						pathCount += 1
-					}
-				}
-				Expect(pathCount).To(Equal(1))
-			})
+			logFilePath = filepath.Join(tempDir, "command.log")
+		})
 
-			AfterEach(func() {
-				os.Unsetenv("APPEND_TO_PATH")
+		AfterEach(func() {
+			if tempDir != "" {
+				_ = os.RemoveAll(tempDir)
+			}
+		})
+
+		It("Runs a command", func() {
+			cmd, err := helper.StartCommand(logFilePath, "echo", "-n", "some argument")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmd.Wait()).To(Succeed())
+
+			contents, err := ioutil.ReadFile(logFilePath)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(string(contents)).To(Equal("some argument"))
+		})
+
+		When("an invalid logFileName is requested", func() {
+			It("returns an error", func() {
+				badPath := filepath.Join(tempDir, "log.directory")
+				Expect(os.Mkdir(badPath, 0750)).To(Succeed())
+
+				_, err := helper.StartCommand(badPath, "echo", "-n", "some argument")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).
+					To(
+						ContainSubstring(`error logging output for command "echo"`),
+					)
 			})
 		})
 
-		Context("when APPEND_TO_PATH is not set", func() {
-			It("does not change the path", func() {
-				h := OsHelperImpl{}
-				cmd, err := h.StartCommand("/tmp/some-logpath", "echo")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cmd.Env).To(ContainElement(Equal("PATH=" + os.Getenv("PATH"))))
+		When("an invalid executable path is requested", func() {
+			It("returns an error", func() {
+				badExecutable := filepath.Join(tempDir, "command-does-not-exist")
+
+				_, err := helper.StartCommand(logFilePath, badExecutable)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).
+					To(MatchRegexp(`error starting .*/command-does-not-exist.* no such file or directory`))
 			})
 		})
 	})

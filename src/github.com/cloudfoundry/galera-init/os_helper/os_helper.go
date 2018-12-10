@@ -1,7 +1,6 @@
 package os_helper
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -42,19 +41,12 @@ func (h OsHelperImpl) StartCommand(logFileName string, executable string, args .
 	cmd := exec.Command(executable, args...)
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error logging output for command %q to filename %q", executable, logFileName)
 	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
-	if len(os.Getenv("APPEND_TO_PATH")) > 0 {
-		pathString := fmt.Sprintf("%s:%s", os.Getenv("PATH"), os.Getenv("APPEND_TO_PATH"))
-		os.Setenv("PATH", pathString)
-	}
-	cmd.Env = os.Environ()
-
-	cmd.Start()
-	return cmd, nil
+	return cmd, errors.Wrapf(cmd.Start(), "error starting %q", executable)
 }
 
 func (h OsHelperImpl) WaitForCommand(cmd *exec.Cmd) chan error {
