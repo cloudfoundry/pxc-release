@@ -2,15 +2,13 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerflags"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
-
-	"flag"
-
-	"code.cloudfoundry.org/cflager"
-	"code.cloudfoundry.org/lager"
 )
 
 type Config struct {
@@ -58,7 +56,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	cflager.AddFlags(flags)
+	lagerflags.AddFlags(flags)
 
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(Config{
@@ -73,7 +71,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	err := serviceConfig.Read(&c)
 
-	c.Logger, _ = cflager.New(binaryName)
+	c.Logger, _ = lagerflags.New(binaryName)
 
 	return &c, err
 }
