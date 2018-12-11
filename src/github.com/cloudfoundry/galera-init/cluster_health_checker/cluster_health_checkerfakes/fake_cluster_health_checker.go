@@ -2,16 +2,17 @@
 package cluster_health_checkerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/cluster_health_checker"
+	cluster_health_checker "github.com/cloudfoundry/galera-init/cluster_health_checker"
 )
 
 type FakeClusterHealthChecker struct {
 	HealthyClusterStub        func() bool
 	healthyClusterMutex       sync.RWMutex
-	healthyClusterArgsForCall []struct{}
-	healthyClusterReturns     struct {
+	healthyClusterArgsForCall []struct {
+	}
+	healthyClusterReturns struct {
 		result1 bool
 	}
 	healthyClusterReturnsOnCall map[int]struct {
@@ -24,7 +25,8 @@ type FakeClusterHealthChecker struct {
 func (fake *FakeClusterHealthChecker) HealthyCluster() bool {
 	fake.healthyClusterMutex.Lock()
 	ret, specificReturn := fake.healthyClusterReturnsOnCall[len(fake.healthyClusterArgsForCall)]
-	fake.healthyClusterArgsForCall = append(fake.healthyClusterArgsForCall, struct{}{})
+	fake.healthyClusterArgsForCall = append(fake.healthyClusterArgsForCall, struct {
+	}{})
 	fake.recordInvocation("HealthyCluster", []interface{}{})
 	fake.healthyClusterMutex.Unlock()
 	if fake.HealthyClusterStub != nil {
@@ -33,7 +35,8 @@ func (fake *FakeClusterHealthChecker) HealthyCluster() bool {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.healthyClusterReturns.result1
+	fakeReturns := fake.healthyClusterReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeClusterHealthChecker) HealthyClusterCallCount() int {
@@ -42,7 +45,15 @@ func (fake *FakeClusterHealthChecker) HealthyClusterCallCount() int {
 	return len(fake.healthyClusterArgsForCall)
 }
 
+func (fake *FakeClusterHealthChecker) HealthyClusterCalls(stub func() bool) {
+	fake.healthyClusterMutex.Lock()
+	defer fake.healthyClusterMutex.Unlock()
+	fake.HealthyClusterStub = stub
+}
+
 func (fake *FakeClusterHealthChecker) HealthyClusterReturns(result1 bool) {
+	fake.healthyClusterMutex.Lock()
+	defer fake.healthyClusterMutex.Unlock()
 	fake.HealthyClusterStub = nil
 	fake.healthyClusterReturns = struct {
 		result1 bool
@@ -50,6 +61,8 @@ func (fake *FakeClusterHealthChecker) HealthyClusterReturns(result1 bool) {
 }
 
 func (fake *FakeClusterHealthChecker) HealthyClusterReturnsOnCall(i int, result1 bool) {
+	fake.healthyClusterMutex.Lock()
+	defer fake.healthyClusterMutex.Unlock()
 	fake.HealthyClusterStub = nil
 	if fake.healthyClusterReturnsOnCall == nil {
 		fake.healthyClusterReturnsOnCall = make(map[int]struct {

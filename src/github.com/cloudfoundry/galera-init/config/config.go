@@ -29,11 +29,12 @@ type DBHelper struct {
 }
 
 type StartManager struct {
-	StateFileLocation    string `yaml:"StateFileLocation" validate:"nonzero"`
-	GrastateFileLocation string
-	ClusterIps           []string `yaml:"ClusterIps" validate:"nonzero"`
-	BootstrapNode        bool     `yaml:"BootstrapNode"`
-	ClusterProbeTimeout  int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
+	StateFileLocation             string `yaml:"StateFileLocation" validate:"nonzero"`
+	GrastateFileLocation          string
+	ClusterIps                    []string `yaml:"ClusterIps" validate:"nonzero"`
+	BootstrapNode                 bool     `yaml:"BootstrapNode"`
+	ClusterProbeTimeout           int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
+	GaleraInitStatusServerAddress string   `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`
 }
 
 type Upgrader struct {

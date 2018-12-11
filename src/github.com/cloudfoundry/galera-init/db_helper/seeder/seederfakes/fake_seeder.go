@@ -2,26 +2,47 @@
 package seederfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/db_helper/seeder"
-	_ "github.com/go-sql-driver/mysql"
+	seeder "github.com/cloudfoundry/galera-init/db_helper/seeder"
 )
 
 type FakeSeeder struct {
 	CreateDBIfNeededStub        func() error
 	createDBIfNeededMutex       sync.RWMutex
-	createDBIfNeededArgsForCall []struct{}
-	createDBIfNeededReturns     struct {
+	createDBIfNeededArgsForCall []struct {
+	}
+	createDBIfNeededReturns struct {
 		result1 error
 	}
 	createDBIfNeededReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CreateUserStub        func() error
+	createUserMutex       sync.RWMutex
+	createUserArgsForCall []struct {
+	}
+	createUserReturns struct {
+		result1 error
+	}
+	createUserReturnsOnCall map[int]struct {
+		result1 error
+	}
+	GrantUserPrivilegesStub        func() error
+	grantUserPrivilegesMutex       sync.RWMutex
+	grantUserPrivilegesArgsForCall []struct {
+	}
+	grantUserPrivilegesReturns struct {
+		result1 error
+	}
+	grantUserPrivilegesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	IsExistingUserStub        func() (bool, error)
 	isExistingUserMutex       sync.RWMutex
-	isExistingUserArgsForCall []struct{}
-	isExistingUserReturns     struct {
+	isExistingUserArgsForCall []struct {
+	}
+	isExistingUserReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -29,31 +50,14 @@ type FakeSeeder struct {
 		result1 bool
 		result2 error
 	}
-	CreateUserStub        func() error
-	createUserMutex       sync.RWMutex
-	createUserArgsForCall []struct{}
-	createUserReturns     struct {
-		result1 error
-	}
-	createUserReturnsOnCall map[int]struct {
-		result1 error
-	}
 	UpdateUserStub        func() error
 	updateUserMutex       sync.RWMutex
-	updateUserArgsForCall []struct{}
-	updateUserReturns     struct {
+	updateUserArgsForCall []struct {
+	}
+	updateUserReturns struct {
 		result1 error
 	}
 	updateUserReturnsOnCall map[int]struct {
-		result1 error
-	}
-	GrantUserPrivilegesStub        func() error
-	grantUserPrivilegesMutex       sync.RWMutex
-	grantUserPrivilegesArgsForCall []struct{}
-	grantUserPrivilegesReturns     struct {
-		result1 error
-	}
-	grantUserPrivilegesReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -63,7 +67,8 @@ type FakeSeeder struct {
 func (fake *FakeSeeder) CreateDBIfNeeded() error {
 	fake.createDBIfNeededMutex.Lock()
 	ret, specificReturn := fake.createDBIfNeededReturnsOnCall[len(fake.createDBIfNeededArgsForCall)]
-	fake.createDBIfNeededArgsForCall = append(fake.createDBIfNeededArgsForCall, struct{}{})
+	fake.createDBIfNeededArgsForCall = append(fake.createDBIfNeededArgsForCall, struct {
+	}{})
 	fake.recordInvocation("CreateDBIfNeeded", []interface{}{})
 	fake.createDBIfNeededMutex.Unlock()
 	if fake.CreateDBIfNeededStub != nil {
@@ -72,7 +77,8 @@ func (fake *FakeSeeder) CreateDBIfNeeded() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.createDBIfNeededReturns.result1
+	fakeReturns := fake.createDBIfNeededReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeSeeder) CreateDBIfNeededCallCount() int {
@@ -81,7 +87,15 @@ func (fake *FakeSeeder) CreateDBIfNeededCallCount() int {
 	return len(fake.createDBIfNeededArgsForCall)
 }
 
+func (fake *FakeSeeder) CreateDBIfNeededCalls(stub func() error) {
+	fake.createDBIfNeededMutex.Lock()
+	defer fake.createDBIfNeededMutex.Unlock()
+	fake.CreateDBIfNeededStub = stub
+}
+
 func (fake *FakeSeeder) CreateDBIfNeededReturns(result1 error) {
+	fake.createDBIfNeededMutex.Lock()
+	defer fake.createDBIfNeededMutex.Unlock()
 	fake.CreateDBIfNeededStub = nil
 	fake.createDBIfNeededReturns = struct {
 		result1 error
@@ -89,6 +103,8 @@ func (fake *FakeSeeder) CreateDBIfNeededReturns(result1 error) {
 }
 
 func (fake *FakeSeeder) CreateDBIfNeededReturnsOnCall(i int, result1 error) {
+	fake.createDBIfNeededMutex.Lock()
+	defer fake.createDBIfNeededMutex.Unlock()
 	fake.CreateDBIfNeededStub = nil
 	if fake.createDBIfNeededReturnsOnCall == nil {
 		fake.createDBIfNeededReturnsOnCall = make(map[int]struct {
@@ -100,10 +116,115 @@ func (fake *FakeSeeder) CreateDBIfNeededReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeSeeder) CreateUser() error {
+	fake.createUserMutex.Lock()
+	ret, specificReturn := fake.createUserReturnsOnCall[len(fake.createUserArgsForCall)]
+	fake.createUserArgsForCall = append(fake.createUserArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CreateUser", []interface{}{})
+	fake.createUserMutex.Unlock()
+	if fake.CreateUserStub != nil {
+		return fake.CreateUserStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.createUserReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeSeeder) CreateUserCallCount() int {
+	fake.createUserMutex.RLock()
+	defer fake.createUserMutex.RUnlock()
+	return len(fake.createUserArgsForCall)
+}
+
+func (fake *FakeSeeder) CreateUserCalls(stub func() error) {
+	fake.createUserMutex.Lock()
+	defer fake.createUserMutex.Unlock()
+	fake.CreateUserStub = stub
+}
+
+func (fake *FakeSeeder) CreateUserReturns(result1 error) {
+	fake.createUserMutex.Lock()
+	defer fake.createUserMutex.Unlock()
+	fake.CreateUserStub = nil
+	fake.createUserReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSeeder) CreateUserReturnsOnCall(i int, result1 error) {
+	fake.createUserMutex.Lock()
+	defer fake.createUserMutex.Unlock()
+	fake.CreateUserStub = nil
+	if fake.createUserReturnsOnCall == nil {
+		fake.createUserReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.createUserReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSeeder) GrantUserPrivileges() error {
+	fake.grantUserPrivilegesMutex.Lock()
+	ret, specificReturn := fake.grantUserPrivilegesReturnsOnCall[len(fake.grantUserPrivilegesArgsForCall)]
+	fake.grantUserPrivilegesArgsForCall = append(fake.grantUserPrivilegesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("GrantUserPrivileges", []interface{}{})
+	fake.grantUserPrivilegesMutex.Unlock()
+	if fake.GrantUserPrivilegesStub != nil {
+		return fake.GrantUserPrivilegesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.grantUserPrivilegesReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeSeeder) GrantUserPrivilegesCallCount() int {
+	fake.grantUserPrivilegesMutex.RLock()
+	defer fake.grantUserPrivilegesMutex.RUnlock()
+	return len(fake.grantUserPrivilegesArgsForCall)
+}
+
+func (fake *FakeSeeder) GrantUserPrivilegesCalls(stub func() error) {
+	fake.grantUserPrivilegesMutex.Lock()
+	defer fake.grantUserPrivilegesMutex.Unlock()
+	fake.GrantUserPrivilegesStub = stub
+}
+
+func (fake *FakeSeeder) GrantUserPrivilegesReturns(result1 error) {
+	fake.grantUserPrivilegesMutex.Lock()
+	defer fake.grantUserPrivilegesMutex.Unlock()
+	fake.GrantUserPrivilegesStub = nil
+	fake.grantUserPrivilegesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSeeder) GrantUserPrivilegesReturnsOnCall(i int, result1 error) {
+	fake.grantUserPrivilegesMutex.Lock()
+	defer fake.grantUserPrivilegesMutex.Unlock()
+	fake.GrantUserPrivilegesStub = nil
+	if fake.grantUserPrivilegesReturnsOnCall == nil {
+		fake.grantUserPrivilegesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.grantUserPrivilegesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeSeeder) IsExistingUser() (bool, error) {
 	fake.isExistingUserMutex.Lock()
 	ret, specificReturn := fake.isExistingUserReturnsOnCall[len(fake.isExistingUserArgsForCall)]
-	fake.isExistingUserArgsForCall = append(fake.isExistingUserArgsForCall, struct{}{})
+	fake.isExistingUserArgsForCall = append(fake.isExistingUserArgsForCall, struct {
+	}{})
 	fake.recordInvocation("IsExistingUser", []interface{}{})
 	fake.isExistingUserMutex.Unlock()
 	if fake.IsExistingUserStub != nil {
@@ -112,7 +233,8 @@ func (fake *FakeSeeder) IsExistingUser() (bool, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.isExistingUserReturns.result1, fake.isExistingUserReturns.result2
+	fakeReturns := fake.isExistingUserReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeSeeder) IsExistingUserCallCount() int {
@@ -121,7 +243,15 @@ func (fake *FakeSeeder) IsExistingUserCallCount() int {
 	return len(fake.isExistingUserArgsForCall)
 }
 
+func (fake *FakeSeeder) IsExistingUserCalls(stub func() (bool, error)) {
+	fake.isExistingUserMutex.Lock()
+	defer fake.isExistingUserMutex.Unlock()
+	fake.IsExistingUserStub = stub
+}
+
 func (fake *FakeSeeder) IsExistingUserReturns(result1 bool, result2 error) {
+	fake.isExistingUserMutex.Lock()
+	defer fake.isExistingUserMutex.Unlock()
 	fake.IsExistingUserStub = nil
 	fake.isExistingUserReturns = struct {
 		result1 bool
@@ -130,6 +260,8 @@ func (fake *FakeSeeder) IsExistingUserReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeSeeder) IsExistingUserReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.isExistingUserMutex.Lock()
+	defer fake.isExistingUserMutex.Unlock()
 	fake.IsExistingUserStub = nil
 	if fake.isExistingUserReturnsOnCall == nil {
 		fake.isExistingUserReturnsOnCall = make(map[int]struct {
@@ -143,50 +275,11 @@ func (fake *FakeSeeder) IsExistingUserReturnsOnCall(i int, result1 bool, result2
 	}{result1, result2}
 }
 
-func (fake *FakeSeeder) CreateUser() error {
-	fake.createUserMutex.Lock()
-	ret, specificReturn := fake.createUserReturnsOnCall[len(fake.createUserArgsForCall)]
-	fake.createUserArgsForCall = append(fake.createUserArgsForCall, struct{}{})
-	fake.recordInvocation("CreateUser", []interface{}{})
-	fake.createUserMutex.Unlock()
-	if fake.CreateUserStub != nil {
-		return fake.CreateUserStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.createUserReturns.result1
-}
-
-func (fake *FakeSeeder) CreateUserCallCount() int {
-	fake.createUserMutex.RLock()
-	defer fake.createUserMutex.RUnlock()
-	return len(fake.createUserArgsForCall)
-}
-
-func (fake *FakeSeeder) CreateUserReturns(result1 error) {
-	fake.CreateUserStub = nil
-	fake.createUserReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeSeeder) CreateUserReturnsOnCall(i int, result1 error) {
-	fake.CreateUserStub = nil
-	if fake.createUserReturnsOnCall == nil {
-		fake.createUserReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.createUserReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeSeeder) UpdateUser() error {
 	fake.updateUserMutex.Lock()
 	ret, specificReturn := fake.updateUserReturnsOnCall[len(fake.updateUserArgsForCall)]
-	fake.updateUserArgsForCall = append(fake.updateUserArgsForCall, struct{}{})
+	fake.updateUserArgsForCall = append(fake.updateUserArgsForCall, struct {
+	}{})
 	fake.recordInvocation("UpdateUser", []interface{}{})
 	fake.updateUserMutex.Unlock()
 	if fake.UpdateUserStub != nil {
@@ -195,7 +288,8 @@ func (fake *FakeSeeder) UpdateUser() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.updateUserReturns.result1
+	fakeReturns := fake.updateUserReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeSeeder) UpdateUserCallCount() int {
@@ -204,7 +298,15 @@ func (fake *FakeSeeder) UpdateUserCallCount() int {
 	return len(fake.updateUserArgsForCall)
 }
 
+func (fake *FakeSeeder) UpdateUserCalls(stub func() error) {
+	fake.updateUserMutex.Lock()
+	defer fake.updateUserMutex.Unlock()
+	fake.UpdateUserStub = stub
+}
+
 func (fake *FakeSeeder) UpdateUserReturns(result1 error) {
+	fake.updateUserMutex.Lock()
+	defer fake.updateUserMutex.Unlock()
 	fake.UpdateUserStub = nil
 	fake.updateUserReturns = struct {
 		result1 error
@@ -212,6 +314,8 @@ func (fake *FakeSeeder) UpdateUserReturns(result1 error) {
 }
 
 func (fake *FakeSeeder) UpdateUserReturnsOnCall(i int, result1 error) {
+	fake.updateUserMutex.Lock()
+	defer fake.updateUserMutex.Unlock()
 	fake.UpdateUserStub = nil
 	if fake.updateUserReturnsOnCall == nil {
 		fake.updateUserReturnsOnCall = make(map[int]struct {
@@ -223,59 +327,19 @@ func (fake *FakeSeeder) UpdateUserReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeSeeder) GrantUserPrivileges() error {
-	fake.grantUserPrivilegesMutex.Lock()
-	ret, specificReturn := fake.grantUserPrivilegesReturnsOnCall[len(fake.grantUserPrivilegesArgsForCall)]
-	fake.grantUserPrivilegesArgsForCall = append(fake.grantUserPrivilegesArgsForCall, struct{}{})
-	fake.recordInvocation("GrantUserPrivileges", []interface{}{})
-	fake.grantUserPrivilegesMutex.Unlock()
-	if fake.GrantUserPrivilegesStub != nil {
-		return fake.GrantUserPrivilegesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.grantUserPrivilegesReturns.result1
-}
-
-func (fake *FakeSeeder) GrantUserPrivilegesCallCount() int {
-	fake.grantUserPrivilegesMutex.RLock()
-	defer fake.grantUserPrivilegesMutex.RUnlock()
-	return len(fake.grantUserPrivilegesArgsForCall)
-}
-
-func (fake *FakeSeeder) GrantUserPrivilegesReturns(result1 error) {
-	fake.GrantUserPrivilegesStub = nil
-	fake.grantUserPrivilegesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeSeeder) GrantUserPrivilegesReturnsOnCall(i int, result1 error) {
-	fake.GrantUserPrivilegesStub = nil
-	if fake.grantUserPrivilegesReturnsOnCall == nil {
-		fake.grantUserPrivilegesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.grantUserPrivilegesReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeSeeder) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createDBIfNeededMutex.RLock()
 	defer fake.createDBIfNeededMutex.RUnlock()
-	fake.isExistingUserMutex.RLock()
-	defer fake.isExistingUserMutex.RUnlock()
 	fake.createUserMutex.RLock()
 	defer fake.createUserMutex.RUnlock()
-	fake.updateUserMutex.RLock()
-	defer fake.updateUserMutex.RUnlock()
 	fake.grantUserPrivilegesMutex.RLock()
 	defer fake.grantUserPrivilegesMutex.RUnlock()
+	fake.isExistingUserMutex.RLock()
+	defer fake.isExistingUserMutex.RUnlock()
+	fake.updateUserMutex.RLock()
+	defer fake.updateUserMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

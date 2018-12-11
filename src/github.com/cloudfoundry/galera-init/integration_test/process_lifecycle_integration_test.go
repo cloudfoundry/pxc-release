@@ -29,8 +29,9 @@ var _ = Describe("galera-init integration", func() {
 				Socket:             "/var/run/mysqld/mysqld.sock",
 			},
 			Manager: config.StartManager{
-				StateFileLocation:    "/var/lib/mysql/node_state.txt",
-				GrastateFileLocation: "/var/lib/mysql/grastate.dat",
+				GaleraInitStatusServerAddress: "0.0.0.0:" + galeraInitStatusPort.Port(),
+				StateFileLocation:             "/var/lib/mysql/node_state.txt",
+				GrastateFileLocation:          "/var/lib/mysql/grastate.dat",
 				ClusterIps: []string{
 					"mysql0." + sessionID,
 				},
@@ -71,12 +72,10 @@ var _ = Describe("galera-init integration", func() {
 		})
 
 		It("will allow MySQL to cleanly shutdown on SIGTERM", func() {
-			containerLogs := StreamLogs(dockerClient, galeraNode)
-
-			Eventually(containerLogs, "1m", "1s").
-				Should(gbytes.Say(`galera-init.bootstrap-complete`),
-					`Expected galera-init to finish bootstrapping in a timely manner, but it did not`,
-				)
+			StreamLogs(dockerClient, galeraNode)
+			Eventually(func() error {
+				return serviceStatus(galeraNode)
+			}, "1m", "1s").Should(Succeed())
 
 			Expect(db.Ping()).To(Succeed(),
 				`Expected MySQL instance to be reachable, but it was not`,
@@ -105,10 +104,10 @@ var _ = Describe("galera-init integration", func() {
 		})
 
 		It("will terminate with an error when mysql terminates ungracefully", func() {
-			containerLogs := StreamLogs(dockerClient, galeraNode)
-
-			Eventually(containerLogs, "1m", "1s").
-				Should(gbytes.Say(`galera-init.bootstrap-complete`))
+			Eventually(
+				func() error {
+					return serviceStatus(galeraNode)
+				}, "1m", "1s").Should(Succeed())
 
 			Expect(db.Ping()).To(Succeed())
 
@@ -188,11 +187,10 @@ var _ = Describe("galera-init integration", func() {
 				AddEnvVars("WSREP_CLUSTER_ADDRESS="+wsrepClusterAddr),
 			)
 			Expect(err).NotTo(HaveOccurred())
-
-			containerLogs := StreamLogs(dockerClient, galeraNode0)
-
-			Eventually(containerLogs, "1m", "1s").
-				Should(gbytes.Say(`galera-init.bootstrap-complete`))
+			Eventually(
+				func() error {
+					return serviceStatus(galeraNode0)
+				}, "1m", "1s").Should(Succeed())
 
 			node1Cfg := baseCfg
 			node1Cfg.Manager.BootstrapNode = false
@@ -214,9 +212,10 @@ var _ = Describe("galera-init integration", func() {
 		})
 
 		It("should successfully join a second node to the cluster", func() {
-			containerLogs := StreamLogs(dockerClient, galeraNode1)
-			Eventually(containerLogs, "1m", "1s").
-				Should(gbytes.Say(`galera-init.bootstrap-complete`))
+			Eventually(
+				func() error {
+					return serviceStatus(galeraNode1)
+				}, "1m", "1s").Should(Succeed())
 
 			db, err := ContainerDBConnection(galeraNode1, pxcMySQLPort)
 			Expect(err).NotTo(HaveOccurred())

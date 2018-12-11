@@ -3,8 +3,10 @@ package integration_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,8 +40,9 @@ func TestIntegration(t *testing.T) {
 }
 
 const (
-	pxcDockerImage = "percona/percona-xtradb-cluster:5.7"
-	pxcMySQLPort   = "3306/tcp"
+	pxcDockerImage                   = "percona/percona-xtradb-cluster:5.7"
+	pxcMySQLPort         docker.Port = "3306/tcp"
+	galeraInitStatusPort docker.Port = "8114/tcp"
 )
 
 var (
@@ -130,7 +133,7 @@ func createGaleraContainer(
 	}
 
 	defaultOptions := []ContainerOption{
-		AddExposedPorts(pxcMySQLPort),
+		AddExposedPorts(pxcMySQLPort, galeraInitStatusPort),
 		AddBinds(
 			galeraInitPath+":/usr/local/bin/galera-init",
 			sessionTmpdir+":"+"/var/vcap/jobs/pxc-mysql/config/",
@@ -155,4 +158,13 @@ func createGaleraContainer(
 		name+"."+sessionID,
 		append(defaultOptions, options...)...,
 	)
+}
+
+func serviceStatus(container *docker.Container) error {
+	serviceHealthyPort := HostPort(galeraInitStatusPort, container)
+	res, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s", serviceHealthyPort))
+	if err != nil || res.StatusCode != http.StatusOK {
+		return errors.New("galera-init not healthy")
+	}
+	return nil
 }

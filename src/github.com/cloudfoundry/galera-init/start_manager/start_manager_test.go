@@ -20,6 +20,7 @@ import (
 	. "github.com/cloudfoundry/galera-init/start_manager"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter/node_starterfakes"
+	"github.com/cloudfoundry/galera-init/start_manager/start_managerfakes"
 	"github.com/cloudfoundry/galera-init/upgrader/upgraderfakes"
 )
 
@@ -36,6 +37,7 @@ var _ = Describe("StartManager", func() {
 	var startNodeReturn string
 	var startNodeReturnError error
 	var mysqldErrChan chan error
+	var fakeserviceStatusServer *start_managerfakes.FakeServiceStatus
 
 	const stateFileLocation = "/stateFileLocation"
 
@@ -80,6 +82,7 @@ var _ = Describe("StartManager", func() {
 			fakeStarter,
 			testLogger,
 			fakeHealthChecker,
+			fakeserviceStatusServer,
 		)
 	}
 
@@ -90,7 +93,7 @@ var _ = Describe("StartManager", func() {
 		fakeStarter = new(node_starterfakes.FakeStarter)
 		fakeDBHelper = new(db_helperfakes.FakeDBHelper)
 		fakeHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
-
+		fakeserviceStatusServer = new(start_managerfakes.FakeServiceStatus)
 		fakeDBHelper.IsProcessRunningReturns(false)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 		startNodeReturn = "CLUSTERED"
@@ -197,6 +200,7 @@ var _ = Describe("StartManager", func() {
 			It("forwards the error", func() {
 				err := mgr.Execute(context.TODO())
 				Expect(err).To(HaveOccurred())
+				Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 			})
 		})
 
@@ -214,6 +218,7 @@ var _ = Describe("StartManager", func() {
 				It("forwards the error", func() {
 					err := mgr.Execute(context.TODO())
 					Expect(err).To(HaveOccurred())
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -237,6 +242,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
+				Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 			})
 		})
 
@@ -251,6 +257,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
+				Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 			})
 		})
 	})
@@ -274,6 +281,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 				})
 			})
 
@@ -290,6 +298,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 				})
 			})
 		})
@@ -312,6 +321,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 				})
 			})
 
@@ -325,6 +335,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("CLUSTERED")
 					ensureStateFileContentIs("CLUSTERED")
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 				})
 			})
 
@@ -338,6 +349,7 @@ var _ = Describe("StartManager", func() {
 					Expect(err).ToNot(HaveOccurred())
 					ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 					ensureStateFileContentIs("CLUSTERED")
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 				})
 
 				Context("And the current node is not the bootstrap node", func() {
@@ -353,6 +365,7 @@ var _ = Describe("StartManager", func() {
 						Expect(err).ToNot(HaveOccurred())
 						ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 						ensureStateFileContentIs("CLUSTERED")
+						Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 					})
 				})
 
@@ -364,6 +377,7 @@ var _ = Describe("StartManager", func() {
 					It("returns the error", func() {
 						actualErr := mgr.Execute(context.TODO())
 						Expect(actualErr).To(HaveOccurred())
+						Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 					})
 				})
 			})
@@ -378,12 +392,14 @@ var _ = Describe("StartManager", func() {
 				It("Forwards the error", func() {
 					actualErr := mgr.Execute(context.TODO())
 					Expect(actualErr).To(HaveOccurred())
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 				})
 
 				It("does not write the state file", func() {
 					err := mgr.Execute(context.TODO())
 					Expect(err).To(HaveOccurred())
 					ensureNoWriteToStateFile()
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 				})
 			})
 
@@ -398,12 +414,14 @@ var _ = Describe("StartManager", func() {
 					actualErr := mgr.Execute(context.TODO())
 					Expect(actualErr).To(HaveOccurred())
 					Expect(actualErr).To(Equal(err))
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 				})
 
 				It("does not join the cluster or seed the databases", func() {
 					mgr.Execute(context.TODO())
 					Expect(fakeStarter.StartNodeFromStateCallCount()).To(Equal(0))
 					ensureNoWriteToStateFile()
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -425,6 +443,7 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("SINGLE_NODE")
 				ensureStateFileContentIs("SINGLE_NODE")
+				Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 			})
 		})
 
@@ -443,9 +462,9 @@ var _ = Describe("StartManager", func() {
 				Expect(err).ToNot(HaveOccurred())
 				ensureStartNodeWithMode("NEEDS_BOOTSTRAP")
 				ensureStateFileContentIs("CLUSTERED")
+				Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
 			})
 		})
 
 	})
-
 })

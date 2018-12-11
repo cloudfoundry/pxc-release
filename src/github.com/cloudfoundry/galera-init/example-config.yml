@@ -30,3 +30,4 @@ Manager:
   # How many times to attempt database seeding before it fails
   MaxDatabaseSeedTries: 1
   ClusterProbeTimeout: 13
+  GaleraInitStatusServerAddress: "127.0.0.1:8999"

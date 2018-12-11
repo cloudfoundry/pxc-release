@@ -2,25 +2,17 @@
 package upgraderfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/upgrader"
+	upgrader "github.com/cloudfoundry/galera-init/upgrader"
 )
 
 type FakeUpgrader struct {
-	UpgradeStub        func() error
-	upgradeMutex       sync.RWMutex
-	upgradeArgsForCall []struct{}
-	upgradeReturns     struct {
-		result1 error
-	}
-	upgradeReturnsOnCall map[int]struct {
-		result1 error
-	}
 	NeedsUpgradeStub        func() (bool, error)
 	needsUpgradeMutex       sync.RWMutex
-	needsUpgradeArgsForCall []struct{}
-	needsUpgradeReturns     struct {
+	needsUpgradeArgsForCall []struct {
+	}
+	needsUpgradeReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -28,54 +20,25 @@ type FakeUpgrader struct {
 		result1 bool
 		result2 error
 	}
+	UpgradeStub        func() error
+	upgradeMutex       sync.RWMutex
+	upgradeArgsForCall []struct {
+	}
+	upgradeReturns struct {
+		result1 error
+	}
+	upgradeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeUpgrader) Upgrade() error {
-	fake.upgradeMutex.Lock()
-	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
-	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct{}{})
-	fake.recordInvocation("Upgrade", []interface{}{})
-	fake.upgradeMutex.Unlock()
-	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.upgradeReturns.result1
-}
-
-func (fake *FakeUpgrader) UpgradeCallCount() int {
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
-	return len(fake.upgradeArgsForCall)
-}
-
-func (fake *FakeUpgrader) UpgradeReturns(result1 error) {
-	fake.UpgradeStub = nil
-	fake.upgradeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeUpgrader) UpgradeReturnsOnCall(i int, result1 error) {
-	fake.UpgradeStub = nil
-	if fake.upgradeReturnsOnCall == nil {
-		fake.upgradeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.upgradeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeUpgrader) NeedsUpgrade() (bool, error) {
 	fake.needsUpgradeMutex.Lock()
 	ret, specificReturn := fake.needsUpgradeReturnsOnCall[len(fake.needsUpgradeArgsForCall)]
-	fake.needsUpgradeArgsForCall = append(fake.needsUpgradeArgsForCall, struct{}{})
+	fake.needsUpgradeArgsForCall = append(fake.needsUpgradeArgsForCall, struct {
+	}{})
 	fake.recordInvocation("NeedsUpgrade", []interface{}{})
 	fake.needsUpgradeMutex.Unlock()
 	if fake.NeedsUpgradeStub != nil {
@@ -84,7 +47,8 @@ func (fake *FakeUpgrader) NeedsUpgrade() (bool, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.needsUpgradeReturns.result1, fake.needsUpgradeReturns.result2
+	fakeReturns := fake.needsUpgradeReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeUpgrader) NeedsUpgradeCallCount() int {
@@ -93,7 +57,15 @@ func (fake *FakeUpgrader) NeedsUpgradeCallCount() int {
 	return len(fake.needsUpgradeArgsForCall)
 }
 
+func (fake *FakeUpgrader) NeedsUpgradeCalls(stub func() (bool, error)) {
+	fake.needsUpgradeMutex.Lock()
+	defer fake.needsUpgradeMutex.Unlock()
+	fake.NeedsUpgradeStub = stub
+}
+
 func (fake *FakeUpgrader) NeedsUpgradeReturns(result1 bool, result2 error) {
+	fake.needsUpgradeMutex.Lock()
+	defer fake.needsUpgradeMutex.Unlock()
 	fake.NeedsUpgradeStub = nil
 	fake.needsUpgradeReturns = struct {
 		result1 bool
@@ -102,6 +74,8 @@ func (fake *FakeUpgrader) NeedsUpgradeReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeUpgrader) NeedsUpgradeReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.needsUpgradeMutex.Lock()
+	defer fake.needsUpgradeMutex.Unlock()
 	fake.NeedsUpgradeStub = nil
 	if fake.needsUpgradeReturnsOnCall == nil {
 		fake.needsUpgradeReturnsOnCall = make(map[int]struct {
@@ -115,13 +89,65 @@ func (fake *FakeUpgrader) NeedsUpgradeReturnsOnCall(i int, result1 bool, result2
 	}{result1, result2}
 }
 
+func (fake *FakeUpgrader) Upgrade() error {
+	fake.upgradeMutex.Lock()
+	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
+	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Upgrade", []interface{}{})
+	fake.upgradeMutex.Unlock()
+	if fake.UpgradeStub != nil {
+		return fake.UpgradeStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.upgradeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUpgrader) UpgradeCallCount() int {
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
+	return len(fake.upgradeArgsForCall)
+}
+
+func (fake *FakeUpgrader) UpgradeCalls(stub func() error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = stub
+}
+
+func (fake *FakeUpgrader) UpgradeReturns(result1 error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = nil
+	fake.upgradeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeUpgrader) UpgradeReturnsOnCall(i int, result1 error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = nil
+	if fake.upgradeReturnsOnCall == nil {
+		fake.upgradeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.upgradeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeUpgrader) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
 	fake.needsUpgradeMutex.RLock()
 	defer fake.needsUpgradeMutex.RUnlock()
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

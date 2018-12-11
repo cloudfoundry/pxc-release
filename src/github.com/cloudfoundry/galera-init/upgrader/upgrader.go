@@ -128,7 +128,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 			lager.Data{
 				"reason":                  "Error reading last upgraded version file",
 				"lastUpgradedVersionFile": u.config.LastUpgradedVersionFile,
-				"err": err,
+				"err":                     err,
 			})
 		return false, errors.New("Could not read last upgraded version file in the data dir.")
 	}

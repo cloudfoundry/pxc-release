@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"code.cloudfoundry.org/lager"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 	"github.com/cloudfoundry/galera-init/upgrader"
-	"syscall"
 )
 
 //go:generate counterfeiter . StartManager
@@ -29,15 +29,16 @@ type ServiceStatus interface {
 }
 
 type startManager struct {
-	osHelper      os_helper.OsHelper
-	config        config.StartManager
-	dbHelper      db_helper.DBHelper
-	upgrader      upgrader.Upgrader
-	startCaller   node_starter.Starter
-	logger        lager.Logger
-	healthChecker cluster_health_checker.ClusterHealthChecker
-	mysqlCmd      *exec.Cmd
-	mysqldPid     int
+	osHelper               os_helper.OsHelper
+	config                 config.StartManager
+	dbHelper               db_helper.DBHelper
+	upgrader               upgrader.Upgrader
+	startCaller            node_starter.Starter
+	logger                 lager.Logger
+	healthChecker          cluster_health_checker.ClusterHealthChecker
+	mysqlCmd               *exec.Cmd
+	mysqldPid              int
+	galeraInitStatusServer ServiceStatus
 }
 
 func New(
@@ -48,15 +49,17 @@ func New(
 	startCaller node_starter.Starter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
+	galeraInitStatusServer ServiceStatus,
 ) StartManager {
 	return &startManager{
-		osHelper:      osHelper,
-		config:        config,
-		logger:        logger,
-		dbHelper:      dbHelper,
-		upgrader:      upgrader,
-		startCaller:   startCaller,
-		healthChecker: healthChecker,
+		osHelper:               osHelper,
+		config:                 config,
+		logger:                 logger,
+		dbHelper:               dbHelper,
+		upgrader:               upgrader,
+		startCaller:            startCaller,
+		healthChecker:          healthChecker,
+		galeraInitStatusServer: galeraInitStatusServer,
 	}
 }
 
@@ -107,6 +110,10 @@ func (m *startManager) Execute(ctx context.Context) error {
 
 	m.logger.Info("bootstrap-complete")
 	m.logger.Info("waiting-for-mysqld")
+
+	m.logger.Info("status-server-starting")
+	m.galeraInitStatusServer.Start()
+	m.logger.Info("status-server-started")
 
 	select {
 	case err := <-mysqldChan:
