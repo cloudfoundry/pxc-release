@@ -123,8 +123,7 @@ if ! /var/vcap/jobs/bpm/bin/bpm start pxc-mysql -p galera-init; then
     exit 1
 fi
 
-mysqladmin="/var/vcap/packages/pxc/bin/mysqladmin"
-while ! "${mysqladmin}" -h 0 --silent ping && check_bpm_pid; do
+while ! curl -s -f -m 5 http://127.0.0.1:8114 > /dev/null && check_bpm_pid; do
     sleep 1
 done
 

@@ -116,7 +116,6 @@ properties:
         username: user2
         password: pw2
 
-
   # TLS Config
   tls.galera:
     description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'

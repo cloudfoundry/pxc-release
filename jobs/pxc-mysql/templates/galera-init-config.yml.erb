@@ -21,6 +21,7 @@ Upgrader:
   PackageVersionFile: /var/vcap/packages/pxc/VERSION
   LastUpgradedVersionFile: /var/vcap/store/pxc-mysql/mysql_upgrade_info
 Manager:
+  GaleraInitStatusServerAddress: "127.0.0.1:8114"
   StateFileLocation: /var/vcap/store/pxc-mysql/state.txt
   ClusterIps:
   <% cluster_ips.each do |ip| %>
