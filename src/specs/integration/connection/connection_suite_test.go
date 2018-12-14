@@ -20,31 +20,20 @@ var (
 	mysqlConn *sql.DB
 )
 
+// This test package is used as the pxc smoke-test, thus has different required
+// variables than the rest of the integration test. In the future, we might
+// want to move this test package somewhere else.
 var _ = BeforeSuite(func() {
 	requiredEnvs := []string{
-		"BOSH_ENVIRONMENT",
-		"BOSH_CA_CERT",
-		"BOSH_CLIENT",
-		"BOSH_CLIENT_SECRET",
-		"BOSH_DEPLOYMENT",
-		"AUDIT_LOG_PATH",
-		"CREDHUB_SERVER",
-		"CREDHUB_CLIENT",
-		"CREDHUB_SECRET",
+		"MYSQL_HOST",
+		"MYSQL_USERNAME",
+		"MYSQL_PASSWORD",
 	}
 
 	helpers.CheckForRequiredEnvVars(requiredEnvs)
 
-	helpers.SetupBoshDeployment()
-
-	if os.Getenv("BOSH_ALL_PROXY") != "" {
-		helpers.SetupSocks5Proxy()
-	}
-
-	mysqlUsername := "root"
-	mysqlPassword, err := helpers.GetMySQLAdminPassword()
-	Expect(err).NotTo(HaveOccurred())
-	firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
-	Expect(err).NotTo(HaveOccurred())
-	mysqlConn = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, firstProxy)
+	mysqlHost := os.Getenv("MYSQL_HOST")
+	mysqlUsername := os.Getenv("MYSQL_USERNAME")
+	mysqlPassword := os.Getenv("MYSQL_PASSWORD")
+	mysqlConn = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, mysqlHost)
 })
