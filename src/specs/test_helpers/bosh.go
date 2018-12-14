@@ -1,13 +1,19 @@
 package test_helpers
 
 import (
+	"errors"
 	"fmt"
+	"os"
+
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
-	"os"
+)
+
+var (
+	BoshDeployment    boshdir.Deployment
+	BoshCredhubPrefix string
 )
 
 func BuildBoshDirector() (boshdir.Director, error) {
@@ -37,7 +43,7 @@ func BuildBoshDirector() (boshdir.Director, error) {
 	return factory.New(config, boshdir.NewNoopTaskReporter(), boshdir.NewNoopFileReporter())
 }
 
-func BoshDeployment() string {
+func BoshDeploymentName() string {
 	return os.Getenv("BOSH_DEPLOYMENT")
 }
 
@@ -54,21 +60,7 @@ func BoshClientSecret() string {
 }
 
 func BoshCaCert() string {
-	path := os.Getenv("BOSH_CA_CERT_PATH")
-	key, err := ioutil.ReadFile(path)
-	Expect(err).NotTo(HaveOccurred())
-	return string(key)
-}
-
-func BoshGwUser() string {
-	return os.Getenv("BOSH_GW_USER")
-}
-
-func BoshGwPrivateKey() []byte {
-	path := os.Getenv("BOSH_GW_PRIVATE_KEY_PATH")
-	key, err := ioutil.ReadFile(path)
-	Expect(err).NotTo(HaveOccurred())
-	return key
+	return os.Getenv("BOSH_CA_CERT")
 }
 
 func buildUAA() (boshuaa.UAA, error) {
@@ -93,4 +85,50 @@ func buildUAA() (boshuaa.UAA, error) {
 	config.CACert = BoshCaCert()
 
 	return factory.New(config)
+}
+
+func HostsForInstanceGroup(deployment boshdir.Deployment, instanceGroupName string) ([]string, error) {
+	instances, err := deployment.Instances()
+	if err != nil {
+		return nil, err
+	}
+
+	var addresses []string
+	for _, instance := range instances {
+		if instance.Group == instanceGroupName {
+			addresses = append(addresses, instance.IPs[0])
+		}
+	}
+
+	return addresses, nil
+}
+
+func SetupBoshDeployment() {
+	var err error
+	director, err := BuildBoshDirector()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	info, err := director.Info()
+	Expect(err).NotTo(HaveOccurred())
+	BoshCredhubPrefix = "/" + info.Name
+
+	BoshDeployment, err = director.FindDeployment(BoshDeploymentName())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+}
+
+func MySQLHosts(boshDeployment boshdir.Deployment) ([]string, error) {
+	return HostsForInstanceGroup(boshDeployment, "mysql")
+}
+
+func FirstProxyHost(boshDeployment boshdir.Deployment) (string, error) {
+	proxyHosts, err := HostsForInstanceGroup(boshDeployment, "proxy")
+	if err != nil {
+		return "", err
+	}
+
+	if len(proxyHosts) == 0 {
+		return "", errors.New("no proxies found")
+	}
+
+	return proxyHosts[0], nil
 }

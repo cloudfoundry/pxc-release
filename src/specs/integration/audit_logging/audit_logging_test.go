@@ -6,7 +6,6 @@ import (
 
 	"database/sql"
 	"fmt"
-	"github.com/onsi/gomega/gexec"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -16,22 +15,34 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("CF PXC MySQL Audit Logging", func() {
 
-	var databaseName, auditLogPath string
+	var (
+		db                         *sql.DB
+		databaseName, auditLogPath string
+	)
 
 	BeforeEach(func() {
-		databaseName = helpers.DbSetup("audit_logging_test_table")
+		firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+		Expect(err).NotTo(HaveOccurred())
+
+		mysqlPassword, err := helpers.GetMySQLAdminPassword()
+		Expect(err).NotTo(HaveOccurred())
+
+		db = helpers.DbConnWithUser("root", mysqlPassword, firstProxy)
+		databaseName = helpers.DbSetup(db, "audit_logging_test_table")
 		auditLogPath = os.Getenv("AUDIT_LOG_PATH")
 	})
 
 	AfterEach(func() {
-		helpers.DbCleanup()
-		cleanupUsers("included_user")
-		cleanupUsers("excludeDBAudit1")
-		cleanupUsers("excludeDBAudit2")
+		helpers.DbCleanup(db)
+		cleanupUsers(db, "included_user")
+		cleanupUsers(db, "excludeDBAudit1")
+		cleanupUsers(db, "excludeDBAudit2")
 	})
 
 	Context("when reading and writing data as an excluded user", func() {
@@ -43,11 +54,13 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 				excludedUser = "excludeDBAudit1"
 				excludedUserPassword = "password"
 
-				createUserWithPermissions(databaseName, excludedUser, excludedUserPassword)
+				createUserWithPermissions(db, databaseName, excludedUser, excludedUserPassword)
 			})
 
 			It("does not log any of the excluded user's activity in the audit log", func() {
-				dbConn := helpers.DbConnWithUser(excludedUser, excludedUserPassword)
+				firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+				Expect(err).NotTo(HaveOccurred())
+				dbConn := helpers.DbConnWithUser(excludedUser, excludedUserPassword, firstProxy)
 				auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, auditLogPath)
 
 				Expect(string(auditLogContents)).ToNot(ContainSubstring("\"user\":\"excludeDBAudit1[excludeDBAudit1]"))
@@ -58,11 +71,13 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 				excludedUser = "excludeDBAudit2"
 				excludedUserPassword = "password"
 
-				createUserWithPermissions(databaseName, excludedUser, excludedUserPassword)
+				createUserWithPermissions(db, databaseName, excludedUser, excludedUserPassword)
 			})
 
 			It("does not log any of the excluded user's activity in the audit log", func() {
-				dbConn := helpers.DbConnWithUser(excludedUser, excludedUserPassword)
+				firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+				Expect(err).NotTo(HaveOccurred())
+				dbConn := helpers.DbConnWithUser(excludedUser, excludedUserPassword, firstProxy)
 				auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, auditLogPath)
 
 				Expect(string(auditLogContents)).ToNot(ContainSubstring("\"user\":\"excludeDBAudit2[excludeDBAudit2]"))
@@ -79,11 +94,13 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 			includedUser = "included_user"
 			includedUserPassword = "password"
 
-			createUserWithPermissions(databaseName, includedUser, includedUserPassword)
+			createUserWithPermissions(db, databaseName, includedUser, includedUserPassword)
 		})
 
 		It("does log all of the included user's activity in the audit log", func() {
-			dbConn := helpers.DbConnWithUser(includedUser, includedUserPassword)
+			firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+			Expect(err).NotTo(HaveOccurred())
+			dbConn := helpers.DbConnWithUser(includedUser, includedUserPassword, firstProxy)
 			auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, auditLogPath)
 
 			Expect(string(auditLogContents)).To(ContainSubstring("\"user\":\"included_user[included_user]"))
@@ -128,10 +145,10 @@ func readFileFromOffset(filePath string, offset int64) string {
 }
 
 func readAndWriteFromDB(dbConn *sql.DB) {
-	query := "INSERT INTO audit_logging_test_table VALUES('writing data')"
+	query := "INSERT INTO pxc_release_test_db.audit_logging_test_table VALUES('writing data')"
 	_, err := dbConn.Query(query)
 	Expect(err).NotTo(HaveOccurred())
-	query = "SELECT * FROM audit_logging_test_table"
+	query = "SELECT * FROM pxc_release_test_db.audit_logging_test_table"
 	_, err = dbConn.Query(query)
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -162,20 +179,18 @@ func AuditLogSize(remoteFilePath string) int64 {
 	return int64(size)
 }
 
-func createUserWithPermissions(databaseName, mysqlUsername, mysqlPassword string) {
-	dbConn := helpers.DbConnNoDb()
-	cleanupUsers(mysqlUsername)
+func createUserWithPermissions(db *sql.DB, databaseName, mysqlUsername, mysqlPassword string) {
+	cleanupUsers(db, mysqlUsername)
 	query := fmt.Sprintf("CREATE USER %s IDENTIFIED BY '%s';", mysqlUsername, mysqlPassword)
-	_, err := dbConn.Exec(query)
+	_, err := db.Exec(query)
 	Expect(err).NotTo(HaveOccurred())
 	query = fmt.Sprintf("GRANT ALL ON `%s`.* TO '%s'@'%%';", databaseName, mysqlUsername)
-	_, err = dbConn.Exec(query)
+	_, err = db.Exec(query)
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func cleanupUsers(mysqlUsername string) {
-	dbConn := helpers.DbConnNoDb()
+func cleanupUsers(db *sql.DB, mysqlUsername string) {
 	query := fmt.Sprintf("DROP USER IF EXISTS %s;", mysqlUsername)
-	_, err := dbConn.Exec(query)
+	_, err := db.Exec(query)
 	Expect(err).NotTo(HaveOccurred())
 }

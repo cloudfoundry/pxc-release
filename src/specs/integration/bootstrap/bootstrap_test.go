@@ -1,90 +1,69 @@
 package bootstrap_test
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/crypto/ssh"
-	"os"
+	"github.com/pkg/errors"
+
 	helpers "specs/test_helpers"
-	"time"
 )
 
-func runCmdOnBoshDirectorVM(cmd string) {
-	boshKeySigner, err := ssh.ParsePrivateKey(helpers.BoshGwPrivateKey())
-	Expect(err).NotTo(HaveOccurred())
-
-	config := &ssh.ClientConfig{
-		User: helpers.BoshGwUser(),
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(boshKeySigner),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	client, err := ssh.Dial(
-		"tcp",
-		fmt.Sprintf("%s:22", helpers.BoshEnvironment()),
-		config,
-	)
-	Expect(err).NotTo(HaveOccurred())
-
-	session, err := client.NewSession()
-	Expect(err).NotTo(HaveOccurred())
-
-	defer session.Close()
-
-	var e bytes.Buffer
-	session.Stderr = &e
-
-	err = session.Run(cmd)
+func stopMySQL(host string) error {
+	stopMySQLEndpoint := fmt.Sprintf("http://%s:9200/stop_mysql", host)
+	req, err := http.NewRequest("POST", stopMySQLEndpoint, nil)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Output from stderr of cmd: %s", e.String()))
-		Expect(err).NotTo(HaveOccurred())
+		return err
 	}
 
+	galeraAgentPassword, err := helpers.GetGaleraAgentPassword()
+	if err != nil {
+		return err
+	}
+
+	req.SetBasicAuth(galeraAgentUsername, galeraAgentPassword)
+
+	res, err := helpers.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	responseBody, _ := ioutil.ReadAll(res.Body)
+	fmt.Fprintln(GinkgoWriter, string(responseBody))
+
+	if res.StatusCode != http.StatusOK {
+		return errors.Errorf(`Expected [HTTP 200], but got %s. body: %v`, res.Status, string(responseBody))
+	}
+
+	return nil
 }
 
 func stopGaleraInitOnAllMysqls() {
-	director, err := helpers.BuildBoshDirector()
-	Expect(err).NotTo(HaveOccurred())
+	mysqlHosts, err := helpers.MySQLHosts(helpers.BoshDeployment)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
-	deployment, err := director.FindDeployment(helpers.BoshDeployment())
-	Expect(err).NotTo(HaveOccurred())
-
-	instances, err := deployment.Instances()
-	Expect(err).NotTo(HaveOccurred())
-
-	galeraAgentUsername := os.Getenv("GALERA_AGENT_USERNAME")
-	galeraAgentPassword := os.Getenv("GALERA_AGENT_PASSWORD")
-	for _, instance := range instances {
-		if instance.Group == "mysql" {
-			mysqlIp := instance.IPs[0]
-
-			curlCmd := fmt.Sprintf("curl -vvvkf -X POST %s:%s@%s:9200/stop_mysql", galeraAgentUsername, galeraAgentPassword, mysqlIp)
-			runCmdOnBoshDirectorVM(curlCmd)
-		}
+	for _, host := range mysqlHosts {
+		ExpectWithOffset(1, stopMySQL(host)).To(Succeed())
 	}
 
-	Eventually(func() bool {
-		backend, err := helpers.ActiveProxyBackend()
-		Expect(err).NotTo(HaveOccurred())
+	firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	proxyPassword, err := helpers.GetProxyPassword()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		return backend == ""
-	}, 3*time.Minute, 5*time.Second).Should(BeTrue())
+	EventuallyWithOffset(1, func() (string, error) {
+		return helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy, helpers.HttpClient)
+	}, "3m", "1s").Should(BeEmpty())
 }
 
 func bootstrapCluster() {
-	director, err := helpers.BuildBoshDirector()
-	Expect(err).NotTo(HaveOccurred())
-
-	deployment, err := director.FindDeployment(helpers.BoshDeployment())
-	Expect(err).NotTo(HaveOccurred())
-
 	slugList := []boshdir.InstanceGroupOrInstanceSlug{boshdir.NewInstanceGroupOrInstanceSlug("mysql", "0")}
-	errandResult, err := deployment.RunErrand("bootstrap", false, false, slugList)
+	errandResult, err := helpers.BoshDeployment.RunErrand("bootstrap", false, false, slugList)
 	Expect(err).NotTo(HaveOccurred())
 
 	fmt.Println(fmt.Sprintf("Errand STDOUT: %s", errandResult[0].Stdout))
@@ -93,20 +72,19 @@ func bootstrapCluster() {
 
 var _ = Describe("CF PXC MySQL Bootstrap", func() {
 	BeforeEach(func() {
-		helpers.DbSetup("bootstrap_test_table")
+		helpers.DbSetup(mysqlConn, "bootstrap_test_table")
 	})
 
 	AfterEach(func() {
-		helpers.DbCleanup()
+		helpers.DbCleanup(mysqlConn)
 	})
+
 	It("bootstraps a cluster", func() {
 		By("Write data")
-		dbConn := helpers.DbConn()
-
-		query := "INSERT INTO bootstrap_test_table VALUES('the only data')"
-		_, err := dbConn.Query(query)
+		_, err := mysqlConn.Query("INSERT INTO pxc_release_test_db.bootstrap_test_table VALUES('the only data')")
 		Expect(err).NotTo(HaveOccurred())
 
+		By("Stop all instances of mysql")
 		stopGaleraInitOnAllMysqls()
 
 		By("Wait for monit to finish stopping")
@@ -116,25 +94,21 @@ var _ = Describe("CF PXC MySQL Bootstrap", func() {
 
 		By("Verify cluster has three nodes")
 		var variableName, variableValue string
-		query = "SHOW status LIKE 'wsrep_cluster_size'"
-		rows, err := dbConn.Query(query)
+		rows, err := mysqlConn.Query("SHOW status LIKE 'wsrep_cluster_size'")
 		Expect(err).NotTo(HaveOccurred())
 
-		rows.Next()
-		rows.Scan(&variableName, &variableValue)
+		Expect(rows.Next()).To(BeTrue())
+		Expect(rows.Scan(&variableName, &variableValue)).To(Succeed())
 
 		Expect(variableValue).To(Equal("3"))
 
-		By("Verify data still exists")
+		By("Verifying the data still exists")
 		var queryResultString string
-		query = "SELECT * FROM bootstrap_test_table"
-		rows, err = dbConn.Query(query)
+		rows, err = mysqlConn.Query("SELECT * FROM pxc_release_test_db.bootstrap_test_table")
 		Expect(err).NotTo(HaveOccurred())
 
-		rows.Next()
-		rows.Scan(&queryResultString)
-
+		Expect(rows.Next()).To(BeTrue())
+		Expect(rows.Scan(&queryResultString)).To(Succeed())
 		Expect(queryResultString).To(Equal("the only data"))
 	})
-
 })

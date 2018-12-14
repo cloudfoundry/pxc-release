@@ -3,149 +3,340 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:6d796f30987c203fc1f908e7aa5f11ecba05df4f897c09818cf8e9c657ef45d1"
   name = "code.cloudfoundry.org/clock"
   packages = ["."]
+  pruneopts = ""
   revision = "e9dc86bbf0e5bbe6bf7ff5a6f71e048959b61f71"
 
 [[projects]]
+  digest = "1:4b1d8ffd83a4a05d81b0b4422ad2a89a084386b5cf639800cd8ab5bf17ddd6c9"
+  name = "code.cloudfoundry.org/credhub-cli"
+  packages = [
+    "credhub",
+    "credhub/auth",
+    "credhub/auth/uaa",
+    "credhub/credentials",
+    "credhub/credentials/generate",
+    "credhub/credentials/values",
+    "credhub/permissions",
+    "credhub/server",
+    "errors",
+  ]
+  pruneopts = ""
+  revision = "bfbb05b8c9539c80929b2d14a453c33b7f6f466b"
+  version = "2.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:ad0ef7941d901d624f0db1f5ea0333ce4884280696a3b24bc3ca3d4856e412b4"
+  name = "code.cloudfoundry.org/socks5-proxy"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3659db090cb23a57807b53e2f8580b2427dc2659"
+
+[[projects]]
+  digest = "1:8c27f2c4ff0e25af380552e3a51dab287e24c7fe8e62cb8b6dc7fbe3f343bd5b"
   name = "github.com/bmatcuk/doublestar"
   packages = ["."]
+  pruneopts = ""
   revision = "b3608229437ba4dc33dae64d56a79a2a73f1f6b2"
   version = "v1.0.9"
 
 [[projects]]
   branch = "master"
+  digest = "1:94c865fcab9201eee1bd7bf9423ca056f982871264332c669fcf2e25bb2392cb"
   name = "github.com/charlievieth/fs"
   packages = ["."]
+  pruneopts = ""
   revision = "7dc373669fa10ddf827c37c595dee30a2f001be9"
 
 [[projects]]
+  digest = "1:5bdd136468472c24ce6d7e4071b46a57d0774795f3d9dde81d9d9b79d42843af"
   name = "github.com/cheggaaa/pb"
   packages = ["."]
+  pruneopts = ""
   revision = "c1f48d5ce4f292dfb775ef52aaedd15be323510d"
 
 [[projects]]
+  digest = "1:fa19a17599e0ff0ca7b00a53377fcd3933593255708b9fe275accbbf165cb066"
   name = "github.com/cloudfoundry/bosh-cli"
-  packages = ["director","uaa","ui","ui/fmt","ui/table"]
+  packages = [
+    "director",
+    "uaa",
+    "ui",
+    "ui/fmt",
+    "ui/table",
+  ]
+  pruneopts = ""
   revision = "712bfd7271b478ba03c3f604339e2eefbec4647c"
   version = "v3.0.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:6d96dbb882d0f45cc1dc44bceb8491eb9acef467402d2f08b3133abf755c066c"
   name = "github.com/cloudfoundry/bosh-utils"
-  packages = ["crypto","errors","httpclient","logger","retrystrategy","system","uuid"]
+  packages = [
+    "crypto",
+    "errors",
+    "httpclient",
+    "logger",
+    "retrystrategy",
+    "system",
+    "uuid",
+  ]
+  pruneopts = ""
   revision = "87d3668a74af6d395aae97a3764aac279abbaf42"
 
 [[projects]]
   branch = "master"
+  digest = "1:b9aa4288038198d87f3e6eb7e844a8840766d8be27e69fd78f5d81bbba089018"
   name = "github.com/cloudfoundry/go-socks5"
   packages = ["."]
+  pruneopts = ""
   revision = "54f73bdb8a8e85a6611d3d29ab9bbf98c2a060d7"
 
 [[projects]]
   branch = "master"
+  digest = "1:18269b274db559412124bf9a1fd1fb27fdacb4bcad4a4b347b097daf8975de6d"
   name = "github.com/cloudfoundry/socks5-proxy"
   packages = ["."]
+  pruneopts = ""
   revision = "3c6b4eec9c2d16c1dac4c42bdb5f755ba09daff8"
 
 [[projects]]
   branch = "master"
+  digest = "1:c0845301752e45abfc6aa05581eb5121dc5a17310e5e6adb1ad7ef6ee63d5334"
   name = "github.com/cppforlife/go-semi-semantic"
   packages = ["version"]
+  pruneopts = ""
   revision = "576b6af77ae4f3ccef356902fb3b9a9ae22e0b11"
 
 [[projects]]
   branch = "master"
+  digest = "1:ae162f9b5c46f6d5ff4bd53a3d78f72e2eb6676c11c5d33b8b106c36f87ddb31"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
+  pruneopts = ""
   revision = "bb3d318650d48840a39aa21a027c6630e198e626"
 
 [[projects]]
+  digest = "1:d7d69c103aba5ea229451115b28ca06d061e3861b2f44bcd0100cbc65659c4d9"
   name = "github.com/fatih/color"
   packages = ["."]
+  pruneopts = ""
   revision = "507f6050b8568533fb3f5504de8e5205fa62a114"
   version = "v1.6.0"
 
 [[projects]]
+  digest = "1:24f8932912fd9331367d38715bb74be889dc2f94d401109c3aa3db8b3aa246c5"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
+  pruneopts = ""
   revision = "a0583e0143b1624142adab07e0e97fe106d99561"
   version = "v1.3"
 
 [[projects]]
+  digest = "1:8c7fb7f81c06add10a17362abc1ae569ff9765a26c061c6b6e67c909f4f414db"
+  name = "github.com/hashicorp/go-version"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b5a281d3160aa11950a6182bd9a9dc2cb1e02d50"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:9ea83adf8e96d6304f394d40436f2eb44c1dc3250d223b74088cc253a6cd0a1c"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
+  pruneopts = ""
   revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
   version = "v0.0.9"
 
 [[projects]]
+  digest = "1:78229b46ddb7434f881390029bd1af7661294af31f6802e0e1bedaad4ab0af3c"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
+  pruneopts = ""
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
   version = "v0.0.3"
 
 [[projects]]
   branch = "master"
+  digest = "1:55c48c9cfdf8bab6f4911f621616fbe223c0b72a6df9aab6b172ab7e5cfc6bd2"
   name = "github.com/nu7hatch/gouuid"
   packages = ["."]
+  pruneopts = ""
   revision = "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 
 [[projects]]
+  digest = "1:32b27072cd55bd2fb7244de0425943d125da6a552ae2b6517cdd965a662baf18"
   name = "github.com/onsi/ginkgo"
-  packages = [".","config","internal/codelocation","internal/containernode","internal/failer","internal/leafnodes","internal/remote","internal/spec","internal/spec_iterator","internal/specrunner","internal/suite","internal/testingtproxy","internal/writer","reporters","reporters/stenographer","reporters/stenographer/support/go-colorable","reporters/stenographer/support/go-isatty","types"]
+  packages = [
+    ".",
+    "config",
+    "internal/codelocation",
+    "internal/containernode",
+    "internal/failer",
+    "internal/leafnodes",
+    "internal/remote",
+    "internal/spec",
+    "internal/spec_iterator",
+    "internal/specrunner",
+    "internal/suite",
+    "internal/testingtproxy",
+    "internal/writer",
+    "reporters",
+    "reporters/stenographer",
+    "reporters/stenographer/support/go-colorable",
+    "reporters/stenographer/support/go-isatty",
+    "types",
+  ]
+  pruneopts = ""
   revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
   version = "v1.4.0"
 
 [[projects]]
+  digest = "1:44febbaa3af725dccbe3d83b21ef155f7136670a419bb24a91383bb27d6dcbd4"
   name = "github.com/onsi/gomega"
-  packages = [".","format","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
+  packages = [
+    ".",
+    "format",
+    "gbytes",
+    "gexec",
+    "internal/assertion",
+    "internal/asyncassertion",
+    "internal/oraclematcher",
+    "internal/testingtsupport",
+    "matchers",
+    "matchers/support/goraph/bipartitegraph",
+    "matchers/support/goraph/edge",
+    "matchers/support/goraph/node",
+    "matchers/support/goraph/util",
+    "types",
+  ]
+  pruneopts = ""
   revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
   version = "v1.3.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:c77322485e0cb73de9f19f553c30cb1ce4eb6edfc29e484387f26a519b39aab7"
   name = "github.com/pivotal-cf/paraphernalia"
   packages = ["secure/tlsconfig"]
+  pruneopts = ""
   revision = "a64ae2051c20c5cde13292a41db01029566134ba"
 
 [[projects]]
+  digest = "1:7365acd48986e205ccb8652cc746f09c8b7876030d53710ea6ef7d0bd0dcd7ca"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = ""
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
+  digest = "1:4de6ae63e66731f7112372a9256049df9b95035bf8a350e34116af6cd32e5fac"
   name = "github.com/vito/go-interact"
-  packages = ["interact","interact/terminal"]
+  packages = [
+    "interact",
+    "interact/terminal",
+  ]
+  pruneopts = ""
   revision = "fa338ed9e9ecbb0e9c2e6c7a0160d9fc9b0efbd9"
 
 [[projects]]
   branch = "master"
+  digest = "1:47ff8b3229cff95d3cf3738c7a8461fdeacd3f46801e54d301a62500605ce202"
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","internal/chacha20","poly1305","ssh","ssh/terminal"]
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "poly1305",
+    "ssh",
+    "ssh/terminal",
+  ]
+  pruneopts = ""
   revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
 
 [[projects]]
   branch = "master"
+  digest = "1:40dd5a4f1e82c4d3dc3de550a96152f6a8937bcfcb20c7ee34685f8764e1bda5"
   name = "golang.org/x/net"
-  packages = ["context","html","html/atom","html/charset","internal/socks","proxy"]
+  packages = [
+    "context",
+    "html",
+    "html/atom",
+    "html/charset",
+    "internal/socks",
+    "proxy",
+  ]
+  pruneopts = ""
   revision = "61147c48b25b599e5b561d2e9c4f3e1ef489ca41"
 
 [[projects]]
   branch = "master"
+  digest = "1:e9490adb0a1d5ac8f621a6430754822f87e565fd71d4cd1c9c4d90626f390624"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = ""
   revision = "3b87a42e500a6dc65dae1a55d0b641295971163e"
 
 [[projects]]
+  digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
   name = "golang.org/x/text"
-  packages = ["encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/gen","internal/tag","internal/utf8internal","language","runes","transform","unicode/cldr"]
+  packages = [
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "internal/gen",
+    "internal/tag",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "transform",
+    "unicode/cldr",
+  ]
+  pruneopts = ""
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [[projects]]
+  digest = "1:f0620375dd1f6251d9973b5f2596228cc8042e887cd7f827e4220bc1ce8c30e2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
+  pruneopts = ""
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f75e3125a8b77d98fa14fe72bd65d6a489237b3891746c716ebac1f1bdfa044e"
+  input-imports = [
+    "code.cloudfoundry.org/credhub-cli/credhub",
+    "code.cloudfoundry.org/credhub-cli/credhub/auth",
+    "code.cloudfoundry.org/socks5-proxy",
+    "github.com/cloudfoundry/bosh-cli/director",
+    "github.com/cloudfoundry/bosh-cli/uaa",
+    "github.com/cloudfoundry/bosh-utils/logger",
+    "github.com/cloudfoundry/socks5-proxy",
+    "github.com/go-sql-driver/mysql",
+    "github.com/onsi/ginkgo",
+    "github.com/onsi/gomega",
+    "github.com/onsi/gomega/gexec",
+    "github.com/pkg/errors",
+    "gopkg.in/yaml.v2",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

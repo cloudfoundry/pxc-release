@@ -5,24 +5,23 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
+
+	"github.com/pkg/errors"
 )
 
-func ActiveProxyBackend() (string, error) {
-	client := &http.Client{}
-
-	var proxyUsername = os.Getenv("PROXY_USERNAME")
-	var proxyPassword = os.Getenv("PROXY_PASSWORD")
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:8080/v0/cluster", BoshEnvironment()), nil)
+func ActiveProxyBackend(proxyUsername, proxyPassword, proxyHost string, client *http.Client) (string, error) {
+	requestURL := fmt.Sprintf("http://%s:8080/v0/cluster", proxyHost)
+	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return "", err
 	}
 
+	req.Header.Set("X-Forwarded-Proto", "https")
 	req.SetBasicAuth(proxyUsername, proxyPassword)
+
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "http request (%v) failed", requestURL)
 	}
 
 	if resp.StatusCode != 200 {
@@ -31,17 +30,17 @@ func ActiveProxyBackend() (string, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, `failed to read proxy response`)
 	}
 
 	var cluster struct {
 		ActiveBackend struct {
 			Host string `json:"host"`
-		} `json:"activeBackend`
+		} `json:"activeBackend"`
 	}
 
 	if err := json.Unmarshal(body, &cluster); err != nil {
-		return "", err
+		return "", errors.Wrap(err, `failed to unmarshal proxy response`)
 	}
 
 	return cluster.ActiveBackend.Host, nil

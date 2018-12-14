@@ -2,14 +2,16 @@ package scaling_test
 
 import (
 	"fmt"
+
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"database/sql"
-	boshdir "github.com/cloudfoundry/bosh-cli/director"
-	"gopkg.in/yaml.v2"
 	helpers "specs/test_helpers"
+
+	boshdir "github.com/cloudfoundry/bosh-cli/director"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func scaleDeployment(instanceCount int) error {
@@ -18,7 +20,7 @@ func scaleDeployment(instanceCount int) error {
 		return fmt.Errorf("building director: %s", err)
 	}
 
-	deployment, err := director.FindDeployment(helpers.BoshDeployment())
+	deployment, err := director.FindDeployment(helpers.BoshDeploymentName())
 	if err != nil {
 		return fmt.Errorf("finding deployment: %s", err)
 	}
@@ -56,7 +58,7 @@ func scaleDeployment(instanceCount int) error {
 
 func verifyDataExists(expectedString string, databaseConnection *sql.DB) {
 	var queryResultString string
-	query := fmt.Sprintf("SELECT * FROM scaling_test_table WHERE test_data='%s'", expectedString)
+	query := fmt.Sprintf("SELECT * FROM pxc_release_test_db.scaling_test_table WHERE test_data='%s'", expectedString)
 	rows, err := databaseConnection.Query(query)
 	Expect(err).NotTo(HaveOccurred())
 	rows.Next()
@@ -66,36 +68,34 @@ func verifyDataExists(expectedString string, databaseConnection *sql.DB) {
 
 var _ = Describe("CF PXC MySQL Scaling", func() {
 	BeforeEach(func() {
-		helpers.DbSetup("scaling_test_table")
+		helpers.DbSetup(mysqlConn, "scaling_test_table")
 
 		err := scaleDeployment(3)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		helpers.DbCleanup()
+		helpers.DbCleanup(mysqlConn)
 	})
 
 	It("proxies failover to another node after a partition of mysql node", func() {
-		databaseConnection := helpers.DbConn()
-
-		query := "INSERT INTO scaling_test_table VALUES('data written with 3 nodes')"
-		_, err := databaseConnection.Query(query)
+		query := "INSERT INTO pxc_release_test_db.scaling_test_table VALUES('data written with 3 nodes')"
+		_, err := mysqlConn.Query(query)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = scaleDeployment(1)
 		Expect(err).NotTo(HaveOccurred())
 
-		verifyDataExists("data written with 3 nodes", databaseConnection)
+		verifyDataExists("data written with 3 nodes", mysqlConn)
 
-		query = "INSERT INTO scaling_test_table VALUES('data written with 1 node')"
-		_, err = databaseConnection.Query(query)
+		query = "INSERT INTO pxc_release_test_db.scaling_test_table VALUES('data written with 1 node')"
+		_, err = mysqlConn.Query(query)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = scaleDeployment(3)
 		Expect(err).NotTo(HaveOccurred())
 
-		verifyDataExists("data written with 1 node", databaseConnection)
+		verifyDataExists("data written with 1 node", mysqlConn)
 	})
 
 })

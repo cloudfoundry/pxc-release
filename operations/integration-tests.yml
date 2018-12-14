@@ -1,0 +1,23 @@
+---
+# Need to use the use-clustered.yml ops file as well
+
+# Use xenial stemcell
+- type: replace
+  path: /stemcells/os=ubuntu-trusty/os
+  value: ubuntu-xenial
+
+# Allow integration tests to login as root
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/remote_admin_access?
+  value: true
+
+# Enable audit logs for audit_logging package
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/audit_logs/enabled
+  value: true
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/audit_logs/audit_log_exclude_accounts
+  value:
+    - excludeDBAudit1
+    - excludeDBAudit2
