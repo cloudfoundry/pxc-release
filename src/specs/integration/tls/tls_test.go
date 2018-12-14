@@ -3,10 +3,6 @@ package tls_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	helpers "specs/test_helpers"
-
-	"database/sql"
 )
 
 var _ = Describe("Tls", func() {
