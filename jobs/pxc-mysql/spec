@@ -3,6 +3,7 @@ name: pxc-mysql
 
 templates:
   bpm.yml.erb: config/bpm.yml
+  cleanup-socket.sh.erb: bin/cleanup-socket
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
   audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
   db_init.erb: config/db_init

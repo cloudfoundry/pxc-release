@@ -4,6 +4,8 @@ processes:
   executable: /var/vcap/packages/galera-init/bin/galera-init
   args:
     - --configPath=/var/vcap/jobs/pxc-mysql/config/galera-init-config.yml
+  hooks:
+    pre_start: /var/vcap/jobs/pxc-mysql/bin/cleanup-socket
   env:
     # Add xtrabackup, pxc binaries, and socat to PATH
     PATH: /usr/bin:/bin:/var/vcap/packages/percona-xtrabackup/bin:/var/vcap/packages/pxc/bin:/var/vcap/packages/socat/bin
