@@ -3,20 +3,19 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
-
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
@@ -37,13 +36,13 @@ func main() {
 			rootConfig.DB.Port))
 
 	if err != nil {
-		logger.Error("Failed to open DB connection", err, lager.Data{
+		logger.Fatal("db-initialize", err, lager.Data{
 			"dbHost": rootConfig.DB.Host,
 			"dbPort": rootConfig.DB.Port,
 			"dbUser": rootConfig.DB.User,
 		})
 	} else {
-		logger.Info("Opened DB connection", lager.Data{
+		logger.Info("db-initialize", lager.Data{
 			"dbHost": rootConfig.DB.Host,
 			"dbPort": rootConfig.DB.Port,
 			"dbUser": rootConfig.DB.User,
@@ -73,65 +72,20 @@ func main() {
 	}
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
+	l, err := net.Listen("tcp", address)
+	if err != nil {
+		logger.Fatal("tcp-listen", err, lager.Data{
+			"address": address,
+		})
+	}
+
 	url := fmt.Sprintf("http://%s/", address)
 	logger.Info("Serving healthcheck endpoint", lager.Data{
 		"url": url,
 	})
 
-	go func() {
-		client := &http.Client{
-			Timeout: 10 * time.Second,
-		}
-
-		logger.Info("Attempting to GET endpoint...", lager.Data{
-			"url": url,
-		})
-
-		var resp *http.Response
-		retryAttemptsRemaining := 3
-		for ; retryAttemptsRemaining > 0; retryAttemptsRemaining-- {
-			resp, err = client.Get(url)
-			if err != nil {
-				logger.Info("GET endpoint failed, retrying...", lager.Data{
-					"url": url,
-					"err": err,
-				})
-				time.Sleep(time.Second * 10)
-			} else {
-				break
-			}
-		}
-		if retryAttemptsRemaining == 0 {
-			logger.Fatal(
-				"Initialization failed: Coudn't GET endpoint",
-				err,
-				lager.Data{
-					"url":     url,
-					"retries": retryAttemptsRemaining,
-				})
-		}
-		logger.Info("GET endpoint succeeded, now accepting connections", lager.Data{
-			"url":        url,
-			"statusCode": resp.StatusCode,
-		})
-
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			logger.Fatal("Initialization failed: reading response body", err, lager.Data{
-				"url":         url,
-				"status-code": resp.StatusCode,
-			})
-		}
-		logger.Info(fmt.Sprintf("Initial Response: %s", body))
-
-		// Used by tests to deterministically know that the healthcheck is accepting incoming connections
-		logger.Info("Healthcheck Started")
-	}()
-
-	err = http.ListenAndServe(address, router)
-	if err != nil {
-		logger.Fatal("Galera healthcheck stopped unexpectedly", err)
+	if err := http.Serve(l, router); err != nil {
+		logger.Fatal("http-server", err)
 	}
-	logger.Info("Galera healthcheck has stopped gracefully")
+	logger.Info("graceful-exit")
 }
