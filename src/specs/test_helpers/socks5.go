@@ -60,7 +60,7 @@ func SetupSocks5Proxy() {
 		Transport: &http.Transport{
 			Dial: dialer,
 		},
-		Timeout: 5 * time.Second,
+		Timeout: 2 * time.Minute,
 	}
 
 	mysql.RegisterDial("tcp", func(addr string) (net.Conn, error) {
