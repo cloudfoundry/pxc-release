@@ -1,604 +1,375 @@
 package monit_client_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"os"
+	"net/url"
 	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
+	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
+	"github.com/onsi/gomega/ghttp"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 )
 
-var (
-	stateFile            *os.File
-	fakeBootstrapLogFile *os.File
-)
+func Fixture(name string) []byte {
+	path := filepath.Join("fixtures", name)
+	Expect(path).To(BeAnExistingFile())
+	contents, err := ioutil.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	return contents
+}
 
-var _ = Describe("monitClient", func() {
+var _ = Describe("Monit", func() {
 	var (
-		monitClient             *monit_client.MonitClient
-		ts                      *httptest.Server
-		logger                  lager.Logger
-		fakeHandler             http.HandlerFunc
-		processName             string
-		blankBootstrapFile      bool
-		enableSstMarkerFilePath string
+		monitClient *monit_client.MonitClient
+		server      *ghttp.Server
 	)
 
 	BeforeEach(func() {
-		blankBootstrapFile = false
-	})
-
-	JustBeforeEach(func() {
-		ts = httptest.NewServer(fakeHandler)
-		testHost, testPort := splitHostandPort(ts.URL)
-		fakeBootstrapFileName := ""
-		if !blankBootstrapFile {
-			fakeBootstrapFileName = "fixtures/fake_prestart_script"
-		}
-
-		monitConfig := config.MonitConfig{
-			User:                    "fake-user",
-			Password:                "fake-password",
-			Host:                    testHost,
-			Port:                    testPort,
-			MysqlStateFilePath:      stateFile.Name(),
-			ServiceName:             processName,
-			BootstrapFilePath:       fakeBootstrapFileName,
-			BootstrapLogFilePath:    fakeBootstrapLogFile.Name(),
-			EnableSstMarkerFilePath: enableSstMarkerFilePath,
-			SstInterruptNotifyCmd:   "fake-notify-cmd",
-		}
-
-		logger = lagertest.NewTestLogger("monit_client")
-
-		monitClient = monit_client.New(monitConfig, logger)
+		server = ghttp.NewServer()
+		monitClient = monit_client.NewClient(server.Addr(), "monit-user", "monit-password", 2*time.Second)
 	})
 
 	AfterEach(func() {
-		ts.Close()
-		os.Remove(stateFile.Name())
+		server.Close()
 	})
 
-	Context("when running on a mysql node", func() {
-		BeforeEach(func() {
-			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
-			stateFile.Chmod(0777)
+	Describe("start", func() {
+		It("makes an start request to the monit API", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=start`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("started.xml")),
+				),
+			)
 
-			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
-
-			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			})
-
-			processName = "mariadb_ctrl"
+			err := monitClient.Start("mysql")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Describe("StopService", func() {
-			Context("when monit returns successful stop response", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored - stop pending")
-					})
-				})
+		It("returns a timeout error when the service doesn't reach the desired state", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=start`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("stopped.xml")),
+				),
+			)
 
-				It("returns http response 200 and process has stopped", func() {
-					st, err := monitClient.StopService(createReq())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(st).To(ContainSubstring("stop"))
-				})
-			})
-
-			Context("when monit returns 500 error", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusInternalServerError)
-						fmt.Fprintln(w, "fake-internal-error")
-					})
-				})
-
-				It("returns http response non-200 and process has not stopped", func() {
-					_, err := monitClient.StopService(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
-				})
-			})
-
-			Context("when monit returns 200 response, but process is still running", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "running")
-					})
-				})
-
-				It("returns http response 200 and process has not stopped", func() {
-					_, err := monitClient.StopService(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to stop"))
-				})
-			})
+			err := monitClient.Start("mysql")
+			Expect(err).To(MatchError("timed out waiting for mysql monit service to start: service status=stopped"))
 		})
 
-		Describe("StartService", func() {
+		It("returns a timeout error when the service has an ongoing action", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/other-process"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=start`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("stopped.xml")),
+				),
+			)
 
-			Context("when monit returns 500 error", func() {
-
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusInternalServerError)
-						fmt.Fprintln(w, "fake-internal-error")
-					})
-				})
-
-				It("returns http response non-200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
-				})
-			})
-
-			Context("when monit returns successful starting response", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored - start pending")
-					})
-				})
-
-				It("returns http response 200 and process has started", func() {
-					st, err := monitClient.StartServiceJoin(createReq())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(st).To(ContainSubstring("join"))
-				})
-			})
-
-			Context("when monit returns 200 response, but process is still unstarted", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored")
-					})
-				})
-
-				It("returns http response 200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to start"))
-				})
-			})
-
-			Context("when starting in singleNode mode", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored - start pending")
-					})
-				})
-
-				It("returns string noting successful start in singleNode mode", func() {
-					st, err := monitClient.StartServiceSingleNode(createReq())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(st).To(ContainSubstring("singleNode"))
-				})
-			})
-
-			Context("when BootstrapFilePath is blank", func() {
-				BeforeEach(func() {
-					enableSstFile, _ := ioutil.TempFile(os.TempDir(), "EnableSstMarkerFilePath")
-					enableSstFile.Close()
-					enableSstMarkerFilePath = enableSstFile.Name()
-					blankBootstrapFile = true
-				})
-
-				It("does not call the bootstrap binary", func() {
-					monitClient.StartServiceJoin(createReq())
-					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(string(logContent)).To(BeEmpty())
-				})
-
-				Context("when requester wants to enable SSTs", func() {
-					It("writes to the EnableSstMarkerFilePath", func() {
-						os.Remove(enableSstMarkerFilePath)
-						monitClient.StartServiceJoin(createReqSSTEnabled())
-						Expect(enableSstMarkerFilePath).To(BeARegularFile())
-					})
-				})
-
-				Context("when requester wants to disable SSTs", func() {
-					It("removes the EnableSstMarkerFilePath", func() {
-						monitClient.StartServiceJoin(createReq())
-						Expect(enableSstMarkerFilePath).ToNot(BeARegularFile())
-					})
-				})
-			})
-
-			Context("when BootstrapFilePath is set", func() {
-				It("calls the bootstrap binary with SST disabled by default", func() {
-					monitClient.StartServiceJoin(createReq())
-					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(string(logContent)).To(ContainSubstring("SST is disabled"))
-					Expect(string(logContent)).To(ContainSubstring("INTERRUPT_NOTIFY_CMD=fake-notify-cmd"))
-				})
-			})
-
-			Context("when requester wants to enable SSTs", func() {
-				It("calls the bootstrap binary with SST not disabled", func() {
-					monitClient.StartServiceJoin(createReqSSTEnabled())
-					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(string(logContent)).To(ContainSubstring("SST is enabled"))
-				})
-			})
-
-			Context("when requester wants to disable SSTs", func() {
-				It("calls the bootstrap binary with SST disabled", func() {
-					monitClient.StartServiceJoin(createReqSSTDisabled())
-					logContent, err := ioutil.ReadAll(fakeBootstrapLogFile)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(string(logContent)).To(ContainSubstring("SST is disabled"))
-					Expect(string(logContent)).To(ContainSubstring("INTERRUPT_NOTIFY_CMD=fake-notify-cmd"))
-				})
-			})
+			err := monitClient.Start("other-process")
+			Expect(err).To(MatchError("timed out waiting for other-process monit service to start: service status=pending"))
 		})
 
-		Describe("Status", func() {
+		It("returns a timeout error when the monit does not know about the service", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=start`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("missing.xml")),
+				),
+			)
 
-			Context("when monit returns a valid XML response", func() {
-				BeforeEach(func() {
-					fixture := getRelativeFile("fixtures/monit_status.xml")
-					xmlFile, err := os.Open(fixture)
-					Expect(err).ToNot(HaveOccurred())
-					defer xmlFile.Close()
+			err := monitClient.Start("mysql")
+			Expect(err).To(MatchError("timed out waiting for mysql monit service to start: service not found"))
+		})
 
-					xmlContents, err := ioutil.ReadAll(xmlFile)
-					Expect(err).ToNot(HaveOccurred())
+		It("returns a timeout error when the /_status code is not 200", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=start`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusInternalServerError, nil),
+				),
+			)
 
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						w.Write(xmlContents)
-					})
-				})
+			err := monitClient.Start("mysql")
+			Expect(err).To(MatchError("timed out waiting for mysql monit service to start: status code: 500"))
+		})
 
-				Context("and process is running", func() {
+		It("returns an error when the status code is not 200", func() {
+			server.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest(http.MethodPost, "/mysqlbad"),
+				ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+				ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+				ghttp.VerifyBody([]byte(`action=start`)),
+				ghttp.RespondWith(http.StatusNotFound, nil),
+			))
 
-					BeforeEach(func() {
-						processName = "running_process"
-					})
+			err := monitClient.Start("mysqlbad")
+			Expect(err).To(MatchError("failed to make start request for mysqlbad: status code: 404"))
+		})
 
-					It("returns running", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("running"))
-					})
-				})
+		It("returns an error when it cannot make a request", func() {
+			monitClient.URL = &url.URL{
+				Path: "some-bad-url",
+			}
 
-				Context("and process is stopped", func() {
-					BeforeEach(func() {
-						processName = "unmonitored_process"
-					})
-
-					It("returns stopped", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("stopped"))
-					})
-				})
-
-				Context("and process is failing", func() {
-					BeforeEach(func() {
-						processName = "failing_process"
-					})
-					It("returns failing", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("failing"))
-					})
-				})
-
-				Context("and process is pending", func() {
-					BeforeEach(func() {
-						processName = "pending_process"
-					})
-					It("returns failing", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("pending"))
-					})
-				})
-
-				Context("and process name is not found", func() {
-					BeforeEach(func() {
-						processName = "nonexistent_process"
-					})
-					It("returns an error", func() {
-						_, err := monitClient.GetStatus(createReq())
-						Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Could not find process %s", processName)))
-					})
-				})
-			})
-
-			Context("when monit returns invalid XML", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprint(w, "not-valid-xml")
-					})
-				})
-
-				It("returns an error", func() {
-					_, err := monitClient.GetStatus(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
-				})
-			})
+			err := monitClient.Start("mysqlbad")
+			Expect(err).To(MatchError(ContainSubstring("failed to make start request for mysqlbad:")))
 		})
 	})
 
-	Context("when running on a arbitrator node", func() {
-		BeforeEach(func() {
-			stateFile, _ = ioutil.TempFile(os.TempDir(), "stateFile")
-			stateFile.Chmod(0777)
-			fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			})
-			processName = "garbd"
+	Describe("stop", func() {
+		It("makes a stop request to the monit API", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=stop`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("stopped.xml")),
+				),
+			)
 
-			fakeBootstrapLogFile, _ = ioutil.TempFile(os.TempDir(), "fakeLogFile")
-
+			err := monitClient.Stop("mysql")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Describe("StopService", func() {
+		It("returns a timeout error when the service doesn't reach the desired state", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=stop`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("started.xml")),
+				),
+			)
 
-			Context("when monit returns successful stop response", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored - stop pending")
-					})
-				})
-
-				It("returns http response 200 and process has stopped", func() {
-					st, err := monitClient.StopService(createReq())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(st).To(ContainSubstring("stop"))
-				})
-			})
-
-			Context("when monit returns 500 error", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusInternalServerError)
-						fmt.Fprintln(w, "fake-internal-error")
-					})
-				})
-
-				It("returns http response non-200 and process has not stopped", func() {
-					_, err := monitClient.StopService(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
-				})
-			})
-
-			Context("when monit returns 200 response, but process is still running", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "running")
-					})
-				})
-
-				It("returns http response 200 and process has not stopped", func() {
-					_, err := monitClient.StopService(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to stop"))
-				})
-			})
+			err := monitClient.Stop("mysql")
+			Expect(err).To(MatchError("timed out waiting for mysql monit service to stop: service status=running"))
 		})
 
-		Describe("StartService", func() {
+		It("returns a timeout error when the service has an ongoing transaction", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/other-process"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=stop`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("started.xml")),
+				),
+			)
 
-			Context("when monit returns 500 error", func() {
-
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusInternalServerError)
-						fmt.Fprintln(w, "fake-internal-error")
-					})
-				})
-
-				It("returns http response non-200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("fake-internal-error"))
-
-					f, err := os.Open(stateFile.Name())
-					fstat, err := f.Stat()
-					Expect(int(fstat.Size())).To(Equal(0))
-				})
-			})
-
-			Context("when monit returns successful starting response", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored - start pending")
-					})
-				})
-
-				It("returns http response 200 and process has started", func() {
-					st, err := monitClient.StartServiceJoin(createReq())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(st).To(ContainSubstring("join"))
-
-					f, err := os.Open(stateFile.Name())
-					fstat, err := f.Stat()
-					Expect(int(fstat.Size())).To(Equal(0))
-				})
-			})
-
-			Context("when monit returns 200 response, but process is still unstarted", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprintln(w, "not monitored")
-					})
-				})
-
-				It("returns http response 200 and process has not started", func() {
-					_, err := monitClient.StartServiceJoin(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to start"))
-
-					f, err := os.Open(stateFile.Name())
-					fstat, err := f.Stat()
-					Expect(int(fstat.Size())).To(Equal(0))
-				})
-			})
-
-			Context("when trying to bootstrap the arbitrator node", func() {
-				It("returns a message saying not allowed", func() {
-					_, err := monitClient.StartServiceBootstrap(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("bootstrapping arbitrator not allowed"))
-				})
-			})
+			err := monitClient.Stop("other-process")
+			Expect(err).To(MatchError("timed out waiting for other-process monit service to stop: service status=pending"))
 		})
 
-		Describe("Status", func() {
+		It("returns a timeout error when the monit does not know about the service", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=stop`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("missing.xml")),
+				),
+			)
 
-			Context("when monit returns a valid XML response", func() {
-				BeforeEach(func() {
-					fixture := getRelativeFile("fixtures/monit_status.xml")
-					xmlFile, err := os.Open(fixture)
-					Expect(err).ToNot(HaveOccurred())
-					defer xmlFile.Close()
+			err := monitClient.Stop("mysql")
+			Expect(err).To(MatchError("timed out waiting for mysql monit service to stop: service not found"))
+		})
 
-					xmlContents, err := ioutil.ReadAll(xmlFile)
-					Expect(err).ToNot(HaveOccurred())
+		It("returns a timeout error when the /_status code is not 200", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodPost, "/mysql"),
+					ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.VerifyBody([]byte(`action=stop`)),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusInternalServerError, nil),
+				),
+			)
 
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						w.Write(xmlContents)
-					})
-				})
+			err := monitClient.Stop("mysql")
+			Expect(err).To(MatchError("timed out waiting for mysql monit service to stop: status code: 500"))
+		})
 
-				Context("and process is running", func() {
+		It("returns an error when the status code is not 200", func() {
+			server.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest(http.MethodPost, "/mysqlbad"),
+				ghttp.VerifyContentType("application/x-www-form-urlencoded"),
+				ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+				ghttp.VerifyBody([]byte(`action=stop`)),
+				ghttp.RespondWith(http.StatusNotFound, nil),
+			))
 
-					BeforeEach(func() {
-						processName = "running_process"
-					})
+			err := monitClient.Stop("mysqlbad")
+			Expect(err).To(MatchError("failed to make stop request for mysqlbad: status code: 404"))
+		})
 
-					It("returns running", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("running"))
-					})
-				})
+		It("returns an error when it cannot make a request", func() {
+			monitClient.URL = &url.URL{
+				Host: "some-bad-url",
+			}
 
-				Context("and process is stopped", func() {
-					BeforeEach(func() {
-						processName = "unmonitored_process"
-					})
+			err := monitClient.Stop("mysqlbad")
+			Expect(err).To(MatchError(ContainSubstring("failed to make stop request for mysqlbad:")))
+		})
+	})
 
-					It("returns stopped", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("stopped"))
-					})
-				})
+	Describe("status", func() {
+		It("returns 'running' when a service is started", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("started.xml")),
+				),
+			)
 
-				Context("and process is failing", func() {
-					BeforeEach(func() {
-						processName = "failing_process"
-					})
-					It("returns failing", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("failing"))
-					})
-				})
+			status, err := monitClient.Status("mysql")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal("running"))
+		})
 
-				Context("and process is pending", func() {
-					BeforeEach(func() {
-						processName = "pending_process"
-					})
-					It("returns failing", func() {
-						stat, err := monitClient.GetStatus(createReq())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(stat).To(Equal("pending"))
-					})
-				})
+		It("returns 'stopped' when a service is stopped", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("stopped.xml")),
+				),
+			)
 
-				Context("and process name is not found", func() {
-					BeforeEach(func() {
-						processName = "nonexistent_process"
-					})
-					It("returns an error", func() {
-						_, err := monitClient.GetStatus(createReq())
-						Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Could not find process %s", processName)))
-					})
-				})
-			})
+			status, err := monitClient.Status("mysql")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal("stopped"))
+		})
 
-			Context("when monit returns invalid XML", func() {
-				BeforeEach(func() {
-					fakeHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.WriteHeader(http.StatusOK)
-						fmt.Fprint(w, "not-valid-xml")
-					})
-				})
+		It("returns 'initializing' when a service is still starting", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("initializing.xml")),
+				),
+			)
 
-				It("returns an error", func() {
-					_, err := monitClient.GetStatus(createReq())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Failed to unmarshal the xml"))
-				})
+			status, err := monitClient.Status("mysql")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal("initializing"))
+		})
+
+		It("returns 'pending' when an monit has not processed a request", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("pending.xml")),
+				),
+			)
+
+			status, err := monitClient.Status("mysql")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal("pending"))
+		})
+
+		It("returns 'failing' when a process is in an 'Execution failed' state", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+					ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+					ghttp.RespondWith(http.StatusOK, Fixture("failing.xml")),
+				),
+			)
+
+			status, err := monitClient.Status("mysql")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal("failing"))
+		})
+
+		Context("when a service does not exist", func() {
+			It("returns an error", func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest(http.MethodGet, "/_status", "format=xml"),
+						ghttp.VerifyBasicAuth("monit-user", "monit-password"),
+						ghttp.RespondWith(http.StatusOK, Fixture("missing.xml")),
+					),
+				)
+
+				_, err := monitClient.Status("mysql")
+				Expect(err).To(MatchError(`service not found`))
 			})
 		})
 	})
 })
-
-func splitHostandPort(url string) (string, int) {
-	urlparts := strings.Split(url, ":")
-	host := strings.TrimPrefix(urlparts[1], "//")
-	port, _ := strconv.Atoi(urlparts[2])
-	return host, port
-}
-
-func getRelativeFile(relativeFilepath string) string {
-	_, filename, _, _ := runtime.Caller(1)
-	thisDir := filepath.Dir(filename)
-	return filepath.Join(thisDir, relativeFilepath)
-}
-
-func createReq() *http.Request {
-	req, err := http.NewRequest("", "/example.com", nil)
-	Expect(err).ToNot(HaveOccurred())
-	return req
-}
-
-func createReqSSTDisabled() *http.Request {
-	req, err := http.NewRequest("", "/example.com?sst=false", nil)
-	Expect(err).ToNot(HaveOccurred())
-	return req
-}
-
-func createReqSSTEnabled() *http.Request {
-	req, err := http.NewRequest("", "/example.com?sst=true", nil)
-	Expect(err).ToNot(HaveOccurred())
-	return req
-}

@@ -284,7 +284,7 @@ func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, erro
 	config := config.Config{
 		AvailableWhenDonor:    testConfig.availableWhenDonor,
 		AvailableWhenReadOnly: testConfig.availableWhenReadOnly,
-		Monit: testConfig.monit,
+		Monit:                 testConfig.monit,
 	}
 
 	logger := lagertest.NewTestLogger("healthcheck test")

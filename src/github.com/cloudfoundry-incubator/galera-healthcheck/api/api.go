@@ -1,17 +1,17 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
 
-	"encoding/json"
+	"github.com/tedsuo/rata"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/middleware"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
-	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter . ReqHealthChecker
@@ -36,7 +36,6 @@ type MonitClient interface {
 	StartServiceSingleNode(req *http.Request) (string, error)
 	StopService(req *http.Request) (string, error)
 	GetStatus(req *http.Request) (string, error)
-	GetLogger(req *http.Request) lager.Logger
 }
 
 //go:generate counterfeiter . SequenceNumberChecker
