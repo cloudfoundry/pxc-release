@@ -1,9 +1,6 @@
 package audit_logging_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"database/sql"
 	"fmt"
 	"io/ioutil"
@@ -11,12 +8,15 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	helpers "specs/test_helpers"
 	"strconv"
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+
+	helpers "specs/test_helpers"
 )
 
 var _ = Describe("CF PXC MySQL Audit Logging", func() {
@@ -24,6 +24,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 	var (
 		db                         *sql.DB
 		databaseName, auditLogPath string
+		activeBackend              string
 	)
 
 	BeforeEach(func() {
@@ -36,6 +37,15 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 		db = helpers.DbConnWithUser("root", mysqlPassword, firstProxy)
 		databaseName = helpers.DbSetup(db, "audit_logging_test_table")
 		auditLogPath = os.Getenv("AUDIT_LOG_PATH")
+
+		findActiveBackendSQL := `
+		SELECT HOST_NAME
+		FROM performance_schema.pxc_cluster_view
+		ORDER BY LOCAL_INDEX ASC
+		LIMIT 1`
+		Expect(db.QueryRow(findActiveBackendSQL).Scan(&activeBackend)).
+			To(Succeed())
+
 	})
 
 	AfterEach(func() {
@@ -61,7 +71,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 				firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
 				Expect(err).NotTo(HaveOccurred())
 				dbConn := helpers.DbConnWithUser(excludedUser, excludedUserPassword, firstProxy)
-				auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, auditLogPath)
+				auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, activeBackend, auditLogPath)
 
 				Expect(string(auditLogContents)).ToNot(ContainSubstring("\"user\":\"excludeDBAudit1[excludeDBAudit1]"))
 			})
@@ -78,7 +88,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 				firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
 				Expect(err).NotTo(HaveOccurred())
 				dbConn := helpers.DbConnWithUser(excludedUser, excludedUserPassword, firstProxy)
-				auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, auditLogPath)
+				auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, activeBackend, auditLogPath)
 
 				Expect(string(auditLogContents)).ToNot(ContainSubstring("\"user\":\"excludeDBAudit2[excludeDBAudit2]"))
 			})
@@ -100,8 +110,9 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 		It("does log all of the included user's activity in the audit log", func() {
 			firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
 			Expect(err).NotTo(HaveOccurred())
+
 			dbConn := helpers.DbConnWithUser(includedUser, includedUserPassword, firstProxy)
-			auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, auditLogPath)
+			auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, activeBackend, auditLogPath)
 
 			Expect(string(auditLogContents)).To(ContainSubstring("\"user\":\"included_user[included_user]"))
 		})
@@ -110,7 +121,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 
 // Get the size of the audit log file in bytes before reading or writing any data
 // so we can read from that offset in the audit log file and return the contents from after that offset
-func readAndWriteDataAndGetAuditLogContents(dbConn *sql.DB, auditLogPath string) string {
+func readAndWriteDataAndGetAuditLogContents(dbConn *sql.DB, activeBackend, auditLogPath string) string {
 	logSizeBeforeTest := AuditLogSize(auditLogPath)
 
 	readAndWriteFromDB(dbConn)
@@ -121,7 +132,8 @@ func readAndWriteDataAndGetAuditLogContents(dbConn *sql.DB, auditLogPath string)
 
 	fileName := filepath.Base(auditLogPath)
 	destPath := fmt.Sprintf("%s/%s", destDir, fileName)
-	BoshSCP(auditLogPath, destPath)
+
+	BoshSCP(activeBackend, auditLogPath, destPath)
 
 	auditLogContents := readFileFromOffset(destPath, logSizeBeforeTest)
 
@@ -135,6 +147,8 @@ func readFileFromOffset(filePath string, offset int64) string {
 	defer file.Close()
 
 	fileInfo, err := os.Stat(filePath)
+	Expect(err).NotTo(HaveOccurred())
+
 	bufsize := fileInfo.Size() - offset
 	buf := make([]byte, bufsize)
 
@@ -145,22 +159,22 @@ func readFileFromOffset(filePath string, offset int64) string {
 }
 
 func readAndWriteFromDB(dbConn *sql.DB) {
-	query := "INSERT INTO pxc_release_test_db.audit_logging_test_table VALUES('writing data')"
-	_, err := dbConn.Query(query)
+	var err error
+	query := "REPLACE INTO pxc_release_test_db.audit_logging_test_table VALUES('writing data')"
+	_, err = dbConn.Query(query)
 	Expect(err).NotTo(HaveOccurred())
 	query = "SELECT * FROM pxc_release_test_db.audit_logging_test_table"
 	_, err = dbConn.Query(query)
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func BoshSCP(remoteFilePath, destPath string) {
-	sourcePath := fmt.Sprintf("mysql/0:%s", remoteFilePath)
+func BoshSCP(activeBackend, remoteFilePath, destPath string) {
+	sourcePath := fmt.Sprintf("%s:%s", activeBackend, remoteFilePath)
 
 	cmd := exec.Command("bosh", "scp", sourcePath, destPath)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	session.Wait(30 * time.Second)
-
 	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, "30s", "1s").Should(gexec.Exit(0))
 	Expect(destPath).To(BeARegularFile())
 }
 
