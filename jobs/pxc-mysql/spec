@@ -47,6 +47,12 @@ provides:
   - pxc_enabled
 - name: internal-mysql-database
   type: internal-database
+- name: mysql-backup-user-creds
+  type: mysql-backup-user-creds
+  properties:
+  - mysql_backup_username
+  - mysql_backup_password
+  - mysql_socket
 
 properties:
 
@@ -72,6 +78,17 @@ properties:
   roadmin_password:
     description: 'Required when roadmin_enabled is true. Password for the MySQL server read-only admin user.'
 
+
+  # Backup User
+  mysql_backup_username:
+    description: Username for mysql-backup user
+    default: 'mysql-backup'
+  mysql_backup_password:
+    description: Password for mysql-backup user
+
+  mysql_socket:
+    description: Location of the mysql socket for connecting locally
+    default: '/var/vcap/sys/run/pxc-mysql/mysqld.sock'
 
   cli_history:
     description: 'When set to false, disables cli history on the mysql vms.'

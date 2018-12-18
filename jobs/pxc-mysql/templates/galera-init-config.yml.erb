@@ -16,7 +16,7 @@ Db:
     User: <%= seed["username"]%>
     Password: <%= seed["password"] %>
   <% end %>
-  Socket: /var/vcap/sys/run/pxc-mysql/mysqld.sock
+  Socket: <%= p('mysql_socket') %>
 Upgrader:
   PackageVersionFile: /var/vcap/packages/pxc/VERSION
   LastUpgradedVersionFile: /var/vcap/store/pxc-mysql/mysql_upgrade_info

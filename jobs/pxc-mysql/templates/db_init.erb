@@ -27,6 +27,10 @@ DROP USER IF EXISTS 'root'@'<%= host %>';
   <% end %>
 <% end %>
 
+CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
+ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED BY '<%= p('mysql_backup_password') %>';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
+
 <% hosts.each do |host| %>
 CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
 SET PASSWORD FOR '<%= p('admin_username') %>'@'<%= host %>' = PASSWORD('<%= p('admin_password') %>');
