@@ -72,3 +72,5 @@ variables:
     common_name: mysql_server_certificate
 - name: smoke_tests_db_password
   type: password
+- name: mysql_backup_password
+  type: password
