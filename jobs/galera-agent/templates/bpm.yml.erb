@@ -1,9 +1,19 @@
 ---
 processes:
-  - name: galera-agent
-    executable: /var/vcap/packages/galera-agent/bin/galera-agent
-    args:
-    - --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml
-
-    limits:
-      open_files: <%= link('mysql').p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
+- name: galera-agent
+  executable: /var/vcap/packages/galera-agent/bin/galera-agent
+  args:
+  - --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml
+  limits:
+    open_files: <%= link('mysql').p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
+  additional_volumes:
+  - path: /var/vcap/sys/run/pxc-mysql
+    writable: true
+  - path: /var/vcap/data/pxc-mysql
+    writable: true
+  - path: /var/vcap/store/pxc-mysql
+    writable: true
+  unsafe:
+    unrestricted_volumes:
+    - path: /var/vcap/jobs/pxc-mysql
+      writable: false
