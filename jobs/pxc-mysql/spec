@@ -81,10 +81,10 @@ properties:
 
   # Backup User
   mysql_backup_username:
-    description: Username for mysql-backup user
+    description: 'Optional. Username for mysql-backup user'
     default: 'mysql-backup'
   mysql_backup_password:
-    description: Password for mysql-backup user
+    description: 'Optional. Password for mysql-backup user'
 
   mysql_socket:
     description: Location of the mysql socket for connecting locally
