@@ -2,14 +2,16 @@ package upgrader_test
 
 import (
 	"errors"
+	"os/exec"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
 	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
 	. "github.com/cloudfoundry/galera-init/upgrader"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Upgrader", func() {
@@ -35,6 +37,12 @@ var _ = Describe("Upgrader", func() {
 			testLogger,
 			fakeDbHelper,
 		)
+
+		fakeOs.WaitForCommandStub = func(cmd *exec.Cmd) chan error {
+			mysqldExitChan := make(chan error, 1)
+			mysqldExitChan <- nil
+			return mysqldExitChan
+		}
 	})
 
 	Describe("Upgrade", func() {
@@ -49,14 +57,36 @@ var _ = Describe("Upgrader", func() {
 			}
 		})
 
-		It("starts the node is stand-alone mode, runs the upgrade script, then stops the node", func() {
+		It("starts mysqld for upgrade, runs the upgrade script, then stops the node", func() {
 			expectedPollingCounts := DBReachablePollingAttempts
 			err := upgrader.Upgrade()
-			Expect(fakeDbHelper.StartMysqldInStandAloneCallCount()).To(Equal(1))
+			Expect(fakeDbHelper.StartMysqldForUpgradeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.IsDatabaseReachableCallCount()).To(Equal(expectedPollingCounts))
 			Expect(fakeDbHelper.UpgradeCallCount()).To(Equal(1))
 			Expect(fakeDbHelper.StopMysqldCallCount()).To(Equal(1))
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when starting mysqld fails", func() {
+			BeforeEach(func() {
+				fakeDbHelper.StartMysqldForUpgradeReturns(nil, errors.New(`mysqld not found on path error`))
+			})
+
+			It("returns an error", func() {
+				err := upgrader.Upgrade()
+				Expect(err).To(MatchError(`mysqld not found on path error`))
+			})
+		})
+
+		Context("when mysqld fails to start in a timely manner", func() {
+			BeforeEach(func() {
+				fakeDbHelper.IsDatabaseReachableReturns(false)
+			})
+
+			It("returns an error", func() {
+				err := upgrader.Upgrade()
+				Expect(err).To(MatchError(`Database is not reachable after 30 tries.`))
+			})
 		})
 
 		Context("when the upgrade script returns an acceptable error", func() {
@@ -83,6 +113,21 @@ var _ = Describe("Upgrader", func() {
 			It("considers the upgrade a failure", func() {
 				err := upgrader.Upgrade()
 				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when mysqld fails on shutdown", func() {
+			BeforeEach(func() {
+				fakeOs.WaitForCommandStub = func(cmd *exec.Cmd) chan error {
+					mysqlErrorCh := make(chan error, 1)
+					mysqlErrorCh <- errors.New(`mysqld failed`)
+					return mysqlErrorCh
+				}
+			})
+
+			It("returns an error", func() {
+				err := upgrader.Upgrade()
+				Expect(err).To(MatchError(`mysqld failed during upgrade: mysqld failed`))
 			})
 		})
 	})

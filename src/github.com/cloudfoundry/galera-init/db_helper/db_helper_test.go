@@ -4,21 +4,22 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
 	"io/ioutil"
 	"os"
+	"os/exec"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DATA-DOG/go-sqlmock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
+
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
 	"github.com/cloudfoundry/galera-init/db_helper/seeder"
 	"github.com/cloudfoundry/galera-init/db_helper/seeder/seederfakes"
 	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("GaleraDBHelper", func() {
@@ -103,8 +104,14 @@ var _ = Describe("GaleraDBHelper", func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
-	Describe("StartMysqldInStandAlone", func() {
-		It("calls the mysql daemon with the command option", func() {
+	Describe("StartMysqldForUpgrade", func() {
+		BeforeEach(func() {
+			fakeOs.StartCommandStub = func(logFile string, executable string, args ...string) (cmd *exec.Cmd, e error) {
+				return exec.Command("stub"), nil
+			}
+		})
+
+		It("start mysql in an upgrade mode and return an exec.Cmd value", func() {
 			options := []string{
 				"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
 				"--wsrep-on=OFF",
@@ -112,23 +119,29 @@ var _ = Describe("GaleraDBHelper", func() {
 				"--wsrep-OSU-method=RSU",
 				"--wsrep-provider=none",
 				"--skip-networking",
-				"--daemonize",
 			}
-			helper.StartMysqldInStandAlone()
+			cmd, err := helper.StartMysqldForUpgrade()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmd).To(SatisfyAll(
+				Not(BeNil()),
+				BeAssignableToTypeOf(&exec.Cmd{}),
+			))
 
-			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
-			executable, args := fakeOs.RunCommandArgsForCall(0)
+			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+			logFile, executable, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(logFile).ToNot(BeEmpty())
 			Expect(executable).To(Equal("mysqld"))
 			Expect(args).To(Equal(options))
 		})
 
-		Context("when an error occurs while shelling out", func() {
-			It("should panic", func() {
-				fakeOs.RunCommandStub = func(command string, args ...string) (string, error) {
-					return "", errors.New("starting somehow failed")
+		Context("when an error occurs while starting mysqld", func() {
+			It("should return an error", func() {
+				fakeOs.StartCommandStub = func(logfile string, command string, args ...string) (*exec.Cmd, error) {
+					return nil, errors.New("starting somehow failed")
 				}
 
-				Expect(func() { helper.StartMysqldInStandAlone() }).Should(Panic())
+				_, err := helper.StartMysqldForUpgrade()
+				Expect(err).To(MatchError(`Error starting mysqld in stand-alone: starting somehow failed`))
 			})
 		})
 	})
