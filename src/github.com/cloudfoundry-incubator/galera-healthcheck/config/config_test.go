@@ -3,13 +3,15 @@ package config_test
 import (
 	"fmt"
 
-	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
-	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
+	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
 var _ = Describe("Config", func() {
@@ -40,7 +42,8 @@ var _ = Describe("Config", func() {
 					"Port": 2822,
 					"Password": "random-password",
 					"MysqlStateFilePath": "/var/vcap/store/mysql/state.txt",
-					"ServiceName": "mariadb_ctrl"
+					"ServiceName": "mariadb_ctrl",
+					"GaleraInitStatusServerAddress": "127.0.0.1:8114"
 				},
 				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld",
 				"MyCnfPath": "/path/to/my.cnf",

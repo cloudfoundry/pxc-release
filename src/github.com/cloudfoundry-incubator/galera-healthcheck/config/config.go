@@ -34,16 +34,13 @@ type DBConfig struct {
 }
 
 type MonitConfig struct {
-	Host                    string `yaml:"Host" validate:"nonzero"`
-	User                    string `yaml:"User" validate:"nonzero"`
-	Port                    string `yaml:"Port" validate:"nonzero"`
-	Password                string `yaml:"Password" validate:"nonzero"`
-	MysqlStateFilePath      string `yaml:"MysqlStateFilePath"`
-	BootstrapFilePath       string `yaml:"BootstrapFilePath"`
-	BootstrapLogFilePath    string `yaml:"BootstrapLogFilePath"`
-	ServiceName             string `yaml:"ServiceName" validate:"nonzero"`
-	EnableSstMarkerFilePath string `yaml:"EnableSstMarkerFilePath"`
-	SstInterruptNotifyCmd   string `yaml:"SstInterruptNotifyCmd"`
+	Host                          string `yaml:"Host" validate:"nonzero"`
+	User                          string `yaml:"User" validate:"nonzero"`
+	Port                          string `yaml:"Port" validate:"nonzero"`
+	Password                      string `yaml:"Password" validate:"nonzero"`
+	MysqlStateFilePath            string `yaml:"MysqlStateFilePath"`
+	ServiceName                   string `yaml:"ServiceName" validate:"nonzero"`
+	GaleraInitStatusServerAddress string `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`
 }
 
 type SidecarEndpointConfig struct {

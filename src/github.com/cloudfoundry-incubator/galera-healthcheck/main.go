@@ -61,7 +61,7 @@ func main() {
 			rootConfig.Monit.Password,
 			2*time.Minute,
 		),
-		GaleraInitAddress: "127.0.0.1:8999",
+		GaleraInitAddress: rootConfig.Monit.GaleraInitStatusServerAddress,
 		Logger:            logger,
 	}
 
