@@ -40,7 +40,7 @@ func main() {
 			config.Port))
 
 	if err != nil {
-		log.Fatal("Failed to connect to mysql", err)
+		log.Fatal("Failed to initialize database pool", err)
 	}
 
 	writer := logwriter.New(db, config.LogPath)
@@ -48,7 +48,7 @@ func main() {
 	for {
 		err := writer.Write(time.Now().Format(time.RFC3339))
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		time.Sleep(time.Duration(config.Interval) * time.Second)
 	}
