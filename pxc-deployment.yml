@@ -25,6 +25,7 @@ instance_groups:
     release: pxc
     properties:
       admin_password: ((cf_mysql_mysql_admin_password))
+      mysql_backup_password: ((mysql_backup_password))
       tls:
         galera: ((galera_server_certificate))
         server: ((mysql_server_certificate))
