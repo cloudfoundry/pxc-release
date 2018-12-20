@@ -1,11 +1,12 @@
 package os_helper
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 //go:generate counterfeiter . OsHelper
@@ -17,6 +18,7 @@ type OsHelper interface {
 	ReadFile(filename string) (string, error)
 	WriteStringToFile(filename string, contents string) error
 	Sleep(duration time.Duration)
+	KillCommand(cmd *exec.Cmd, signal os.Signal) error
 }
 
 type OsHelperImpl struct{}
@@ -39,19 +41,12 @@ func (h OsHelperImpl) StartCommand(logFileName string, executable string, args .
 	cmd := exec.Command(executable, args...)
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error logging output for command %q to filename %q", executable, logFileName)
 	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
-	if len(os.Getenv("APPEND_TO_PATH")) > 0 {
-		pathString := fmt.Sprintf("%s:%s", os.Getenv("PATH"), os.Getenv("APPEND_TO_PATH"))
-		os.Setenv("PATH", pathString)
-	}
-	cmd.Env = os.Environ()
-
-	cmd.Start()
-	return cmd, nil
+	return cmd, errors.Wrapf(cmd.Start(), "error starting %q", executable)
 }
 
 func (h OsHelperImpl) WaitForCommand(cmd *exec.Cmd) chan error {
@@ -84,4 +79,13 @@ func (h OsHelperImpl) WriteStringToFile(filename string, contents string) error 
 
 func (h OsHelperImpl) Sleep(duration time.Duration) {
 	time.Sleep(duration)
+}
+
+func (h OsHelperImpl) KillCommand(cmd *exec.Cmd, signal os.Signal) error {
+	if cmd == nil || cmd.Process == nil {
+		return errors.New("process-was-not-started")
+	}
+
+	err := cmd.Process.Signal(signal)
+	return errors.Wrap(err, `unable-to-kill-process`)
 }

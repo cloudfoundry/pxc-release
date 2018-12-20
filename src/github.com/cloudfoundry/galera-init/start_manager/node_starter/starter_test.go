@@ -44,8 +44,7 @@ var _ = Describe("Starter", func() {
 	}
 
 	ensureMysqlCmdMatches := func(cmd string) {
-		runCmd, err := starter.GetMysqlCmd()
-		Expect(err).ToNot(HaveOccurred())
+		runCmd := starter.GetMysqlCmd()
 		Expect(runCmd.Path).To(Equal(cmd))
 	}
 
@@ -98,9 +97,10 @@ var _ = Describe("Starter", func() {
 			})
 
 			It("bootstraps, seeds databases and sets read only user", func() {
-				newNodeState, err := starter.StartNodeFromState("SINGLE_NODE")
+				newNodeState, mysqlErrChan, err := starter.StartNodeFromState("SINGLE_NODE")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
+				Expect(mysqlErrChan).NotTo(BeNil())
 				ensureBootstrap()
 				ensureSeedDatabases()
 				ensureRunPostStartSQLs()
@@ -116,7 +116,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("updates the grastate file's safe_to_bootstrap", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).ToNot(HaveOccurred())
 
 					grastateFileOutput, _ := ioutil.ReadFile(grastateFile.Name())
@@ -129,7 +129,7 @@ var _ = Describe("Starter", func() {
 					})
 
 					It("does not create the file", func() {
-						_, err := starter.StartNodeFromState("SINGLE_NODE")
+						_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(grastateFile.Name()).ShouldNot(BeAnExistingFile())
 					})
@@ -144,7 +144,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("bootstraps, seeds databases and sets read only user", func() {
-					newNodeState, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureBootstrap()
@@ -162,7 +162,7 @@ var _ = Describe("Starter", func() {
 					})
 
 					It("updates the grastate file's safe_to_bootstrap", func() {
-						_, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 						Expect(err).ToNot(HaveOccurred())
 
 						grastateFileOutput, _ := ioutil.ReadFile(grastateFile.Name())
@@ -175,7 +175,7 @@ var _ = Describe("Starter", func() {
 						})
 
 						It("does not create the file", func() {
-							_, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+							_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 							Expect(err).ToNot(HaveOccurred())
 							Expect(grastateFile.Name()).ShouldNot(BeAnExistingFile())
 						})
@@ -189,7 +189,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("joins the cluster", func() {
-					newNodeState, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
@@ -207,7 +207,7 @@ var _ = Describe("Starter", func() {
 			})
 
 			It("joins the cluster", func() {
-				newNodeState, err := starter.StartNodeFromState("CLUSTERED")
+				newNodeState, _, err := starter.StartNodeFromState("CLUSTERED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
@@ -221,7 +221,7 @@ var _ = Describe("Starter", func() {
 		Context("error handling", func() {
 			Context("when passed a an invalid state", func() {
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("INVALID_STATE")
+					_, _, err := starter.StartNodeFromState("INVALID_STATE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Unsupported state file contents"))
 				})
@@ -234,7 +234,7 @@ var _ = Describe("Starter", func() {
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
 					var err error
-					_, err = starter.StartNodeFromState("CLUSTERED")
+					_, _, err = starter.StartNodeFromState("CLUSTERED")
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(expectedErr))
 				})
@@ -244,7 +244,7 @@ var _ = Describe("Starter", func() {
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
 					var err error
-					_, err = starter.StartNodeFromState("CLUSTERED")
+					_, _, err = starter.StartNodeFromState("CLUSTERED")
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(expectedErr))
 				})
@@ -258,7 +258,7 @@ var _ = Describe("Starter", func() {
 
 				Context("SINGLE_NODE", func() {
 					It("forwards the error", func() {
-						_, err := starter.StartNodeFromState("SINGLE_NODE")
+						_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -266,7 +266,7 @@ var _ = Describe("Starter", func() {
 
 				Context("NEEDS_BOOTSTRAP", func() {
 					It("forwards the error", func() {
-						_, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -274,7 +274,7 @@ var _ = Describe("Starter", func() {
 
 				Context("CLUSTERED", func() {
 					It("forwards the error", func() {
-						_, err := starter.StartNodeFromState("CLUSTERED")
+						_, _, err := starter.StartNodeFromState("CLUSTERED")
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -289,7 +289,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(expectedErr))
 				})
@@ -301,7 +301,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("post start sql failed"))
 				})
@@ -313,7 +313,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("forwards the error", func() {
-					_, err := starter.StartNodeFromState("SINGLE_NODE")
+					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("test database cleanup failed"))
 				})

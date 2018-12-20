@@ -2,21 +2,17 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerflags"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
-
-	"flag"
-
-	"code.cloudfoundry.org/cflager"
-	"code.cloudfoundry.org/lager"
 )
 
 type Config struct {
 	LogFileLocation string       `yaml:"LogFileLocation" validate:"nonzero"`
-	PidFile         string       `yaml:"PidFile" validate:"nonzero"`
-	ChildPidFile    string       `yaml:"ChildPidFile" validate:"nonzero"`
 	Db              DBHelper     `yaml:"Db"`
 	Manager         StartManager `yaml:"Manager"`
 	Upgrader        Upgrader     `yaml:"Upgrader"`
@@ -33,11 +29,12 @@ type DBHelper struct {
 }
 
 type StartManager struct {
-	StateFileLocation    string `yaml:"StateFileLocation" validate:"nonzero"`
-	GrastateFileLocation string
-	ClusterIps           []string `yaml:"ClusterIps" validate:"nonzero"`
-	BootstrapNode        bool     `yaml:"BootstrapNode"`
-	ClusterProbeTimeout  int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
+	StateFileLocation             string `yaml:"StateFileLocation" validate:"nonzero"`
+	GrastateFileLocation          string
+	ClusterIps                    []string `yaml:"ClusterIps" validate:"nonzero"`
+	BootstrapNode                 bool     `yaml:"BootstrapNode"`
+	ClusterProbeTimeout           int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
+	GaleraInitStatusServerAddress string   `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`
 }
 
 type Upgrader struct {
@@ -60,7 +57,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	cflager.AddFlags(flags)
+	lagerflags.AddFlags(flags)
 
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(Config{
@@ -75,7 +72,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	err := serviceConfig.Read(&c)
 
-	c.Logger, _ = cflager.New(binaryName)
+	c.Logger, _ = lagerflags.New(binaryName)
 
 	return &c, err
 }

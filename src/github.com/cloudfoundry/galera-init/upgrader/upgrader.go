@@ -1,15 +1,16 @@
 package upgrader
 
 import (
-	"errors"
 	"regexp"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/pkg/errors"
+
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
 	"github.com/cloudfoundry/galera-init/os_helper"
-	"strings"
 )
 
 //go:generate counterfeiter . Upgrader
@@ -44,10 +45,20 @@ func NewUpgrader(
 	}
 }
 
-func (u upgrader) Upgrade() (err error) {
-	u.startStandaloneDatabaseSynchronously()
+func (u upgrader) Upgrade() error {
+	u.logger.Info("starting-mysqld-for-upgrade")
+	cmd, err := u.dbHelper.StartMysqldForUpgrade()
+	if err != nil {
+		return err
+	}
 
-	u.logger.Info("Performing upgrade")
+	mysqldExitChan := u.osHelper.WaitForCommand(cmd)
+
+	if err := u.waitUntilMySQLReachable(); err != nil {
+		return err
+	}
+
+	u.logger.Info("mysql-upgrade-starting")
 	output, upgrade_err := u.dbHelper.Upgrade()
 
 	if upgrade_err != nil {
@@ -67,33 +78,50 @@ func (u upgrader) Upgrade() (err error) {
 			err = upgrade_err
 		}
 	} else {
-		u.logger.Info(
-			"Upgrade applied successfully",
-			lager.Data{"upgradeOutput": output},
-		)
+		u.logger.Info("mysql-upgrade-complete", lager.Data{
+			"upgradeOutput": output,
+		})
 	}
 
-	if err != nil {
-		return
-	}
-
+	u.logger.Info("stopping-upgrade-mysqld")
 	u.stopStandaloneDatabaseSynchronously()
 
-	return
+	if mysqldErr := <-mysqldExitChan; mysqldErr != nil {
+		return errors.Wrap(mysqldErr, `mysqld failed during upgrade`)
+	}
+
+	u.logger.Info("mysqld-stopped")
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (u upgrader) startStandaloneDatabaseSynchronously() {
-	u.dbHelper.StartMysqldInStandAlone()
-
+func (u upgrader) waitUntilMySQLReachable() error {
+	u.logger.Info("wait-for-upgrade-mysqld", lager.Data{
+		"state": "starting",
+	})
 	for tries := 0; tries < DBReachablePollingAttempts; tries++ {
 		if u.dbHelper.IsDatabaseReachable() {
-			return
+			u.logger.Info("wait-for-upgrade-mysqld", lager.Data{
+				"state": "ready",
+			})
+
+			return nil
 		}
 
+		u.logger.Info("wait-for-upgrade-mysqld", lager.Data{
+			"state": "polling",
+		})
 		u.osHelper.Sleep(DBReachablePollingDelay)
 	}
 
-	u.logger.Fatal("Database is not reachable after 30 tries.", errors.New("Database is not reachable after 30 tries."))
+	u.logger.Info("wait-for-upgrade-mysqld", lager.Data{
+		"state": "timeout",
+	})
+	return errors.New("Database is not reachable after 30 tries.")
 }
 
 func (u upgrader) stopStandaloneDatabaseSynchronously() {
@@ -128,7 +156,7 @@ func (u upgrader) NeedsUpgrade() (bool, error) {
 			lager.Data{
 				"reason":                  "Error reading last upgraded version file",
 				"lastUpgradedVersionFile": u.config.LastUpgradedVersionFile,
-				"err": err,
+				"err":                     err,
 			})
 		return false, errors.New("Could not read last upgraded version file in the data dir.")
 	}

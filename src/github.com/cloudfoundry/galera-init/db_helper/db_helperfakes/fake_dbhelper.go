@@ -2,56 +2,18 @@
 package db_helperfakes
 
 import (
-	"os/exec"
-	"sync"
+	exec "os/exec"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/db_helper"
+	db_helper "github.com/cloudfoundry/galera-init/db_helper"
 )
 
 type FakeDBHelper struct {
-	StartMysqldInStandAloneStub        func()
-	startMysqldInStandAloneMutex       sync.RWMutex
-	startMysqldInStandAloneArgsForCall []struct{}
-	StartMysqldInJoinStub              func() (*exec.Cmd, error)
-	startMysqldInJoinMutex             sync.RWMutex
-	startMysqldInJoinArgsForCall       []struct{}
-	startMysqldInJoinReturns           struct {
-		result1 *exec.Cmd
-		result2 error
-	}
-	startMysqldInJoinReturnsOnCall map[int]struct {
-		result1 *exec.Cmd
-		result2 error
-	}
-	StartMysqldInBootstrapStub        func() (*exec.Cmd, error)
-	startMysqldInBootstrapMutex       sync.RWMutex
-	startMysqldInBootstrapArgsForCall []struct{}
-	startMysqldInBootstrapReturns     struct {
-		result1 *exec.Cmd
-		result2 error
-	}
-	startMysqldInBootstrapReturnsOnCall map[int]struct {
-		result1 *exec.Cmd
-		result2 error
-	}
-	StopMysqldStub        func()
-	stopMysqldMutex       sync.RWMutex
-	stopMysqldArgsForCall []struct{}
-	UpgradeStub           func() (output string, err error)
-	upgradeMutex          sync.RWMutex
-	upgradeArgsForCall    []struct{}
-	upgradeReturns        struct {
-		result1 string
-		result2 error
-	}
-	upgradeReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
 	IsDatabaseReachableStub        func() bool
 	isDatabaseReachableMutex       sync.RWMutex
-	isDatabaseReachableArgsForCall []struct{}
-	isDatabaseReachableReturns     struct {
+	isDatabaseReachableArgsForCall []struct {
+	}
+	isDatabaseReachableReturns struct {
 		result1 bool
 	}
 	isDatabaseReachableReturnsOnCall map[int]struct {
@@ -59,209 +21,105 @@ type FakeDBHelper struct {
 	}
 	IsProcessRunningStub        func() bool
 	isProcessRunningMutex       sync.RWMutex
-	isProcessRunningArgsForCall []struct{}
-	isProcessRunningReturns     struct {
+	isProcessRunningArgsForCall []struct {
+	}
+	isProcessRunningReturns struct {
 		result1 bool
 	}
 	isProcessRunningReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	SeedStub        func() error
-	seedMutex       sync.RWMutex
-	seedArgsForCall []struct{}
-	seedReturns     struct {
-		result1 error
-	}
-	seedReturnsOnCall map[int]struct {
-		result1 error
-	}
 	RunPostStartSQLStub        func() error
 	runPostStartSQLMutex       sync.RWMutex
-	runPostStartSQLArgsForCall []struct{}
-	runPostStartSQLReturns     struct {
+	runPostStartSQLArgsForCall []struct {
+	}
+	runPostStartSQLReturns struct {
 		result1 error
 	}
 	runPostStartSQLReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SeedStub        func() error
+	seedMutex       sync.RWMutex
+	seedArgsForCall []struct {
+	}
+	seedReturns struct {
+		result1 error
+	}
+	seedReturnsOnCall map[int]struct {
+		result1 error
+	}
+	StartMysqldForUpgradeStub        func() (*exec.Cmd, error)
+	startMysqldForUpgradeMutex       sync.RWMutex
+	startMysqldForUpgradeArgsForCall []struct {
+	}
+	startMysqldForUpgradeReturns struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	startMysqldForUpgradeReturnsOnCall map[int]struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	StartMysqldInBootstrapStub        func() (*exec.Cmd, error)
+	startMysqldInBootstrapMutex       sync.RWMutex
+	startMysqldInBootstrapArgsForCall []struct {
+	}
+	startMysqldInBootstrapReturns struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	startMysqldInBootstrapReturnsOnCall map[int]struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	StartMysqldInJoinStub        func() (*exec.Cmd, error)
+	startMysqldInJoinMutex       sync.RWMutex
+	startMysqldInJoinArgsForCall []struct {
+	}
+	startMysqldInJoinReturns struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	startMysqldInJoinReturnsOnCall map[int]struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	StopMysqldStub        func()
+	stopMysqldMutex       sync.RWMutex
+	stopMysqldArgsForCall []struct {
+	}
 	TestDatabaseCleanupStub        func() error
 	testDatabaseCleanupMutex       sync.RWMutex
-	testDatabaseCleanupArgsForCall []struct{}
-	testDatabaseCleanupReturns     struct {
+	testDatabaseCleanupArgsForCall []struct {
+	}
+	testDatabaseCleanupReturns struct {
 		result1 error
 	}
 	testDatabaseCleanupReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UpgradeStub        func() (string, error)
+	upgradeMutex       sync.RWMutex
+	upgradeArgsForCall []struct {
+	}
+	upgradeReturns struct {
+		result1 string
+		result2 error
+	}
+	upgradeReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeDBHelper) StartMysqldInStandAlone() {
-	fake.startMysqldInStandAloneMutex.Lock()
-	fake.startMysqldInStandAloneArgsForCall = append(fake.startMysqldInStandAloneArgsForCall, struct{}{})
-	fake.recordInvocation("StartMysqldInStandAlone", []interface{}{})
-	fake.startMysqldInStandAloneMutex.Unlock()
-	if fake.StartMysqldInStandAloneStub != nil {
-		fake.StartMysqldInStandAloneStub()
-	}
-}
-
-func (fake *FakeDBHelper) StartMysqldInStandAloneCallCount() int {
-	fake.startMysqldInStandAloneMutex.RLock()
-	defer fake.startMysqldInStandAloneMutex.RUnlock()
-	return len(fake.startMysqldInStandAloneArgsForCall)
-}
-
-func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
-	fake.startMysqldInJoinMutex.Lock()
-	ret, specificReturn := fake.startMysqldInJoinReturnsOnCall[len(fake.startMysqldInJoinArgsForCall)]
-	fake.startMysqldInJoinArgsForCall = append(fake.startMysqldInJoinArgsForCall, struct{}{})
-	fake.recordInvocation("StartMysqldInJoin", []interface{}{})
-	fake.startMysqldInJoinMutex.Unlock()
-	if fake.StartMysqldInJoinStub != nil {
-		return fake.StartMysqldInJoinStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.startMysqldInJoinReturns.result1, fake.startMysqldInJoinReturns.result2
-}
-
-func (fake *FakeDBHelper) StartMysqldInJoinCallCount() int {
-	fake.startMysqldInJoinMutex.RLock()
-	defer fake.startMysqldInJoinMutex.RUnlock()
-	return len(fake.startMysqldInJoinArgsForCall)
-}
-
-func (fake *FakeDBHelper) StartMysqldInJoinReturns(result1 *exec.Cmd, result2 error) {
-	fake.StartMysqldInJoinStub = nil
-	fake.startMysqldInJoinReturns = struct {
-		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDBHelper) StartMysqldInJoinReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
-	fake.StartMysqldInJoinStub = nil
-	if fake.startMysqldInJoinReturnsOnCall == nil {
-		fake.startMysqldInJoinReturnsOnCall = make(map[int]struct {
-			result1 *exec.Cmd
-			result2 error
-		})
-	}
-	fake.startMysqldInJoinReturnsOnCall[i] = struct {
-		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
-	fake.startMysqldInBootstrapMutex.Lock()
-	ret, specificReturn := fake.startMysqldInBootstrapReturnsOnCall[len(fake.startMysqldInBootstrapArgsForCall)]
-	fake.startMysqldInBootstrapArgsForCall = append(fake.startMysqldInBootstrapArgsForCall, struct{}{})
-	fake.recordInvocation("StartMysqldInBootstrap", []interface{}{})
-	fake.startMysqldInBootstrapMutex.Unlock()
-	if fake.StartMysqldInBootstrapStub != nil {
-		return fake.StartMysqldInBootstrapStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.startMysqldInBootstrapReturns.result1, fake.startMysqldInBootstrapReturns.result2
-}
-
-func (fake *FakeDBHelper) StartMysqldInBootstrapCallCount() int {
-	fake.startMysqldInBootstrapMutex.RLock()
-	defer fake.startMysqldInBootstrapMutex.RUnlock()
-	return len(fake.startMysqldInBootstrapArgsForCall)
-}
-
-func (fake *FakeDBHelper) StartMysqldInBootstrapReturns(result1 *exec.Cmd, result2 error) {
-	fake.StartMysqldInBootstrapStub = nil
-	fake.startMysqldInBootstrapReturns = struct {
-		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDBHelper) StartMysqldInBootstrapReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
-	fake.StartMysqldInBootstrapStub = nil
-	if fake.startMysqldInBootstrapReturnsOnCall == nil {
-		fake.startMysqldInBootstrapReturnsOnCall = make(map[int]struct {
-			result1 *exec.Cmd
-			result2 error
-		})
-	}
-	fake.startMysqldInBootstrapReturnsOnCall[i] = struct {
-		result1 *exec.Cmd
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDBHelper) StopMysqld() {
-	fake.stopMysqldMutex.Lock()
-	fake.stopMysqldArgsForCall = append(fake.stopMysqldArgsForCall, struct{}{})
-	fake.recordInvocation("StopMysqld", []interface{}{})
-	fake.stopMysqldMutex.Unlock()
-	if fake.StopMysqldStub != nil {
-		fake.StopMysqldStub()
-	}
-}
-
-func (fake *FakeDBHelper) StopMysqldCallCount() int {
-	fake.stopMysqldMutex.RLock()
-	defer fake.stopMysqldMutex.RUnlock()
-	return len(fake.stopMysqldArgsForCall)
-}
-
-func (fake *FakeDBHelper) Upgrade() (output string, err error) {
-	fake.upgradeMutex.Lock()
-	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
-	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct{}{})
-	fake.recordInvocation("Upgrade", []interface{}{})
-	fake.upgradeMutex.Unlock()
-	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.upgradeReturns.result1, fake.upgradeReturns.result2
-}
-
-func (fake *FakeDBHelper) UpgradeCallCount() int {
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
-	return len(fake.upgradeArgsForCall)
-}
-
-func (fake *FakeDBHelper) UpgradeReturns(result1 string, result2 error) {
-	fake.UpgradeStub = nil
-	fake.upgradeReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDBHelper) UpgradeReturnsOnCall(i int, result1 string, result2 error) {
-	fake.UpgradeStub = nil
-	if fake.upgradeReturnsOnCall == nil {
-		fake.upgradeReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.upgradeReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeDBHelper) IsDatabaseReachable() bool {
 	fake.isDatabaseReachableMutex.Lock()
 	ret, specificReturn := fake.isDatabaseReachableReturnsOnCall[len(fake.isDatabaseReachableArgsForCall)]
-	fake.isDatabaseReachableArgsForCall = append(fake.isDatabaseReachableArgsForCall, struct{}{})
+	fake.isDatabaseReachableArgsForCall = append(fake.isDatabaseReachableArgsForCall, struct {
+	}{})
 	fake.recordInvocation("IsDatabaseReachable", []interface{}{})
 	fake.isDatabaseReachableMutex.Unlock()
 	if fake.IsDatabaseReachableStub != nil {
@@ -270,7 +128,8 @@ func (fake *FakeDBHelper) IsDatabaseReachable() bool {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.isDatabaseReachableReturns.result1
+	fakeReturns := fake.isDatabaseReachableReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDBHelper) IsDatabaseReachableCallCount() int {
@@ -279,7 +138,15 @@ func (fake *FakeDBHelper) IsDatabaseReachableCallCount() int {
 	return len(fake.isDatabaseReachableArgsForCall)
 }
 
+func (fake *FakeDBHelper) IsDatabaseReachableCalls(stub func() bool) {
+	fake.isDatabaseReachableMutex.Lock()
+	defer fake.isDatabaseReachableMutex.Unlock()
+	fake.IsDatabaseReachableStub = stub
+}
+
 func (fake *FakeDBHelper) IsDatabaseReachableReturns(result1 bool) {
+	fake.isDatabaseReachableMutex.Lock()
+	defer fake.isDatabaseReachableMutex.Unlock()
 	fake.IsDatabaseReachableStub = nil
 	fake.isDatabaseReachableReturns = struct {
 		result1 bool
@@ -287,6 +154,8 @@ func (fake *FakeDBHelper) IsDatabaseReachableReturns(result1 bool) {
 }
 
 func (fake *FakeDBHelper) IsDatabaseReachableReturnsOnCall(i int, result1 bool) {
+	fake.isDatabaseReachableMutex.Lock()
+	defer fake.isDatabaseReachableMutex.Unlock()
 	fake.IsDatabaseReachableStub = nil
 	if fake.isDatabaseReachableReturnsOnCall == nil {
 		fake.isDatabaseReachableReturnsOnCall = make(map[int]struct {
@@ -301,7 +170,8 @@ func (fake *FakeDBHelper) IsDatabaseReachableReturnsOnCall(i int, result1 bool) 
 func (fake *FakeDBHelper) IsProcessRunning() bool {
 	fake.isProcessRunningMutex.Lock()
 	ret, specificReturn := fake.isProcessRunningReturnsOnCall[len(fake.isProcessRunningArgsForCall)]
-	fake.isProcessRunningArgsForCall = append(fake.isProcessRunningArgsForCall, struct{}{})
+	fake.isProcessRunningArgsForCall = append(fake.isProcessRunningArgsForCall, struct {
+	}{})
 	fake.recordInvocation("IsProcessRunning", []interface{}{})
 	fake.isProcessRunningMutex.Unlock()
 	if fake.IsProcessRunningStub != nil {
@@ -310,7 +180,8 @@ func (fake *FakeDBHelper) IsProcessRunning() bool {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.isProcessRunningReturns.result1
+	fakeReturns := fake.isProcessRunningReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDBHelper) IsProcessRunningCallCount() int {
@@ -319,7 +190,15 @@ func (fake *FakeDBHelper) IsProcessRunningCallCount() int {
 	return len(fake.isProcessRunningArgsForCall)
 }
 
+func (fake *FakeDBHelper) IsProcessRunningCalls(stub func() bool) {
+	fake.isProcessRunningMutex.Lock()
+	defer fake.isProcessRunningMutex.Unlock()
+	fake.IsProcessRunningStub = stub
+}
+
 func (fake *FakeDBHelper) IsProcessRunningReturns(result1 bool) {
+	fake.isProcessRunningMutex.Lock()
+	defer fake.isProcessRunningMutex.Unlock()
 	fake.IsProcessRunningStub = nil
 	fake.isProcessRunningReturns = struct {
 		result1 bool
@@ -327,6 +206,8 @@ func (fake *FakeDBHelper) IsProcessRunningReturns(result1 bool) {
 }
 
 func (fake *FakeDBHelper) IsProcessRunningReturnsOnCall(i int, result1 bool) {
+	fake.isProcessRunningMutex.Lock()
+	defer fake.isProcessRunningMutex.Unlock()
 	fake.IsProcessRunningStub = nil
 	if fake.isProcessRunningReturnsOnCall == nil {
 		fake.isProcessRunningReturnsOnCall = make(map[int]struct {
@@ -338,50 +219,11 @@ func (fake *FakeDBHelper) IsProcessRunningReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeDBHelper) Seed() error {
-	fake.seedMutex.Lock()
-	ret, specificReturn := fake.seedReturnsOnCall[len(fake.seedArgsForCall)]
-	fake.seedArgsForCall = append(fake.seedArgsForCall, struct{}{})
-	fake.recordInvocation("Seed", []interface{}{})
-	fake.seedMutex.Unlock()
-	if fake.SeedStub != nil {
-		return fake.SeedStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.seedReturns.result1
-}
-
-func (fake *FakeDBHelper) SeedCallCount() int {
-	fake.seedMutex.RLock()
-	defer fake.seedMutex.RUnlock()
-	return len(fake.seedArgsForCall)
-}
-
-func (fake *FakeDBHelper) SeedReturns(result1 error) {
-	fake.SeedStub = nil
-	fake.seedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) SeedReturnsOnCall(i int, result1 error) {
-	fake.SeedStub = nil
-	if fake.seedReturnsOnCall == nil {
-		fake.seedReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.seedReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeDBHelper) RunPostStartSQL() error {
 	fake.runPostStartSQLMutex.Lock()
 	ret, specificReturn := fake.runPostStartSQLReturnsOnCall[len(fake.runPostStartSQLArgsForCall)]
-	fake.runPostStartSQLArgsForCall = append(fake.runPostStartSQLArgsForCall, struct{}{})
+	fake.runPostStartSQLArgsForCall = append(fake.runPostStartSQLArgsForCall, struct {
+	}{})
 	fake.recordInvocation("RunPostStartSQL", []interface{}{})
 	fake.runPostStartSQLMutex.Unlock()
 	if fake.RunPostStartSQLStub != nil {
@@ -390,7 +232,8 @@ func (fake *FakeDBHelper) RunPostStartSQL() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.runPostStartSQLReturns.result1
+	fakeReturns := fake.runPostStartSQLReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDBHelper) RunPostStartSQLCallCount() int {
@@ -399,7 +242,15 @@ func (fake *FakeDBHelper) RunPostStartSQLCallCount() int {
 	return len(fake.runPostStartSQLArgsForCall)
 }
 
+func (fake *FakeDBHelper) RunPostStartSQLCalls(stub func() error) {
+	fake.runPostStartSQLMutex.Lock()
+	defer fake.runPostStartSQLMutex.Unlock()
+	fake.RunPostStartSQLStub = stub
+}
+
 func (fake *FakeDBHelper) RunPostStartSQLReturns(result1 error) {
+	fake.runPostStartSQLMutex.Lock()
+	defer fake.runPostStartSQLMutex.Unlock()
 	fake.RunPostStartSQLStub = nil
 	fake.runPostStartSQLReturns = struct {
 		result1 error
@@ -407,6 +258,8 @@ func (fake *FakeDBHelper) RunPostStartSQLReturns(result1 error) {
 }
 
 func (fake *FakeDBHelper) RunPostStartSQLReturnsOnCall(i int, result1 error) {
+	fake.runPostStartSQLMutex.Lock()
+	defer fake.runPostStartSQLMutex.Unlock()
 	fake.RunPostStartSQLStub = nil
 	if fake.runPostStartSQLReturnsOnCall == nil {
 		fake.runPostStartSQLReturnsOnCall = make(map[int]struct {
@@ -418,10 +271,251 @@ func (fake *FakeDBHelper) RunPostStartSQLReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) Seed() error {
+	fake.seedMutex.Lock()
+	ret, specificReturn := fake.seedReturnsOnCall[len(fake.seedArgsForCall)]
+	fake.seedArgsForCall = append(fake.seedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Seed", []interface{}{})
+	fake.seedMutex.Unlock()
+	if fake.SeedStub != nil {
+		return fake.SeedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.seedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDBHelper) SeedCallCount() int {
+	fake.seedMutex.RLock()
+	defer fake.seedMutex.RUnlock()
+	return len(fake.seedArgsForCall)
+}
+
+func (fake *FakeDBHelper) SeedCalls(stub func() error) {
+	fake.seedMutex.Lock()
+	defer fake.seedMutex.Unlock()
+	fake.SeedStub = stub
+}
+
+func (fake *FakeDBHelper) SeedReturns(result1 error) {
+	fake.seedMutex.Lock()
+	defer fake.seedMutex.Unlock()
+	fake.SeedStub = nil
+	fake.seedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) SeedReturnsOnCall(i int, result1 error) {
+	fake.seedMutex.Lock()
+	defer fake.seedMutex.Unlock()
+	fake.SeedStub = nil
+	if fake.seedReturnsOnCall == nil {
+		fake.seedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.seedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) StartMysqldForUpgrade() (*exec.Cmd, error) {
+	fake.startMysqldForUpgradeMutex.Lock()
+	ret, specificReturn := fake.startMysqldForUpgradeReturnsOnCall[len(fake.startMysqldForUpgradeArgsForCall)]
+	fake.startMysqldForUpgradeArgsForCall = append(fake.startMysqldForUpgradeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("StartMysqldForUpgrade", []interface{}{})
+	fake.startMysqldForUpgradeMutex.Unlock()
+	if fake.StartMysqldForUpgradeStub != nil {
+		return fake.StartMysqldForUpgradeStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.startMysqldForUpgradeReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeDBHelper) StartMysqldForUpgradeCallCount() int {
+	fake.startMysqldForUpgradeMutex.RLock()
+	defer fake.startMysqldForUpgradeMutex.RUnlock()
+	return len(fake.startMysqldForUpgradeArgsForCall)
+}
+
+func (fake *FakeDBHelper) StartMysqldForUpgradeCalls(stub func() (*exec.Cmd, error)) {
+	fake.startMysqldForUpgradeMutex.Lock()
+	defer fake.startMysqldForUpgradeMutex.Unlock()
+	fake.StartMysqldForUpgradeStub = stub
+}
+
+func (fake *FakeDBHelper) StartMysqldForUpgradeReturns(result1 *exec.Cmd, result2 error) {
+	fake.startMysqldForUpgradeMutex.Lock()
+	defer fake.startMysqldForUpgradeMutex.Unlock()
+	fake.StartMysqldForUpgradeStub = nil
+	fake.startMysqldForUpgradeReturns = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartMysqldForUpgradeReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.startMysqldForUpgradeMutex.Lock()
+	defer fake.startMysqldForUpgradeMutex.Unlock()
+	fake.StartMysqldForUpgradeStub = nil
+	if fake.startMysqldForUpgradeReturnsOnCall == nil {
+		fake.startMysqldForUpgradeReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startMysqldForUpgradeReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
+	fake.startMysqldInBootstrapMutex.Lock()
+	ret, specificReturn := fake.startMysqldInBootstrapReturnsOnCall[len(fake.startMysqldInBootstrapArgsForCall)]
+	fake.startMysqldInBootstrapArgsForCall = append(fake.startMysqldInBootstrapArgsForCall, struct {
+	}{})
+	fake.recordInvocation("StartMysqldInBootstrap", []interface{}{})
+	fake.startMysqldInBootstrapMutex.Unlock()
+	if fake.StartMysqldInBootstrapStub != nil {
+		return fake.StartMysqldInBootstrapStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.startMysqldInBootstrapReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeDBHelper) StartMysqldInBootstrapCallCount() int {
+	fake.startMysqldInBootstrapMutex.RLock()
+	defer fake.startMysqldInBootstrapMutex.RUnlock()
+	return len(fake.startMysqldInBootstrapArgsForCall)
+}
+
+func (fake *FakeDBHelper) StartMysqldInBootstrapCalls(stub func() (*exec.Cmd, error)) {
+	fake.startMysqldInBootstrapMutex.Lock()
+	defer fake.startMysqldInBootstrapMutex.Unlock()
+	fake.StartMysqldInBootstrapStub = stub
+}
+
+func (fake *FakeDBHelper) StartMysqldInBootstrapReturns(result1 *exec.Cmd, result2 error) {
+	fake.startMysqldInBootstrapMutex.Lock()
+	defer fake.startMysqldInBootstrapMutex.Unlock()
+	fake.StartMysqldInBootstrapStub = nil
+	fake.startMysqldInBootstrapReturns = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartMysqldInBootstrapReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.startMysqldInBootstrapMutex.Lock()
+	defer fake.startMysqldInBootstrapMutex.Unlock()
+	fake.StartMysqldInBootstrapStub = nil
+	if fake.startMysqldInBootstrapReturnsOnCall == nil {
+		fake.startMysqldInBootstrapReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startMysqldInBootstrapReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
+	fake.startMysqldInJoinMutex.Lock()
+	ret, specificReturn := fake.startMysqldInJoinReturnsOnCall[len(fake.startMysqldInJoinArgsForCall)]
+	fake.startMysqldInJoinArgsForCall = append(fake.startMysqldInJoinArgsForCall, struct {
+	}{})
+	fake.recordInvocation("StartMysqldInJoin", []interface{}{})
+	fake.startMysqldInJoinMutex.Unlock()
+	if fake.StartMysqldInJoinStub != nil {
+		return fake.StartMysqldInJoinStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.startMysqldInJoinReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeDBHelper) StartMysqldInJoinCallCount() int {
+	fake.startMysqldInJoinMutex.RLock()
+	defer fake.startMysqldInJoinMutex.RUnlock()
+	return len(fake.startMysqldInJoinArgsForCall)
+}
+
+func (fake *FakeDBHelper) StartMysqldInJoinCalls(stub func() (*exec.Cmd, error)) {
+	fake.startMysqldInJoinMutex.Lock()
+	defer fake.startMysqldInJoinMutex.Unlock()
+	fake.StartMysqldInJoinStub = stub
+}
+
+func (fake *FakeDBHelper) StartMysqldInJoinReturns(result1 *exec.Cmd, result2 error) {
+	fake.startMysqldInJoinMutex.Lock()
+	defer fake.startMysqldInJoinMutex.Unlock()
+	fake.StartMysqldInJoinStub = nil
+	fake.startMysqldInJoinReturns = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartMysqldInJoinReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.startMysqldInJoinMutex.Lock()
+	defer fake.startMysqldInJoinMutex.Unlock()
+	fake.StartMysqldInJoinStub = nil
+	if fake.startMysqldInJoinReturnsOnCall == nil {
+		fake.startMysqldInJoinReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startMysqldInJoinReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StopMysqld() {
+	fake.stopMysqldMutex.Lock()
+	fake.stopMysqldArgsForCall = append(fake.stopMysqldArgsForCall, struct {
+	}{})
+	fake.recordInvocation("StopMysqld", []interface{}{})
+	fake.stopMysqldMutex.Unlock()
+	if fake.StopMysqldStub != nil {
+		fake.StopMysqldStub()
+	}
+}
+
+func (fake *FakeDBHelper) StopMysqldCallCount() int {
+	fake.stopMysqldMutex.RLock()
+	defer fake.stopMysqldMutex.RUnlock()
+	return len(fake.stopMysqldArgsForCall)
+}
+
+func (fake *FakeDBHelper) StopMysqldCalls(stub func()) {
+	fake.stopMysqldMutex.Lock()
+	defer fake.stopMysqldMutex.Unlock()
+	fake.StopMysqldStub = stub
+}
+
 func (fake *FakeDBHelper) TestDatabaseCleanup() error {
 	fake.testDatabaseCleanupMutex.Lock()
 	ret, specificReturn := fake.testDatabaseCleanupReturnsOnCall[len(fake.testDatabaseCleanupArgsForCall)]
-	fake.testDatabaseCleanupArgsForCall = append(fake.testDatabaseCleanupArgsForCall, struct{}{})
+	fake.testDatabaseCleanupArgsForCall = append(fake.testDatabaseCleanupArgsForCall, struct {
+	}{})
 	fake.recordInvocation("TestDatabaseCleanup", []interface{}{})
 	fake.testDatabaseCleanupMutex.Unlock()
 	if fake.TestDatabaseCleanupStub != nil {
@@ -430,7 +524,8 @@ func (fake *FakeDBHelper) TestDatabaseCleanup() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.testDatabaseCleanupReturns.result1
+	fakeReturns := fake.testDatabaseCleanupReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDBHelper) TestDatabaseCleanupCallCount() int {
@@ -439,7 +534,15 @@ func (fake *FakeDBHelper) TestDatabaseCleanupCallCount() int {
 	return len(fake.testDatabaseCleanupArgsForCall)
 }
 
+func (fake *FakeDBHelper) TestDatabaseCleanupCalls(stub func() error) {
+	fake.testDatabaseCleanupMutex.Lock()
+	defer fake.testDatabaseCleanupMutex.Unlock()
+	fake.TestDatabaseCleanupStub = stub
+}
+
 func (fake *FakeDBHelper) TestDatabaseCleanupReturns(result1 error) {
+	fake.testDatabaseCleanupMutex.Lock()
+	defer fake.testDatabaseCleanupMutex.Unlock()
 	fake.TestDatabaseCleanupStub = nil
 	fake.testDatabaseCleanupReturns = struct {
 		result1 error
@@ -447,6 +550,8 @@ func (fake *FakeDBHelper) TestDatabaseCleanupReturns(result1 error) {
 }
 
 func (fake *FakeDBHelper) TestDatabaseCleanupReturnsOnCall(i int, result1 error) {
+	fake.testDatabaseCleanupMutex.Lock()
+	defer fake.testDatabaseCleanupMutex.Unlock()
 	fake.TestDatabaseCleanupStub = nil
 	if fake.testDatabaseCleanupReturnsOnCall == nil {
 		fake.testDatabaseCleanupReturnsOnCall = make(map[int]struct {
@@ -458,29 +563,84 @@ func (fake *FakeDBHelper) TestDatabaseCleanupReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
+func (fake *FakeDBHelper) Upgrade() (string, error) {
+	fake.upgradeMutex.Lock()
+	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
+	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Upgrade", []interface{}{})
+	fake.upgradeMutex.Unlock()
+	if fake.UpgradeStub != nil {
+		return fake.UpgradeStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.upgradeReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeDBHelper) UpgradeCallCount() int {
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
+	return len(fake.upgradeArgsForCall)
+}
+
+func (fake *FakeDBHelper) UpgradeCalls(stub func() (string, error)) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = stub
+}
+
+func (fake *FakeDBHelper) UpgradeReturns(result1 string, result2 error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = nil
+	fake.upgradeReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) UpgradeReturnsOnCall(i int, result1 string, result2 error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = nil
+	if fake.upgradeReturnsOnCall == nil {
+		fake.upgradeReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.upgradeReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.startMysqldInStandAloneMutex.RLock()
-	defer fake.startMysqldInStandAloneMutex.RUnlock()
-	fake.startMysqldInJoinMutex.RLock()
-	defer fake.startMysqldInJoinMutex.RUnlock()
-	fake.startMysqldInBootstrapMutex.RLock()
-	defer fake.startMysqldInBootstrapMutex.RUnlock()
-	fake.stopMysqldMutex.RLock()
-	defer fake.stopMysqldMutex.RUnlock()
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
 	fake.isDatabaseReachableMutex.RLock()
 	defer fake.isDatabaseReachableMutex.RUnlock()
 	fake.isProcessRunningMutex.RLock()
 	defer fake.isProcessRunningMutex.RUnlock()
-	fake.seedMutex.RLock()
-	defer fake.seedMutex.RUnlock()
 	fake.runPostStartSQLMutex.RLock()
 	defer fake.runPostStartSQLMutex.RUnlock()
+	fake.seedMutex.RLock()
+	defer fake.seedMutex.RUnlock()
+	fake.startMysqldForUpgradeMutex.RLock()
+	defer fake.startMysqldForUpgradeMutex.RUnlock()
+	fake.startMysqldInBootstrapMutex.RLock()
+	defer fake.startMysqldInBootstrapMutex.RUnlock()
+	fake.startMysqldInJoinMutex.RLock()
+	defer fake.startMysqldInJoinMutex.RUnlock()
+	fake.stopMysqldMutex.RLock()
+	defer fake.stopMysqldMutex.RUnlock()
 	fake.testDatabaseCleanupMutex.RLock()
 	defer fake.testDatabaseCleanupMutex.RUnlock()
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

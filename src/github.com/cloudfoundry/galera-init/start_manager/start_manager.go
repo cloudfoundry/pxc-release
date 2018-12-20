@@ -1,11 +1,14 @@
 package start_manager
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"code.cloudfoundry.org/lager"
+
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
@@ -15,23 +18,27 @@ import (
 )
 
 //go:generate counterfeiter . StartManager
-
 type StartManager interface {
-	Execute() error
-	GetMysqlCmd() (*exec.Cmd, error)
+	Execute(ctx context.Context) error
 	Shutdown()
 }
 
+//go:generate counterfeiter . ServiceStatus
+type ServiceStatus interface {
+	Start() error
+}
+
 type startManager struct {
-	osHelper      os_helper.OsHelper
-	config        config.StartManager
-	dbHelper      db_helper.DBHelper
-	upgrader      upgrader.Upgrader
-	startCaller   node_starter.Starter
-	logger        lager.Logger
-	healthChecker cluster_health_checker.ClusterHealthChecker
-	mysqlCmd      *exec.Cmd
-	mysqldPid     int
+	osHelper               os_helper.OsHelper
+	config                 config.StartManager
+	dbHelper               db_helper.DBHelper
+	upgrader               upgrader.Upgrader
+	startCaller            node_starter.Starter
+	logger                 lager.Logger
+	healthChecker          cluster_health_checker.ClusterHealthChecker
+	mysqlCmd               *exec.Cmd
+	mysqldPid              int
+	galeraInitStatusServer ServiceStatus
 }
 
 func New(
@@ -42,41 +49,44 @@ func New(
 	startCaller node_starter.Starter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
+	galeraInitStatusServer ServiceStatus,
 ) StartManager {
 	return &startManager{
-		osHelper:      osHelper,
-		config:        config,
-		logger:        logger,
-		dbHelper:      dbHelper,
-		upgrader:      upgrader,
-		startCaller:   startCaller,
-		healthChecker: healthChecker,
+		osHelper:               osHelper,
+		config:                 config,
+		logger:                 logger,
+		dbHelper:               dbHelper,
+		upgrader:               upgrader,
+		startCaller:            startCaller,
+		healthChecker:          healthChecker,
+		galeraInitStatusServer: galeraInitStatusServer,
 	}
 }
 
-func (m *startManager) Execute() error {
+func (m *startManager) Execute(ctx context.Context) error {
 	var newNodeState string
 	var err error
 
 	if m.dbHelper.IsProcessRunning() {
-		m.logger.Info("mysqld process is already running, shutting down before continuing")
+		m.logger.Info("mysqld-already-running")
+		m.logger.Info("shutdown-old-mysql")
 		m.Shutdown()
 	}
 
 	needsUpgrade, err := m.upgrader.NeedsUpgrade()
 	if err != nil {
-		m.logger.Info("Failed to determine upgrade status with error", lager.Data{"err": err.Error()})
+		m.logger.Error("upgrade-check-failed", err)
 		return err
 	}
 	if needsUpgrade {
 		err = m.upgrader.Upgrade()
 		if err != nil {
-			m.logger.Info("Failed during upgrade", lager.Data{"err": err.Error()})
+			m.logger.Error("mysql-upgrade-failed", err)
 			return err
 		}
 	}
 
-	m.logger.Info("Determining bootstrap procedure", lager.Data{
+	m.logger.Info("determining-bootstrap-procedure", lager.Data{
 		"ClusterIps":    m.config.ClusterIps,
 		"BootstrapNode": m.config.BootstrapNode,
 	})
@@ -86,7 +96,9 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	newNodeState, err = m.startCaller.StartNodeFromState(currentState)
+	var mysqldChan <-chan error
+
+	newNodeState, mysqldChan, err = m.startCaller.StartNodeFromState(currentState)
 	if err != nil {
 		return err
 	}
@@ -96,7 +108,38 @@ func (m *startManager) Execute() error {
 		return err
 	}
 
-	return nil
+	m.logger.Info("bootstrap-complete")
+	m.logger.Info("waiting-for-mysqld")
+
+	m.logger.Info("status-server-starting")
+	m.galeraInitStatusServer.Start()
+	m.logger.Info("status-server-started")
+
+	select {
+	case err := <-mysqldChan:
+		m.logger.Info("mysqld-exited", lager.Data{
+			"error": err,
+		})
+		return err
+	case <-ctx.Done():
+		m.logger.Info("shutdown-detected")
+
+		err := m.osHelper.KillCommand(m.startCaller.GetMysqlCmd(), syscall.SIGTERM)
+		if err != nil {
+			m.logger.Error("sigterm-mysqld-failed", err)
+			return err
+		}
+		m.logger.Info("sigterm-mysqld-ok")
+		m.logger.Info("mysqld-shutdown-started")
+
+		err = <-mysqldChan
+
+		m.logger.Info("mysqld-shutdown-complete", lager.Data{
+			"error": err,
+		})
+
+		return err
+	}
 }
 
 func (m *startManager) getCurrentNodeState() (string, error) {
@@ -141,10 +184,6 @@ func (m *startManager) readStateFromFile() (string, error) {
 
 func (m *startManager) firstTimeDeploy() bool {
 	return !m.osHelper.FileExists(m.config.StateFileLocation)
-}
-
-func (m *startManager) GetMysqlCmd() (*exec.Cmd, error) {
-	return m.startCaller.GetMysqlCmd()
 }
 
 func (m *startManager) Shutdown() {
