@@ -1,12 +1,16 @@
 package autotune_test
 
 import (
+	"encoding/json"
 	"math"
+	"os/exec"
+	"strconv"
+	"strings"
 
+	"github.com/onsi/gomega/gexec"
 	"gopkg.in/yaml.v2"
 
 	helpers "specs/test_helpers"
-	"strconv"
 
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
@@ -50,34 +54,47 @@ func deployWithBufferPoolSizePercent(bufferPoolSizePercent int) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func TotalMemory(vmSpec string) float64 {
+	var result struct {
+		Tables []struct {
+			Rows []struct {
+				Stdout string `json:"stdout"`
+			}
+		}
+	}
+
+	totalMemInKBCmd := `awk '/MemTotal:/ {print $2/1024.0}' /proc/meminfo`
+	cmd := exec.Command(
+		"bosh",
+		"ssh",
+		vmSpec,
+		"--json",
+		"--results",
+		"-c", totalMemInKBCmd,
+	)
+
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, "1m", "1s").Should(gexec.Exit(0))
+
+	Expect(json.Unmarshal(session.Out.Contents(), &result)).To(Succeed())
+
+	totalMemInKB := strings.TrimSpace(result.Tables[0].Rows[0].Stdout)
+
+	totalMemInMB, err := strconv.ParseFloat(totalMemInKB, 64)
+	Expect(err).NotTo(HaveOccurred())
+
+	return totalMemInMB
+}
+
 var _ = Describe("CF PXC MySQL Autotune", func() {
 	It("correctly configures innodb_buffer_pool_size", func() {
 		var bufferPoolSizePercent = 14
 		deployWithBufferPoolSizePercent(bufferPoolSizePercent)
 
-		director, err := helpers.BuildBoshDirector()
-		Expect(err).NotTo(HaveOccurred())
+		vmTotalMemoryInMB := TotalMemory("mysql/0")
 
-		deployment, err := director.FindDeployment(helpers.BoshDeploymentName())
-		Expect(err).NotTo(HaveOccurred())
-
-		var mysqlVm boshdir.VMInfo
-		vmInfos, _ := deployment.VMInfos()
-		for _, vmInfo := range vmInfos {
-			if vmInfo.JobName == "mysql" {
-				mysqlVm = vmInfo
-				break
-			}
-		}
-
-		vmUsedMemInKb, err := strconv.Atoi(mysqlVm.Vitals.Mem.KB)
-		Expect(err).NotTo(HaveOccurred())
-		vmUsedMemPercent, err := strconv.Atoi(mysqlVm.Vitals.Mem.Percent)
-		Expect(err).NotTo(HaveOccurred())
-
-		vmTotalMemoryInMB := float64(vmUsedMemInKb / vmUsedMemPercent * 100 / 1024)
 		var variableName, variableValue string
-
 		query := "SHOW variables LIKE 'innodb_buffer_pool_size'"
 		rows, err := mysqlConn.Query(query)
 		Expect(err).NotTo(HaveOccurred())
