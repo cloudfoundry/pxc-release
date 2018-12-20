@@ -7,11 +7,7 @@ set -o pipefail
 
 export TMPDIR=/var/vcap/data/pxc-mysql/tmp
 
-
-CONFIG_DIR=/etc/mysql
 datadir=/var/vcap/store/pxc-mysql
-GALERA_AGENT_LOG_DIR="/var/vcap/sys/log/galera-agent"
-JOB_INDEX=<%= index %>
 LOG_DIR=/var/vcap/sys/log/pxc-mysql
 PXC_JOB_DIR=/var/vcap/jobs/pxc-mysql
 RUN_DIR=/var/vcap/sys/run/pxc-ctl
@@ -55,11 +51,15 @@ chown -R vcap:vcap ${SECURE_FILE_PRIV}
 
 touch ${SLOW_QUERY_LOG_FILE}
 date >> ${SLOW_QUERY_LOG_FILE} 2>> ${SLOW_QUERY_LOG_FILE}
-mkdir -p "${GALERA_AGENT_LOG_DIR}"
-chown -R vcap:vcap "${GALERA_AGENT_LOG_DIR}"
 
 mkdir -p ${LOG_DIR}
 chown -R vcap:vcap ${LOG_DIR}
+
+# add mysql to path
+if [[ ! -f /usr/local/bin/mysql ]]; then
+  log "Adding mysql to path"
+  ln -sf /var/vcap/packages/pxc/bin/mysql /usr/local/bin
+fi
 
 
  /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
@@ -114,7 +114,25 @@ chown -R vcap:vcap ${datadir}
 
 rm -f /etc/my.cnf
 
-GALERA_INIT_PREFIX_CMD="su vcap -c -o pipefail" ${PXC_JOB_DIR}/bin/pre-start-execution
+function check_bpm_pid {
+    /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
+}
+
+if ! /var/vcap/jobs/bpm/bin/bpm start pxc-mysql -p galera-init; then
+    log "pre-start: galera-init failed to initialize"
+    exit 1
+fi
+
+while ! curl -s -f -m 5 http://127.0.0.1:8114 > /dev/null && check_bpm_pid; do
+    sleep 1
+done
+
+if ! check_bpm_pid; then
+    log "pre-start: galera-init failed to start"
+    exit 1
+fi
+
+log "pre-start: galera-init started successfully"
 
 if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/migrated-successfully" ]; then
   node_count=<%= link('mysql').instances.length %>

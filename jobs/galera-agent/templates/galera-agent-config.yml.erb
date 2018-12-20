@@ -15,8 +15,7 @@ Monit:
   Port: 2822
   MysqlStateFilePath: '/var/vcap/store/pxc-mysql/state.txt'
   ServiceName: 'galera-init'
-  BootstrapFilePath: '/var/vcap/jobs/pxc-mysql/bin/pre-start-execution'
-  BootstrapLogFilePath: '/var/vcap/sys/log/galera-agent/pre-start-execution-during-bootstrap.stdout.log'
+  GaleraInitStatusServerAddress: "127.0.0.1:8114"
 SidecarEndpoint:
   Username: <%= p('endpoint_username') %>
   Password: <%= p('endpoint_password') %>

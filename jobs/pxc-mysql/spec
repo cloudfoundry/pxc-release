@@ -2,6 +2,8 @@
 name: pxc-mysql
 
 templates:
+  bpm.yml.erb: config/bpm.yml
+  cleanup-socket.sh.erb: bin/cleanup-socket
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
   audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
   db_init.erb: config/db_init
@@ -9,10 +11,8 @@ templates:
   galera-init-config.yml.erb: config/galera-init-config.yml
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
-  pxc-ctl.erb: bin/pxc-ctl
   pxc-sudoers: config/pxc-sudoers
   pre-start.sh.erb: bin/pre-start
-  pre-start-execution.sh.erb: bin/pre-start-execution
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-key.pem.erb: certificates/galera-key.pem
@@ -115,7 +115,6 @@ properties:
       - name: db2
         username: user2
         password: pw2
-
 
   # TLS Config
   tls.galera:

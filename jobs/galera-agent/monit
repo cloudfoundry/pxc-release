@@ -2,6 +2,6 @@
 check process galera-agent
   with pidfile /var/vcap/sys/run/bpm/galera-agent/galera-agent.pid
   start program "/var/vcap/jobs/bpm/bin/bpm start galera-agent" with timeout 60 seconds
-  stop program "/var/vcap/jobs/bpm/bin/bpm stop galera-agent" with timeout 10 seconds
+  stop program "/var/vcap/jobs/bpm/bin/bpm stop galera-agent"
   group vcap
 <% end %>
