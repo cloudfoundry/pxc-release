@@ -8,7 +8,6 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 
 	"github.com/cloudfoundry/galera-init/config"
 	. "github.com/cloudfoundry/galera-init/integration_test/test_helpers"
@@ -72,7 +71,6 @@ var _ = Describe("galera-init integration", func() {
 		})
 
 		It("will allow MySQL to cleanly shutdown on SIGTERM", func() {
-			StreamLogs(dockerClient, galeraNode)
 			Eventually(func() error {
 				return serviceStatus(galeraNode)
 			}, "1m", "1s").Should(Succeed())
@@ -150,18 +148,31 @@ var _ = Describe("galera-init integration", func() {
 		})
 
 		It("exits with a non-zero status code", func() {
-			containerLogs := StreamLogs(dockerClient, galeraNode)
-
-			Eventually(containerLogs, "5m", "1s").
-				Should(gbytes.Say(`Mysqld exited with error; aborting. Review the mysqld error logs for more information.`))
-
-			Eventually(func() (int, error) {
-				container, err := dockerClient.InspectContainer(galeraNode.ID)
+			var container *docker.Container
+			Eventually(func() (bool, error) {
+				var err error
+				container, err = dockerClient.InspectContainer(galeraNode.ID)
 				if err != nil {
-					return 0, err
+					return true, err
 				}
-				return container.State.ExitCode, nil
-			}, "30s", "1s").ShouldNot(BeZero())
+				return container.State.Running, nil
+			}, "1m", "1s").ShouldNot(BeTrue())
+
+			Expect(container.State.ExitCode).ToNot(BeZero())
+
+			mysqlErrLogContents, err := FetchContainerFileContents(
+				dockerClient,
+				galeraNode,
+				"/var/log/mysql/mysql.err.log",
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(mysqlErrLogContents).To(
+				ContainSubstring(
+					`WSREP: Provider/Node (gcomm://mysql0.%s) failed to establish connection with cluster`,
+					sessionID,
+				),
+			)
 		})
 	})
 

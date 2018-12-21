@@ -9,7 +9,6 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega/gbytes"
 )
 
 type ExecResult struct {
@@ -150,20 +149,6 @@ func RunExec(dockerClient *docker.Client, exec *docker.Exec) (*ExecResult, error
 		Stdout:   stdout.String(),
 		Stderr:   stderr.String(),
 	}, nil
-}
-
-func StreamLogs(dockerClient *docker.Client, container *docker.Container) *gbytes.Buffer {
-	result := gbytes.NewBuffer()
-	go dockerClient.Logs(docker.LogsOptions{
-		Container:    container.ID,
-		OutputStream: io.MultiWriter(ginkgo.GinkgoWriter, result),
-		ErrorStream:  io.MultiWriter(ginkgo.GinkgoWriter, result),
-		Follow:       true,
-		Stdout:       true,
-		Stderr:       true,
-		Tail:         "0",
-	})
-	return result
 }
 
 func AddBinds(binds ...string) ContainerOption {
