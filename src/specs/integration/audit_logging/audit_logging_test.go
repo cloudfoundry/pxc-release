@@ -122,7 +122,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 // Get the size of the audit log file in bytes before reading or writing any data
 // so we can read from that offset in the audit log file and return the contents from after that offset
 func readAndWriteDataAndGetAuditLogContents(dbConn *sql.DB, activeBackend, auditLogPath string) string {
-	logSizeBeforeTest := AuditLogSize(auditLogPath)
+	logSizeBeforeTest := AuditLogSize(activeBackend, auditLogPath)
 
 	readAndWriteFromDB(dbConn)
 
@@ -178,9 +178,9 @@ func BoshSCP(activeBackend, remoteFilePath, destPath string) {
 	Expect(destPath).To(BeARegularFile())
 }
 
-func AuditLogSize(remoteFilePath string) int64 {
+func AuditLogSize(activeBackend, remoteFilePath string) int64 {
 	commandOnVM := strings.Join([]string{"\"wc -c ", remoteFilePath, "\""}, "")
-	cmd := exec.Command("bosh", "ssh", "mysql/0", "-c", commandOnVM)
+	cmd := exec.Command("bosh", "ssh", activeBackend, "-c", commandOnVM)
 
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	session.Wait(10 * time.Second)
