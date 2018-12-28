@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source /var/vcap/packages/pxc-utils/pid_utils.sh
+PIDFILE=/var/vcap/sys/run/bpm/proxy/proxy.pid
+kill_and_wait ${PIDFILE} <%= p('shutdown_delay') %> 0 > /dev/null
+return_code=$?
+
+echo 0
+exit ${return_code}

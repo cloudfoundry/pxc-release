@@ -2,9 +2,10 @@
 name: proxy
 
 templates:
-  proxy-ctl.erb: bin/proxy-ctl
+  bpm.yml.erb: config/bpm.yml
   proxy.yml.erb: config/proxy.yml
   post-start.erb: bin/post-start
+  drain.erb: bin/drain
 
 consumes:
 - name: proxy
