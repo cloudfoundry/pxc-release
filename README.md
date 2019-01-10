@@ -50,7 +50,7 @@ The `mysql` BOSH job runs standard mysql 5.7 without Galera.
 ## Deploying
 <a name='deploying-with-cf-deployment'></a>
 ### Deploying CF with pxc-release (using the clustered topology)
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/use-pxc.yml` ops file.
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `use-pxc.yml` ops file.
 
 <a name='deploying-clustered></a>
 ### Deploying pxc-release clustered
@@ -79,7 +79,7 @@ Requirements:
 
 <a name='migrating-with-cf-deployment'></a>
 ### Migrating CF with pxc-release
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/migrate-cf-mysql-to-pxc.yml` ops file. It is advisable to take a backup first.
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `migrate-cf-mysql-to-pxc.yml` ops file. It is advisable to take a backup first.
   - ⚠️ `migrate-cf-mysql-to-pxc.yml` will scale down a cluster to a single node. This is required for migration. Be sure to re-set to the appropriate number of instances when switching to `use-pxc.yml` subsequently.
 
 The ops file will trigger the same migration procedure described in [Using PXC release with other deployments](#migrating-with-non-cf-deployments)
