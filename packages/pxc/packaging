@@ -2,7 +2,7 @@
 
 set -eu -o pipefail
 
-PERCONA_SERVER_VERSION=5.7.22-29.26
+PERCONA_SERVER_VERSION=5.7.24-31.33
 NPROC=$(nproc)
 
 tar -xf boost/boost_1_59_0.tar.gz
@@ -13,7 +13,7 @@ make -j "${NPROC}" -C libaio-*/ install
 ## PXC
 tar -xf "pxc/Percona-XtraDB-Cluster-${PERCONA_SERVER_VERSION}.tar.gz"
 pushd "Percona-XtraDB-Cluster-${PERCONA_SERVER_VERSION}/"
-    wsrep_iface_version="$(grep WSREP_INTERFACE_VERSION wsrep/wsrep_api.h | cut -d '"' -f2)"
+    wsrep_iface_version="$(grep WSREP_INTERFACE_VERSION wsrep/src/wsrep_api.h | cut -d '"' -f2)"
     wsrep_patch_version="$(grep 'SET(WSREP_PATCH_VERSION'  "cmake/wsrep.cmake" | cut -d '"' -f2)"
     wsrep_version="${wsrep_iface_version}.${wsrep_patch_version}"
     cmake . \
