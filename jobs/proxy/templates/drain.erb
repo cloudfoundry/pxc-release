@@ -4,7 +4,7 @@ set -euo pipefail
 
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 PIDFILE=/var/vcap/sys/run/bpm/proxy/proxy.pid
-kill_and_wait ${PIDFILE} <%= p('shutdown_delay') %> 0 > /dev/null
+kill_and_wait ${PIDFILE} <%= p('shutdown_delay').to_i + 10 %> 0 > /dev/null
 return_code=$?
 
 echo 0

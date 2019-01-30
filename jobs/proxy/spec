@@ -90,4 +90,4 @@ properties:
       enter your load balancer's unhealthy total threshold time here in seconds.
       E.g., if your LB polls every 30 seconds, and immediately fails over upon failure,
       then set this property to 30 seconds.
-    default: 30
+    default: 0
