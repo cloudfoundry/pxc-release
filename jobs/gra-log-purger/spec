@@ -2,7 +2,6 @@
 name: gra-log-purger
 templates:
   gra-log-purger_ctl.sh.erb: bin/gra-log-purger_ctl
-  gra-log-purger.sh.erb: bin/gra-log-purger.sh
 
 packages:
 - pxc-gra-log-purger
