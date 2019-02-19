@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -50,6 +51,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if graLogDaysToKeep < 0 {
+		logErrorWithTimestamp(fmt.Errorf("graLogDaysToKeep should be >= 0"))
+		os.Exit(1)
+	}
+
 	err := ioutil.WriteFile(pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
 	if err != nil {
 		panic(err)
@@ -64,14 +70,13 @@ func main() {
 
 	cleanup := func() {
 		ageCutoff := time.Duration(graLogDaysToKeep*24) * time.Hour
-		oldLogs, err := FindOldGraLogs(graLogDir, ageCutoff)
+		deleted, failed, err := PurgeGraLogs(graLogDir, ageCutoff)
 		if err != nil {
 			logErrorWithTimestamp(err)
+		} else {
+			logWithTimestamp(fmt.Sprintf("Deleted %v files, failed to delete %v files\n", deleted, failed))
 		}
 
-		deleted, failed := DeleteFiles(oldLogs)
-
-		logWithTimestamp(fmt.Sprintf("Deleted %v files, failed to delete %v files\n", deleted, failed))
 		logWithTimestamp("Sleeping for one hour\n")
 	}
 
@@ -89,44 +94,49 @@ func main() {
 	}
 }
 
-func FindOldGraLogs(dir string, ageCutoff time.Duration) ([]string, error) {
-	oldestTime := time.Now().Add(-ageCutoff)
-
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
+func isOldGraLog(file os.FileInfo, oldestTime time.Time) bool {
+	if file.IsDir() == false &&
+		strings.HasPrefix(file.Name(), "GRA_") &&
+		strings.HasSuffix(file.Name(), ".log") &&
+		file.ModTime().Before(oldestTime) {
+		return true
 	}
 
-	var oldGraLogs []string
-
-	for _, file := range files {
-		fileName := file.Name()
-		if strings.HasPrefix(fileName, "GRA_") &&
-			strings.HasSuffix(fileName, ".log") &&
-			file.ModTime().Before(oldestTime) {
-			oldGraLogs = append(oldGraLogs, filepath.Join(dir, fileName))
-		}
-	}
-
-	return oldGraLogs, nil
+	return false
 }
 
-func DeleteFiles(files []string) (int, int) {
+func PurgeGraLogs(dir string, ageCutoff time.Duration) (int, int, error) {
 	succeeded := 0
 	failed := 0
 
-	for _, file := range files {
-		err := os.Remove(file)
+	handle, err := os.Open(dir)
+	if err != nil {
+		return succeeded, failed, err
+	}
 
-		if err == nil {
-			succeeded++
-		} else {
-			logErrorWithTimestamp(err)
-			failed++
+	oldestTime := time.Now().Add(-ageCutoff)
+	for {
+		files, err := handle.Readdir(1024)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return succeeded, failed, err
+		}
+
+		for _, file := range files {
+			fileName := file.Name()
+			if isOldGraLog(file, oldestTime) {
+				if err := os.Remove(filepath.Join(dir, fileName)); err != nil {
+					logErrorWithTimestamp(err)
+					failed++
+				} else {
+					succeeded++
+				}
+			}
 		}
 	}
 
-	return succeeded, failed
+	return succeeded, failed, nil
 }
 
 func logErrorWithTimestamp(err error) {

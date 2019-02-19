@@ -56,6 +56,21 @@ var _ = Describe("gra-log-purger", func() {
 		Expect(session.Err).To(gbytes.Say(`No pidfile supplied`))
 	})
 
+	It("validates graLogDaysToKeep is not less than 0", func() {
+		cmd := exec.Command(
+			graLogPurgerBinPath,
+			"-pidfile="+tempDir+"/gra-log-purger.pid",
+			"-graLogDir="+tempDir,
+			"-graLogDaysToKeep=-1",
+		)
+		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(session).Should(gexec.Exit())
+		Expect(session.ExitCode()).NotTo(BeZero())
+		Expect(session.Err).To(gbytes.Say(`graLogDaysToKeep should be >= 0`))
+	})
+
 	It("manages pid-files", func() {
 		cmd := exec.Command(
 			graLogPurgerBinPath,
@@ -85,7 +100,7 @@ var _ = Describe("gra-log-purger", func() {
 			expectedRetainedFiles []string
 		)
 		BeforeEach(func() {
-			expectedRetainedFiles = setupGraLogFiles(tempDir)
+			expectedRetainedFiles = setupGraLogFiles(tempDir, 2048)
 		})
 
 		It("removes only the GRA logs", func() {
@@ -140,7 +155,7 @@ var _ = Describe("gra-log-purger", func() {
 	})
 })
 
-var _ = Describe("FindOldGraLogs", func() {
+var _ = Describe("PurgeGraLogs", func() {
 	var (
 		err     error
 		tempDir string
@@ -157,11 +172,26 @@ var _ = Describe("FindOldGraLogs", func() {
 
 	Context("When an empty directory is passed in", func() {
 		It("returns an empty list and succeeds", func() {
-			files, err := FindOldGraLogs(tempDir, time.Hour*24*2)
+			succeeded, failed, err := PurgeGraLogs(tempDir, time.Hour*24*2)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(files).To(BeEmpty())
+			Expect(succeeded).To(BeZero())
+			Expect(failed).To(BeZero())
 		})
+	})
+
+	Context("when a directory matches a GRAlog file name", func() {
+		BeforeEach(func() {
+			Expect(os.Mkdir(filepath.Join(tempDir, "GRA_something.log"), 0755)).To(Succeed())
+		})
+
+		It("does not remove directories", func() {
+			_, _, err := PurgeGraLogs(tempDir, 0)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(filepath.Join(tempDir, "GRA_something.log")).Should(BeADirectory())
+		})
+
 	})
 
 	Context("When a file that is not a directory is passed in", func() {
@@ -181,110 +211,13 @@ var _ = Describe("FindOldGraLogs", func() {
 		})
 
 		It("returns an out of sandbox error", func() {
-			_, err := FindOldGraLogs(tempFile, time.Hour*24*2)
+			_, _, err := PurgeGraLogs(tempFile, time.Hour*24*2)
 			Expect(err).To(BeAssignableToTypeOf(&os.SyscallError{}))
 		})
 	})
-
-	Context("When a directory with GRA files is passed in", func() {
-		BeforeEach(func() {
-			setupGraLogFiles(tempDir)
-		})
-
-		It("returns GRA log files older than the cutoff", func() {
-			graLogs, err := FindOldGraLogs(tempDir, time.Hour*24*2)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(graLogs).To(HaveLen(100))
-
-			for _, log := range graLogs {
-				// only returns the OLD files, no NEW and no NOT_A_GRA_LOG
-				Expect(log).To(MatchRegexp(`%s/GRA_OLD_.*\.log`, tempDir))
-			}
-		})
-
-		It("doesn't return nested files", func() {
-			tempSubDir, err := ioutil.TempDir(tempDir, "sub-directory")
-			Expect(err).NotTo(HaveOccurred())
-
-			// create an OLD GRA log inside the sub directory
-			tempGraFileFd, err := ioutil.TempFile(tempSubDir, "GRA_OLD_SUB_DIR_*.log")
-			Expect(err).NotTo(HaveOccurred())
-
-			tempGraFile := tempGraFileFd.Name()
-			Expect(tempGraFileFd.Close()).To(Succeed())
-
-			fiveDaysAgo := time.Now().Add(-time.Hour * 24 * 5)
-			err = os.Chtimes(tempGraFile, fiveDaysAgo, fiveDaysAgo)
-			Expect(err).NotTo(HaveOccurred())
-
-			// check that we don't find this file
-			graLogs, err := FindOldGraLogs(tempDir, time.Hour*24*2)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(graLogs).To(HaveLen(100))
-
-			Expect(graLogs).NotTo(ContainElement(tempGraFile))
-		})
-
-	})
-
 })
 
-var _ = Describe("DeleteFiles", func() {
-	var (
-		err     error
-		tempDir string
-		fileA   *os.File
-		fileB   *os.File
-	)
-
-	BeforeEach(func() {
-		tempDir, err = ioutil.TempDir("", "gra-log-test")
-		Expect(err).NotTo(HaveOccurred())
-
-		fileA, err = ioutil.TempFile(tempDir, "A")
-		Expect(err).NotTo(HaveOccurred())
-
-		fileB, err = ioutil.TempFile(tempDir, "B")
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		os.Remove(tempDir)
-	})
-
-	Context("When an empty list is passed in", func() {
-		It("does nothing and succeeds", func() {
-			deleted, failed := DeleteFiles(nil)
-			Expect(deleted).To(BeZero())
-			Expect(failed).To(BeZero())
-		})
-	})
-
-	It("deletes all the file paths passed in", func() {
-		deleted, failed := DeleteFiles([]string{
-			fileA.Name(),
-			fileB.Name(),
-		})
-
-		Expect(deleted).To(Equal(2))
-		Expect(failed).To(BeZero())
-	})
-
-	Context("When a non-existent path is passed in", func() {
-		It("deletes the valid paths and counts the failure", func() {
-			deleted, failed := DeleteFiles([]string{
-				fileA.Name(),
-				"FAKE-FILE",
-				fileB.Name(),
-			})
-
-			Expect(deleted).To(Equal(2))
-			Expect(failed).To(Equal(1))
-		})
-	})
-})
-
-func setupGraLogFiles(path string) (pathsToRetain []string) {
+func setupGraLogFiles(path string, numberOfGraLogs int) (pathsToRetain []string) {
 	// mysql datadir fixtures
 	mysqlFixtures := []string{
 		filepath.Join(path, "ibdata1"),
@@ -308,7 +241,7 @@ func setupGraLogFiles(path string) (pathsToRetain []string) {
 	pathsToRetain = append(pathsToRetain, mysqlFixtures...)
 
 	// old GRA logs
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfGraLogs; i++ {
 		graLogPath := filepath.Join(path, fmt.Sprintf("GRA_OLD_%d.log", i))
 
 		Expect(ioutil.WriteFile(graLogPath, nil, 0640)).
