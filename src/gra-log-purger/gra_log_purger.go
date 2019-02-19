@@ -3,66 +3,93 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"time"
 	"io/ioutil"
-	"strings"
+	"os"
+	"os/signal"
+	"path/filepath"
 	"strconv"
-)
-
-var graLogDir = flag.String(
-	"graLogDir",
-	"",
-	"Specifies the directory from which to purge GRA log files.",
-)
-
-var graLogDaysToKeep = flag.Int(
-	"graLogDaysToKeep",
-	60,
-	"Specifies the maximum age of the GRA log files allowed.",
-)
-
-var pidfile = flag.String(
-	"pidfile",
-	"",
-	"The location for the pidfile",
+	"strings"
+	"syscall"
+	"time"
 )
 
 func main() {
+	var (
+		graLogDir        string
+		graLogDaysToKeep int
+		pidfile          string
+	)
+
+	flag.StringVar(&graLogDir,
+		"graLogDir",
+		"",
+		"Specifies the directory from which to purge GRA log files.",
+	)
+
+	flag.IntVar(&graLogDaysToKeep,
+		"graLogDaysToKeep",
+		60,
+		"Specifies the maximum age of the GRA log files allowed.",
+	)
+
+	flag.StringVar(&pidfile,
+		"pidfile",
+		"",
+		"The location for the pidfile",
+	)
+
 	flag.Parse()
 
-	if *graLogDir == "" {
+	if graLogDir == "" {
 		logErrorWithTimestamp(fmt.Errorf("No gra log directory supplied"))
 		os.Exit(1)
 	}
 
-	if *pidfile == "" {
+	if pidfile == "" {
 		logErrorWithTimestamp(fmt.Errorf("No pidfile supplied"))
 		os.Exit(1)
 	}
 
-	err := ioutil.WriteFile(*pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
+	err := ioutil.WriteFile(pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
 	if err != nil {
 		panic(err)
 	}
-	defer os.Remove(*pidfile)
 
-	for {
-		ageCutoff := time.Duration(*graLogDaysToKeep*24) * time.Hour
-		logs, err := FindGraLogs(*graLogDir, ageCutoff)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM)
+
+	logWithTimestamp("Will purge old GRA logs once every hour\n")
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	cleanup := func() {
+		ageCutoff := time.Duration(graLogDaysToKeep*24) * time.Hour
+		oldLogs, err := FindOldGraLogs(graLogDir, ageCutoff)
 		if err != nil {
 			logErrorWithTimestamp(err)
 		}
 
-		deleted, failed := DeleteGraLogs(logs)
+		deleted, failed := DeleteFiles(oldLogs)
 
 		logWithTimestamp(fmt.Sprintf("Deleted %v files, failed to delete %v files\n", deleted, failed))
 		logWithTimestamp("Sleeping for one hour\n")
-		time.Sleep(1 * time.Hour)
+	}
+
+	cleanup()
+
+	for {
+		select {
+		case sig := <-sigCh:
+			logWithTimestamp("%s", sig)
+			os.Remove(pidfile)
+			os.Exit(0)
+		case <-ticker.C:
+			cleanup()
+		}
 	}
 }
 
-func FindGraLogs(dir string, ageCutoff time.Duration) ([]string, error) {
+func FindOldGraLogs(dir string, ageCutoff time.Duration) ([]string, error) {
 	oldestTime := time.Now().Add(-ageCutoff)
 
 	files, err := ioutil.ReadDir(dir)
@@ -77,14 +104,14 @@ func FindGraLogs(dir string, ageCutoff time.Duration) ([]string, error) {
 		if strings.HasPrefix(fileName, "GRA_") &&
 			strings.HasSuffix(fileName, ".log") &&
 			file.ModTime().Before(oldestTime) {
-			oldGraLogs = append(oldGraLogs, fileName)
+			oldGraLogs = append(oldGraLogs, filepath.Join(dir, fileName))
 		}
 	}
 
 	return oldGraLogs, nil
 }
 
-func DeleteGraLogs(files []string) (int, int) {
+func DeleteFiles(files []string) (int, int) {
 	succeeded := 0
 	failed := 0
 

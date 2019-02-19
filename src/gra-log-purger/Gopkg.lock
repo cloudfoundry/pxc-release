@@ -43,11 +43,13 @@
   version = "v1.7.0"
 
 [[projects]]
-  digest = "1:7a137fb7718928e473b7d805434ae563ec41790d3d227cdc64e8b14d1cab8a1f"
+  digest = "1:b4764603c54d74435f246901248aefb2b9d430bb7b160afde1afc41d89d48f1a"
   name = "github.com/onsi/gomega"
   packages = [
     ".",
     "format",
+    "gbytes",
+    "gexec",
     "internal/assertion",
     "internal/asyncassertion",
     "internal/oraclematcher",
@@ -138,6 +140,8 @@
   input-imports = [
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/onsi/gomega/gbytes",
+    "github.com/onsi/gomega/gexec",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
