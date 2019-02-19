@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -exuo pipefail
+
+STEMCELL_OS="${STEMCELL_OS:-ubuntu-xenial}"
+
+cluster_options=(
+    --ops-file operations/use-clustered.yml
+)
+
+xenial_options=(
+    --ops-file operations/xenial-stemcell.yml
+)
+
+function deploy() {
+    local no_redact="--"
+    if [[ "${REDACT}" != "true" ]]; then
+        no_redact="--no-redact"
+    fi
+    bosh -d "${PXC_DEPLOYMENT_NAME}" -n deploy "$@" "${no_redact}" 
+}
+
+if [[ ${ENABLE_CLUSTER} == "true" ]]
+then
+    deploy_options+=("${cluster_options[@]}")
+fi
+
+if [[ ${STEMCELL_OS} == "ubuntu-xenial" ]]
+then
+    deploy_options+=("${xenial_options[@]}")
+fi
+
+deploy pxc-deployment.yml "${deploy_options[@]}"
