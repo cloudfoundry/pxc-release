@@ -12,6 +12,10 @@ xenial_options=(
     --ops-file operations/xenial-stemcell.yml
 )
 
+integration_options=(
+    --ops-file operations/integration-tests.yml
+)
+
 function deploy() {
     local no_redact="--"
     if [[ "${REDACT}" != "true" ]]; then
@@ -25,9 +29,13 @@ then
     deploy_options+=("${cluster_options[@]}")
 fi
 
-if [[ ${STEMCELL_OS} == "ubuntu-xenial" ]]
+if [[ ${ENABLE_INTEGRATION} == "true" ]]
 then
-    deploy_options+=("${xenial_options[@]}")
+    deploy_options+=("${integration_options[@]}")
+else
+  if [[ ${STEMCELL_OS} == "ubuntu-xenial" ]]
+  then
+      deploy_options+=("${xenial_options[@]}")
+  fi
 fi
-
 deploy pxc-deployment.yml "${deploy_options[@]}"
