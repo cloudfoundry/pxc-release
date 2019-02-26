@@ -74,6 +74,18 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 
 	AfterEach(func() {
 		helpers.DbCleanup(db)
+		Eventually(func() int {
+			director, _ := helpers.BuildBoshDirector()
+			deployment, _ := director.FindDeployment(helpers.BoshDeploymentName())
+			instances, _ := deployment.Instances()
+			healthyInstances := 0
+			for _, instance := range instances {
+				if instance.Group == "mysql" && len(instance.IPs) > 0 {
+					healthyInstances++
+				}
+			}
+			return healthyInstances
+		}, "5m", "5s").Should(Equal(3))
 	})
 
 	It("proxies failover to another node after a partition of mysql node", func() {
