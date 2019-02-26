@@ -1,11 +1,6 @@
 ---
 # Need to use the use-clustered.yml ops file as well
 
-# Use xenial stemcell
-- type: replace
-  path: /stemcells/os=ubuntu-trusty/os
-  value: ubuntu-xenial
-
 # Allow integration tests to login as root
 - type: replace
   path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/remote_admin_access?

@@ -1,5 +1,3 @@
 ---
-- type: replace
-  path: /stemcells/os=ubuntu-trusty/os
-  value: ubuntu-xenial
+# DEPRECATED: this ops file has been inlined into pxc-deployment.yml
 
