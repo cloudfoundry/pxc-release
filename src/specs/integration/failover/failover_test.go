@@ -3,14 +3,31 @@ package failover_test
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	helpers "specs/test_helpers"
-	"strings"
 )
+
+func cloudCheck(deployment director.Deployment) {
+	var answers []director.ProblemAnswer
+
+	problems, err := deployment.ScanForProblems()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	for _, prob := range problems {
+		answers = append(answers, director.ProblemAnswer{
+			ProblemID:  prob.ID,
+			Resolution: director.ProblemResolutionDefault,
+		})
+	}
+
+	ExpectWithOffset(1, deployment.ResolveProblems(answers)).To(Succeed())
+}
 
 func deleteMysqlVM(host string) error {
 	director, err := helpers.BuildBoshDirector()
@@ -55,10 +72,12 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 		mysqlPassword string
 		proxyPassword string
 		firstProxy    string
-		err           error
+
+		deployment director.Deployment
 	)
 
 	BeforeEach(func() {
+		var err error
 		firstProxy, err = helpers.FirstProxyHost(helpers.BoshDeployment)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -70,22 +89,17 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 
 		db = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, firstProxy)
 		helpers.DbSetup(db, "failover_test_table")
+
+		boshDirector, err := helpers.BuildBoshDirector()
+		Expect(err).NotTo(HaveOccurred())
+
+		deployment, err = boshDirector.FindDeployment(helpers.BoshDeploymentName())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		helpers.DbCleanup(db)
-		Eventually(func() int {
-			director, _ := helpers.BuildBoshDirector()
-			deployment, _ := director.FindDeployment(helpers.BoshDeploymentName())
-			instances, _ := deployment.Instances()
-			healthyInstances := 0
-			for _, instance := range instances {
-				if instance.Group == "mysql" && len(instance.IPs) > 0 {
-					healthyInstances++
-				}
-			}
-			return healthyInstances
-		}, "5m", "5s").Should(Equal(3))
+		cloudCheck(deployment)
 	})
 
 	It("proxies failover to another node after a partition of mysql node", func() {
