@@ -97,7 +97,6 @@
   revision = "54f73bdb8a8e85a6611d3d29ab9bbf98c2a060d7"
 
 [[projects]]
-  branch = "master"
   digest = "1:18269b274db559412124bf9a1fd1fb27fdacb4bcad4a4b347b097daf8975de6d"
   name = "github.com/cloudfoundry/socks5-proxy"
   packages = ["."]
@@ -330,7 +329,6 @@
     "github.com/cloudfoundry/bosh-cli/director",
     "github.com/cloudfoundry/bosh-cli/uaa",
     "github.com/cloudfoundry/bosh-utils/logger",
-    "github.com/cloudfoundry/socks5-proxy",
     "github.com/go-sql-driver/mysql",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
