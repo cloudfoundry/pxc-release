@@ -1,0 +1,21 @@
+---
+- type: remove
+  path: /instance_groups/name=proxy
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=proxy?
+  value:
+    name: proxy
+    release: pxc
+    properties:
+      api_password: ((cf_mysql_proxy_api_password))
+
+- type: replace
+  path: /variables/name=cf_mysql_proxy_api_password
+  value:
+    name: cf_mysql_proxy_api_password
+    type: password
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/port?
+  value: 6033
