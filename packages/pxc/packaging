@@ -2,7 +2,7 @@
 
 set -eu -o pipefail
 
-PERCONA_SERVER_VERSION=5.7.24-31.33
+PERCONA_SERVER_VERSION=5.7.25-31.35
 NPROC=$(nproc)
 
 tar -xf boost/boost_1_59_0.tar.gz
