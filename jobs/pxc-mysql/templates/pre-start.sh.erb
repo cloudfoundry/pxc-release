@@ -103,6 +103,11 @@ if [ -d "/var/vcap/store/mysql-clustered" ]; then
   mv "/var/vcap/store/mysql-clustered" "${datadir}"
 fi
 
+# remove the datadir if it's empty, so we initialize on it later.
+if rmdir "${datadir}" ; then
+  log "pre-start: empty datadir ${datadir} removed"
+fi
+
 if [ ! -d "${datadir}" ]; then
   log "pre-start setup script: making ${datadir} and running /var/vcap/packages/pxc/bin/mysqld"
   mkdir -p ${datadir}

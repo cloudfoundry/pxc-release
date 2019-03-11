@@ -11,6 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	helpers "specs/test_helpers"
+	"os/exec"
+	"github.com/onsi/gomega/gexec"
 )
 
 func cloudCheck(deployment director.Deployment) {
@@ -137,6 +139,31 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 		rows.Scan(&queryResultString)
 
 		Expect(queryResultString).To(Equal("the only data"))
+	})
+
+	It("Can rejoin the cluster after emptying the store directory", func() {
+		deploymentName := helpers.BoshDeploymentName()
+		By("Stopping one node ", func() {
+			cmd := exec.Command("bosh", "-n", "-d", deploymentName, "stop", "mysql/0")
+			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+			session.Wait(10 * time.Minute)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session).Should(gexec.Exit(0))
+		})
+		By("Deleting the contents of the store directory ", func() {
+			cmd := exec.Command("bosh", "-n", "-d", deploymentName, "ssh", "mysql/0", "-c", "sudo rm -rf /var/vcap/store/pxc-mysql/*")
+			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+			session.Wait(1 * time.Minute)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session).Should(gexec.Exit(0))
+		})
+		By("Restarting the stopped node ", func() {
+			cmd := exec.Command("bosh", "-n", "-d", deploymentName, "start", "mysql/0")
+			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+			session.Wait(10 * time.Minute)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session).Should(gexec.Exit(0))
+		})
 	})
 
 })
