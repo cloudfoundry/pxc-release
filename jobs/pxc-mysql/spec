@@ -2,21 +2,20 @@
 name: pxc-mysql
 
 templates:
-  audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
   bpm.yml.erb: config/bpm.yml
   cleanup-socket.sh.erb: bin/cleanup-socket
-  db_init.erb: config/db_init
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
+  audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
+  db_init.erb: config/db_init
   drain.sh.erb: bin/drain
-  galera-ca.pem.erb: certificates/galera-ca.pem
-  galera-cert.pem.erb: certificates/galera-cert.pem
   galera-init-config.yml.erb: config/galera-init-config.yml
-  galera-key.pem.erb: certificates/galera-key.pem
-  get-sequence-number.sh: bin/get-sequence-number
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
-  pre-start.sh.erb: bin/pre-start
   pxc-sudoers: config/pxc-sudoers
+  pre-start.sh.erb: bin/pre-start
+  galera-ca.pem.erb: certificates/galera-ca.pem
+  galera-cert.pem.erb: certificates/galera-cert.pem
+  galera-key.pem.erb: certificates/galera-key.pem
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
   server-key.pem.erb: certificates/server-key.pem
