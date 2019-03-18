@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source /var/vcap/packages/cf-mysql-common/pid_utils.sh
+source /var/vcap/packages/pxc-utils/pid_utils.sh
 
 set -eu
 
@@ -27,8 +27,22 @@ regex="[0-9]+$"
 seq_no=$(cat /var/vcap/store/pxc-mysql/grastate.dat | grep 'seqno:')
 
 if [[ "$seq_no" = "seqno:   -1" ]]; then
-  /var/vcap/packages/pxc/bin/mysqld --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf --wsrep-recover
-  seq_no=$(grep "Recovered position" /var/vcap/sys/log/pxc-mysql/mysql.err.log | tail -1)
+  GALERA_SIDECAR_ENDPOINT=$(grep -A 2 SidecarEndpoint /var/vcap/jobs/galera-agent/config/galera-agent-config.yaml)
+  USERNAME="$(echo "$GALERA_SIDECAR_ENDPOINT" | grep Username | cut -d":" -f2 |  tr -d '[:space:]' )"
+  PASSWORD="$(echo "$GALERA_SIDECAR_ENDPOINT" | grep Password | cut -d":" -f2 |  tr -d '[:space:]' )"
+
+  set +e
+  SEQUENCE_NUMBER=$((curl -f -S -s http://$USERNAME:$PASSWORD@localhost:9200/sequence_number) 2>&1)
+  CURL_RESULT=$?
+  set -e
+
+  if  [[ $CURL_RESULT -ne 0 ]] ; then
+    echo "${bold}${red}There was an error: "
+    echo $SEQUENCE_NUMBER
+    echo "${normal}"
+  else
+    seq_no=$SEQUENCE_NUMBER
+  fi
 fi
 
 if [[ "$seq_no" =~ $regex ]]; then
