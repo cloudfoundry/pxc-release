@@ -35,7 +35,7 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
 [mysqld]
-server-id                       = <%= index %>
+server-id                       = <%= p('engine_config.server_id') %>
 ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/server-ca.pem
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
