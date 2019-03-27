@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source /var/vcap/packages/pxc-utils/pid_utils.sh
-
 set -eu
 
 # Nice output formatting
@@ -9,45 +7,48 @@ normal=$(tput sgr0)
 bold=$(tput bold)
 red=$(tput setaf 1)
 
-pid=""
-if [[ -f "/var/vcap/sys/run/pxc-mysql/mysql.pid" ]]; then
-  pid=$(head -1 "/var/vcap/sys/run/pxc-mysql/mysql.pid")
-fi
+#<% if_link('galera-agent') do |galera_agent| %>
 
-if [[ -n "${pid}" ]]; then
-  echo ""
-  echo -e "${bold}${red}\tCannot get sequence number while MySQL is running."
-  echo -e "\tRefer to documentation on how to shut down running instances.${normal}"
-  echo ""
-  exit 1
-fi
+function report_sequence_number {
+    if bpm pid pxc-mysql -p galera-init > /dev/null 2>&1; then
+      echo ""
+      echo -e "${bold}${red}\tCannot get sequence number while MySQL is running."
+      echo -e "\tRefer to documentation on how to shut down running instances.${normal}"
+      echo ""
+      return 1
+    fi
 
-regex="[0-9]+$"
+    cluster_uuid=$(awk '/uuid:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
+    seq_no=$(awk '/seqno:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
 
-seq_no=$(cat /var/vcap/store/pxc-mysql/grastate.dat | grep 'seqno:')
+    if [[ ${seq_no} == "-1" ]]; then
+      endpoint_port="<%= galera_agent.p('port') %>"
+      endpoint_user="<%= galera_agent.p('endpoint_username') %>"
+      endpoint_password="<%= galera_agent.p('endpoint_password') %>"
 
-if [[ "$seq_no" = "seqno:   -1" ]]; then
-  GALERA_SIDECAR_ENDPOINT=$(grep -A 2 SidecarEndpoint /var/vcap/jobs/galera-agent/config/galera-agent-config.yaml)
-  USERNAME="$(echo "$GALERA_SIDECAR_ENDPOINT" | grep Username | cut -d":" -f2 |  tr -d '[:space:]' )"
-  PASSWORD="$(echo "$GALERA_SIDECAR_ENDPOINT" | grep Password | cut -d":" -f2 |  tr -d '[:space:]' )"
 
-  set +e
-  SEQUENCE_NUMBER=$((curl -f -S -s http://$USERNAME:$PASSWORD@localhost:9200/sequence_number) 2>&1)
-  CURL_RESULT=$?
-  set -e
+      result=$(wget --content-on-error \
+                    -qO- \
+                    "http://${endpoint_user}:${endpoint_password}@localhost:${endpoint_port}/sequence_number") || rc=$?
 
-  if  [[ $CURL_RESULT -ne 0 ]] ; then
-    echo "${bold}${red}There was an error: "
-    echo $SEQUENCE_NUMBER
-    echo "${normal}"
-  else
-    seq_no=$SEQUENCE_NUMBER
-  fi
-fi
+      if [[ ${rc:-0} -ne 0 ]]; then
+        echo "${bold}${red}Failure obtaining sequence number: ${result}${normal}"
+        return 1
+      fi
 
-if [[ "$seq_no" =~ $regex ]]; then
-  instance_id=$(cat /var/vcap/instance/id)
-  json_output="{\"sequence_number\":${BASH_REMATCH},\"instance_id\":\"${instance_id}\"}";
-fi
+      seq_no="${result}"
+    fi
 
-echo ${json_output}
+    if [[ "$seq_no" =~ [0-9]+$ ]]; then
+      instance_id=$(</var/vcap/instance/id)
+      echo "{  \"cluster_uuid\": \"${cluster_uuid}\", \"seqno\": ${seq_no}, \"instance_id\": \"${instance_id}\" }"
+    else
+        echo "${bold}${red}Sequence number found does not appear to be a valid number: ${seq_no}${normal}"
+    fi
+}
+
+report_sequence_number
+# <% end.else do %>
+echo "${bold}${red}This does not appear to be a galera cluster.${normal}"
+exit 1
+# <% end %>
