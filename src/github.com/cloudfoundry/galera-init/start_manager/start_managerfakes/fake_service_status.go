@@ -2,9 +2,9 @@
 package start_managerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	start_manager "github.com/cloudfoundry/galera-init/start_manager"
+	"github.com/cloudfoundry/galera-init/start_manager"
 )
 
 type FakeServiceStatus struct {

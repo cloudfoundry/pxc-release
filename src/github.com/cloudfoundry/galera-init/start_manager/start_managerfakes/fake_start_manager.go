@@ -2,10 +2,10 @@
 package start_managerfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	start_manager "github.com/cloudfoundry/galera-init/start_manager"
+	"github.com/cloudfoundry/galera-init/start_manager"
 )
 
 type FakeStartManager struct {
