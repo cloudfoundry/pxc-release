@@ -12,7 +12,7 @@ templates:
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-init-config.yml.erb: config/galera-init-config.yml
   galera-key.pem.erb: certificates/galera-key.pem
-  get-sequence-number.sh: bin/get-sequence-number
+  get-sequence-number.sh.erb: bin/get-sequence-number
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
   pre-start.sh.erb: bin/pre-start

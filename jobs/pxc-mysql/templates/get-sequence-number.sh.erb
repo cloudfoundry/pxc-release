@@ -7,7 +7,7 @@ normal=$(tput sgr0)
 bold=$(tput bold)
 red=$(tput setaf 1)
 
-#<% if_link('galera-agent') do |galera_agent| %>
+<% if_link('galera-agent') do |galera_agent| %>
 
 function report_sequence_number {
     if bpm pid pxc-mysql -p galera-init > /dev/null 2>&1; then
@@ -48,7 +48,7 @@ function report_sequence_number {
 }
 
 report_sequence_number
-# <% end.else do %>
-echo "${bold}${red}This does not appear to be a galera cluster.${normal}"
+<% end.else do %>
+echo "${bold}${red}This tool only works with a Galera cluster with more than one node.${normal}"
 exit 1
-# <% end %>
+<% end %>
