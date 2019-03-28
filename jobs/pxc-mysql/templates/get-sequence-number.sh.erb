@@ -18,26 +18,22 @@ function report_sequence_number {
       return 1
     fi
 
-    cluster_uuid=$(awk '/uuid:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
-    seq_no=$(awk '/seqno:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
+		cluster_uuid=$(awk '/uuid:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
 
-    if [[ ${seq_no} == "-1" ]]; then
-      endpoint_port="<%= galera_agent.p('port') %>"
-      endpoint_user="<%= galera_agent.p('endpoint_username') %>"
-      endpoint_password="<%= galera_agent.p('endpoint_password') %>"
+		endpoint_port="9200"
+		endpoint_user="galera-agent"
+		endpoint_password="VDjiWXQbHFB2quc5mKcU1HtE9NwNNl"
 
+		result=$(wget --content-on-error \
+				-qO- \
+				"http://${endpoint_user}:${endpoint_password}@localhost:${endpoint_port}/sequence_number") || rc=$?
 
-      result=$(wget --content-on-error \
-                    -qO- \
-                    "http://${endpoint_user}:${endpoint_password}@localhost:${endpoint_port}/sequence_number") || rc=$?
+		if [[ ${rc:-0} -ne 0 ]]; then
+				echo "${bold}${red}Failure obtaining sequence number: ${result}${normal}"
+				return 1
+		fi
 
-      if [[ ${rc:-0} -ne 0 ]]; then
-        echo "${bold}${red}Failure obtaining sequence number: ${result}${normal}"
-        return 1
-      fi
-
-      seq_no="${result}"
-    fi
+		seq_no="${result}"
 
     if [[ "$seq_no" =~ [0-9]+$ ]]; then
       instance_id=$(</var/vcap/instance/id)
