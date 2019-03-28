@@ -64,7 +64,7 @@ func (m *mysqldCmd) RecoverSeqno() (string, error) {
 		m.logger.Debug(string(stdout))
 	}
 
-	seqNoRegex := `WSREP: Recovered position:.*:(\d+)`
+	seqNoRegex := `WSREP: Recovered position:.*:(-?\d+)`
 	re := regexp.MustCompile(seqNoRegex)
 	sequenceNumberLogLine := re.FindStringSubmatch(string(stderr))
 
