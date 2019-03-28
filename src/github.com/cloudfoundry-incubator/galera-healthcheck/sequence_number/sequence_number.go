@@ -35,7 +35,7 @@ func New(db *sql.DB,
 }
 
 func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
-	s.logger.Info("Checking sequence number of mariadb node...")
+	s.logger.Info("Checking sequence number of database node...")
 
 	if s.config.Monit.ServiceName == "garbd" {
 		return "no sequence number - running on arbitrator node", nil
