@@ -17,21 +17,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf-experimental/service-config"
 
 	"github.com/cloudfoundry/galera-init/config"
 	. "github.com/cloudfoundry/galera-init/integration_test/test_helpers"
 )
-
-var testConfig TestDBConfig
-
-type TestDBConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
-}
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -54,21 +43,6 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	serviceConfig := service_config.New()
-
-	//Use default options rather than throw error if env variables are blank
-	if os.Getenv("CONFIG") == "" && os.Getenv("CONFIG_PATH") == "" {
-		os.Setenv("CONFIG", "{}")
-	}
-
-	serviceConfig.AddDefaults(TestDBConfig{
-		Host:     "127.0.0.1",
-		Port:     3306,
-		User:     "root",
-		Password: "",
-	})
-	Expect(serviceConfig.Read(&testConfig)).To(Succeed())
-
 	log.SetOutput(GinkgoWriter)
 	mysql.SetLogger(log.New(GinkgoWriter, "[mysql] ", log.Ldate|log.Ltime|log.Lshortfile))
 
