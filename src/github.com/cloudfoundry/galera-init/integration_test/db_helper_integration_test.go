@@ -103,17 +103,17 @@ var _ = Describe("DB Helper", func() {
 				Password: testConfig.Password,
 				// Same user for multiple databases, and same database for multiple users
 				PreseededDatabases: []config.PreseededDatabase{
-					config.PreseededDatabase{
+					{
 						DBName:   databaseA,
 						User:     user0,
 						Password: "password0",
 					},
-					config.PreseededDatabase{
+					{
 						DBName:   databaseB,
 						User:     user0,
 						Password: "password0",
 					},
-					config.PreseededDatabase{
+					{
 						DBName:   databaseB,
 						User:     user1,
 						Password: "password1",
