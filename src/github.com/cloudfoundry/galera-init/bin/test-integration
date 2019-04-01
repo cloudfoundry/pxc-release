@@ -14,5 +14,5 @@ pushd "${PROJECT_DIR}"
   go vet $(go list ./... | grep -v /vendor/)
 
   echo -e "\nTesting packages..."
-  ginkgo -r -p -race -failOnPending -randomizeAllSpecs "$@" integration_test
+  ginkgo -r -race -failOnPending -randomizeAllSpecs "$@" integration_test
 popd
