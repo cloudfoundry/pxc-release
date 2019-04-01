@@ -3,21 +3,75 @@ package integration_test
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/galera-init/config"
-	"github.com/cloudfoundry/galera-init/db_helper"
-	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/go-sql-driver/mysql"
 	"github.com/nu7hatch/gouuid"
+
+	"github.com/cloudfoundry/galera-init/config"
+	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/integration_test/test_helpers"
+	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
+var testConfig TestDBConfig
+
+type TestDBConfig struct {
+	Host     string
+	User     string
+	Password string
+	DBName   string
+}
+
 var _ = Describe("DB Helper", func() {
+	var (
+		galeraNode *docker.Container
+		db         *sql.DB
+	)
+
+	BeforeEach(func() {
+		var err error
+		galeraNode, err = test_helpers.RunContainer(
+			dockerClient,
+			"mysql0."+sessionID,
+			test_helpers.WithImage(pxcDockerImage),
+			test_helpers.AddEnvVars(
+				"MYSQL_ALLOW_EMPTY_PASSWORD=1",
+				"CLUSTER_NAME=db-helper-cluster",
+			),
+			test_helpers.WithCmd("--pxc-strict-mode=MASTER"),
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		rootDsn := fmt.Sprintf("root@tcp(127.0.0.1:%s)/", test_helpers.HostPort(pxcMySQLPort, galeraNode))
+		db, err = sql.Open("mysql", rootDsn)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(db.Ping, "60s", "2s").Should(Succeed())
+
+		testConfig = TestDBConfig{
+			Host:     "127.0.0.1:" + test_helpers.HostPort(pxcMySQLPort, galeraNode),
+			User:     "root",
+			Password: "",
+			DBName:   "",
+		}
+
+		//override db connection to use test DB
+		db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
+			return sql.Open("mysql", rootDsn)
+		}
+	})
+
+	AfterEach(func() {
+		if galeraNode != nil {
+			Expect(test_helpers.RemoveContainer(dockerClient, galeraNode)).To(Succeed())
+		}
+	})
+
 	Describe("Seed", func() {
 		var (
 			helper     *db_helper.GaleraDBHelper
@@ -25,23 +79,16 @@ var _ = Describe("DB Helper", func() {
 			testLogger lagertest.TestLogger
 			logFile    string
 			dbConfig   *config.DBHelper
-			db         *sql.DB
 		)
 
 		var openDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
 			return sql.Open("mysql", fmt.Sprintf(
-				"%s:%s@tcp(%s:%d)/%s",
+				"%s:%s@tcp(%s)/%s",
 				testConfig.User,
 				testConfig.Password,
 				testConfig.Host,
-				testConfig.Port,
 				testConfig.DBName,
 			))
-		}
-
-		var openRootDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
-			testConfig.DBName = ""
-			return openDBConnection(testConfig)
 		}
 
 		BeforeEach(func() {
@@ -86,18 +133,6 @@ var _ = Describe("DB Helper", func() {
 				logFile,
 				testLogger,
 			)
-
-			//override db connection to use test DB
-			db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
-				return openRootDBConnection(testConfig)
-			}
-
-			var err error
-			db, err = openRootDBConnection(testConfig)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = db.Ping()
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -130,7 +165,6 @@ var _ = Describe("DB Helper", func() {
 					//check that user can login to DB
 					userDb, err := openDBConnection(TestDBConfig{
 						Host:     testConfig.Host,
-						Port:     testConfig.Port,
 						User:     preseededDB.User,
 						Password: preseededDB.Password,
 						DBName:   preseededDB.DBName,
@@ -205,24 +239,7 @@ var _ = Describe("DB Helper", func() {
 			testLogger lagertest.TestLogger
 			logFile    string
 			dbConfig   *config.DBHelper
-			db         *sql.DB
 		)
-
-		var openDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
-			return sql.Open("mysql", fmt.Sprintf(
-				"%s:%s@tcp(%s:%d)/%s",
-				testConfig.User,
-				testConfig.Password,
-				testConfig.Host,
-				testConfig.Port,
-				testConfig.DBName,
-			))
-		}
-
-		var openRootDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
-			testConfig.DBName = ""
-			return openDBConnection(testConfig)
-		}
 
 		var testDatabaseNames = func(db *sql.DB) []string {
 			rows, err := db.Query("SHOW DATABASES LIKE 'test%'")
@@ -254,18 +271,6 @@ var _ = Describe("DB Helper", func() {
 				logFile,
 				testLogger,
 			)
-
-			//override db connection to use test DB
-			db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
-				return openRootDBConnection(testConfig)
-			}
-
-			var err error
-			db, err = openRootDBConnection(testConfig)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = db.Ping()
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -294,7 +299,7 @@ var _ = Describe("DB Helper", func() {
 				_, err = db.Exec("CREATE TABLE IF NOT EXISTS foobar.foo (id int)")
 				Expect(err).NotTo(HaveOccurred())
 
-				createUserStatement := fmt.Sprintf("GRANT SELECT ON foobar.* TO 'new-user'@'%s' IDENTIFIED BY 'password'", testConfig.Host)
+				createUserStatement := `GRANT SELECT ON foobar.* TO 'new-user'@'%' IDENTIFIED BY 'password'`
 				_, err = db.Exec(createUserStatement)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -328,7 +333,7 @@ var _ = Describe("DB Helper", func() {
 					User:   "new-user",
 					Passwd: "password",
 					Net:    "tcp",
-					Addr:   testConfig.Host + ":" + strconv.Itoa(testConfig.Port),
+					Addr:   testConfig.Host,
 				}
 
 				newUserConn, err := sql.Open("mysql", cfg.FormatDSN())
