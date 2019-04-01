@@ -92,9 +92,9 @@ var _ = Describe("DB Helper", func() {
 		}
 
 		BeforeEach(func() {
-			// MySQL mandates usernames are <= 16 chars
-			user0 := getUUIDWithPrefix("GALERA_INIT")[:16]
-			user1 := getUUIDWithPrefix("GALERA_INIT")[:16]
+			// MySQL mandates usernames are <= 32 chars
+			user0 := getUUIDWithPrefix("GALERA_INIT")[:32]
+			user1 := getUUIDWithPrefix("GALERA_INIT")[:32]
 			databaseA := getUUIDWithPrefix("GALERA_INIT_DB")
 			databaseB := getUUIDWithPrefix("GALERA_INIT_DB")
 
