@@ -12,8 +12,5 @@ rm -rf "${RELEASE_DIR}/bin/ginkgo"
 go install -v github.com/onsi/ginkgo/ginkgo
 go get github.com/maxbrunsfeld/counterfeiter
 
-# Start mysql to run integration tests against
-mysqld_safe --character-set-server=utf8 --collation-server=utf8_unicode_ci &
-
 echo -e "\n>>>>>>>> Testing Galera Init Integration..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-integration" "$@"
