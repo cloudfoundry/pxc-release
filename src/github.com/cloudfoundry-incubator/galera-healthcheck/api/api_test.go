@@ -59,7 +59,6 @@ var _ = Describe("Sidecar API", func() {
 		stateSnapshotter.StateReturns(ExpectedStateSnapshot, nil)
 
 		testLogger := lagertest.NewTestLogger("mysql_cmd")
-		monitClient.GetLoggerReturns(testLogger)
 
 		testConfig := &config.Config{
 			SidecarEndpoint: config.SidecarEndpointConfig{
