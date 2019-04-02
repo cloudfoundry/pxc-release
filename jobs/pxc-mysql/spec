@@ -215,6 +215,9 @@ properties:
   engine_config.max_heap_table_size:
     description: 'The maximum size (in rows) to which user-created MEMORY tables are permitted to grow'
     default: 16777216
+  engine_config.read_write_permissions:
+    description: '#TODO'
+    default: read_write
   engine_config.server_id:
     description: 'In leader-follower topology, this value must be unique. In other words, the leader must have a different value than the follower and vice versa. If this is set to 0, then the server refuses any replication connections.'
     default: 0
