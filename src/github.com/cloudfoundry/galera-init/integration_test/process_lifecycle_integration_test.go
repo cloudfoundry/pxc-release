@@ -156,7 +156,7 @@ var _ = Describe("galera-init integration", func() {
 					return true, err
 				}
 				return container.State.Running, nil
-			}, "1m", "1s").ShouldNot(BeTrue())
+			}, "3m", "1s").ShouldNot(BeTrue())
 
 			Expect(container.State.ExitCode).ToNot(BeZero())
 
