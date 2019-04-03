@@ -9,7 +9,7 @@ red=$(tput setaf 1)
 
 <% if_link('galera-agent') do |galera_agent| %>
 
-function report_sequence_number {
+report_sequence_number() {
     if bpm pid pxc-mysql -p galera-init > /dev/null 2>&1; then
       echo ""
       echo -e "${bold}${red}\tCannot get sequence number while MySQL is running."
@@ -18,32 +18,34 @@ function report_sequence_number {
       return 1
     fi
 
-		cluster_uuid=$(awk '/uuid:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
+    cluster_uuid=$(awk '/uuid:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
 
-		endpoint_port="9200"
-		endpoint_user="galera-agent"
-		endpoint_password="VDjiWXQbHFB2quc5mKcU1HtE9NwNNl"
+    endpoint_port="9200"
+    endpoint_user="galera-agent"
+    endpoint_password="VDjiWXQbHFB2quc5mKcU1HtE9NwNNl"
 
-		result=$(wget --content-on-error \
-				-qO- \
-				"http://${endpoint_user}:${endpoint_password}@localhost:${endpoint_port}/sequence_number") || rc=$?
+    result=$(wget --content-on-error \
+        -qO- \
+        "http://${endpoint_user}:${endpoint_password}@localhost:${endpoint_port}/sequence_number") || rc=$?
 
-		if [[ ${rc:-0} -ne 0 ]]; then
-				echo "${bold}${red}Failure obtaining sequence number: ${result}${normal}"
-				return 1
-		fi
+    if [[ ${rc:-0} -ne 0 ]]; then
+      echo "${bold}${red}Failure obtaining sequence number!"
+      echo "Result was: [ ${result} ]${normal}"
+      return 1
+    fi
 
-		seq_no="${result}"
+    seq_no="${result}"
 
     if [[ "$seq_no" =~ [0-9]+$ ]]; then
       instance_id=$(</var/vcap/instance/id)
       echo "{  \"cluster_uuid\": \"${cluster_uuid}\", \"seqno\": ${seq_no}, \"instance_id\": \"${instance_id}\" }"
     else
-        echo "${bold}${red}Sequence number found does not appear to be a valid number: ${seq_no}${normal}"
+      echo "${bold}${red}Sequence number found does not appear to be a valid number: ${seq_no}${normal}"
     fi
 }
 
 report_sequence_number
+
 <% end.else do %>
 echo "${bold}${red}This tool only works with a Galera cluster with more than one node.${normal}"
 exit 1
