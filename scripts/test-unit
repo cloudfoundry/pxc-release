@@ -17,7 +17,6 @@ echo -e "\n>>>>>>>> Testing our bash scripts fatally..."
 # Remove and reinstall the ginkgo binary as it might be from the wrong target architecture
 rm -rf "${RELEASE_DIR}/bin/ginkgo"
 go install -v github.com/onsi/ginkgo/ginkgo
-go get github.com/maxbrunsfeld/counterfeiter
 
 echo -e "\n>>>>>>>> Testing Switchboard..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/switchboard/bin/test" "$@"
