@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -eux
 
-go generate $(go list ./... | grep -v /vendor/)
+go generate $(go list ./src/github.com/cloudfoundry/... ./src/github.com/cloudfoundry-incubator/... | grep -v /vendor/ )
