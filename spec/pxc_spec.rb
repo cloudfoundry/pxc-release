@@ -43,6 +43,12 @@ describe 'pxc mysql job' do
         expect(tpl_output).not_to include("read-only = ON")
         expect(tpl_output).not_to include("super-read-only = ON")
       end
+
+      it 'turns gtid_mode and enforce_gtid_consistency on' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).to include("gtid_mode = ON")
+        expect(tpl_output).to include("enforce_gtid_consistency = ON")
+      end
     end
 
     context 'when galera is enabled' do
@@ -74,6 +80,12 @@ describe 'pxc mysql job' do
         tpl_output = template.render(spec, consumes: links)
         expect(tpl_output).not_to include("read-only = ON")
         expect(tpl_output).not_to include("super-read-only = ON")
+      end
+
+      it 'keeps gtid_mode and enforce_gtid_consistency off' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).not_to include("gtid_mode = ON")
+        expect(tpl_output).not_to include("enforce_gtid_consistency = ON")
       end
     end
   end

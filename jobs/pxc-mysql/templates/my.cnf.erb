@@ -59,6 +59,8 @@ wsrep_replicate_myisam          = OFF
 wsrep_debug                     = <%= bool_to_on_off(p('engine_config.galera.wsrep_debug')) %>
 wsrep_log_conflicts             = <%= bool_to_on_off(p('engine_config.galera.wsrep_log_conflicts')) %>
 <% else %>
+gtid_mode = ON
+enforce_gtid_consistency = ON
   <% if_p('engine_config.read_write_permissions') do |prop| %>
     <% if prop == "super_read_only" %>
 super-read-only = ON
