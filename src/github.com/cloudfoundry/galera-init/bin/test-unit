@@ -11,7 +11,7 @@ pushd "${PROJECT_DIR}"
   go generate $(go list ./... | grep -v /vendor/)
 
   echo -e "\nVetting packages for potential issues..."
-  go vet -x $(go list ./... | grep -v /vendor/)
+  go vet $(go list ./... | grep -v /vendor/)
 
   echo -e "\nTesting packages..."
   ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage="integration_test" "$@" .
