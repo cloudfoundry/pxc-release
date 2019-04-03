@@ -156,6 +156,12 @@ max_connections                 = <%= p('engine_config.max_connections') %>
 # Event Scheduler
 event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
 
+master_info_repository          = TABLE
+relay_log_info_repository       = TABLE
+relay_log                       = mysql-relay
+relay_log_recovery              = 1
+master_verify_checksum          = 1
+
 <% if p('engine_config.audit_logs.enabled') %>
 plugin-load                     = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
