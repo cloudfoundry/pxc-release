@@ -20,9 +20,9 @@ report_sequence_number() {
 
     cluster_uuid=$(awk '/uuid:/ { print $2; }' /var/vcap/store/pxc-mysql/grastate.dat)
 
-    endpoint_port="9200"
-    endpoint_user="galera-agent"
-    endpoint_password="VDjiWXQbHFB2quc5mKcU1HtE9NwNNl"
+    endpoint_port=<%= galera_agent.p('port') %>
+    endpoint_user=<%= galera_agent.p('endpoint_username') %>
+    endpoint_password=<%= galera_agent.p('endpoint_password') %>
 
     result=$(wget --content-on-error \
         -qO- \
