@@ -19,6 +19,16 @@ SLOW_QUERY_LOG_FILE=${LOG_DIR}/mysql_slow_query.log
 source /var/vcap/packages/pxc-utils/logging.sh
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 
+shopt -s nullglob
+for script in /var/vcap/jobs/*/bin/disks/wait; do
+    $script
+    if [ $? -ne 0 ]; then
+        echo "failure"
+        exit 1
+    fi
+done
+shopt -u nullglob
+
 if [[ ! -d "${RUN_DIR}" ]]; then
   mkdir -p ${RUN_DIR}
 fi

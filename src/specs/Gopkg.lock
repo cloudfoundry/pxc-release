@@ -59,6 +59,14 @@
   revision = "c1f48d5ce4f292dfb775ef52aaedd15be323510d"
 
 [[projects]]
+  digest = "1:952e037909280841b38ee6d88a52d0aad6e742256b62fb6e3ead8176e8b3d792"
+  name = "github.com/cloudfoundry-incubator/cf-test-helpers"
+  packages = ["commandreporter"]
+  pruneopts = ""
+  revision = "a0c779441052fb945005396b04788d79a0d1947e"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:fa19a17599e0ff0ca7b00a53377fcd3933593255708b9fe275accbbf165cb066"
   name = "github.com/cloudfoundry/bosh-cli"
   packages = [
@@ -326,6 +334,7 @@
     "code.cloudfoundry.org/credhub-cli/credhub",
     "code.cloudfoundry.org/credhub-cli/credhub/auth",
     "code.cloudfoundry.org/socks5-proxy",
+    "github.com/cloudfoundry-incubator/cf-test-helpers/commandreporter",
     "github.com/cloudfoundry/bosh-cli/director",
     "github.com/cloudfoundry/bosh-cli/uaa",
     "github.com/cloudfoundry/bosh-utils/logger",
