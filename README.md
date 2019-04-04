@@ -119,6 +119,13 @@ After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-depl
 
 6. Scale back up to the recommended 3 nodes, if desired.
 
+## Notes
+
+* As of pxc 0.15.x, we implemented bpm support in the pxc-mysql job. bpm puts a hard time limit on monit stop operations
+ and will eventually SIGKILL all processes in the bpm container if mysql takes too long to shut down.
+When pxc-release is deployed in a Galera topology, this will cause the node to reinitialize via an SST operation. During
+ SST a node will remove its local data directory and replace it with data provided by another member of the cluster.
+
 <a name='contribution-guide'></a>
 # Contribution Guide
 
