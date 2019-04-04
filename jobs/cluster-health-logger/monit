@@ -1,7 +1,7 @@
 <% if link('mysql').p('pxc_enabled') == true %>
 check process cluster-health-logger
-  with pidfile /var/vcap/sys/run/cluster-health-logger/cluster_health_logger.pid
-  start program "/var/vcap/jobs/cluster-health-logger/bin/cluster_health_logger_ctl start"
-  stop program "/var/vcap/jobs/cluster-health-logger/bin/cluster_health_logger_ctl stop"
+  with pidfile /var/vcap/sys/run/bpm/cluster-health-logger/cluster-health-logger.pid
+  start program "/var/vcap/jobs/bpm/bin/bpm start cluster-health-logger" with timeout 60 seconds
+  stop program "/var/vcap/jobs/bpm/bin/bpm stop cluster-health-logger"
   group vcap
 <% end %>

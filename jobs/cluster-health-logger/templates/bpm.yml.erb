@@ -1,0 +1,9 @@
+---
+processes:
+- name: cluster-health-logger
+  executable: /var/vcap/packages/pxc-cluster-health-logger/bin/pxc-cluster-health-logger
+  args:
+  - -configPath=/var/vcap/jobs/cluster-health-logger/config/cluster_health_logger_config.yml
+  hooks:
+    pre_start: /var/vcap/jobs/cluster-health-logger/bin/setup
+
