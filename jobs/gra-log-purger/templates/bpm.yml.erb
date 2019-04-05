@@ -1,0 +1,12 @@
+---
+processes:
+- name: gra-log-purger
+  executable: /var/vcap/packages/pxc-gra-log-purger/bin/gra-log-purger
+  args:
+  - -graLogDir=/var/vcap/store/pxc-mysql
+  - -graLogDaysToKeep=30
+
+  additional_volumes:
+  - path: /var/vcap/store/pxc-mysql
+    writable: true
+

@@ -4,11 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -18,7 +16,6 @@ func main() {
 	var (
 		graLogDir        string
 		graLogDaysToKeep int
-		pidfile          string
 	)
 
 	flag.StringVar(&graLogDir,
@@ -33,12 +30,6 @@ func main() {
 		"Specifies the maximum age of the GRA log files allowed.",
 	)
 
-	flag.StringVar(&pidfile,
-		"pidfile",
-		"",
-		"The location for the pidfile",
-	)
-
 	flag.Parse()
 
 	if graLogDir == "" {
@@ -46,19 +37,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	if pidfile == "" {
-		logErrorWithTimestamp(fmt.Errorf("No pidfile supplied"))
-		os.Exit(1)
-	}
-
 	if graLogDaysToKeep < 0 {
 		logErrorWithTimestamp(fmt.Errorf("graLogDaysToKeep should be >= 0"))
 		os.Exit(1)
-	}
-
-	err := ioutil.WriteFile(pidfile, []byte(strconv.Itoa(os.Getpid())), 0644)
-	if err != nil {
-		panic(err)
 	}
 
 	sigCh := make(chan os.Signal, 1)
@@ -86,7 +67,6 @@ func main() {
 		select {
 		case sig := <-sigCh:
 			logWithTimestamp("%s", sig)
-			os.Remove(pidfile)
 			os.Exit(0)
 		case <-ticker.C:
 			cleanup()

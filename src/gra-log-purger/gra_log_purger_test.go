@@ -43,23 +43,9 @@ var _ = Describe("gra-log-purger", func() {
 		Expect(session.Err).To(gbytes.Say(`No gra log directory supplied`))
 	})
 
-	It("requires a pidfile option", func() {
-		cmd := exec.Command(
-			graLogPurgerBinPath,
-			"-graLogDir=some/path/to/datadir",
-		)
-		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-
-		Eventually(session).Should(gexec.Exit())
-		Expect(session.ExitCode()).NotTo(BeZero())
-		Expect(session.Err).To(gbytes.Say(`No pidfile supplied`))
-	})
-
 	It("validates graLogDaysToKeep is not less than 0", func() {
 		cmd := exec.Command(
 			graLogPurgerBinPath,
-			"-pidfile="+tempDir+"/gra-log-purger.pid",
 			"-graLogDir="+tempDir,
 			"-graLogDaysToKeep=-1",
 		)
@@ -69,30 +55,6 @@ var _ = Describe("gra-log-purger", func() {
 		Eventually(session).Should(gexec.Exit())
 		Expect(session.ExitCode()).NotTo(BeZero())
 		Expect(session.Err).To(gbytes.Say(`graLogDaysToKeep should be >= 0`))
-	})
-
-	It("manages pid-files", func() {
-		cmd := exec.Command(
-			graLogPurgerBinPath,
-			"-graLogDir="+tempDir,
-			"-pidfile="+tempDir+"/gra-log-purger.pid",
-		)
-		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("Creating a pid-file in the specified location", func() {
-			Eventually(func() string {
-				return tempDir + "/gra-log-purger.pid"
-			}, "1m").Should(BeARegularFile())
-		})
-
-		By("Removing the pid-file when terminated cleanly", func() {
-			session.Terminate()
-
-			Eventually(session).Should(gexec.Exit(0))
-
-			Expect(tempDir + "/gra-log-purger.pid").NotTo(BeAnExistingFile())
-		})
 	})
 
 	Context("when GRA log files exist in a directory", func() {
@@ -108,7 +70,6 @@ var _ = Describe("gra-log-purger", func() {
 				graLogPurgerBinPath,
 				"-graLogDir="+tempDir,
 				"-graLogDaysToKeep=1",
-				"-pidfile=/tmp/gra-log-purger.pid",
 			)
 			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
