@@ -11,9 +11,9 @@ processes:
     writable: true
   - path: /var/vcap/data/pxc-mysql
     writable: true
-  - path: /var/vcap/store/pxc-mysql
-    writable: true
   unsafe:
     unrestricted_volumes:
     - path: /var/vcap/jobs/pxc-mysql
       writable: false
+    - path: /var/vcap/store
+      writable: true
