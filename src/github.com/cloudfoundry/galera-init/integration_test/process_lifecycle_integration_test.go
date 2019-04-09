@@ -73,7 +73,7 @@ var _ = Describe("galera-init integration", func() {
 		It("will allow MySQL to cleanly shutdown on SIGTERM", func() {
 			Eventually(func() error {
 				return serviceStatus(galeraNode)
-			}, "1m", "1s").Should(Succeed())
+			}, "3m", "1s").Should(Succeed())
 
 			Expect(db.Ping()).To(Succeed(),
 				`Expected MySQL instance to be reachable, but it was not`,
@@ -90,7 +90,7 @@ var _ = Describe("galera-init integration", func() {
 					return false, err
 				}
 				return !container.State.Running, err
-			}, "1m", "1s").Should(BeTrue())
+			}, "3m", "1s").Should(BeTrue())
 
 			Expect(
 				FetchContainerFileContents(
@@ -105,7 +105,7 @@ var _ = Describe("galera-init integration", func() {
 			Eventually(
 				func() error {
 					return serviceStatus(galeraNode)
-				}, "1m", "1s").Should(Succeed())
+				}, "3m", "1s").Should(Succeed())
 
 			Expect(db.Ping()).To(Succeed())
 
@@ -201,7 +201,7 @@ var _ = Describe("galera-init integration", func() {
 			Eventually(
 				func() error {
 					return serviceStatus(galeraNode0)
-				}, "1m", "1s").Should(Succeed())
+				}, "3m", "1s").Should(Succeed())
 
 			node1Cfg := baseCfg
 			node1Cfg.Manager.BootstrapNode = false
@@ -226,7 +226,7 @@ var _ = Describe("galera-init integration", func() {
 			Eventually(
 				func() error {
 					return serviceStatus(galeraNode1)
-				}, "1m", "1s").Should(Succeed())
+				}, "3m", "1s").Should(Succeed())
 
 			db, err := ContainerDBConnection(galeraNode1, pxcMySQLPort)
 			Expect(err).NotTo(HaveOccurred())

@@ -51,7 +51,7 @@ var _ = Describe("DB Helper", func() {
 		rootDsn := fmt.Sprintf("root@tcp(127.0.0.1:%s)/", test_helpers.HostPort(pxcMySQLPort, galeraNode))
 		db, err = sql.Open("mysql", rootDsn)
 		Expect(err).NotTo(HaveOccurred())
-		Eventually(db.Ping, "60s", "2s").Should(Succeed())
+		Eventually(db.Ping, "3m", "2s").Should(Succeed())
 
 		testConfig = TestDBConfig{
 			Host:     "127.0.0.1:" + test_helpers.HostPort(pxcMySQLPort, galeraNode),
