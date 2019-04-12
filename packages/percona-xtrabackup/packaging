@@ -25,6 +25,7 @@ pushd percona-xtrabackup-*/
         -DBUILD_CONFIG=xtrabackup_release \
         -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
         -DWITH_BOOST=../boost_1_59_0/ \
+        -DINSTALL_MYSQLTESTDIR= \
         -DWITH_MAN_PAGES=OFF
     make -j "${NPROC}"
     make -j "${NPROC}" install
