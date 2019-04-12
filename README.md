@@ -10,12 +10,6 @@ This release is intended as a drop-in replacement for [cf-mysql-release](https:/
 
 ## Deployment Topology
 
-### Which Topology Should I Use?
-
-If you were previously using the `cf-mysql` release, we recommend using the `pxc-mysql` job. Even if you were deploying the `cf-mysql` release with only one node, this is probably the best choice for you. It will be relatively easy to migrate to, and the properties will mostly be familiar.
-
-If you are using pxc for creating deployments with alternative replication strategies like leader-follower, then the `mysql` job is for you.
-
 ### Galera Clustered Mysql Topology (`pxc-mysql` job)
 The `pxc-mysql` BOSH job runs mysql using Galera replication, across 1 or several nodes.
 
@@ -40,11 +34,6 @@ Traffic to the MySQL cluster is routed through one or more proxy nodes. The curr
 **NOTE:** If the number of proxy nodes is set to zero, apps will be bound to the IP address of the first MySQL node in the cluster. If that IP address should change for any reason (e.g. loss of a VM) or a proxy was subsequently added, one would need to re-bind all apps to the IP address of the new node.
 
 For more details see the [proxy documentation](/docs/proxy.md).
-
-
-### Non-Galera Mysql Topology (`mysql` job)
-
-The `mysql` BOSH job runs standard mysql 5.7 without Galera.
 
 <a name='deploying-new-deployments'></a>
 ## Deploying
