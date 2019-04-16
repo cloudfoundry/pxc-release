@@ -84,7 +84,7 @@ rm -f /etc/profile.d/disable_mysql_cli_history.sh
 ln -sf ${PXC_JOB_DIR}/config/disable_mysql_cli_history.sh /etc/profile.d/disable_mysql_cli_history.sh
 <% end %>
 
-ulimit -n <%= p('max_open_files') %>
+ulimit -n 1048576
 
 
 function check_mysql_disk_persistence() {

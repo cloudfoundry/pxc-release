@@ -6,5 +6,5 @@ processes:
     - --configPath=/var/vcap/jobs/proxy/config/proxy.yml
     - --logLevel=info
   limits:
-    open_files: <%= p('max_open_files') %>
+    open_files: 1048576
   ephemeral_disk: true

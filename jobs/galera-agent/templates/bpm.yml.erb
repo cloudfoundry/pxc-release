@@ -5,7 +5,7 @@ processes:
   args:
   - --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml
   limits:
-    open_files: <%= link('mysql').p('max_open_files') %> # HIGH Ulimit for SST of lots of tables (in case we run the bootstrap errand)
+    open_files: 1048576
   additional_volumes:
   - path: /var/vcap/sys/run/pxc-mysql
     writable: true

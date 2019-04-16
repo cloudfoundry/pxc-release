@@ -44,7 +44,6 @@ provides:
   type: mysql
   properties:
   - port
-  - max_open_files
   - pxc_enabled
 - name: internal-mysql-database
   type: internal-database
@@ -97,9 +96,6 @@ properties:
   cluster_probe_timeout:
     description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'
     default: 10
-  max_open_files:
-    description: 'Configure this number to be comfortably larger than the maximum number of tables you expect the database to support.'
-    default: 65536
   monit_startup_timeout:
     description: 'Number of seconds that monit should wait for mysql to start before giving up'
     default: 60
