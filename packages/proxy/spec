@@ -1,7 +1,7 @@
 ---
 name: proxy
 dependencies:
-  - golang-1.11-linux
+  - golang-1.12-linux
 files:
   - github.com/cloudfoundry-incubator/switchboard/static/**/* # static UI files
   - github.com/cloudfoundry-incubator/switchboard/**/*.go

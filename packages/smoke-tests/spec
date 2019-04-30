@@ -1,7 +1,7 @@
 ---
 name: smoke-tests
 dependencies:
-  - golang-1.11-linux
+  - golang-1.12-linux
 files:
   - specs/**/*
   - github.com/onsi/ginkgo/**/*
