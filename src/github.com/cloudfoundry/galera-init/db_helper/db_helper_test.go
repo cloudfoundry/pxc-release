@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -38,7 +39,10 @@ var _ = Describe("GaleraDBHelper", func() {
 		logFile    string
 		dbConfig   *config.DBHelper
 		fakeDB     *sql.DB
+		fakeDBSkipBinLogs     *sql.DB
 		mock       sqlmock.Sqlmock
+		mockSkipBinLogs       sqlmock.Sqlmock
+
 	)
 
 	BeforeEach(func() {
@@ -49,7 +53,10 @@ var _ = Describe("GaleraDBHelper", func() {
 
 		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
-		db_helper.OpenDBConnection = func(*config.DBHelper) (*sql.DB, error) {
+		db_helper.OpenDBConnection = func(dsn string) (*sql.DB, error) {
+			if strings.Contains(dsn, "SQL_LOG_BIN") {
+				return fakeDBSkipBinLogs, nil
+			}
 			return fakeDB, nil
 		}
 		db_helper.CloseDBConnection = func(*sql.DB) error {
@@ -57,7 +64,11 @@ var _ = Describe("GaleraDBHelper", func() {
 			return nil
 		}
 
-		db_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
+		fakeDBSkipBinLogs, mockSkipBinLogs, err = sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+
+
+		db_helper.BuildSeeder = func(db, dbSkipBinLogs *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
 			return fakeSeeder
 		}
 
@@ -75,6 +86,7 @@ var _ = Describe("GaleraDBHelper", func() {
 			UpgradePath: "/mysql_upgrade",
 			User:        "user",
 			Password:    "password",
+			Socket:      "/tmp/mysql.sock",
 			PreseededDatabases: []config.PreseededDatabase{
 				config.PreseededDatabase{
 					DBName:   "DB1",
@@ -102,6 +114,21 @@ var _ = Describe("GaleraDBHelper", func() {
 
 	AfterEach(func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
+	})
+
+	Describe("Construct DSN", func(){
+		When("Skip binlogs is set", func(){
+			It("generate a DSN that contains SQL_LOG_BIN = 0", func(){
+				Expect(helper.ConstructDSN(dbConfig, true)).To(Equal("user:password@unix(/tmp/mysql.sock)/?SQL_LOG_BIN=0"))
+			})
+		})
+		When("Skip binlogs is not set", func(){
+			It("generates a regular DSN", func(){
+				Expect(helper.ConstructDSN(dbConfig, false)).To(Equal("user:password@unix(/tmp/mysql.sock)/"))
+
+			})
+		})
+
 	})
 
 	Describe("StartMysqldForUpgrade", func() {
@@ -288,12 +315,13 @@ var _ = Describe("GaleraDBHelper", func() {
 	})
 
 	Describe("Seed", func() {
+
 		Context("when there are pre-seeded databases", func() {
 			Context("if the users already exist", func() {
 				BeforeEach(func() {
 					fakeSeeder.IsExistingUserReturns(true, nil)
 
-					mock.ExpectExec("FLUSH PRIVILEGES").
+					mockSkipBinLogs.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 				})
@@ -313,7 +341,7 @@ var _ = Describe("GaleraDBHelper", func() {
 				BeforeEach(func() {
 					fakeSeeder.IsExistingUserReturns(false, nil)
 
-					mock.ExpectExec("FLUSH PRIVILEGES").
+					mockSkipBinLogs.ExpectExec("FLUSH PRIVILEGES").
 						WithArgs().
 						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 				})

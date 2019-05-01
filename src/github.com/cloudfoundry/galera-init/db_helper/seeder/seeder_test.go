@@ -2,10 +2,10 @@ package seeder_test
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/cloudfoundry/galera-init/config"
 	s "github.com/cloudfoundry/galera-init/db_helper/seeder"
@@ -15,17 +15,20 @@ import (
 
 var _ = Describe("Seeder", func() {
 	var (
-		testLogger lagertest.TestLogger
-		dbConfig   config.PreseededDatabase
-		fakeDB     *sql.DB
-		seeder     s.Seeder
-		mock       sqlmock.Sqlmock
+		testLogger       lagertest.TestLogger
+		dbConfig         config.PreseededDatabase
+		fakeDB           *sql.DB
+		fakeDBSkipBinlog *sql.DB
+		seeder           s.Seeder
+		mock             sqlmock.Sqlmock
+		mockSkipBinlog   sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
 		var err error
 		testLogger = *lagertest.NewTestLogger("seeder")
 		fakeDB, mock, err = sqlmock.New()
+		fakeDBSkipBinlog, mockSkipBinlog, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
 
 		dbConfig = config.PreseededDatabase{
@@ -38,6 +41,7 @@ var _ = Describe("Seeder", func() {
 	JustBeforeEach(func() {
 		seeder = s.NewSeeder(
 			fakeDB,
+			fakeDBSkipBinlog,
 			dbConfig,
 			testLogger,
 		)
@@ -45,6 +49,7 @@ var _ = Describe("Seeder", func() {
 
 	AfterEach(func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
+		Expect(mockSkipBinlog.ExpectationsWereMet()).To(Succeed())
 	})
 
 	const lastInsertId = -1
@@ -94,7 +99,7 @@ var _ = Describe("Seeder", func() {
 				expectedRow := sqlmock.NewRows([]string{"User"}).
 					AddRow(dbConfig.User)
 
-				mock.ExpectQuery(selectUserQuery).
+				mockSkipBinlog.ExpectQuery(selectUserQuery).
 					WithArgs().
 					WillReturnRows(expectedRow)
 
@@ -108,7 +113,7 @@ var _ = Describe("Seeder", func() {
 			It("returns false", func() {
 				noExpectedRow := sqlmock.NewRows([]string{"User"})
 
-				mock.ExpectQuery(selectUserQuery).
+				mockSkipBinlog.ExpectQuery(selectUserQuery).
 					WithArgs().
 					WillReturnRows(noExpectedRow)
 
@@ -120,7 +125,7 @@ var _ = Describe("Seeder", func() {
 
 		Context("determining if the user exists returns an error", func() {
 			It("returns the error", func() {
-				mock.ExpectQuery(selectUserQuery).
+				mockSkipBinlog.ExpectQuery(selectUserQuery).
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 
@@ -142,7 +147,7 @@ var _ = Describe("Seeder", func() {
 		})
 
 		It("creates the user", func() {
-			mock.ExpectExec(createUserExec).
+			mockSkipBinlog.ExpectExec(createUserExec).
 				WithArgs().
 				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
@@ -151,7 +156,7 @@ var _ = Describe("Seeder", func() {
 
 		Context("when creating the user returns an error", func() {
 			It("bubbles the error up", func() {
-				mock.ExpectExec(createUserExec).
+				mockSkipBinlog.ExpectExec(createUserExec).
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 
@@ -173,7 +178,7 @@ var _ = Describe("Seeder", func() {
 		})
 
 		It("updates the user with the new password", func() {
-			mock.ExpectExec(updateUserExec).
+			mockSkipBinlog.ExpectExec(updateUserExec).
 				WithArgs().
 				WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
 
@@ -182,7 +187,7 @@ var _ = Describe("Seeder", func() {
 
 		Context("when updating the user returns an error", func() {
 			It("bubbles the error up", func() {
-				mock.ExpectExec(updateUserExec).
+				mockSkipBinlog.ExpectExec(updateUserExec).
 					WithArgs().
 					WillReturnError(fmt.Errorf("some error"))
 
@@ -205,8 +210,8 @@ var _ = Describe("Seeder", func() {
 		})
 
 		It("grants them all privileges and then revokes LOCK TABLES", func() {
-			mock.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
-			mock.ExpectExec(revokePrivilegesExec).WillReturnResult(sqlmock.NewResult(0, 0))
+			mockSkipBinlog.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
+			mockSkipBinlog.ExpectExec(revokePrivilegesExec).WillReturnResult(sqlmock.NewResult(0, 0))
 
 			Expect(seeder.GrantUserPrivileges()).To(Succeed())
 		})
@@ -214,7 +219,7 @@ var _ = Describe("Seeder", func() {
 		It("returns an error if granting privileges errors", func() {
 			err := errors.New("error")
 
-			mock.ExpectExec(grantAllExec).WillReturnError(err)
+			mockSkipBinlog.ExpectExec(grantAllExec).WillReturnError(err)
 
 			Expect(seeder.GrantUserPrivileges()).To(MatchError(err))
 		})
@@ -222,8 +227,8 @@ var _ = Describe("Seeder", func() {
 		It("returns an error if revoking LOCK TABLES privileges errors", func() {
 			err := errors.New("error")
 
-			mock.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
-			mock.ExpectExec(revokePrivilegesExec).WillReturnError(err)
+			mockSkipBinlog.ExpectExec(grantAllExec).WillReturnResult(sqlmock.NewResult(0, 0))
+			mockSkipBinlog.ExpectExec(revokePrivilegesExec).WillReturnError(err)
 
 			Expect(seeder.GrantUserPrivileges()).To(MatchError(err))
 		})
