@@ -20,18 +20,18 @@ type Seeder interface {
 }
 
 type seeder struct {
-	db     *sql.DB
+	db            *sql.DB
 	dbSkipBinLogs *sql.DB
-	config config.PreseededDatabase
-	logger lager.Logger
+	config        config.PreseededDatabase
+	logger        lager.Logger
 }
 
 func NewSeeder(db *sql.DB, dbSkipBinLogs *sql.DB, config config.PreseededDatabase, logger lager.Logger) Seeder {
 	return &seeder{
-		db:     db,
+		db:            db,
 		dbSkipBinLogs: dbSkipBinLogs,
-		config: config,
-		logger: logger,
+		config:        config,
+		logger:        logger,
 	}
 }
 

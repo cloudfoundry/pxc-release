@@ -32,17 +32,16 @@ var _ = Describe("GaleraDBHelper", func() {
 	)
 
 	var (
-		helper     *db_helper.GaleraDBHelper
-		fakeOs     *os_helperfakes.FakeOsHelper
-		fakeSeeder *seederfakes.FakeSeeder
-		testLogger lagertest.TestLogger
-		logFile    string
-		dbConfig   *config.DBHelper
-		fakeDB     *sql.DB
-		fakeDBSkipBinLogs     *sql.DB
-		mock       sqlmock.Sqlmock
-		mockSkipBinLogs       sqlmock.Sqlmock
-
+		helper            *db_helper.GaleraDBHelper
+		fakeOs            *os_helperfakes.FakeOsHelper
+		fakeSeeder        *seederfakes.FakeSeeder
+		testLogger        lagertest.TestLogger
+		logFile           string
+		dbConfig          *config.DBHelper
+		fakeDB            *sql.DB
+		fakeDBSkipBinLogs *sql.DB
+		mock              sqlmock.Sqlmock
+		mockSkipBinLogs   sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
@@ -66,7 +65,6 @@ var _ = Describe("GaleraDBHelper", func() {
 
 		fakeDBSkipBinLogs, mockSkipBinLogs, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
-
 
 		db_helper.BuildSeeder = func(db, dbSkipBinLogs *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
 			return fakeSeeder
@@ -116,14 +114,14 @@ var _ = Describe("GaleraDBHelper", func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
-	Describe("Construct DSN", func(){
-		When("Skip binlogs is set", func(){
-			It("generate a DSN that contains SQL_LOG_BIN = 0", func(){
+	Describe("Construct DSN", func() {
+		When("Skip binlogs is set", func() {
+			It("generate a DSN that contains SQL_LOG_BIN = 0", func() {
 				Expect(helper.ConstructDSN(dbConfig, true)).To(Equal("user:password@unix(/tmp/mysql.sock)/?SQL_LOG_BIN=0"))
 			})
 		})
-		When("Skip binlogs is not set", func(){
-			It("generates a regular DSN", func(){
+		When("Skip binlogs is not set", func() {
+			It("generates a regular DSN", func() {
 				Expect(helper.ConstructDSN(dbConfig, false)).To(Equal("user:password@unix(/tmp/mysql.sock)/"))
 
 			})
