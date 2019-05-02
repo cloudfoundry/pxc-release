@@ -1,3 +1,4 @@
+SET SESSION SQL_LOG_BIN = 0;
 <%
   if p('remote_admin_access')
     hosts = ['%']
@@ -57,3 +58,4 @@ DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 <% end %>
 
 FLUSH PRIVILEGES;
+SET SESSION SQL_LOG_BIN = 1;
