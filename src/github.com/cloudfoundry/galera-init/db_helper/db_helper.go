@@ -51,39 +51,26 @@ func NewDBHelper(
 	}
 }
 
-var BuildSeeder = func(db, dbSkipBinLogs *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
-	return s.NewSeeder(db, dbSkipBinLogs, config, logger)
+var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
+	return s.NewSeeder(db, config, logger)
 }
 
 // Overridable methods to allow mocking DB connections in tests
-var OpenDBConnection = func(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
-}
-
-var CloseDBConnection = func(db *sql.DB) error {
-	return db.Close()
-}
-
-func (m GaleraDBHelper) ConstructDSN(config *config.DBHelper, skipBinLogs bool) string {
-	params := map[string]string{}
-	if skipBinLogs {
-		params = map[string]string{
-			"SQL_LOG_BIN": "0",
-		}
-	}
-
+var OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 	c := mysql.Config{
 		User:   config.User,
 		Passwd: config.Password,
 		Net:    "unix",
 		Addr:   config.Socket,
-		Params: params,
 	}
-	return c.FormatDSN()
+	db, err := sql.Open("mysql", c.FormatDSN())
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+var CloseDBConnection = func(db *sql.DB) error {
+	return db.Close()
 }
 
 func (m GaleraDBHelper) IsProcessRunning() bool {
@@ -163,7 +150,7 @@ func (m GaleraDBHelper) Upgrade() (output string, err error) {
 func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
 
-	db, err := OpenDBConnection(m.ConstructDSN(m.config, false))
+	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Info("database not reachable", lager.Data{"err": err})
 		return false
@@ -206,24 +193,15 @@ func (m GaleraDBHelper) Seed() error {
 
 	m.logger.Info("Preseeding Databases")
 
-	db, err := OpenDBConnection(m.ConstructDSN(m.config, false))
+	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Error("database not reachable", err)
 		return err
 	}
-
 	defer CloseDBConnection(db)
 
-	dbSkipBinLogs, err := OpenDBConnection(m.ConstructDSN(m.config, true))
-	if err != nil {
-		m.logger.Error("database not reachable", err)
-		return err
-	}
-
-	defer CloseDBConnection(dbSkipBinLogs)
-
 	for _, dbToCreate := range m.config.PreseededDatabases {
-		seeder := BuildSeeder(db, dbSkipBinLogs, dbToCreate, m.logger)
+		seeder := BuildSeeder(db, dbToCreate, m.logger)
 
 		if err := seeder.CreateDBIfNeeded(); err != nil {
 			return err
@@ -268,7 +246,7 @@ func (m GaleraDBHelper) flushPrivileges(db *sql.DB) error {
 func (m GaleraDBHelper) RunPostStartSQL() error {
 	m.logger.Info("Running Post Start SQL Queries")
 
-	db, err := OpenDBConnection(m.ConstructDSN(m.config, false))
+	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		m.logger.Error("database not reachable", err)
 		return err
@@ -293,7 +271,7 @@ func (m GaleraDBHelper) RunPostStartSQL() error {
 }
 
 func (m GaleraDBHelper) TestDatabaseCleanup() error {
-	db, err := OpenDBConnection(m.ConstructDSN(m.config, false))
+	db, err := OpenDBConnection(m.config)
 	if err != nil {
 		panic("")
 	}

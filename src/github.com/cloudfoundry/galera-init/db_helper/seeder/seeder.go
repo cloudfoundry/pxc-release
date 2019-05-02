@@ -1,8 +1,9 @@
 package seeder
 
 import (
-	"database/sql"
 	"fmt"
+
+	"database/sql"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry/galera-init/config"
@@ -20,18 +21,16 @@ type Seeder interface {
 }
 
 type seeder struct {
-	db            *sql.DB
-	dbSkipBinLogs *sql.DB
-	config        config.PreseededDatabase
-	logger        lager.Logger
+	db     *sql.DB
+	config config.PreseededDatabase
+	logger lager.Logger
 }
 
-func NewSeeder(db *sql.DB, dbSkipBinLogs *sql.DB, config config.PreseededDatabase, logger lager.Logger) Seeder {
+func NewSeeder(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) Seeder {
 	return &seeder{
-		db:            db,
-		dbSkipBinLogs: dbSkipBinLogs,
-		config:        config,
-		logger:        logger,
+		db:     db,
+		config: config,
+		logger: logger,
 	}
 }
 
@@ -45,7 +44,7 @@ func (s seeder) CreateDBIfNeeded() error {
 }
 
 func (s seeder) IsExistingUser() (bool, error) {
-	rows, err := s.dbSkipBinLogs.Query(fmt.Sprintf(
+	rows, err := s.db.Query(fmt.Sprintf(
 		"SELECT User FROM mysql.user WHERE User = '%s'",
 		s.config.User))
 	if err != nil {
@@ -59,7 +58,7 @@ func (s seeder) IsExistingUser() (bool, error) {
 }
 
 func (s seeder) CreateUser() error {
-	_, err := s.dbSkipBinLogs.Exec(fmt.Sprintf(
+	_, err := s.db.Exec(fmt.Sprintf(
 		"CREATE USER `%s` IDENTIFIED BY '%s'",
 		s.config.User,
 		s.config.Password))
@@ -73,7 +72,7 @@ func (s seeder) CreateUser() error {
 }
 
 func (s seeder) UpdateUser() error {
-	_, err := s.dbSkipBinLogs.Exec(fmt.Sprintf(
+	_, err := s.db.Exec(fmt.Sprintf(
 		"SET PASSWORD FOR `%s` = PASSWORD('%s')",
 		s.config.User,
 		s.config.Password,
@@ -88,7 +87,7 @@ func (s seeder) UpdateUser() error {
 }
 
 func (s seeder) GrantUserPrivileges() error {
-	_, err := s.dbSkipBinLogs.Exec(fmt.Sprintf(
+	_, err := s.db.Exec(fmt.Sprintf(
 		"GRANT ALL ON `%s`.* TO '%s'@'%%'",
 		s.config.DBName,
 		s.config.User))
@@ -100,7 +99,7 @@ func (s seeder) GrantUserPrivileges() error {
 		return err
 	}
 
-	_, err = s.dbSkipBinLogs.Exec(fmt.Sprintf(
+	_, err = s.db.Exec(fmt.Sprintf(
 		"REVOKE LOCK TABLES ON `%s`.* FROM '%s'@'%%'",
 		s.config.DBName,
 		s.config.User,
