@@ -61,7 +61,7 @@ var _ = Describe("DB Helper", func() {
 		}
 
 		//override db connection to use test DB
-		db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
+		db_helper.OpenDBConnection = func(string) (*sql.DB, error) {
 			return sql.Open("mysql", rootDsn)
 		}
 	})
@@ -80,16 +80,6 @@ var _ = Describe("DB Helper", func() {
 			logFile    string
 			dbConfig   *config.DBHelper
 		)
-
-		var openDBConnection = func(testConfig TestDBConfig) (*sql.DB, error) {
-			return sql.Open("mysql", fmt.Sprintf(
-				"%s:%s@tcp(%s)/%s",
-				testConfig.User,
-				testConfig.Password,
-				testConfig.Host,
-				testConfig.DBName,
-			))
-		}
 
 		BeforeEach(func() {
 			// MySQL mandates usernames are <= 32 chars
@@ -163,12 +153,14 @@ var _ = Describe("DB Helper", func() {
 					Expect(dbRows.Next()).To(BeTrue(), fmt.Sprintf("Expected DB to exist: %s", preseededDB.DBName))
 
 					//check that user can login to DB
-					userDb, err := openDBConnection(TestDBConfig{
-						Host:     testConfig.Host,
-						User:     preseededDB.User,
-						Password: preseededDB.Password,
-						DBName:   preseededDB.DBName,
-					})
+					userDb, err := sql.Open("mysql", fmt.Sprintf(
+						"%s:%s@tcp(%s)/%s",
+						preseededDB.User,
+						preseededDB.Password,
+						testConfig.Host,
+						preseededDB.DBName,
+					))
+
 					Expect(err).NotTo(HaveOccurred())
 					defer userDb.Close()
 
@@ -265,6 +257,14 @@ var _ = Describe("DB Helper", func() {
 			testLogger = *lagertest.NewTestLogger("db_helper")
 			logFile = "/log-file.log"
 
+			dbConfig = &config.DBHelper{
+				User:     testConfig.User,
+				Password: testConfig.Password,
+			}
+
+		})
+
+		JustBeforeEach(func() {
 			helper = db_helper.NewDBHelper(
 				fakeOs,
 				dbConfig,
