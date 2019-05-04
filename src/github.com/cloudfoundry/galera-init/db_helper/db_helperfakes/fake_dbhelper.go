@@ -89,16 +89,6 @@ type FakeDBHelper struct {
 	stopMysqldMutex       sync.RWMutex
 	stopMysqldArgsForCall []struct {
 	}
-	TestDatabaseCleanupStub        func() error
-	testDatabaseCleanupMutex       sync.RWMutex
-	testDatabaseCleanupArgsForCall []struct {
-	}
-	testDatabaseCleanupReturns struct {
-		result1 error
-	}
-	testDatabaseCleanupReturnsOnCall map[int]struct {
-		result1 error
-	}
 	UpgradeStub        func() (string, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
@@ -511,58 +501,6 @@ func (fake *FakeDBHelper) StopMysqldCalls(stub func()) {
 	fake.StopMysqldStub = stub
 }
 
-func (fake *FakeDBHelper) TestDatabaseCleanup() error {
-	fake.testDatabaseCleanupMutex.Lock()
-	ret, specificReturn := fake.testDatabaseCleanupReturnsOnCall[len(fake.testDatabaseCleanupArgsForCall)]
-	fake.testDatabaseCleanupArgsForCall = append(fake.testDatabaseCleanupArgsForCall, struct {
-	}{})
-	fake.recordInvocation("TestDatabaseCleanup", []interface{}{})
-	fake.testDatabaseCleanupMutex.Unlock()
-	if fake.TestDatabaseCleanupStub != nil {
-		return fake.TestDatabaseCleanupStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.testDatabaseCleanupReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeDBHelper) TestDatabaseCleanupCallCount() int {
-	fake.testDatabaseCleanupMutex.RLock()
-	defer fake.testDatabaseCleanupMutex.RUnlock()
-	return len(fake.testDatabaseCleanupArgsForCall)
-}
-
-func (fake *FakeDBHelper) TestDatabaseCleanupCalls(stub func() error) {
-	fake.testDatabaseCleanupMutex.Lock()
-	defer fake.testDatabaseCleanupMutex.Unlock()
-	fake.TestDatabaseCleanupStub = stub
-}
-
-func (fake *FakeDBHelper) TestDatabaseCleanupReturns(result1 error) {
-	fake.testDatabaseCleanupMutex.Lock()
-	defer fake.testDatabaseCleanupMutex.Unlock()
-	fake.TestDatabaseCleanupStub = nil
-	fake.testDatabaseCleanupReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) TestDatabaseCleanupReturnsOnCall(i int, result1 error) {
-	fake.testDatabaseCleanupMutex.Lock()
-	defer fake.testDatabaseCleanupMutex.Unlock()
-	fake.TestDatabaseCleanupStub = nil
-	if fake.testDatabaseCleanupReturnsOnCall == nil {
-		fake.testDatabaseCleanupReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.testDatabaseCleanupReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeDBHelper) Upgrade() (string, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
@@ -637,8 +575,6 @@ func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	defer fake.startMysqldInJoinMutex.RUnlock()
 	fake.stopMysqldMutex.RLock()
 	defer fake.stopMysqldMutex.RUnlock()
-	fake.testDatabaseCleanupMutex.RLock()
-	defer fake.testDatabaseCleanupMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

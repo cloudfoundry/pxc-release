@@ -52,10 +52,6 @@ var _ = Describe("Starter", func() {
 		Expect(fakeDBHelper.RunPostStartSQLCallCount()).To(BeNumerically(">=", 1))
 	}
 
-	ensureTestDatabaseCleanup := func() {
-		Expect(fakeDBHelper.TestDatabaseCleanupCallCount()).To(Equal(1))
-	}
-
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_helperfakes.FakeOsHelper)
@@ -104,7 +100,6 @@ var _ = Describe("Starter", func() {
 				ensureBootstrap()
 				ensureSeedDatabases()
 				ensureRunPostStartSQLs()
-				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
 
@@ -150,7 +145,6 @@ var _ = Describe("Starter", func() {
 					ensureBootstrap()
 					ensureSeedDatabases()
 					ensureRunPostStartSQLs()
-					ensureTestDatabaseCleanup()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 				})
 
@@ -195,7 +189,6 @@ var _ = Describe("Starter", func() {
 					ensureJoin()
 					ensureSeedDatabases()
 					ensureRunPostStartSQLs()
-					ensureTestDatabaseCleanup()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
 				})
 			})
@@ -213,7 +206,6 @@ var _ = Describe("Starter", func() {
 				ensureJoin()
 				ensureSeedDatabases()
 				ensureRunPostStartSQLs()
-				ensureTestDatabaseCleanup()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
 			})
 		})
@@ -304,18 +296,6 @@ var _ = Describe("Starter", func() {
 					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("post start sql failed"))
-				})
-			})
-
-			Context("when running test database cleanup fails", func() {
-				BeforeEach(func() {
-					fakeDBHelper.TestDatabaseCleanupReturns(errors.New("test database cleanup failed"))
-				})
-
-				It("forwards the error", func() {
-					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("test database cleanup failed"))
 				})
 			})
 		})

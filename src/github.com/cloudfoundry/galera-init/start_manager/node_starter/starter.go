@@ -98,11 +98,6 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		return "", nil, err
 	}
 
-	err = s.runTestDatabaseCleanup()
-	if err != nil {
-		return "", nil, err
-	}
-
 	return newNodeState, mysqldChan, nil
 }
 
@@ -189,18 +184,5 @@ func (s *starter) runPostStartSQL() error {
 	}
 
 	s.logger.Info("Post start sql succeeded.")
-	return nil
-}
-
-func (s *starter) runTestDatabaseCleanup() error {
-	err := s.dbHelper.TestDatabaseCleanup()
-	if err != nil {
-		s.logger.Info("There was a problem cleaning up test databases", lager.Data{
-			"errMessage": err.Error(),
-		})
-		return err
-	}
-
-	s.logger.Info("Test database cleanup succeeded.")
 	return nil
 }

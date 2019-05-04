@@ -27,7 +27,6 @@ type DBHelper interface {
 	IsProcessRunning() bool
 	Seed() error
 	RunPostStartSQL() error
-	TestDatabaseCleanup() error
 }
 
 type GaleraDBHelper struct {
@@ -264,95 +263,6 @@ func (m GaleraDBHelper) RunPostStartSQL() error {
 				return err
 			}
 
-		}
-	}
-
-	return nil
-}
-
-func (m GaleraDBHelper) TestDatabaseCleanup() error {
-	db, err := OpenDBConnection(m.config)
-	if err != nil {
-		panic("")
-	}
-	defer CloseDBConnection(db)
-
-	err = m.deletePermissionsToCreateTestDatabases(db)
-	if err != nil {
-		return err
-	}
-
-	err = m.flushPrivileges(db)
-	if err != nil {
-		return err
-	}
-
-	names, err := m.testDatabaseNames(db)
-	if err != nil {
-		return err
-	}
-
-	return m.dropDatabasesNamed(db, names)
-}
-
-func (m GaleraDBHelper) deletePermissionsToCreateTestDatabases(db *sql.DB) error {
-	_, err := db.Exec(`DELETE FROM mysql.db WHERE Db IN('test', 'test\_%')`)
-	if err != nil {
-		m.logger.Error("error deleting permissions for test databases", err)
-		return err
-	}
-
-	return nil
-}
-
-func (m GaleraDBHelper) testDatabaseNames(db *sql.DB) ([]string, error) {
-	var allTestDatabaseNames []string
-	testDatabaseNames, err := m.showDatabaseNamesLike("test", db)
-	if err != nil {
-		m.logger.Error("error searching for 'test' databases", err)
-		return nil, err
-	}
-	allTestDatabaseNames = append(allTestDatabaseNames, testDatabaseNames...)
-
-	testUnderscoreDatabaseNames, err := m.showDatabaseNamesLike(`test\_%`, db)
-	if err != nil {
-		m.logger.Error("error searching for 'test_%' databases", err)
-		return nil, err
-	}
-	allTestDatabaseNames = append(allTestDatabaseNames, testUnderscoreDatabaseNames...)
-	return allTestDatabaseNames, nil
-}
-
-func (m GaleraDBHelper) showDatabaseNamesLike(pattern string, db *sql.DB) ([]string, error) {
-	rows, err := db.Query(fmt.Sprintf("SHOW DATABASES LIKE '%s'", pattern))
-	if err != nil {
-		return nil, err
-	}
-
-	var dbNames []string
-	defer rows.Close()
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return nil, err
-		}
-
-		dbNames = append(dbNames, name)
-	}
-	err = rows.Err() // get any error encountered during iteration
-	if err != nil {
-		return nil, err
-	}
-
-	return dbNames, nil
-}
-
-func (m GaleraDBHelper) dropDatabasesNamed(db *sql.DB, names []string) error {
-	for _, n := range names {
-		_, err := db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", n))
-		if err != nil {
-			return err
 		}
 	}
 
