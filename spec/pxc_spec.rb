@@ -87,6 +87,30 @@ describe 'pxc mysql job' do
         expect(tpl_output).not_to include("gtid_mode = ON")
         expect(tpl_output).not_to include("enforce_gtid_consistency = ON")
       end
+
+      it 'defaults Galera applier threads to 1' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).to match(/wsrep_slave_threads\s+= 1/)
+      end
+
+      context 'engine_config.galera.wsrep_applier_threads is explicitly configured' do
+            let(:spec) {{
+              "admin_username" => "foo",
+              "admin_password" => "bar",
+              "engine_config" => {
+                "galera" => {
+                  "enabled" => true,
+                  "wsrep_applier_threads" => 32
+                }
+              }
+            }}
+
+          it 'configures wsrep_slave_threads to that value' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).to match(/wsrep_slave_threads\s+= 32/)
+          end
+      end
+
     end
   end
 end

@@ -256,3 +256,6 @@ properties:
   engine_config.galera.wsrep_max_ws_size:
     description: 'Maximum permitted size in bytes per writeset.'
     default: 1073741824
+  engine_config.galera.wsrep_applier_threads:
+      description: 'Defines the number of threads to use when applying replicated write-sets.'
+      default: 1

@@ -20,3 +20,7 @@ This is a guide to help you understand which properties are worth your attention
 
 ## Performance
 
+- `engine_config.galera.wsrep_applier_threads` may configured to increase the number of Galera replication applier
+  threads.  Values greater than 1 may improve improve replication performance for some workloads. For more information,
+  see the
+  [Percona XtraDB Cluster Documentation](https://www.percona.com/doc/percona-xtradb-cluster/LATEST/wsrep-system-index.html#wsrep_slave_threads)
