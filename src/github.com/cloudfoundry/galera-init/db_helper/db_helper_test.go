@@ -385,4 +385,31 @@ var _ = Describe("GaleraDBHelper", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	Describe("FormatDSN", func() {
+		Context("When SkipBinlog is enabled", func() {
+			It("formats a connection string with binlogging disabled", func() {
+				config := config.DBHelper{
+					Password:   "some-password",
+					SkipBinlog: true,
+					Socket:     "/some/socket/path.sock",
+					User:       "some-user",
+				}
+
+				Expect(db_helper.FormatDSN(config)).To(Equal(`some-user:some-password@unix(/some/socket/path.sock)/?sql_log_bin=off`))
+			})
+		})
+
+		Context("When SkipBinlog is not enabled", func() {
+			It("formats a connection string without binlogging disabled", func() {
+				config := config.DBHelper{
+					Password: "some-password",
+					Socket:   "/some/socket/path.sock",
+					User:     "some-user",
+				}
+
+				Expect(db_helper.FormatDSN(config)).To(Equal(`some-user:some-password@unix(/some/socket/path.sock)/`))
+			})
+		})
+	})
 })

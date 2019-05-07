@@ -54,18 +54,29 @@ var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager
 	return s.NewSeeder(db, config, logger)
 }
 
-// Overridable methods to allow mocking DB connections in tests
-var OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
-	c := mysql.Config{
+func FormatDSN(config config.DBHelper) string {
+	connectorConfig := mysql.Config{
 		User:   config.User,
 		Passwd: config.Password,
 		Net:    "unix",
 		Addr:   config.Socket,
 	}
-	db, err := sql.Open("mysql", c.FormatDSN())
+	if config.SkipBinlog {
+		connectorConfig.Params = map[string]string{
+			"sql_log_bin": "off",
+		}
+	}
+
+	return connectorConfig.FormatDSN()
+}
+
+// Overridable methods to allow mocking DB connections in tests
+var OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
+	db, err := sql.Open("mysql", FormatDSN(*config))
 	if err != nil {
 		return nil, err
 	}
+
 	return db, nil
 }
 var CloseDBConnection = func(db *sql.DB) error {

@@ -61,7 +61,7 @@ var _ = Describe("DB Helper", func() {
 		}
 
 		//override db connection to use test DB
-		db_helper.OpenDBConnection = func(string) (*sql.DB, error) {
+		db_helper.OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
 			return sql.Open("mysql", rootDsn)
 		}
 	})

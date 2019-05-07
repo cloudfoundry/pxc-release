@@ -2,9 +2,12 @@ package node_starter_test
 
 import (
 	"errors"
+	"io/ioutil"
+	"os"
 	"os/exec"
 
 	"code.cloudfoundry.org/lager/lagertest"
+
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
@@ -13,8 +16,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
-	"os"
 )
 
 var _ = Describe("Starter", func() {

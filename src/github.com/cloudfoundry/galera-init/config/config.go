@@ -20,12 +20,13 @@ type Config struct {
 }
 
 type DBHelper struct {
+	Password           string              `yaml:"Password"`
+	PostStartSQLFiles  []string            `yaml:"PostStartSQLFiles"`
+	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
+	SkipBinlog         bool                `yaml:"SkipBinlog"`
+	Socket             string              `yaml:"Socket"`
 	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
 	User               string              `yaml:"User" validate:"nonzero"`
-	Password           string              `yaml:"Password"`
-	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
-	PostStartSQLFiles  []string            `yaml:"PostStartSQLFiles"`
-	Socket             string              `yaml:"Socket"`
 }
 
 type StartManager struct {
