@@ -1,4 +1,4 @@
-package tls_test
+package mtls_test
 
 import (
 	"database/sql"
@@ -18,6 +18,7 @@ func TestTls(t *testing.T) {
 
 var (
 	mysqlConn *sql.DB
+	ProxyHost string
 )
 
 var _ = BeforeSuite(func() {
@@ -42,7 +43,7 @@ var _ = BeforeSuite(func() {
 	mysqlUsername := "root"
 	mysqlPassword, err := helpers.GetMySQLAdminPassword()
 	Expect(err).NotTo(HaveOccurred())
-	firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+	ProxyHost, err = helpers.FirstProxyHost(helpers.BoshDeployment)
 	Expect(err).NotTo(HaveOccurred())
-	mysqlConn = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, firstProxy)
+	mysqlConn = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, ProxyHost)
 })

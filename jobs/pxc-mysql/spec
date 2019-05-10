@@ -5,6 +5,10 @@ templates:
   audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
   bpm.yml.erb: config/bpm.yml
   cleanup-socket.sh.erb: bin/cleanup-socket
+  client-ca.pem.erb: certificates/client-ca.pem
+  client-cert.pem.erb: certificates/client-cert.pem
+  client-key.pem.erb: certificates/client-key.pem
+
   db_init.erb: config/db_init
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
   drain.sh.erb: bin/drain
@@ -116,9 +120,22 @@ properties:
   # TLS Config
   tls.galera:
     description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'
+
   tls.server:
     description: 'Required. TLS certificate for client-server encryption'
 
+  tls.client.ca:
+    description: |
+        Optional. Certificate bundle that defines the set of root certificate authorities that MySQL instances in this
+        deployment will use to verify client certificates
+  tls.client.certificate:
+    description: |
+        Optional. Client certificate used when this MySQL instance establishes a connection to another remote MySQL
+        instance.
+  tls.client.private_key:
+    description: |
+        Optional. Client private key used when this MySQL instance establishes a connection to another remote MySQL
+        instance.
 
   # Log Config
   engine_config.audit_logs.enabled:

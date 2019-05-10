@@ -1,6 +1,7 @@
 package test_helpers
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
 
@@ -28,6 +29,20 @@ func NewCredhubClient() (*credhub.CredHub, error) {
 
 func credhubKey(name string) string {
 	return fmt.Sprintf("%s/%s/%s", BoshCredhubPrefix, os.Getenv("BOSH_DEPLOYMENT"), name)
+}
+
+func GetDeploymentCertificateByName(name string) (tls.Certificate, error) {
+	client, err := NewCredhubClient()
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	cert, err := client.GetLatestCertificate(credhubKey(name))
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	return tls.X509KeyPair([]byte(cert.Value.Certificate), []byte(cert.Value.PrivateKey))
 }
 
 func GetMySQLAdminPassword() (string, error) {

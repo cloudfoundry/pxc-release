@@ -152,6 +152,14 @@
   version = "v1.3"
 
 [[projects]]
+  digest = "1:ad92aa49f34cbc3546063c7eb2cabb55ee2278b72842eda80e2a20a8a06a8d73"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = ""
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:8c7fb7f81c06add10a17362abc1ae569ff9765a26c061c6b6e67c909f4f414db"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
@@ -356,6 +364,7 @@
     "github.com/cloudfoundry/bosh-cli/uaa",
     "github.com/cloudfoundry/bosh-utils/logger",
     "github.com/go-sql-driver/mysql",
+    "github.com/google/uuid",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/gexec",
