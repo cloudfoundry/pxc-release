@@ -36,6 +36,14 @@
   revision = "3659db090cb23a57807b53e2f8580b2427dc2659"
 
 [[projects]]
+  branch = "master"
+  digest = "1:40d5dc9e1fdceb1640f25f9cc14a603de101ec322977b234f7657d7fc2aec833"
+  name = "code.cloudfoundry.org/tlsconfig"
+  packages = ["certtest"]
+  pruneopts = ""
+  revision = "eb9396db5a718d9d9a3c5ee0af6baafa56e5e76b"
+
+[[projects]]
   digest = "1:8c27f2c4ff0e25af380552e3a51dab287e24c7fe8e62cb8b6dc7fbe3f343bd5b"
   name = "github.com/bmatcuk/doublestar"
   packages = ["."]
@@ -242,6 +250,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:ea92eae2f65a7b4fa3c64e57d2e834cf613b13ae61febe0e174bde9bba230151"
+  name = "github.com/square/certstrap"
+  packages = ["pkix"]
+  pruneopts = ""
+  revision = "350df15b3713d535548735ea754726228b00c742"
+
+[[projects]]
   digest = "1:4de6ae63e66731f7112372a9256049df9b95035bf8a350e34116af6cd32e5fac"
   name = "github.com/vito/go-interact"
   packages = [
@@ -334,6 +350,7 @@
     "code.cloudfoundry.org/credhub-cli/credhub",
     "code.cloudfoundry.org/credhub-cli/credhub/auth",
     "code.cloudfoundry.org/socks5-proxy",
+    "code.cloudfoundry.org/tlsconfig/certtest",
     "github.com/cloudfoundry-incubator/cf-test-helpers/commandreporter",
     "github.com/cloudfoundry/bosh-cli/director",
     "github.com/cloudfoundry/bosh-cli/uaa",
