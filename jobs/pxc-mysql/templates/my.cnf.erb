@@ -36,7 +36,9 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 
 [mysqld]
 server-id                       = <%= p('engine_config.server_id') %>
-ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/server-ca.pem
+<%- if_p('tls.client.ca') do -%>
+ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
+<%- end -%>
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 

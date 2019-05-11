@@ -25,7 +25,7 @@ func DbSetup(db *sql.DB, tableName string) string {
 
 func DbConnWithUser(mysqlUsername, mysqlPassword, mysqlHost string) *sql.DB {
 	pxcConnectionString := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/?tls=skip-verify",
+		"%s:%s@tcp(%s:%d)/?tls=skip-verify&interpolateParams=true",
 		mysqlUsername,
 		mysqlPassword,
 		mysqlHost,
