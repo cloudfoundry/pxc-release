@@ -27,6 +27,12 @@ for script in /var/vcap/jobs/*/bin/disks/wait; do
         exit 1
     fi
 done
+
+if [ -f /var/vcap/jobs/bosh-dns/bin/wait ]; then
+  echo "waiting for bosh_dns"
+  /var/vcap/jobs/bosh-dns/bin/wait
+fi
+
 shopt -u nullglob
 
 if [[ ! -d "${RUN_DIR}" ]]; then
