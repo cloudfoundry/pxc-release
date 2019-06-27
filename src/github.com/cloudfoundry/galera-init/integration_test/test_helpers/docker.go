@@ -35,7 +35,7 @@ func HardKillMySQL(dockerClient *docker.Client, container *docker.Container) (*E
 		Cmd: []string{
 			"bash",
 			"-c",
-			"kill -9 $(pidof mysqld)",
+			"pkill --signal 9 mysqld",
 		},
 		AttachStdout: true,
 		AttachStderr: true,

@@ -25,7 +25,7 @@ var _ = Describe("galera-init integration", func() {
 				UpgradePath:        "mysql_upgrade",
 				User:               "root",
 				PreseededDatabases: nil,
-				Socket:             "/var/run/mysqld/mysqld.sock",
+				Socket:             "/var/lib/mysql/mysql.sock",
 			},
 			Manager: config.StartManager{
 				GaleraInitStatusServerAddress: "0.0.0.0:" + galeraInitStatusPort.Port(),
