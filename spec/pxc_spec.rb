@@ -49,6 +49,11 @@ describe 'pxc mysql job' do
         expect(tpl_output).to include("gtid_mode = ON")
         expect(tpl_output).to include("enforce_gtid_consistency = ON")
       end
+
+      it 'uses the sync binlog setting of 1 to sync to disk immediately' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).to match(/sync_binlog[\s]*=[\s]*1/)
+      end
     end
 
     context 'when galera is enabled' do
@@ -91,6 +96,11 @@ describe 'pxc mysql job' do
       it 'defaults Galera applier threads to 1' do
         tpl_output = template.render(spec, consumes: links)
         expect(tpl_output).to match(/wsrep_slave_threads\s+= 1/)
+      end
+
+      it 'allows mysql to default to the sync binlog setting of 0 which does not sync to disk immediately' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).not_to include("sync_binlog")
       end
 
       context 'engine_config.galera.wsrep_applier_threads is explicitly configured' do
