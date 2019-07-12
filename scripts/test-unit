@@ -36,3 +36,8 @@ echo -e "\n>>>>>>>> Testing Cluster Health Logger..."
 
 echo -e "\n>>>>>>>> Testing Migrate To PXC..."
 "${RELEASE_DIR}/src/migrate-to-pxc/bin/test" "$@"
+
+pushd ${RELEASE_DIR}/spec
+  bundle install
+  bundle exec rspec ./
+popd
