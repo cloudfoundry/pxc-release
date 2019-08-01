@@ -3,36 +3,6 @@ function pid_is_running() {
   ps -p "${pid}" >/dev/null 2>&1
 }
 
-# pid_guard
-#
-# @param pidfile
-# @param name [String] an arbitrary name that might show up in STDOUT on errors
-#
-# Run this before attempting to start new processes that may use the same :pidfile:.
-# If an old process is running on the pid found in the :pidfile:, exit 1. Otherwise,
-# remove the stale :pidfile: if it exists.
-#
-function pid_guard() {
-  declare pidfile="$1" name="$2"
-
-  echo "------------ STARTING $(basename "$0") at $(date) --------------" | tee /dev/stderr
-
-  if [ ! -f "${pidfile}" ]; then
-    return 0
-  fi
-
-  local pid
-  pid=$(head -1 "${pidfile}")
-
-  if pid_is_running "${pid}"; then
-    echo "${name} is already running, please stop it first"
-    exit 1
-  fi
-
-  echo "Removing stale pidfile"
-  rm "${pidfile}"
-}
-
 # wait_pid_death
 #
 # @param pid
@@ -118,42 +88,6 @@ function kill_and_wait() {
     echo "Stopped"
     rm -f "${pidfile}"
     return 0
-  fi
-}
-
-# Check the syntax of a sudoers file.
-check_sudoers() {
-  /usr/sbin/visudo -c -f "$1"
-}
-
-# Check the syntax of a sudoers file and if it's ok install it.
-install_sudoers() {
-  src="$1"
-  dest="$2"
-
-  check_sudoers "$src"
-
-  if [ $? -eq 0 ]; then
-    chown root:root "$src"
-    chmod 0440 "$src"
-    cp -p "$src" "$dest"
-  else
-    echo "Syntax error in sudoers file $src"
-    exit 1
-  fi
-}
-
-# Add a line to a file if it is not already there.
-file_must_include() {
-  file="$1"
-  line="$2"
-
-  # Protect against empty $file so it doesn't wait for input on stdin.
-  if [ -n "$file" ]; then
-    grep --quiet "$line" "$file" || echo "$line" >> "$file"
-  else
-    echo 'File name is required'
-    exit 1
   fi
 }
 
