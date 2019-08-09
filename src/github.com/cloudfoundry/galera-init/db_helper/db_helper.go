@@ -172,27 +172,29 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 		value  string
 	)
 
-	err = db.QueryRow(`SHOW GLOBAL VARIABLES LIKE 'wsrep\_on'`).Scan(&unused, &value)
+	err = db.QueryRow(`SHOW GLOBAL VARIABLES LIKE 'wsrep\_provider'`).Scan(&unused, &value)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
 			return true
 		}
+		m.logger.Debug(fmt.Sprintf("Could not connect to database, received: %v", err))
 		return false
 	}
 
-	if value == "OFF" {
+	if value == "none" {
 		m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
 		return true
 	}
 
-	err = db.QueryRow(`SHOW STATUS LIKE 'wsrep\_ready'`).Scan(&unused, &value)
+	err = db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value)
 	if err != nil {
+		m.logger.Debug(fmt.Sprintf("Galera state not Synced, received: %v", err))
 		return false
 	}
 
-	m.logger.Info(fmt.Sprintf("Database is reachable, Galera is %s", value))
-	return value == "ON"
+	m.logger.Info(fmt.Sprintf("Galera Database state is %s", value))
+	return value == "Synced"
 }
 
 func (m GaleraDBHelper) Seed() error {
