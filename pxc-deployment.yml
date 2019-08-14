@@ -6,12 +6,6 @@ releases:
 - name: bpm
   version: latest
 
-addons:
-- name: bpm
-  jobs:
-  - name: bpm
-    release: bpm
-
 instance_groups:
 - name: mysql
   instances: 1
@@ -34,6 +28,8 @@ instance_groups:
       db_password: ((smoke_tests_db_password))
   - name: smoke-tests-user
     release: pxc
+  - name: bpm
+    release: bpm
 
 stemcells:
 - alias: default
