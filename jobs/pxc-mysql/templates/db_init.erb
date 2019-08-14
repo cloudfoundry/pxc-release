@@ -1,3 +1,4 @@
+SET SESSION SQL_LOG_BIN = 0;
 <%
   if p('remote_admin_access')
     hosts = ['%']
@@ -27,6 +28,12 @@ DROP USER IF EXISTS 'root'@'<%= host %>';
   <% end %>
 <% end %>
 
+<% if_p('mysql_backup_password') do |password| %>
+CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
+ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED BY '<%= password %>';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
+<% end %>
+
 <% hosts.each do |host| %>
 CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
 SET PASSWORD FOR '<%= p('admin_username') %>'@'<%= host %>' = PASSWORD('<%= p('admin_password') %>');
@@ -51,3 +58,4 @@ DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 <% end %>
 
 FLUSH PRIVILEGES;
+SET SESSION SQL_LOG_BIN = 1;

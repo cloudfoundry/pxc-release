@@ -1,0 +1,10 @@
+---
+processes:
+- name: proxy
+  executable: /var/vcap/packages/proxy/bin/proxy
+  args:
+    - --configPath=/var/vcap/jobs/proxy/config/proxy.yml
+    - --logLevel=info
+  limits:
+    open_files: 1048576
+  ephemeral_disk: true

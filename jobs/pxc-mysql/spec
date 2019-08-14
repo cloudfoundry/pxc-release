@@ -2,20 +2,25 @@
 name: pxc-mysql
 
 templates:
-  disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
   audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
+  bpm.yml.erb: config/bpm.yml
+  cleanup-socket.sh.erb: bin/cleanup-socket
+  client-ca.pem.erb: certificates/client-ca.pem
+  client-cert.pem.erb: certificates/client-cert.pem
+  client-key.pem.erb: certificates/client-key.pem
+
   db_init.erb: config/db_init
+  disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
   drain.sh.erb: bin/drain
-  galera-init-config.yml.erb: config/galera-init-config.yml
-  my.cnf.erb: config/my.cnf
-  mylogin.cnf.erb: config/mylogin.cnf
-  pxc-ctl.erb: bin/pxc-ctl
-  pxc-sudoers: config/pxc-sudoers
-  pre-start.sh.erb: bin/pre-start
-  pre-start-execution.sh.erb: bin/pre-start-execution
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
+  galera-init-config.yml.erb: config/galera-init-config.yml
   galera-key.pem.erb: certificates/galera-key.pem
+  get-sequence-number.sh.erb: bin/get-sequence-number
+  my.cnf.erb: config/my.cnf
+  mylogin.cnf.erb: config/mylogin.cnf
+  pre-start.sh.erb: bin/pre-start
+  pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
   server-key.pem.erb: certificates/server-key.pem
@@ -43,10 +48,15 @@ provides:
   type: mysql
   properties:
   - port
-  - max_open_files
   - pxc_enabled
 - name: internal-mysql-database
   type: internal-database
+- name: mysql-backup-user-creds
+  type: mysql-backup-user-creds
+  properties:
+  - mysql_backup_username
+  - mysql_backup_password
+  - mysql_socket
 
 properties:
 
@@ -73,15 +83,23 @@ properties:
     description: 'Required when roadmin_enabled is true. Password for the MySQL server read-only admin user.'
 
 
+  # Backup User
+  mysql_backup_username:
+    description: 'Optional. Username for mysql-backup user'
+    default: 'mysql-backup'
+  mysql_backup_password:
+    description: 'Optional. Password for mysql-backup user'
+
+  mysql_socket:
+    description: Location of the mysql socket for connecting locally
+    default: '/var/vcap/sys/run/pxc-mysql/mysqld.sock'
+
   cli_history:
     description: 'When set to false, disables cli history on the mysql vms.'
     default: true
   cluster_probe_timeout:
     description: 'The maximum time, in seconds, that a new node will search for an existing cluster.'
     default: 10
-  max_open_files:
-    description: 'Configure this number to be comfortably larger than the maximum number of tables you expect the database to support.'
-    default: 65536
   monit_startup_timeout:
     description: 'Number of seconds that monit should wait for mysql to start before giving up'
     default: 60
@@ -99,13 +117,25 @@ properties:
         username: user2
         password: pw2
 
-
   # TLS Config
   tls.galera:
     description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'
+
   tls.server:
     description: 'Required. TLS certificate for client-server encryption'
 
+  tls.client.ca:
+    description: |
+        Optional. Certificate bundle that defines the set of root certificate authorities that MySQL instances in this
+        deployment will use to verify client certificates
+  tls.client.certificate:
+    description: |
+        Optional. Client certificate used when this MySQL instance establishes a connection to another remote MySQL
+        instance.
+  tls.client.private_key:
+    description: |
+        Optional. Client private key used when this MySQL instance establishes a connection to another remote MySQL
+        instance.
 
   # Log Config
   engine_config.audit_logs.enabled:
@@ -198,6 +228,12 @@ properties:
   engine_config.max_heap_table_size:
     description: 'The maximum size (in rows) to which user-created MEMORY tables are permitted to grow'
     default: 16777216
+  engine_config.read_write_permissions:
+    description: "Specify the database server's read/write setting. For single-node deployments, valid options are `read_write`, `read_only`, or `super_read_only`. The setting must be `read_write` for Galera clusters."
+    default: read_write
+  engine_config.server_id:
+    description: 'In leader-follower topology, this value must be unique. In other words, the leader must have a different value than the follower and vice versa. If this is set to 0, then the server refuses any replication connections.'
+    default: 0
   engine_config.table_definition_cache:
     description: 'Set this to a number relative to the number of tables the server will manage.'
     default: 8192
@@ -237,3 +273,6 @@ properties:
   engine_config.galera.wsrep_max_ws_size:
     description: 'Maximum permitted size in bytes per writeset.'
     default: 1073741824
+  engine_config.galera.wsrep_applier_threads:
+      description: 'Defines the number of threads to use when applying replicated write-sets.'
+      default: 1

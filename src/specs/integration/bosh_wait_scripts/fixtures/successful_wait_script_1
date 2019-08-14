@@ -1,0 +1,14 @@
+#!/bin/bash
+
+sleep 10
+
+grep max-error-count /var/vcap/jobs/pxc-mysql/config/my.cnf
+
+if [ $? -eq 0 ]; then
+  sed -i 's/max-error-count =.*/max-error-count = 123/' /var/vcap/jobs/pxc-mysql/config/my.cnf
+else
+  echo "[mysqld]" >> /var/vcap/jobs/pxc-mysql/config/my.cnf
+  echo "max-error-count = 123" >> /var/vcap/jobs/pxc-mysql/config/my.cnf
+fi
+
+exit 0

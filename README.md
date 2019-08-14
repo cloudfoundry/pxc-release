@@ -1,6 +1,6 @@
 # pxc-release
 
-Alpha Percona Xtradb Cluster release **Only for limited production use**
+Percona Xtradb Cluster release ~~**Only for limited production use**~~
 
 pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster).
 This release is intended as a drop-in replacement for [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release).
@@ -9,12 +9,6 @@ This release is intended as a drop-in replacement for [cf-mysql-release](https:/
 # Deploying
 
 ## Deployment Topology
-
-### Which Topology Should I Use?
-
-If you were previously using the `cf-mysql` release, we recommend using the `pxc-mysql` job. Even if you were deploying the `cf-mysql` release with only one node, this is probably the best choice for you. It will be relatively easy to migrate to, and the properties will mostly be familiar.
-
-If you are using pxc for creating deployments with alternative replication strategies like leader-follower, then the `mysql` job is for you.
 
 ### Galera Clustered Mysql Topology (`pxc-mysql` job)
 The `pxc-mysql` BOSH job runs mysql using Galera replication, across 1 or several nodes.
@@ -41,16 +35,11 @@ Traffic to the MySQL cluster is routed through one or more proxy nodes. The curr
 
 For more details see the [proxy documentation](/docs/proxy.md).
 
-
-### Non-Galera Mysql Topology (`mysql` job)
-
-The `mysql` BOSH job runs standard mysql 5.7 without Galera.
-
 <a name='deploying-new-deployments'></a>
 ## Deploying
 <a name='deploying-with-cf-deployment'></a>
 ### Deploying CF with pxc-release (using the clustered topology)
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/use-pxc.yml` ops file.
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `use-pxc.yml` ops file.
 
 <a name='deploying-clustered></a>
 ### Deploying pxc-release clustered
@@ -79,9 +68,11 @@ Requirements:
 
 <a name='migrating-with-cf-deployment'></a>
 ### Migrating CF with pxc-release
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `experimental/migrate-cf-mysql-to-pxc.yml` ops file. (Currently in a PR here: https://github.com/cloudfoundry/cf-deployment/pull/453/files soon to be widely available) It is advisable to take a backup first.
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `migrate-cf-mysql-to-pxc.yml` ops file. It is advisable to take a backup first.
+  - ⚠️ `migrate-cf-mysql-to-pxc.yml` will scale down a cluster to a single node. This is required for migration. Be sure to re-set to the appropriate number of instances when switching to `use-pxc.yml` subsequently.
 
 The ops file will trigger the same migration procedure described in [Using PXC release with other deployments](#migrating-with-non-cf-deployments)
+  - If your cf-deployment uses CredHub, be sure to also include the [secure-service-credentials-with-pxc-release.yml](https://github.com/cloudfoundry/cf-deployment/blob/master/operations/experimental/secure-service-credentials-with-pxc-release.yml) ops file.
 
 After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-deployment) docs for your next deploy.
 
@@ -116,6 +107,13 @@ After migrating, use the [Deploying CF with pxc-release](#deploying-with-cf-depl
    * Deploy only the `pxc-release` and not the `cf-mysql-release` in future deployments per [Deploying new deployments](#deploying-new-deployments), to free up disk space used by the `cf-mysql-release`.
 
 6. Scale back up to the recommended 3 nodes, if desired.
+
+## Notes
+
+* As of pxc 0.15.x, we implemented bpm support in the pxc-mysql job. bpm puts a hard time limit on monit stop operations
+ and will eventually SIGKILL all processes in the bpm container if mysql takes too long to shut down.
+When pxc-release is deployed in a Galera topology, this will cause the node to reinitialize via an SST operation. During
+ SST a node will remove its local data directory and replace it with data provided by another member of the cluster.
 
 <a name='contribution-guide'></a>
 # Contribution Guide

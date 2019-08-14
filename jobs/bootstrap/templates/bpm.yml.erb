@@ -1,0 +1,6 @@
+---
+processes:
+- name: bootstrap
+  executable: /var/vcap/packages/bootstrap/bin/cf-mysql-bootstrap
+  args:
+  - -configPath=/var/vcap/jobs/bootstrap/config/config.yml

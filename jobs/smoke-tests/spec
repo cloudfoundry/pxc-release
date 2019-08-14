@@ -4,7 +4,9 @@ packages:
 - smoke-tests
 
 templates:
-  errand.sh.erb: bin/run
+  errand.sh: bin/run
+  bpm.yml.erb: config/bpm.yml
+  run-smoke-test.sh.erb: bin/run-smoke-test
 
 provides:
 - name: smoke_tests

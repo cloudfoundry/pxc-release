@@ -1,7 +1,7 @@
 <% if link('mysql').p('pxc_enabled') == true %>
 check process galera-agent
-  with pidfile /var/vcap/sys/run/galera-agent/galera-agent.pid
-  start program "/var/vcap/jobs/galera-agent/bin/galera-agent-ctl start" with timeout 60 seconds
-  stop program "/var/vcap/jobs/galera-agent/bin/galera-agent-ctl stop" with timeout 10 seconds
+  with pidfile /var/vcap/sys/run/bpm/galera-agent/galera-agent.pid
+  start program "/var/vcap/jobs/bpm/bin/bpm start galera-agent" with timeout 60 seconds
+  stop program "/var/vcap/jobs/bpm/bin/bpm stop galera-agent"
   group vcap
 <% end %>

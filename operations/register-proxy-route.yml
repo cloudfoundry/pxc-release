@@ -6,12 +6,6 @@
     version: latest
 
 - type: replace
-  path: /releases/name=bpm?
-  value:
-    name: bpm
-    version: latest
-
-- type: replace
   path: /instance_groups/name=proxy/jobs/-
   value:
     release: routing
@@ -25,6 +19,7 @@
           port: 8080
           registration_interval: 10s
           uris:
+          # proxy_route_suffix should be set to <unique-prefix>.<cf_domain>
           - &proxy_base_uri proxy-((proxy_route_suffix))
           prepend_instance_index: true
         - name: cf-mysql-proxy-aggregator
@@ -32,12 +27,6 @@
           registration_interval: 10s
           uris:
           - *proxy_base_uri
-
-- type: replace
-  path: /instance_groups/name=proxy/jobs/name=bpm?
-  value:
-    name: bpm
-    release: bpm
 
 - type: replace
   path: /instance_groups/name=proxy/jobs/name=proxy/properties/api_uri?

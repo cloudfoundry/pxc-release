@@ -1,5 +1,5 @@
 check process proxy
-  with pidfile /var/vcap/sys/run/proxy/proxy.pid
-  start program "/var/vcap/jobs/proxy/bin/proxy-ctl start" with timeout 10 seconds
-  stop program "/var/vcap/jobs/proxy/bin/proxy-ctl stop" with timeout <%= p('shutdown_delay').to_i + 30 %> seconds
+  with pidfile /var/vcap/sys/run/bpm/proxy/proxy.pid
+  start program "/var/vcap/jobs/bpm/bin/bpm start proxy" with timeout 10 seconds
+  stop program "/var/vcap/jobs/bpm/bin/bpm stop proxy" with timeout <%= p('shutdown_delay').to_i + 30 %> seconds
   group vcap

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
 set -eux
 
-go generate $(go list ./... | grep -v /vendor/)
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SRC_DIR="${MY_DIR}/../.."
+
+pushd ${SRC_DIR}
+  go generate $(go list ./migrate-to-pxc/... ./github.com/cloudfoundry/... ./github.com/cloudfoundry-incubator/... | grep -v /vendor/ )
+popd

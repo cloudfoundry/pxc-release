@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+/var/vcap/packages/pxc/bin/mysql \
+  --defaults-file="/var/vcap/jobs/pxc-mysql/config/mylogin.cnf" \
+  < "/var/vcap/jobs/cluster-health-logger/config/cluster_health_logger_setup.sql"
+

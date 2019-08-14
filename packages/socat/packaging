@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 set -eu -o pipefail
+NPROC=$(nproc)
 
 ## socat (PXC -> SST dependency)
 tar -xf socat/socat-*.tar.gz
 pushd socat-*/
   ./configure "--prefix=${BOSH_INSTALL_TARGET}"
-  make -j4
-  make install
+  make -j "${NPROC}"
+  make -j "${NPROC}" install
 popd

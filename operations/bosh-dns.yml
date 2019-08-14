@@ -1,4 +1,0 @@
----
-- type: replace
-  path: /instance_groups/name=proxy/jobs/name=proxy/properties/shutdown_delay?
-  value: 30

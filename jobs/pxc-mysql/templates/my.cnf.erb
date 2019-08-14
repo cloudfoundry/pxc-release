@@ -35,29 +35,42 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
 [mysqld]
-server-id                       = <%= index %>
-ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/server-ca.pem
+server-id                       = <%= p('engine_config.server_id') %>
+<%- if_p('tls.client.ca') do -%>
+ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
+<%- end -%>
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 
 <% if p('engine_config.galera.enabled') %>
 # GALERA options:
 pxc-strict-mode                 = MASTER
+wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
+wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
+wsrep_debug                     = <%= bool_to_on_off(p('engine_config.galera.wsrep_debug')) %>
+wsrep_load_data_splitting       = ON
+wsrep_log_conflicts             = <%= bool_to_on_off(p('engine_config.galera.wsrep_log_conflicts')) %>
+wsrep_max_ws_rows               = <%= p('engine_config.galera.wsrep_max_ws_rows') %>
+wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size') %>
+wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
+wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/libgalera/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem"
-wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
-wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
-wsrep_node_name                 = <%= name %>/<%= index %>
-wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
-wsrep_sst_method                = xtrabackup-v2
-wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
-wsrep_max_ws_rows               = <%= p('engine_config.galera.wsrep_max_ws_rows') %>
-wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size') %>
-wsrep_load_data_splitting       = ON
 wsrep_replicate_myisam          = OFF
-wsrep_debug                     = <%= bool_to_on_off(p('engine_config.galera.wsrep_debug')) %>
-wsrep_log_conflicts             = <%= bool_to_on_off(p('engine_config.galera.wsrep_log_conflicts')) %>
+wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
+wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
+wsrep_sst_method                = xtrabackup-v2
+<% else %>
+gtid_mode = ON
+enforce_gtid_consistency = ON
+  <% if_p('engine_config.read_write_permissions') do |prop| %>
+    <% if prop == "super_read_only" %>
+super-read-only = ON
+    <% elsif prop == 'read_only' %>
+read-only = ON
+    <% end %>
+  <% end %>
 <% end %>
 
 # Regular MYSQL options:
@@ -70,7 +83,7 @@ basedir                         = /var/vcap/packages/pxc
 datadir                         = /var/vcap/store/pxc-mysql
 tmpdir                          = /var/vcap/data/pxc-mysql/tmp
 language                        = /var/vcap/packages/pxc/share
-pid-file                        = /var/vcap/sys/run/pxc-mysql/mysql.pid
+pid-file                        = /var/vcap/store/pxc-mysql/mysql.pid
 log_error                       = /var/vcap/sys/log/pxc-mysql/mysql.err.log
 init_file                       = /var/vcap/jobs/pxc-mysql/config/db_init
 skip_external_locking           = TRUE
@@ -87,6 +100,9 @@ sql-mode                        = NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,STR
 local_infile                    = <%= bool_to_on_off(p('engine_config.local_infile')) %>
 
 <% if p('engine_config.binlog.enabled') %>
+    <% if !p('engine_config.galera.enabled') %>
+sync_binlog                     = 1
+    <% end %>
 log_bin                         = mysql-bin
 log_slave_updates               = 1
 expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
@@ -145,6 +161,12 @@ max_connections                 = <%= p('engine_config.max_connections') %>
 
 # Event Scheduler
 event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
+
+master_info_repository          = TABLE
+relay_log_info_repository       = TABLE
+relay_log                       = mysql-relay
+relay_log_recovery              = 1
+master_verify_checksum          = 1
 
 <% if p('engine_config.audit_logs.enabled') %>
 plugin-load                     = audit_log=audit_log.so

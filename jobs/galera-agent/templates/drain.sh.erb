@@ -3,7 +3,7 @@
 set -e
 
 <% if link('mysql').p('pxc_enabled') == true %>
-PIDFILE=/var/vcap/sys/run/galera-agent/galera-agent.pid
+PIDFILE=/var/vcap/sys/run/bpm/galera-agent/galera-agent.pid
 source /var/vcap/packages/pxc-utils/pid_utils.sh
 
 set +e

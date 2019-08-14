@@ -3,6 +3,14 @@ name: pxc
 releases:
 - name: pxc
   version: latest
+- name: bpm
+  version: latest
+
+addons:
+- name: bpm
+  jobs:
+  - name: bpm
+    release: bpm
 
 instance_groups:
 - name: mysql
@@ -29,7 +37,7 @@ instance_groups:
 
 stemcells:
 - alias: default
-  os: ubuntu-trusty
+  os: ubuntu-xenial
   version: latest
 
 update:

@@ -3,8 +3,8 @@ name: galera-agent
 
 templates:
   drain.sh.erb: bin/drain
-  galera-agent-ctl.erb: bin/galera-agent-ctl
-  galera-agent-config.yaml.erb: config/galera-agent-config.yaml
+  galera-agent-config.yml.erb: config/galera-agent-config.yml
+  bpm.yml.erb: config/bpm.yml
   galera-agent-setup.sql.erb: config/galera-agent-setup.sql
   post-start.sh: bin/post-start
 

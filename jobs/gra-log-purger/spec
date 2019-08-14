@@ -1,8 +1,7 @@
 ---
 name: gra-log-purger
 templates:
-  gra-log-purger_ctl.sh.erb: bin/gra-log-purger_ctl
-  gra-log-purger.sh.erb: bin/gra-log-purger.sh
+  bpm.yml.erb: config/bpm.yml
 
 packages:
 - pxc-gra-log-purger

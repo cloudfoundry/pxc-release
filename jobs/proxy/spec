@@ -2,9 +2,10 @@
 name: proxy
 
 templates:
-  proxy-ctl.erb: bin/proxy-ctl
+  bpm.yml.erb: config/bpm.yml
   proxy.yml.erb: config/proxy.yml
   post-start.erb: bin/post-start
+  drain.erb: bin/drain
 
 consumes:
 - name: proxy
@@ -72,17 +73,13 @@ properties:
   health_port:
     description: "Port for checking the health of the proxy process"
     default: 1936
-  max_open_files:
-    description: |
-      Configure this number to be twice as large as mysql.max_connections
-    default: 3000
   startup_delay:
     description: |
       If using a load balancer above the proxies,
       enter your load balancer's healthy total threshold time here in seconds.
       E.g., if your LB polls every 30 seconds and requires 3 successful attempts,
       then set this property to 90 seconds.
-    default: 0
+    default: 90
   shutdown_delay:
     description: |
       If using a load balancer above the proxies,

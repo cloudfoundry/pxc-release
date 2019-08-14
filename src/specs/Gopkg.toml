@@ -41,6 +41,6 @@
   name = "github.com/onsi/gomega"
   version = "1.3.0"
 
-[[constraint]]
-  name = "github.com/cheggaaa/pb"
-  revision = "c1f48d5ce4f292dfb775ef52aaedd15be323510d"
+[[override]]
+  branch = "master"
+  name = "github.com/square/certstrap"

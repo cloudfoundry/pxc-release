@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/remote_admin_access?
+  value: true

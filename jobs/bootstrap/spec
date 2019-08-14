@@ -3,6 +3,7 @@ name: bootstrap
 packages:
   - bootstrap
 templates:
+  bpm.yml.erb: config/bpm.yml
   errand.sh.erb: bin/run
   config.yml.erb: config/config.yml
 
