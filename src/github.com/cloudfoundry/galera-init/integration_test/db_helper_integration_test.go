@@ -44,7 +44,7 @@ var _ = Describe("DB Helper", func() {
 				"MYSQL_ALLOW_EMPTY_PASSWORD=1",
 				"CLUSTER_NAME=db-helper-cluster",
 			),
-			test_helpers.WithCmd("--pxc-strict-mode=MASTER"),
+			test_helpers.WithCmd("--wsrep-provider=none"),
 		)
 		Expect(err).NotTo(HaveOccurred())
 
