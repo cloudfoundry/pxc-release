@@ -53,10 +53,10 @@ function get_vm_and_deployments_info() {
 
 function download_logs() {
   echo "Downloading deployment logs..."
-  bosh logs --dir="${tempdir}"
 
-  for node in $(bosh instances --column="Instance" | grep -E "(database|mysql)/"); do
+  for node in $(bosh instances --column="Instance" | grep -E "(database|mysql.*)/"); do
     echo -e "\\nDownloading logs for: ${node}"
+    bosh logs --dir="${tempdir}" ${node}
     download_logs_from_node "${node}"
   done
 
