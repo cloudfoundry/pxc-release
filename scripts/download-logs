@@ -76,6 +76,7 @@ function download_logs_from_node() {
 
   scpfiles "${node}" "${node_specific_log_containing_directory}/gralogs/" "/var/vcap/store/pxc-mysql/GRA*.log"
   scpfiles "${node}" "${node_specific_log_containing_directory}/innobackup/" "/var/vcap/store/pxc-mysql/innobackup.*.log"
+  get_innodb_engine_status "${node}" "${node_specific_log_containing_directory}"
 
   if [ -n "${extra_logs}" ]; then
     scpfiles "${node}" "${node_specific_log_containing_directory}/binlogs/" "/var/vcap/store/pxc-mysql/mysql-bin.*"
@@ -108,6 +109,16 @@ function scpfiles() {
     echo "Retrieving ${files}"
     bosh scp "${node}:${files}" "${logdir}"
   fi
+}
+
+function get_innodb_engine_status() {
+  local node
+  node="$1"
+
+  local node_directory
+  node_directory="${2}"
+
+  bosh ssh "${node}" -c "sudo /usr/local/bin/mysql --defaults-file=\$(ls /var/vcap/jobs/*mysql/config/mylogin.cnf) -e 'SHOW ENGINE INNODB STATUS \G'" --column=Stdout --results > "${node_directory}/innodb_status.out"
 }
 
 function encrypt_logs() {
