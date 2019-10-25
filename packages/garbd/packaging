@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+
+source /var/vcap/packages/python-2.7/bosh/compile.env
+
+set -u
+
+NPROC=$(nproc)
+GALERA_REVISION="03540a383884e5784cc707dd22087a031b5bcbb8"
+
+tar -xf check/check-*.tar.gz
+pushd check-*/
+    ./configure --prefix=/usr
+    make -j "${NPROC}"
+    make -j "${NPROC}" install
+popd
+
+tar -xf boost/boost_1_59_0.tar.gz
+pushd boost_1_59_0
+    ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
+    ./b2 -j "${NPROC}" install
+popd
+
+tar -xf scons/scons-*.tar.gz
+pushd scons-*/
+    python setup.py install --prefix=/usr
+popd
+
+tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
+pushd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera
+    export HOME=/var/vcap/data/compile/garbd
+
+    scons -j $NPROC --config=force revno="$GALERA_REVISION" garb/garbd
+
+    # Build version with statically linked boost, as that is not available on stemcells
+    g++ -o garb/garbd.static -m64 -Wl,-melf_x86_64 \
+      garb/garb_logger.o garb/garb_gcs.o garb/garb_recv_loop.o garb/garb_main.o garb/garb_config.os \
+      gcs/src/libgcs4garb.a gcomm/src/libgcomm.a galerautils/src/libgalerautils++.a galerautils/src/libgalerautils.a \
+      -lpthread -lrt -lssl -lcrypto ../../boost_1_59_0/bin.v2/libs/program_options/build/gcc-5.4.0/release/link-static/threading-multi/libboost_program_options.a
+
+    mkdir -p "${BOSH_INSTALL_TARGET}/bin"
+    cp garb/garbd.static "${BOSH_INSTALL_TARGET}/bin/garbd"
+popd

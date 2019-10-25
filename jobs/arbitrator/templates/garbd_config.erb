@@ -1,0 +1,10 @@
+options = "socket.ssl_cipher=AES128-SHA;socket.ssl_ca=/var/vcap/jobs/arbitrator/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/arbitrator/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/arbitrator/certificates/galera-key.pem"
+group = galera-cluster
+
+<%cluster_ips = []
+  cluster_ips = link('mysql').instances.map { |instance| instance.address }
+  cluster_ips += link('arbitrator').instances.map { |instance| instance.address }
+
+  galera_port = p('cf_mysql.mysql.galera_port')
+  node_addresses = cluster_ips.map { |ip| "#{ip}:#{galera_port}" } %>
+address = gcomm://<%= node_addresses.join(',') %>

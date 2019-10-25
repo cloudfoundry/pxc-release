@@ -1,0 +1,34 @@
+---
+name: arbitrator
+
+templates:
+  garbd_ctl.erb: bin/garbd_ctl
+  garbd_config.erb: config/garbd_config
+  galera-ca.pem.erb: certificates/galera-ca.pem
+  galera-cert.pem.erb: certificates/galera-cert.pem
+  galera-key.pem.erb: certificates/galera-key.pem
+
+packages:
+- garbd
+
+consumes:
+- name: mysql
+  type: mysql
+  optional: true
+- name: arbitrator
+  type: arbitrator
+  optional: true
+
+provides:
+- name: arbitrator
+  type: arbitrator
+
+# Properties names are intentionally same as in pxc-mysql
+# They need to be configured to same vaules, in order for arbitrator to connect with rest of cluster
+properties:
+  cf_mysql.mysql.galera_port:
+    description: 'Galera SSL cluster port'
+    default: 4567
+
+  tls.galera:
+    description: 'Required: TLS certificate for galera cluster encryption'
