@@ -1,7 +1,5 @@
 #!/bin/bash
-set -eu
-
-set -o pipefail
+set -euo pipefail
 
 datestring="$(date +%Y-%m-%d-%H-%M-%S)"
 output_dir=""
@@ -76,7 +74,10 @@ function download_logs_from_node() {
 
   scpfiles "${node}" "${node_specific_log_containing_directory}/gralogs/" "/var/vcap/store/pxc-mysql/GRA*.log"
   scpfiles "${node}" "${node_specific_log_containing_directory}/innobackup/" "/var/vcap/store/pxc-mysql/innobackup.*.log"
-  get_innodb_engine_status "${node}" "${node_specific_log_containing_directory}"
+  if ! get_innodb_engine_status "${node}" "${node_specific_log_containing_directory}"; then
+    # Log a failure but keep trying to fetch other things
+    echo "Fetching MySQL InnoDB Status logs failed!"
+  fi
 
   if [ -n "${extra_logs}" ]; then
     scpfiles "${node}" "${node_specific_log_containing_directory}/binlogs/" "/var/vcap/store/pxc-mysql/mysql-bin.*"
@@ -123,7 +124,12 @@ function get_innodb_engine_status() {
 
 function encrypt_logs() {
   echo "Specify a passphrase of 6-8 words long. Do not use a private passphrase, you will need to share this passphrase with anyone who will decrypt this archive."
-  gpg -c --yes --cipher-algo AES256 --symmetric --force-mdc -o "${output_dir}/${output_file}" "${tempdir}/mysql-logs.tar.gz"
+  local gpg_opts=""
+  if [[ "${DOWNLOAD_LOGS_GPG_PASSPHRASE_FROM_STDIN:-}" == "true" ]]; then
+    echo "WARNING: DOWNLOAD_LOGS_GPG_PASSPHRASE_FROM_STDIN is set to true, if you did not do this then unset the variable and re-run this script."
+    gpg_opts="--batch --passphrase-fd=0"
+  fi
+  gpg -c --yes --cipher-algo AES256 --symmetric --force-mdc ${gpg_opts} -o "${output_dir}/${output_file}" "${tempdir}/mysql-logs.tar.gz"
 
   echo "Encrypted logs saved at ${output_dir}/${output_file}"
 }
