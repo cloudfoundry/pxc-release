@@ -42,7 +42,7 @@ var _ = Describe("DownloadLogs", func() {
 
 		innodbStatusOutput := gbytes.NewBuffer()
 		gpgCmd := fmt.Sprintf(`gpg -d --batch --passphrase=some-passphrase < %s/*-mysql-logs.tar.gz.gpg `+
-			`| gtar -Ozxv --wildcards "*/innodb_status.out"`, logsDir)
+			`| tar -Ozxv --wildcards "*/innodb_status.out"`, logsDir)
 		decryptCmd := exec.Command("bash", "-c", gpgCmd)
 
 		stdout := io.MultiWriter(GinkgoWriter, innodbStatusOutput)
