@@ -1,7 +1,7 @@
 ---
 name: galera-init
 dependencies:
-  - golang-1.12-linux
+  - golang-1.13-linux
 files:
   - github.com/cloudfoundry/galera-init/**/*.go
 excluded_files:
