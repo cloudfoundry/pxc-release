@@ -29,7 +29,7 @@ func TestIntegration(t *testing.T) {
 }
 
 const (
-	pxcDockerImage                   = "percona/percona-xtradb-cluster:5.7"
+	pxcDockerImage                   = "percona/percona-xtradb-cluster:5.7.27"
 	pxcMySQLPort         docker.Port = "3306/tcp"
 	galeraInitStatusPort docker.Port = "8114/tcp"
 )
