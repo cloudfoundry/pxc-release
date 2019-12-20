@@ -12,15 +12,11 @@ make -j "${NPROC}" -C libaio-*/ install
 ## PXC
 tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
 pushd Percona-XtraDB-Cluster-*/
-    wsrep_iface_version="$(grep WSREP_INTERFACE_VERSION wsrep/src/wsrep_api.h | cut -d '"' -f2)"
-    wsrep_patch_version="$(grep 'SET(WSREP_PATCH_VERSION'  "cmake/wsrep.cmake" | cut -d '"' -f2)"
-    wsrep_version="${wsrep_iface_version}.${wsrep_patch_version}"
     cmake . \
         -DBUILD_CONFIG=mysql_release \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
         -DINSTALL_MYSQLTESTDIR= \
-        -DMYSQL_SERVER_SUFFIX="-${wsrep_version}" \
         -DWITH_BOOST=../boost_1_59_0/ \
         -DWITH_EMBEDDED_SERVER=OFF \
         -DWITH_INNODB_DISALLOW_WRITES=ON \
