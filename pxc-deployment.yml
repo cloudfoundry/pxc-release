@@ -28,6 +28,8 @@ instance_groups:
       tls:
         galera: ((galera_server_certificate))
         server: ((mysql_server_certificate))
+      engine_config:
+        server_id: 2
   - name: smoke-tests
     release: pxc
     properties:

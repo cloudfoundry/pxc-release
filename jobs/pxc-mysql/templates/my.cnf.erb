@@ -61,15 +61,14 @@ wsrep_replicate_myisam          = OFF
 wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
 wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
 wsrep_sst_method                = xtrabackup-v2
-<% else %>
+<% end %>
 gtid_mode = ON
 enforce_gtid_consistency = ON
-  <% if_p('engine_config.read_write_permissions') do |prop| %>
-    <% if prop == "super_read_only" %>
+<% if_p('engine_config.read_write_permissions') do |prop| %>
+  <% if prop == "super_read_only" %>
 super-read-only = ON
-    <% elsif prop == 'read_only' %>
+  <% elsif prop == 'read_only' %>
 read-only = ON
-    <% end %>
   <% end %>
 <% end %>
 
