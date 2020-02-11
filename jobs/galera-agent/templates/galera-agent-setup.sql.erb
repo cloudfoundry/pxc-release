@@ -1,1 +1,5 @@
-GRANT USAGE ON mysql.* TO 'galera-agent'@'127.0.0.1' IDENTIFIED BY '<%= p('db_password') %>'
+SET SESSION SQL_LOG_BIN = 0;
+
+GRANT USAGE ON mysql.* TO 'galera-agent'@'127.0.0.1' IDENTIFIED BY '<%= p('db_password') %>';
+
+SET SESSION SQL_LOG_BIN = 1;
