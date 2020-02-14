@@ -2,9 +2,9 @@
 package seederfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/db_helper/seeder"
+	seeder "github.com/cloudfoundry/galera-init/db_helper/seeder"
 )
 
 type FakeSeeder struct {

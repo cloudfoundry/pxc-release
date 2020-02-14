@@ -2,9 +2,9 @@
 package cluster_health_checkerfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/cluster_health_checker"
+	cluster_health_checker "github.com/cloudfoundry/galera-init/cluster_health_checker"
 )
 
 type FakeClusterHealthChecker struct {

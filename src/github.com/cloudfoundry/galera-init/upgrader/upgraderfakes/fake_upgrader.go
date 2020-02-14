@@ -2,9 +2,9 @@
 package upgraderfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cloudfoundry/galera-init/upgrader"
+	upgrader "github.com/cloudfoundry/galera-init/upgrader"
 )
 
 type FakeUpgrader struct {
