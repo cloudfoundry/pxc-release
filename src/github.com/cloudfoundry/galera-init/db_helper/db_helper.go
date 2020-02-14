@@ -26,6 +26,7 @@ type DBHelper interface {
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
+	SeedUsers() error
 	RunPostStartSQL() error
 }
 
@@ -52,6 +53,9 @@ func NewDBHelper(
 
 var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
 	return s.NewSeeder(db, config, logger)
+}
+var BuildUserSeeder = func(db *sql.DB, logger lager.Logger) UserSeeder {
+	return NewUserSeeder(db, logger)
 }
 
 func FormatDSN(config config.DBHelper) string {
@@ -241,6 +245,39 @@ func (m GaleraDBHelper) Seed() error {
 
 	if err := m.flushPrivileges(db); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m GaleraDBHelper) SeedUsers() error {
+	if m.config.SeededUsers == nil || len(m.config.SeededUsers) == 0 {
+		m.logger.Info("No seeded users specified, skipping seeding.")
+		return nil
+	}
+
+	m.logger.Info("Seeding Users")
+
+	db, err := OpenDBConnection(m.config)
+	if err != nil {
+		m.logger.Error("database not reachable", err)
+		return err
+	}
+	defer CloseDBConnection(db)
+
+	for _, userToCreate := range m.config.SeededUsers {
+		seeder := BuildUserSeeder(db, m.logger)
+
+		err = seeder.SeedUser(
+			userToCreate.User,
+			userToCreate.Password,
+			userToCreate.Host,
+			userToCreate.Role,
+		)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil

@@ -23,6 +23,7 @@ type DBHelper struct {
 	Password           string              `yaml:"Password"`
 	PostStartSQLFiles  []string            `yaml:"PostStartSQLFiles"`
 	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
+	SeededUsers        []SeededUser        `yaml:"SeededUsers"`
 	SkipBinlog         bool                `yaml:"SkipBinlog"`
 	Socket             string              `yaml:"Socket"`
 	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
@@ -47,6 +48,13 @@ type PreseededDatabase struct {
 	DBName   string `yaml:"DBName" validate:"nonzero"`
 	User     string `yaml:"User" validate:"nonzero"`
 	Password string `yaml:"Password"`
+}
+
+type SeededUser struct {
+	User     string `yaml:"User" validate:"nonzero"`
+	Password string `yaml:"Password" validate:"nonzero"`
+	Host     string `yaml:"Host" validate:"nonzero"`
+	Role     string `yaml:"Role" validate:"nonzero"`
 }
 
 func NewConfig(osArgs []string) (*Config, error) {

@@ -17,6 +17,7 @@ import (
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
 	"github.com/cloudfoundry/galera-init/db_helper/seeder"
 	"github.com/cloudfoundry/galera-init/db_helper/seeder/seederfakes"
 	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
@@ -31,20 +32,22 @@ var _ = Describe("GaleraDBHelper", func() {
 	)
 
 	var (
-		helper     *db_helper.GaleraDBHelper
-		fakeOs     *os_helperfakes.FakeOsHelper
-		fakeSeeder *seederfakes.FakeSeeder
-		testLogger lagertest.TestLogger
-		logFile    string
-		dbConfig   *config.DBHelper
-		fakeDB     *sql.DB
-		mock       sqlmock.Sqlmock
+		helper         *db_helper.GaleraDBHelper
+		fakeOs         *os_helperfakes.FakeOsHelper
+		fakeSeeder     *seederfakes.FakeSeeder
+		fakeUserSeeder *db_helperfakes.FakeUserSeeder
+		testLogger     lagertest.TestLogger
+		logFile        string
+		dbConfig       *config.DBHelper
+		fakeDB         *sql.DB
+		mock           sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
 		var err error
 		fakeOs = new(os_helperfakes.FakeOsHelper)
 		fakeSeeder = new(seederfakes.FakeSeeder)
+		fakeUserSeeder = new(db_helperfakes.FakeUserSeeder)
 		testLogger = *lagertest.NewTestLogger("db_helper")
 
 		fakeDB, mock, err = sqlmock.New()
@@ -59,6 +62,9 @@ var _ = Describe("GaleraDBHelper", func() {
 
 		db_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
 			return fakeSeeder
+		}
+		db_helper.BuildUserSeeder = func(db *sql.DB, logger lager.Logger) db_helper.UserSeeder {
+			return fakeUserSeeder
 		}
 
 		logFile = "/log-file.log"
@@ -85,6 +91,20 @@ var _ = Describe("GaleraDBHelper", func() {
 					DBName:   "DB2",
 					User:     "user2",
 					Password: "password2",
+				},
+			},
+			SeededUsers: []config.SeededUser{
+				config.SeededUser{
+					User:     "user1",
+					Password: "password1",
+					Host:     "host1",
+					Role:     "role1",
+				},
+				config.SeededUser{
+					User:     "user2",
+					Password: "password2",
+					Host:     "host2",
+					Role:     "role2",
 				},
 			},
 			PostStartSQLFiles: []string{sqlFile1.Name(), sqlFile2.Name()},
@@ -376,6 +396,31 @@ var _ = Describe("GaleraDBHelper", func() {
 				Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(0))
 				Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
 				Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(0))
+			})
+		})
+	})
+
+	Describe("SeedUsers", func() {
+		It("seeds the users", func() {
+			helper.SeedUsers()
+			Expect(fakeUserSeeder.SeedUserCallCount()).To(Equal(2))
+			call0user, call0password, call0host, call0role := fakeUserSeeder.SeedUserArgsForCall(0)
+			Expect(call0user).To(Equal("user1"))
+			Expect(call0password).To(Equal("password1"))
+			Expect(call0host).To(Equal("host1"))
+			Expect(call0role).To(Equal("role1"))
+			call1user, call1password, call1host, call1role := fakeUserSeeder.SeedUserArgsForCall(1)
+			Expect(call1user).To(Equal("user2"))
+			Expect(call1password).To(Equal("password2"))
+			Expect(call1host).To(Equal("host2"))
+			Expect(call1role).To(Equal("role2"))
+		})
+
+		Context("when a seeder function call returns an error", func() {
+			It("returns the error back", func() {
+				fakeUserSeeder.SeedUserReturns(errors.New("Error"))
+				err := helper.SeedUsers()
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

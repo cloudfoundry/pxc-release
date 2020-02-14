@@ -36,6 +36,10 @@ var _ = Describe("Starter", func() {
 		Expect(fakeDBHelper.SeedCallCount()).To(BeNumerically(">=", 1))
 	}
 
+	ensureSeedUsers := func() {
+		Expect(fakeDBHelper.SeedUsersCallCount()).To(BeNumerically(">=", 1))
+	}
+
 	ensureBootstrap := func() {
 		Expect(fakeDBHelper.StartMysqldInBootstrapCallCount()).To(Equal(1))
 	}
@@ -100,6 +104,7 @@ var _ = Describe("Starter", func() {
 				Expect(mysqlErrChan).NotTo(BeNil())
 				ensureBootstrap()
 				ensureSeedDatabases()
+				ensureSeedUsers()
 				ensureRunPostStartSQLs()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
@@ -145,6 +150,7 @@ var _ = Describe("Starter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureBootstrap()
 					ensureSeedDatabases()
+					ensureSeedUsers()
 					ensureRunPostStartSQLs()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 				})
@@ -189,6 +195,7 @@ var _ = Describe("Starter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
 					ensureSeedDatabases()
+					ensureSeedUsers()
 					ensureRunPostStartSQLs()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
 				})
@@ -206,6 +213,7 @@ var _ = Describe("Starter", func() {
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
 				ensureSeedDatabases()
+				ensureSeedUsers()
 				ensureRunPostStartSQLs()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
 			})

@@ -93,6 +93,11 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		return "", nil, err
 	}
 
+	err = s.seedUsers()
+	if err != nil {
+		return "", nil, err
+	}
+
 	err = s.runPostStartSQL()
 	if err != nil {
 		return "", nil, err
@@ -173,6 +178,17 @@ func (s *starter) seedDatabases() error {
 	}
 
 	s.logger.Info("Seeding databases succeeded.")
+	return nil
+}
+
+func (s *starter) seedUsers() error {
+	err := s.dbHelper.SeedUsers()
+	if err != nil {
+		s.logger.Info(fmt.Sprintf("There was a problem seeding the users: '%s'", err.Error()))
+		return err
+	}
+
+	s.logger.Info("Seeding users succeeded.")
 	return nil
 }
 

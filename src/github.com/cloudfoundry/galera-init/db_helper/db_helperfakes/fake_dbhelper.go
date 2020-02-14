@@ -49,6 +49,16 @@ type FakeDBHelper struct {
 	seedReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SeedUsersStub        func() error
+	seedUsersMutex       sync.RWMutex
+	seedUsersArgsForCall []struct {
+	}
+	seedUsersReturns struct {
+		result1 error
+	}
+	seedUsersReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StartMysqldForUpgradeStub        func() (*exec.Cmd, error)
 	startMysqldForUpgradeMutex       sync.RWMutex
 	startMysqldForUpgradeArgsForCall []struct {
@@ -313,6 +323,58 @@ func (fake *FakeDBHelper) SeedReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeDBHelper) SeedUsers() error {
+	fake.seedUsersMutex.Lock()
+	ret, specificReturn := fake.seedUsersReturnsOnCall[len(fake.seedUsersArgsForCall)]
+	fake.seedUsersArgsForCall = append(fake.seedUsersArgsForCall, struct {
+	}{})
+	fake.recordInvocation("SeedUsers", []interface{}{})
+	fake.seedUsersMutex.Unlock()
+	if fake.SeedUsersStub != nil {
+		return fake.SeedUsersStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.seedUsersReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDBHelper) SeedUsersCallCount() int {
+	fake.seedUsersMutex.RLock()
+	defer fake.seedUsersMutex.RUnlock()
+	return len(fake.seedUsersArgsForCall)
+}
+
+func (fake *FakeDBHelper) SeedUsersCalls(stub func() error) {
+	fake.seedUsersMutex.Lock()
+	defer fake.seedUsersMutex.Unlock()
+	fake.SeedUsersStub = stub
+}
+
+func (fake *FakeDBHelper) SeedUsersReturns(result1 error) {
+	fake.seedUsersMutex.Lock()
+	defer fake.seedUsersMutex.Unlock()
+	fake.SeedUsersStub = nil
+	fake.seedUsersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) SeedUsersReturnsOnCall(i int, result1 error) {
+	fake.seedUsersMutex.Lock()
+	defer fake.seedUsersMutex.Unlock()
+	fake.SeedUsersStub = nil
+	if fake.seedUsersReturnsOnCall == nil {
+		fake.seedUsersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.seedUsersReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDBHelper) StartMysqldForUpgrade() (*exec.Cmd, error) {
 	fake.startMysqldForUpgradeMutex.Lock()
 	ret, specificReturn := fake.startMysqldForUpgradeReturnsOnCall[len(fake.startMysqldForUpgradeArgsForCall)]
@@ -567,6 +629,8 @@ func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	defer fake.runPostStartSQLMutex.RUnlock()
 	fake.seedMutex.RLock()
 	defer fake.seedMutex.RUnlock()
+	fake.seedUsersMutex.RLock()
+	defer fake.seedUsersMutex.RUnlock()
 	fake.startMysqldForUpgradeMutex.RLock()
 	defer fake.startMysqldForUpgradeMutex.RUnlock()
 	fake.startMysqldInBootstrapMutex.RLock()
