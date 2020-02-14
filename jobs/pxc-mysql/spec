@@ -116,7 +116,18 @@ properties:
       - name: db2
         username: user2
         password: pw2
-
+  seeded_users:
+    default: {}
+    example: |
+      seeded_users:
+        admin:
+          password: "((mysql_root_password))"
+          host: loopback
+          role: admin
+        monitoring:
+          password: "((mysql_monitoring_password))"
+          host: any
+          role: minimal
   # TLS Config
   tls.galera:
     description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'

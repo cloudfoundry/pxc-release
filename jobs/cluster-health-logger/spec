@@ -3,9 +3,7 @@ name: cluster-health-logger
 
 templates:
   bpm.yml.erb: config/bpm.yml
-  setup.erb: bin/setup
   cluster_health_logger_config.yml.erb: config/cluster_health_logger_config.yml
-  cluster_health_logger_setup.sql.erb: config/cluster_health_logger_setup.sql
 
 packages:
 - pxc-utils

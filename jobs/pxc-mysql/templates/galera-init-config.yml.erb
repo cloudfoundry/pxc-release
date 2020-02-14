@@ -17,6 +17,13 @@ Db:
     User: <%= seed["username"]%>
     Password: <%= seed["password"] %>
   <% end %>
+  SeededUsers:
+  <% p('seeded_users').each do |username, user_config| %>
+  - User: <%= username %>
+    Password: <%= user_config["password"] %>
+    Host: <%= user_config["host"] %>
+    Role: <%= user_config["role"] %>
+  <% end %>
   Socket: <%= p('mysql_socket') %>
 Upgrader:
   PackageVersionFile: /var/vcap/packages/pxc/VERSION
