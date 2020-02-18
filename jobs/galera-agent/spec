@@ -5,6 +5,8 @@ templates:
   drain.sh.erb: bin/drain
   galera-agent-config.yml.erb: config/galera-agent-config.yml
   bpm.yml.erb: config/bpm.yml
+  galera-agent-setup.sql.erb: config/galera-agent-setup.sql
+  post-start.sh: bin/post-start
 
 packages:
 - galera-agent
