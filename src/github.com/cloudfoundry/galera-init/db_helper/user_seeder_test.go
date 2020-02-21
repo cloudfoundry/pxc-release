@@ -93,6 +93,17 @@ var _ = Describe("User Seeder", func() {
 			userSeeder.SeedUser("username", "password", "any", "minimal")
 		})
 
+		It("scopes grants to any correctly", func() {
+			mock.ExpectExec("CREATE USER IF NOT EXISTS `username`@`localhost` IDENTIFIED BY 'password'").
+				WillReturnResult(sqlmock.NewResult(1, 1))
+			mock.ExpectExec("ALTER USER `username`@`localhost` IDENTIFIED BY 'password'").
+				WillReturnResult(sqlmock.NewResult(1, 1))
+			mock.ExpectExec("REVOKE ALL PRIVILEGES ON *.* FROM `username`@`localhost`").
+				WillReturnResult(sqlmock.NewResult(1, 1))
+
+			userSeeder.SeedUser("username", "password", "localhost", "minimal")
+		})
+
 		It("errors when the host in unknown", func() {
 			err := userSeeder.SeedUser("username", "password", "unknown", "admin")
 			Expect(err).To(HaveOccurred())

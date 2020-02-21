@@ -91,10 +91,14 @@ func getRoleQuery(role string) (string, error) {
 }
 
 func getHostString(host string) (string, error) {
-	if host == "loopback" {
+	switch host {
+	case "localhost":
+		return "localhost", nil
+	case "loopback":
 		return "127.0.0.1", nil
-	} else if host == "any" {
+	case "any":
 		return "%", nil
+	default:
+		return "", errors.New(fmt.Sprintf("Invalid host: %s", host))
 	}
-	return "", errors.New(fmt.Sprintf("Invalid host: %s", host))
 }
