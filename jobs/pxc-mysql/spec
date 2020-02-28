@@ -223,7 +223,7 @@ properties:
     description: 'Whether innodb_strict_mode is enabled'
     default: false
 
-
+  # Generic Config
   engine_config.event_scheduler:
     description: 'Events are named database objects containing SQL statements that are to be executed at a later stage, either once off, or at regular intervals.'
     default: false
@@ -257,7 +257,11 @@ properties:
   engine_config.userstat:
     description: 'Enables user statistics, adding several new information schema tables and new FLUSH and SHOW commands.'
     default: false
-
+  engine_config.enable_lower_case_table_names:
+    description: Enable or disable the "lower_case_table_names" MySQL server variable via a boolean of true/false.
+    default: false
+  engine_config.wait_timeout:
+    description: The time in seconds that the MySQL server waits for inactive connections before closing them.
 
   # Galera Config
   engine_config.galera.enabled:

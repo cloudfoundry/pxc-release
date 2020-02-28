@@ -2,5 +2,5 @@
 
 set -eo pipefail
 
-echo "## Creating and uploading dedicated-mysql-adapter-release"
+echo "## Creating and uploading pxc-release"
 bosh create-release --timestamp-version --sha2 --force && bosh upload-release
