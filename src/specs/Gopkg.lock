@@ -277,19 +277,22 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:47ff8b3229cff95d3cf3738c7a8461fdeacd3f46801e54d301a62500605ce202"
+  digest = "1:a5ecec7a7007b0af5622967f39375001299ca9559c8028617bbf846ac37bb398"
   name = "golang.org/x/crypto"
   packages = [
+    "blowfish",
+    "chacha20",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
-    "internal/chacha20",
+    "internal/subtle",
     "poly1305",
     "ssh",
+    "ssh/internal/bcrypt_pbkdf",
     "ssh/terminal",
   ]
   pruneopts = ""
-  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
+  revision = "78000ba7a073cafc0278790f6bce552a0f25850e"
 
 [[projects]]
   branch = "master"
@@ -308,14 +311,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e9490adb0a1d5ac8f621a6430754822f87e565fd71d4cd1c9c4d90626f390624"
+  digest = "1:d7d983fd8850aa2312ec3e963aa2710cc1adef5ded6dfdf7d4d8130c216a9430"
   name = "golang.org/x/sys"
   packages = [
+    "cpu",
     "unix",
     "windows",
   ]
   pruneopts = ""
-  revision = "3b87a42e500a6dc65dae1a55d0b641295971163e"
+  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
@@ -367,6 +371,7 @@
     "github.com/google/uuid",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/onsi/gomega/gbytes",
     "github.com/onsi/gomega/gexec",
     "github.com/pkg/errors",
     "gopkg.in/yaml.v2",

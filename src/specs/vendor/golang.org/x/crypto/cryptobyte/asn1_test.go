@@ -31,6 +31,10 @@ var readASN1TestData = []readASN1Test{
 	{"non-minimal length", append([]byte{0x30, 0x82, 0, 0x80}, make([]byte, 0x80)...), 0x30, false, nil},
 	{"invalid tag", []byte{0xa1, 3, 0x4, 1, 1}, 31, false, nil},
 	{"high tag", []byte{0x1f, 0x81, 0x80, 0x01, 2, 1, 2}, 0xff /* actually 0x4001, but tag is uint8 */, false, nil},
+	{"2**31 - 1 length", []byte{0x30, 0x84, 0x7f, 0xff, 0xff, 0xff}, 0x30, false, nil},
+	{"2**32 - 1 length", []byte{0x30, 0x84, 0xff, 0xff, 0xff, 0xff}, 0x30, false, nil},
+	{"2**63 - 1 length", []byte{0x30, 0x88, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0x30, false, nil},
+	{"2**64 - 1 length", []byte{0x30, 0x88, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0x30, false, nil},
 }
 
 func TestReadASN1(t *testing.T) {
@@ -146,6 +150,39 @@ func TestReadASN1IntegerSigned(t *testing.T) {
 			ok := in.ReadASN1Integer(&out)
 			if !ok || out.Int64() != test.out {
 				t.Errorf("#%d: in.ReadASN1Integer() = %v, want true; out = %d, want %d", i, ok, out.Int64(), test.out)
+			}
+		}
+	})
+
+	// Repeat with the implicit-tagging functions
+	t.Run("WithTag", func(t *testing.T) {
+		for i, test := range testData64 {
+			tag := asn1.Tag((i * 3) % 32).ContextSpecific()
+
+			testData := make([]byte, len(test.in))
+			copy(testData, test.in)
+
+			// Alter the tag of the test case.
+			testData[0] = uint8(tag)
+
+			in := String(testData)
+			var out int64
+			ok := in.ReadASN1Int64WithTag(&out, tag)
+			if !ok || out != test.out {
+				t.Errorf("#%d: in.ReadASN1Int64WithTag() = %v, want true; out = %d, want %d", i, ok, out, test.out)
+			}
+
+			var b Builder
+			b.AddASN1Int64WithTag(test.out, tag)
+			result, err := b.Bytes()
+
+			if err != nil {
+				t.Errorf("#%d: AddASN1Int64WithTag failed: %s", i, err)
+				continue
+			}
+
+			if !bytes.Equal(result, testData) {
+				t.Errorf("#%d: AddASN1Int64WithTag: got %x, want %x", i, result, testData)
 			}
 		}
 	})
