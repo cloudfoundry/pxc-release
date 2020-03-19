@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	helpers "specs/test_helpers"
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
 var _ = Describe("CF PXC MySQL Connection", func() {

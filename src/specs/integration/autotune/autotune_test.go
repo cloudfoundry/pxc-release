@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"gopkg.in/yaml.v2"
 
-	helpers "specs/test_helpers"
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"

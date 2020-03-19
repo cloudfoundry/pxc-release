@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	helpers "specs/test_helpers"
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

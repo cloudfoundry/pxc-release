@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"specs/test_helpers"
+	"github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
 var _ = Describe("Mutual TLS", func() {

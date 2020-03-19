@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 
-	helpers "specs/test_helpers"
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
 var _ = Describe("CF PXC MySQL Audit Logging", func() {

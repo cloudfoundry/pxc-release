@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
-	. "gra-log-purger"
+	. "github.com/cloudfoundry/gra-log-purger"
 )
 
 var _ = Describe("gra-log-purger", func() {

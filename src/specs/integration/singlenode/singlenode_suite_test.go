@@ -3,7 +3,7 @@ package singlenode_test
 import (
 	"database/sql"
 	"os"
-	helpers "specs/test_helpers"
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 	"testing"
 
 	. "github.com/onsi/ginkgo"

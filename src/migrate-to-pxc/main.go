@@ -11,7 +11,7 @@ import (
 
 	"github.com/cloudfoundry/gosigar"
 	_ "github.com/go-sql-driver/mysql"
-	"migrate-to-pxc/disk"
+	"github.com/cloudfoundry/migrate-to-pxc/disk"
 )
 
 var (

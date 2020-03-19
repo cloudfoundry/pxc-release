@@ -19,7 +19,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	var err error
-	graLogPurgerBinPath, err = gexec.Build("gra-log-purger")
+	graLogPurgerBinPath, err = gexec.Build("github.com/cloudfoundry/gra-log-purger")
 	Expect(err).NotTo(HaveOccurred())
 })
 

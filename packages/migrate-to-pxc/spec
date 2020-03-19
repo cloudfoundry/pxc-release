@@ -3,6 +3,6 @@ name: migrate-to-pxc
 dependencies:
   - golang-1.13-linux
 files:
-  - migrate-to-pxc/**/*.go
+  - migrate-to-pxc/**
 excluded_files:
   - "**/*_test.go"

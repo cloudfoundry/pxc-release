@@ -6,8 +6,8 @@ import (
 
 	"errors"
 	"github.com/cloudfoundry/gosigar"
-	"migrate-to-pxc/disk"
-	"migrate-to-pxc/disk/diskfakes"
+	"github.com/cloudfoundry/migrate-to-pxc/disk"
+	"github.com/cloudfoundry/migrate-to-pxc/disk/diskfakes"
 )
 
 var _ = Describe("Disk", func() {

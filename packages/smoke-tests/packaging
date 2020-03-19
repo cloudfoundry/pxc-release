@@ -11,5 +11,7 @@ mv specs ${GOPATH}/src
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo build src/specs/integration/connection
-cp ${GOPATH}/src/specs/integration/connection/connection.test ${BOSH_INSTALL_TARGET}/bin/
+cd specs
+  ginkgo build integration/connection
+  cp integration/connection/connection.test ${BOSH_INSTALL_TARGET}/bin/
+cd -

@@ -1,7 +1,7 @@
 package singlenode_test
 
 import (
-	helpers "specs/test_helpers"
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/onsi/ginkgo"

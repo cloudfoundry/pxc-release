@@ -3,9 +3,10 @@
 set -eu
 
 source /var/vcap/packages/golang-1.13-linux/bosh/compile.env
-mkdir -p ${BOSH_INSTALL_TARGET}/bin
-mkdir -p ${GOPATH}/src
 
-mv gra-log-purger ${GOPATH}/src
+export GOBIN="${BOSH_INSTALL_TARGET}/bin"
+export GOFLAGS="-mod=vendor"
 
-go build -o ${BOSH_INSTALL_TARGET}/bin/gra-log-purger gra-log-purger
+cd gra-log-purger
+  go install github.com/cloudfoundry/gra-log-purger
+cd -

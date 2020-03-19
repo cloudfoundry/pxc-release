@@ -3,9 +3,9 @@
 set -eux
 
 source /var/vcap/packages/golang-1.13-linux/bosh/compile.env
-mkdir -p ${BOSH_INSTALL_TARGET}/bin
-mkdir -p ${GOPATH}/src
+export GOBIN="${BOSH_INSTALL_TARGET}/bin"
+export GOFLAGS="-mod=vendor"
 
-mv migrate-to-pxc ${GOPATH}/src
-
-go build -o ${BOSH_INSTALL_TARGET}/bin/migrate-to-pxc migrate-to-pxc
+cd migrate-to-pxc
+  go install github.com/cloudfoundry/migrate-to-pxc
+cd -

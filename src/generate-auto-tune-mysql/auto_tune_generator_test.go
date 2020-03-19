@@ -1,7 +1,7 @@
 package main_test
 
 import (
-	. "generate-auto-tune-mysql"
+	. "github.com/cloudfoundry/generate-auto-tune-mysql"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

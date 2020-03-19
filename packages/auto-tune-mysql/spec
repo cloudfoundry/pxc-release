@@ -4,6 +4,6 @@ name: auto-tune-mysql
 dependencies:
   - golang-1.13-linux
 files:
-  - generate-auto-tune-mysql/**/*.go
+  - generate-auto-tune-mysql/**
 excluded_files:
   - "**/*_test.go"
