@@ -2,12 +2,12 @@
 package os_helperfakes
 
 import (
-	os "os"
-	exec "os/exec"
-	sync "sync"
-	time "time"
+	"os"
+	"os/exec"
+	"sync"
+	"time"
 
-	os_helper "github.com/cloudfoundry/galera-init/os_helper"
+	"github.com/cloudfoundry/galera-init/os_helper"
 )
 
 type FakeOsHelper struct {

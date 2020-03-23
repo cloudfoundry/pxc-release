@@ -2,10 +2,10 @@
 package db_helperfakes
 
 import (
-	exec "os/exec"
-	sync "sync"
+	"os/exec"
+	"sync"
 
-	db_helper "github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/db_helper"
 )
 
 type FakeDBHelper struct {

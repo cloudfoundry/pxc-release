@@ -2,9 +2,9 @@
 package db_helperfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	db_helper "github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/db_helper"
 )
 
 type FakeUserSeeder struct {

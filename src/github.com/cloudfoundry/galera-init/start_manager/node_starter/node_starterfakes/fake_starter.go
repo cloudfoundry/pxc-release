@@ -2,10 +2,10 @@
 package node_starterfakes
 
 import (
-	exec "os/exec"
-	sync "sync"
+	"os/exec"
+	"sync"
 
-	node_starter "github.com/cloudfoundry/galera-init/start_manager/node_starter"
+	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 )
 
 type FakeStarter struct {
