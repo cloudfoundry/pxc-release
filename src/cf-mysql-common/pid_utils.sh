@@ -90,8 +90,3 @@ function kill_and_wait() {
     return 0
   fi
 }
-
-log(){
-  message=$1
-  echo "$(date +"%Y-%m-%d %H:%M:%S %z") ----- $message"
-}

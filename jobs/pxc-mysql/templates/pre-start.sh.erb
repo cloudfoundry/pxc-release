@@ -21,15 +21,16 @@ source /var/vcap/packages/pxc-utils/pid_utils.sh
 
 shopt -s nullglob
 for script in /var/vcap/jobs/*/bin/disks/wait; do
-    $script
-    if [ $? -ne 0 ]; then
-        echo "failure"
+    ${script}
+    rc=$?
+    if [[ ${rc} -ne 0 ]]; then
+        log "${script} exited with status \"${rc}\""
         exit 1
     fi
 done
 
 if [ -f /var/vcap/jobs/bosh-dns/bin/wait ]; then
-  echo "waiting for bosh_dns"
+  log "waiting for bosh_dns"
   /var/vcap/jobs/bosh-dns/bin/wait
 fi
 
@@ -66,7 +67,7 @@ chmod 0750 ${SECURE_FILE_PRIV}
 chown -R vcap:vcap ${SECURE_FILE_PRIV}
 
 touch ${SLOW_QUERY_LOG_FILE}
-date >> ${SLOW_QUERY_LOG_FILE} 2>> ${SLOW_QUERY_LOG_FILE}
+date +%Y-%m-%dT%H:%M:%S.%NZ >> ${SLOW_QUERY_LOG_FILE} 2>> ${SLOW_QUERY_LOG_FILE}
 
 mkdir -p ${LOG_DIR}
 chown -R vcap:vcap ${LOG_DIR}
@@ -80,7 +81,7 @@ fi
 
  /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
     -f /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf \
-    -P <%= p('engine_config.innodb_buffer_pool_size_percent') %>
+    -P "<%= p('engine_config.innodb_buffer_pool_size_percent') %>"
 
 ln -sf ${PXC_JOB_DIR}/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
 chmod 440 /etc/sudoers.d/pxc-sudoers
@@ -91,7 +92,6 @@ ln -sf ${PXC_JOB_DIR}/config/disable_mysql_cli_history.sh /etc/profile.d/disable
 <% end %>
 
 ulimit -n 1048576
-
 
 function check_mysql_disk_persistence() {
   if [[ (! -d /var/vcap/store) || $(mountpoint -d /var/vcap/store) == $(mountpoint -d /) ]]

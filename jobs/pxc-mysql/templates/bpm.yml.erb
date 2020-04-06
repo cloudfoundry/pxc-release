@@ -1,9 +1,16 @@
+<%-
+if !['rfc3339', 'unix-epoch'].include?(p('logging.format.timestamp'))
+  raise "'#{p('logging.format.timestamp')}' is not a valid timestamp format for the property 'logging.format.timestamp'." +
+        " Valid options are: 'rfc3339' and 'unix-epoch'."
+end
+-%>
 ---
 processes:
 - name: galera-init
   executable: /var/vcap/packages/galera-init/bin/galera-init
   args:
     - --configPath=/var/vcap/jobs/pxc-mysql/config/galera-init-config.yml
+    - -timeFormat=<%= p('logging.format.timestamp') %>
   hooks:
     pre_start: /var/vcap/jobs/pxc-mysql/bin/cleanup-socket
   env:
