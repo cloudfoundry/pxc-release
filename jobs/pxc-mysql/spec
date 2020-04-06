@@ -32,7 +32,6 @@ packages:
 - migrate-to-pxc
 - percona-xtrabackup
 - pxc
-- pxc-cluster-health-logger
 - pxc-utils
 - socat
 
