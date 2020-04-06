@@ -81,7 +81,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	err := serviceConfig.Read(&c)
 
-	c.Logger, _ = lagerflags.New(binaryName)
+	c.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
 
 	return &c, err
 }
