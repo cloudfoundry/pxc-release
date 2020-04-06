@@ -32,6 +32,8 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # golang.org/x/net v0.0.0-20171016235512-1087133bc4af
 golang.org/x/net/html
 golang.org/x/net/html/atom

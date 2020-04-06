@@ -1,6 +1,8 @@
 package main_test
 
 import (
+	"errors"
+
 	. "github.com/cloudfoundry/generate-auto-tune-mysql"
 
 	. "github.com/onsi/ginkgo"
@@ -25,7 +27,7 @@ var _ = Describe("AutoTuneGenerator", func() {
 			targetPercentage := float64(42)
 			writer := &bytes.Buffer{}
 
-			Generate(totalMem, targetPercentage, writer)
+			Expect(Generate(totalMem, targetPercentage, writer)).To(Succeed())
 
 			Expect(writer.String()).To(Equal(includeFileAt42))
 		})
@@ -35,9 +37,26 @@ var _ = Describe("AutoTuneGenerator", func() {
 			targetPercentage := float64(66)
 			writer := &bytes.Buffer{}
 
-			Generate(totalMem, targetPercentage, writer)
+			Expect(Generate(totalMem, targetPercentage, writer)).To(Succeed())
 
 			Expect(writer.String()).To(Equal(includeFileAt7))
 		})
+
+		Context("when writing the config file fails", func() {
+			It("returns an error", func() {
+				totalMem := uint64(10)
+				targetPercentage := float64(66)
+				writer := FailingWriter{}
+
+				err := Generate(totalMem, targetPercentage, writer)
+				Expect(err).To(MatchError(`failed to emit mysql configuration: write failed`))
+			})
+		})
 	})
 })
+
+type FailingWriter struct{}
+
+func (FailingWriter) Write(p []byte) (n int, err error) {
+	return -1, errors.New("write failed")
+}

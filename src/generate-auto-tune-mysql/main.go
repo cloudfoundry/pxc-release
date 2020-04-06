@@ -1,14 +1,12 @@
 package main
 
-// pull in the package andrew mentioned that deals with memory
-// read command line for destination cnf
-// call object.generate with mem library and destination string
-
 import (
-	sigar "github.com/cloudfoundry/gosigar"
-	"fmt"
 	"flag"
+	"fmt"
 	"os"
+	"time"
+
+	sigar "github.com/cloudfoundry/gosigar"
 )
 
 var (
@@ -23,15 +21,22 @@ func main() {
 		       "Target file for rendering MySQL option file")
 	flag.Parse()
 
+
 	mem := sigar.Mem{}
 	mem.Get()
 	totalMem := mem.Total
-	fmt.Printf("Total memory in bytes: %d", mem.Total)
+
+	fmt.Printf("%s Total memory in bytes: %d\n", time.Now().UTC().Format(time.RFC3339Nano), mem.Total)
 
 	file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
-	Generate(totalMem, targetPercentage, file)
+
+	if err := Generate(totalMem, targetPercentage, file); err != nil {
+		fmt.Printf("%s generating %s failed: %s\n",
+			time.Now().UTC().Format(time.RFC3339Nano), outputFile, err)
+		os.Exit(1)
+	}
 }
