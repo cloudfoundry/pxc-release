@@ -46,7 +46,7 @@ func main() {
 	writer := logwriter.New(db, config.LogPath)
 
 	for {
-		err := writer.Write(time.Now().Format(time.RFC3339))
+		err := writer.Write(time.Now().Format(time.RFC3339Nano))
 		if err != nil {
 			log.Println(err)
 		}
