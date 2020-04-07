@@ -39,7 +39,7 @@ func (h OsHelperImpl) RunCommand(executable string, args ...string) (string, err
 
 func (h OsHelperImpl) StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error) {
 	cmd := exec.Command(executable, args...)
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error logging output for command %q to filename %q", executable, logFileName)
 	}

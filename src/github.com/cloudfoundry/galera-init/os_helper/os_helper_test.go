@@ -53,6 +53,15 @@ var _ = Describe("OsHelper", func() {
 			Expect(string(contents)).To(Equal("some argument"))
 		})
 
+		It("has the right permissions for the logfile", func() {
+			cmd, err := helper.StartCommand(logFilePath, "echo", "-n", "some argument")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmd.Wait()).To(Succeed())
+
+			fileInfo,_ := os.Stat(logFilePath)
+			Expect(fileInfo.Mode().String()).To(Equal("-rw-r--r--"))
+		})
+
 		When("an invalid logFileName is requested", func() {
 			It("returns an error", func() {
 				badPath := filepath.Join(tempDir, "log.directory")
