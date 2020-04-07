@@ -58,7 +58,7 @@ var _ = Describe("OsHelper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd.Wait()).To(Succeed())
 
-			fileInfo,_ := os.Stat(logFilePath)
+			fileInfo, _ := os.Stat(logFilePath)
 			Expect(fileInfo.Mode().String()).To(Equal("-rw-r--r--"))
 		})
 
