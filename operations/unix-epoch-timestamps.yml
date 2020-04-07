@@ -2,3 +2,6 @@
 - type: replace
   path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/logging?/format/timestamp
   value: unix-epoch
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=proxy/properties/logging?/format/timestamp
+  value: unix-epoch
