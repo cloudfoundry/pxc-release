@@ -120,7 +120,7 @@ if [ -d "/var/vcap/store/mysql-clustered" ]; then
 fi
 
 # remove the datadir if it's empty, so we initialize on it later.
-if rmdir "${datadir}" ; then
+if rmdir "${datadir}" 2> /dev/null; then
   log "pre-start: empty datadir ${datadir} removed"
 fi
 
