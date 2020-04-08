@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerflags"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 
@@ -73,13 +73,13 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	cflager.AddFlags(flags)
+	lagerflags.AddFlags(flags)
 
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(defaultConfig())
 	flags.Parse(configurationOptions)
 
-	rootConfig.Logger, _ = cflager.New("Galera Healthcheck")
+	rootConfig.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
 
 	err := serviceConfig.Read(&rootConfig)
 	return &rootConfig, err
