@@ -15,7 +15,7 @@ import (
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to parse config: %s", err.Error()))
+		panic(fmt.Sprintf("Failed to parse config and build logger: %s", err.Error()))
 	}
 
 	err = rootConfig.Validate()
@@ -23,10 +23,6 @@ func main() {
 		panic(fmt.Sprintf("Invalid config: %s", err.Error()))
 	}
 
-	err = rootConfig.BuildLogger()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to build logger: %s", err.Error()))
-	}
 	logger := rootConfig.Logger
 
 	nodeManager := node_manager.New(rootConfig, clock.DefaultClock())

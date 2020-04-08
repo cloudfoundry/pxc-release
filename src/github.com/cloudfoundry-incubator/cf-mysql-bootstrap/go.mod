@@ -3,7 +3,7 @@ module github.com/cloudfoundry-incubator/cf-mysql-bootstrap
 go 1.14
 
 require (
-	code.cloudfoundry.org/lager v0.0.0-20160705185753-62951a8009ab
+	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/imdario/mergo v0.0.0-20160517064435-50d4dbd4eb0e // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

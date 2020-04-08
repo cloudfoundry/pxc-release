@@ -2,8 +2,6 @@ package config_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 
 	. "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
@@ -18,48 +16,27 @@ var _ = Describe("Config", func() {
 		rootConfig *Config
 		rawConfig  string
 		osArgs     []string
-		tmpFile    *os.File
 	)
 
 	BeforeEach(func() {
-		var err error
-		tmpFile, err = ioutil.TempFile("", "fake-logfile")
-		Expect(err).NotTo(HaveOccurred())
-
-		rawConfig = fmt.Sprintf(`{
-				"HealthcheckURLs": [
-					"10.10.10.10:9200",
-					"11.11.11.11:9200",
-					"12.12.12.12:9200"
-				],
-				"Username": "fake-username",
-				"Password": "fake-password",
-				"LogFilePath": "%s",
-				"RepairMode": "bootstrap"
-			}`, tmpFile.Name())
+		rawConfig = `{
+			"HealthcheckURLs": [
+				"10.10.10.10:9200",
+				"11.11.11.11:9200",
+				"12.12.12.12:9200"
+			],
+			"Username": "fake-username",
+			"Password": "fake-password",
+			"RepairMode": "bootstrap"
+		}`
 
 		osArgs = []string{
 			"bootstrap",
 			fmt.Sprintf("-config=%s", rawConfig),
 		}
+		var err error
 		rootConfig, err = NewConfig(osArgs)
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		os.Remove(tmpFile.Name())
-	})
-
-	Describe("BuildLogger", func() {
-		It("creates a logger with the logfile as a sink", func() {
-			err := rootConfig.BuildLogger()
-			Expect(err).NotTo(HaveOccurred())
-			rootConfig.Logger.Info("fake log output")
-			logBytes, err := ioutil.ReadFile(tmpFile.Name())
-			Expect(err).NotTo(HaveOccurred())
-			logged := string(logBytes)
-			Expect(logged).To(ContainSubstring("fake log output"))
-		})
 	})
 
 	Describe("Validate", func() {
@@ -78,11 +55,6 @@ var _ = Describe("Config", func() {
 
 		It("returns an error if HealthcheckURLs is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "HealthcheckURLs")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns an error if LogFilePath is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "LogFilePath")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

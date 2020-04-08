@@ -1,6 +1,8 @@
-# code.cloudfoundry.org/lager v0.0.0-20160705185753-62951a8009ab
+# code.cloudfoundry.org/lager v2.0.0+incompatible
 ## explicit
 code.cloudfoundry.org/lager
+code.cloudfoundry.org/lager/lagerctx
+code.cloudfoundry.org/lager/lagerflags
 code.cloudfoundry.org/lager/lagertest
 # github.com/hpcloud/tail v1.0.0
 github.com/hpcloud/tail
