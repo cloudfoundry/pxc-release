@@ -15,7 +15,7 @@ import (
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 )
 
-//go:generate counterfeiter -o fakes/fake_node_manager.go . NodeManager
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . NodeManager
 
 const (
 	PollingIntervalInSec = 5
