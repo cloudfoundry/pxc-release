@@ -1,3 +1,9 @@
+<%-
+if !['rfc3339', 'unix-epoch'].include?(p('logging.format.timestamp'))
+  raise "'#{p('logging.format.timestamp')}' is not a valid timestamp format for the property 'logging.format.timestamp'." +
+        " Valid options are: 'rfc3339' and 'unix-epoch'."
+end
+-%>
 ---
 processes:
 - name: gra-log-purger
@@ -5,6 +11,7 @@ processes:
   args:
   - -graLogDir=/var/vcap/store/pxc-mysql
   - -graLogDaysToKeep=30
+  - -timeFormat=<%= p('logging.format.timestamp') %>
 
   additional_volumes:
   - path: /var/vcap/store/pxc-mysql

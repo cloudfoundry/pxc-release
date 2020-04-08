@@ -118,12 +118,14 @@ var _ = Describe("gra-log-purger", func() {
 
 var _ = Describe("PurgeGraLogs", func() {
 	var (
-		err     error
-		tempDir string
+		err        error
+		tempDir    string
+		timeFormat string
 	)
 
 	BeforeEach(func() {
 		tempDir, err = ioutil.TempDir("", "gra-log-test")
+		timeFormat = "rfc3339"
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -133,7 +135,7 @@ var _ = Describe("PurgeGraLogs", func() {
 
 	Context("When an empty directory is passed in", func() {
 		It("returns an empty list and succeeds", func() {
-			succeeded, failed, err := PurgeGraLogs(tempDir, time.Hour*24*2)
+			succeeded, failed, err := PurgeGraLogs(tempDir, timeFormat, time.Hour*24*2)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(succeeded).To(BeZero())
@@ -147,7 +149,7 @@ var _ = Describe("PurgeGraLogs", func() {
 		})
 
 		It("does not remove directories", func() {
-			_, _, err := PurgeGraLogs(tempDir, 0)
+			_, _, err := PurgeGraLogs(tempDir, timeFormat, 0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(filepath.Join(tempDir, "GRA_something.log")).Should(BeADirectory())
@@ -172,7 +174,7 @@ var _ = Describe("PurgeGraLogs", func() {
 		})
 
 		It("returns an out of sandbox error", func() {
-			_, _, err := PurgeGraLogs(tempFile, time.Hour*24*2)
+			_, _, err := PurgeGraLogs(tempFile, timeFormat, time.Hour*24*2)
 			Expect(err).To(BeAssignableToTypeOf(&os.SyscallError{}))
 		})
 	})
