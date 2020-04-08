@@ -1,6 +1,13 @@
+<%-
+if !['rfc3339', 'unix-epoch'].include?(p('logging.format.timestamp'))
+  raise "'#{p('logging.format.timestamp')}' is not a valid timestamp format for the property 'logging.format.timestamp'." +
+        " Valid options are: 'rfc3339' and 'unix-epoch'."
+end
+-%>
 ---
 processes:
 - name: bootstrap
   executable: /var/vcap/packages/bootstrap/bin/cf-mysql-bootstrap
   args:
   - -configPath=/var/vcap/jobs/bootstrap/config/config.yml
+  - -timeFormat=<%= p('logging.format.timestamp') %>

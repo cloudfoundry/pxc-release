@@ -9,7 +9,6 @@
     HealthcheckURLs: cluster_ips.map {|ip| "http://#{ip}:#{galera_agent_port}" },
     Username: galera_agent_username,
     Password: galera_agent_password,
-    LogFilePath: '/var/vcap/sys/log/bootstrap/bootstrap.log',
     RepairMode: 'bootstrap'
   }
 

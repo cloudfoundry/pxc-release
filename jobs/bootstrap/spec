@@ -10,3 +10,15 @@ templates:
 consumes:
 - name: galera-agent
   type: galera-agent
+
+properties:
+
+  logging.format.timestamp:
+    description: |
+      Format for timestamp in component logs. Valid values are 'rfc3339', 'unix-epoch'. 'rfc3339' is the recommended
+      format. It will result in all timestamps controlled by this job to be in RFC3339 format, which is human readable.
+      This includes stdout, pre-start, and post-start logs. This does not include stderr logs from golang libraries.
+      'unix-epoch' will result in all timestamps being in the format they were before the rfc3339 flag was introduced.
+      This format is different for different logs. We do not recommend using this flag unless you have scripts that
+      expect a particular timestamp format.
+    default: "rfc3339"
