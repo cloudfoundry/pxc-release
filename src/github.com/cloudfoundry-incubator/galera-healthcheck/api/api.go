@@ -14,22 +14,22 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
-//go:generate counterfeiter . ReqHealthChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ReqHealthChecker
 type ReqHealthChecker interface {
 	CheckReq(*http.Request) (string, error)
 }
 
-//go:generate counterfeiter . HealthChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . HealthChecker
 type HealthChecker interface {
 	Check() (string, error)
 }
 
-//go:generate counterfeiter . StateSnapshotter
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . StateSnapshotter
 type StateSnapshotter interface {
 	State() (domain.DBState, error)
 }
 
-//go:generate counterfeiter . MonitClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . MonitClient
 type MonitClient interface {
 	StartServiceBootstrap(req *http.Request) (string, error)
 	StartServiceJoin(req *http.Request) (string, error)
@@ -38,7 +38,7 @@ type MonitClient interface {
 	GetStatus(req *http.Request) (string, error)
 }
 
-//go:generate counterfeiter . SequenceNumberChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . SequenceNumberChecker
 type SequenceNumberChecker interface {
 	Check(req *http.Request) (string, error)
 }

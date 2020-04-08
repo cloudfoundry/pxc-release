@@ -11,7 +11,7 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 )
 
-//go:generate counterfeiter . MonitClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . MonitClient
 type MonitClient interface {
 	Start(serviceName string) error
 	Stop(serviceName string) error

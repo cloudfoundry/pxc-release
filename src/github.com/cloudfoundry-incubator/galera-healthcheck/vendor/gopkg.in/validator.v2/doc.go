@@ -36,7 +36,7 @@ You get the idea. Package validator allows one to define valid values as
 struct tags when defining a new struct type.
 
 	type NewUserRequest struct {
-		Username string `validate:"min=3,max=40,regexp=^[a-zA-Z]$"`
+		Username string `validate:"min=3,max=40,regexp=^[a-zA-Z]*$"`
 		Name string     `validate:"nonzero"`
 		Age int         `validate:"min=18"`
 		Password string `validate:"min=8"`
@@ -74,12 +74,16 @@ Here is the list of validator functions builtin in the package.
 	nonzero
 		This validates that the value is not zero. The appropriate zero value
 		is given by the Go spec (e.g. for int it's 0, for string it's "", for
-		pointers is nil, etc.) Usage: nonzero
+		pointers is nil, etc.). For pointers, the pointer's value is used to
+		test for nonzero in addition to the pointer itself not being nil. To
+		just check for not being nil, use nonnil. Usage: nonzero
 
 	regexp
 		Only valid for string types, it will validate that the value matches
 		the regular expression provided as parameter. (Usage: regexp=^a.*b$)
 
+	nonnil
+		Validates that the given value is not nil. Usage: nonnil
 
 Note that there are no tests to prevent conflicting validator parameters. For
 instance, these fields will never be valid.
