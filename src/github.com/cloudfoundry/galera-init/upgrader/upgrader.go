@@ -13,7 +13,7 @@ import (
 	"github.com/cloudfoundry/galera-init/os_helper"
 )
 
-//go:generate counterfeiter . Upgrader
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Upgrader
 type Upgrader interface {
 	Upgrade() error
 	NeedsUpgrade() (bool, error)

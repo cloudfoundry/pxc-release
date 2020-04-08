@@ -15,8 +15,7 @@ import (
 	"github.com/cloudfoundry/galera-init/os_helper"
 )
 
-//go:generate counterfeiter . DBHelper
-
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . DBHelper
 type DBHelper interface {
 	StartMysqldForUpgrade() (*exec.Cmd, error)
 	StartMysqldInJoin() (*exec.Cmd, error)

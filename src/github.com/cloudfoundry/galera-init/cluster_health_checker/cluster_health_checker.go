@@ -3,15 +3,16 @@ package cluster_health_checker
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 )
 
 var MakeRequest = func(url string, client http.Client) (*http.Response, error) {
 	return client.Get(url)
 }
 
-//go:generate counterfeiter . ClusterHealthChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ClusterHealthChecker
 type ClusterHealthChecker interface {
 	HealthyCluster() bool
 }

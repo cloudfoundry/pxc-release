@@ -23,7 +23,7 @@ const (
 	StartupPollingFrequencyInSeconds = 5
 )
 
-//go:generate counterfeiter . Starter
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Starter
 type Starter interface {
 	StartNodeFromState(string) (string, <-chan error, error)
 	GetMysqlCmd() *exec.Cmd

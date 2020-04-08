@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate counterfeiter . OsHelper
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . OsHelper
 type OsHelper interface {
 	RunCommand(executable string, args ...string) (string, error)
 	StartCommand(logFileName string, executable string, args ...string) (*exec.Cmd, error)

@@ -1,6 +1,6 @@
 module github.com/cloudfoundry/galera-init
 
-go 1.13
+go 1.14
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
@@ -12,16 +12,14 @@ require (
 	github.com/go-sql-driver/mysql v1.2.1-0.20160802113842-0b58b37b664c
 	github.com/google/uuid v1.1.0
 	github.com/imdario/mergo v0.0.0-20160517064435-50d4dbd4eb0e // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
-	github.com/onsi/ginkgo v1.7.0
-	github.com/onsi/gomega v1.4.3
+	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/gomega v1.9.0
 	github.com/opencontainers/runc v1.0.0-rc5.0.20181113215238-10d38b660a77 // indirect
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.8.0
 	github.com/sirupsen/logrus v1.2.0 // indirect
-	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 // indirect
-	golang.org/x/net v0.0.0-20181207154023-610586996380 // indirect
-	golang.org/x/sys v0.0.0-20181208175041-ad97f365e150 // indirect
 	gopkg.in/validator.v2 v2.0.0-20160201165114-3e4f037f12a1
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 )

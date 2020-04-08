@@ -10,7 +10,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-//go:generate counterfeiter . Seeder
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Seeder
 
 type Seeder interface {
 	CreateDBIfNeeded() error

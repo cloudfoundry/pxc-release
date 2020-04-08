@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-//go:generate counterfeiter . UserSeeder
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . UserSeeder
 type UserSeeder interface {
 	SeedUser(username string, password string, host string, role string) error
 }

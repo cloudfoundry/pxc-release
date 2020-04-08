@@ -17,13 +17,13 @@ import (
 	"github.com/cloudfoundry/galera-init/upgrader"
 )
 
-//go:generate counterfeiter . StartManager
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . StartManager
 type StartManager interface {
 	Execute(ctx context.Context) error
 	Shutdown()
 }
 
-//go:generate counterfeiter . ServiceStatus
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ServiceStatus
 type ServiceStatus interface {
 	Start() error
 }
