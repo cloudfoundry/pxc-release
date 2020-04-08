@@ -3,9 +3,7 @@
 set -eu
 
 source /var/vcap/packages/golang-1.13-linux/bosh/compile.env
-mkdir -p ${BOSH_INSTALL_TARGET}/bin
-mkdir -p ${GOPATH}/src
 
-mv github.com ${GOPATH}/src
-
-go build -o ${BOSH_INSTALL_TARGET}/bin/galera-init github.com/cloudfoundry/galera-init/cmd/start
+cd github.com/cloudfoundry/galera-init/cmd/start
+  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/galera-init"
+cd -

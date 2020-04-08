@@ -3,11 +3,8 @@
 set -eu
 
 source /var/vcap/packages/golang-1.13-linux/bosh/compile.env
-mkdir -p ${BOSH_INSTALL_TARGET}/bin
-mkdir -p ${GOPATH}/src
 
-mv github.com ${GOPATH}/src
-
-go build -o ${BOSH_INSTALL_TARGET}/bin/proxy github.com/cloudfoundry-incubator/switchboard
-
-cp -r src/github.com/cloudfoundry-incubator/switchboard/static  ${BOSH_INSTALL_TARGET}/static
+cd github.com/cloudfoundry-incubator/switchboard
+  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/proxy"
+  cp -r static "${BOSH_INSTALL_TARGET}/static"
+cd -

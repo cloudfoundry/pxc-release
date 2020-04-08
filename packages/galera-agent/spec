@@ -3,6 +3,4 @@ name: galera-agent
 dependencies:
   - golang-1.13-linux
 files:
-  - github.com/cloudfoundry-incubator/galera-healthcheck/**/*.go
-excluded_files:
-  - "**/*_test.go"
+  - github.com/cloudfoundry-incubator/galera-healthcheck/**
