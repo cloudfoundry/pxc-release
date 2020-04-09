@@ -1,9 +1,16 @@
+<%-
+if !['rfc3339', 'unix-epoch'].include?(p('logging.format.timestamp'))
+  raise "'#{p('logging.format.timestamp')}' is not a valid timestamp format for the property 'logging.format.timestamp'." +
+        " Valid options are: 'rfc3339' and 'unix-epoch'."
+end
+-%>
 ---
 processes:
 - name: galera-agent
   executable: /var/vcap/packages/galera-agent/bin/galera-agent
   args:
   - --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml
+  - -timeFormat=<%= p('logging.format.timestamp') %>
   limits:
     open_files: 1048576
   additional_volumes:
