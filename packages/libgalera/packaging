@@ -2,8 +2,6 @@
 
 set -e -o pipefail
 
-source /var/vcap/packages/python-2.7/bosh/compile.env
-
 set -u
 
 NPROC=$(nproc)
@@ -23,11 +21,11 @@ popd
 
 tar -xf scons/scons-*.tar.gz
 pushd scons-*/
-    python setup.py install --prefix=/usr
+    python3 setup.py install --prefix=/usr
 popd
 
 tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
 pushd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera
-    HOME=$PWD scons tests=0
+    HOME=$PWD python3 "$(command -v scons)" tests=0
     install --mode=0644 -D libgalera_smm.so "${BOSH_INSTALL_TARGET}/lib/libgalera_smm.so"
 popd

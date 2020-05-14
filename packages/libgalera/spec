@@ -1,8 +1,7 @@
 ---
 name: libgalera
 
-dependencies:
-- python-2.7
+dependencies: []
 
 files:
 - boost/boost_1_59_0.tar.gz
