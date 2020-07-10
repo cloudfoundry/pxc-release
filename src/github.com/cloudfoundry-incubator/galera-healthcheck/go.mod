@@ -17,6 +17,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/tedsuo/rata v1.0.0
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/validator.v2 v2.0.0-20191107172027-c3144fdedc21
