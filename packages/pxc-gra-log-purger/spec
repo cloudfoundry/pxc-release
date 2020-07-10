@@ -1,6 +1,6 @@
 ---
 name: pxc-gra-log-purger
 dependencies:
-  - golang-1.13-linux
+  - golang-1.14-linux
 files:
   - gra-log-purger/**
