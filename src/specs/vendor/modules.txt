@@ -18,7 +18,7 @@ code.cloudfoundry.org/tlsconfig/certtest
 github.com/bmatcuk/doublestar
 # github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1
 github.com/charlievieth/fs
-# github.com/cheggaaa/pb v1.0.4-0.20160520101051-c1f48d5ce4f2
+# github.com/cheggaaa/pb v1.0.28
 github.com/cheggaaa/pb
 # github.com/cloudfoundry-incubator/cf-test-helpers v1.0.0
 github.com/cloudfoundry-incubator/cf-test-helpers/commandreporter
@@ -54,8 +54,10 @@ github.com/google/uuid
 github.com/hashicorp/go-version
 # github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.3
+# github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.9
+github.com/mattn/go-runewidth
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 github.com/nu7hatch/gouuid
 # github.com/onsi/ginkgo v1.4.0
@@ -94,7 +96,7 @@ github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
 # github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20
 github.com/pivotal-cf/paraphernalia/secure/tlsconfig
-# github.com/pkg/errors v0.8.0
+# github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/square/certstrap v1.1.2-0.20190303202523-350df15b3713
 github.com/square/certstrap/pkix
@@ -123,7 +125,7 @@ golang.org/x/net/proxy
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.0
+# golang.org/x/text v0.3.3
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -134,10 +136,12 @@ golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
-# gopkg.in/yaml.v2 v2.2.2
+# gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
