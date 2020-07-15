@@ -187,6 +187,7 @@ encrypt=4
 ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
+sockopt="cipher=ECDHE-RSA-AES256-GCM-SHA384"
 
 [mysqldump]
 quick
