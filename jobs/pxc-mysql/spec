@@ -134,6 +134,10 @@ properties:
   tls.server:
     description: 'Required. TLS certificate for client-server encryption'
 
+  tls.enforce_tls_v1_2:
+    description: 'If enabled, will enforce client connections to use TLSv1.2'
+    default: false
+
   tls.client.ca:
     description: |
         Optional. Certificate bundle that defines the set of root certificate authorities that MySQL instances in this
