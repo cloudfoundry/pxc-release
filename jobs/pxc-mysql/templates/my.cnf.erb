@@ -41,7 +41,7 @@ ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
 <%- end -%>
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
-<%- if_p('tls.enforce_tls_v1_2') do -%>
+<%- if p('tls.enforce_tls_v1_2') -%>
 tls_version=TLSv1.2
 <%- end -%>
 

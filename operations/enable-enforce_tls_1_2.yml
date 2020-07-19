@@ -1,5 +1,5 @@
 
 ---
 - type: replace
-  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/tls.enforce_tls_v1_2?
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/tls?/enforce_tls_v1_2
   value: true
