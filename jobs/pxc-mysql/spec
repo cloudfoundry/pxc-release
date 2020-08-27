@@ -225,6 +225,8 @@ properties:
   engine_config.innodb_strict_mode:
     description: 'Whether innodb_strict_mode is enabled'
     default: false
+  engine_config.innodb_ft_min_token_size:
+    description: Minimum length of words that are stored in an InnoDB FULLTEXT index.
 
   # Generic Config
   engine_config.event_scheduler:
