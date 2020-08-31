@@ -85,7 +85,7 @@ func ExecuteBosh(args []string, timeout time.Duration) *gexec.Session {
 }
 
 func ExecuteMysqlQueryAsAdmin(deploymentName, instanceIndex, sqlQuery string) string {
-	command := fmt.Sprintf(`mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "%s"`,
+	command := fmt.Sprintf(`sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "%s"`,
 		sqlQuery)
 
 	session := MustSucceed(executeMysqlQuery(deploymentName, instanceIndex, command))
