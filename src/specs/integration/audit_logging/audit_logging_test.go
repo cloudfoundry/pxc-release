@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -19,12 +18,17 @@ import (
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
+const (
+	auditLogDirectory = "/var/vcap/store/mysql_audit_logs"
+	auditLogPath      = "/var/vcap/store/mysql_audit_logs/mysql_server_audit.log"
+)
+
 var _ = Describe("CF PXC MySQL Audit Logging", func() {
 
 	var (
-		db                         *sql.DB
-		databaseName, auditLogPath string
-		activeBackend              string
+		db            *sql.DB
+		databaseName  string
+		activeBackend string
 	)
 
 	BeforeEach(func() {
@@ -36,7 +40,6 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 
 		db = helpers.DbConnWithUser("root", mysqlPassword, firstProxy)
 		databaseName = helpers.DbSetup(db, "audit_logging_test_table")
-		auditLogPath = os.Getenv("AUDIT_LOG_PATH")
 
 		findActiveBackendSQL := `
 		SELECT HOST_NAME
@@ -46,6 +49,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 		Expect(db.QueryRow(findActiveBackendSQL).Scan(&activeBackend)).
 			To(Succeed())
 
+		enableAccessToAuditLogs(activeBackend)
 	})
 
 	AfterEach(func() {
@@ -76,6 +80,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 				Expect(string(auditLogContents)).ToNot(ContainSubstring("\"user\":\"excludeDBAudit1[excludeDBAudit1]"))
 			})
 		})
+
 		Context("when the excluded user is not from csv", func() {
 			BeforeEach(func() {
 				excludedUser = "excludeDBAudit2"
@@ -118,6 +123,16 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 		})
 	})
 })
+
+// bpm v1.1+ sets restrict permissions for mounts configured in a job. This enables access for any user in the vcap group
+// to continue to read the audit logs.
+func enableAccessToAuditLogs(backend string) {
+	// TODO: Maybe we need to chmod.  Doesn't bpm set 0700 perms?
+	cmd := exec.Command("bosh", "ssh", backend, "sudo chmod g+rx "+auditLogDirectory)
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	session.Wait(10 * time.Second)
+	Expect(err).NotTo(HaveOccurred())
+}
 
 // Get the size of the audit log file in bytes before reading or writing any data
 // so we can read from that offset in the audit log file and return the contents from after that offset
@@ -179,14 +194,13 @@ func BoshSCP(activeBackend, remoteFilePath, destPath string) {
 }
 
 func AuditLogSize(activeBackend, remoteFilePath string) int64 {
-	commandOnVM := strings.Join([]string{"\"wc -c ", remoteFilePath, "\""}, "")
-	cmd := exec.Command("bosh", "ssh", activeBackend, "-c", commandOnVM)
+	cmd := exec.Command("bosh", "ssh", activeBackend, "-c", "sudo wc -c "+remoteFilePath)
 
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	session.Wait(10 * time.Second)
 	Expect(err).NotTo(HaveOccurred())
 
-	exp := regexp.MustCompile(`stdout \| ([0-9]+) /var/vcap/store/mysql_audit_logs/mysql_server_audit.log`)
+	exp := regexp.MustCompile(`stdout \| ([0-9]+) /var/vcap/store/mysql_audit_logs/mysql_server_audit\.log`)
 	size, err := strconv.Atoi(exp.FindStringSubmatch(string(session.Out.Contents()))[1])
 	Expect(err).NotTo(HaveOccurred())
 
