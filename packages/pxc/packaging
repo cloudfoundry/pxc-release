@@ -11,11 +11,14 @@ make -j "${NPROC}" -C libaio-*/ install
 
 ## PXC
 tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
+pxc_version=$(basename pxc/Percona-XtraDB-Cluster-*.tar.gz .tar.gz | sed 's/Percona-XtraDB-Cluster-//')
+compilation_comment="Percona XtraDB Cluster (GPL) ${pxc_version}"
 pushd Percona-XtraDB-Cluster-*/
     cmake . \
         -DBUILD_CONFIG=mysql_release \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+        -DCOMPILATION_COMMENT="${compilation_comment}" \
         -DINSTALL_MYSQLTESTDIR= \
         -DWITH_BOOST=../boost_1_59_0/ \
         -DWITH_EMBEDDED_SERVER=OFF \
