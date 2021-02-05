@@ -2,7 +2,7 @@
 
 set -eu
 
-source /var/vcap/packages/golang-1.14-linux/bosh/compile.env
+source /var/vcap/packages/golang-1.15-linux/bosh/compile.env
 
 cd github.com/cloudfoundry-incubator/galera-healthcheck
   go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/galera-agent"

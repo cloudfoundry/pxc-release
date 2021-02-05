@@ -1,6 +1,6 @@
 ---
 name: proxy
 dependencies:
-  - golang-1.14-linux
+  - golang-1.15-linux
 files:
   - github.com/cloudfoundry-incubator/switchboard/**
