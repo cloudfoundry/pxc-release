@@ -205,13 +205,17 @@ var _ = Describe("CF PXC MySQL Autotune", func() {
 
 		vmTotalDiskInBytes := TotalDisk("mysql/0")
 
-		var variableValue string
-		Expect(mysqlConn.QueryRow("SHOW variables LIKE 'binlog_space_limit'").Scan(&variableValue)).To(Succeed())
-		binlogSpaceLimitInBytes, err := strconv.Atoi(variableValue)
+		var (
+			unused string
+			value string
+		)
+		
+		Expect(mysqlConn.QueryRow("SHOW variables LIKE 'binlog_space_limit'").Scan(&unused, &value)).To(Succeed())
+		binlogSpaceLimitInBytes, err := strconv.Atoi(value)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(mysqlConn.QueryRow("SHOW variables LIKE 'max_binlog_size'").Scan(&variableValue)).To(Succeed())
-		maxBinlogSizeInBytes, err := strconv.Atoi(variableValue)
+		Expect(mysqlConn.QueryRow("SHOW variables LIKE 'max_binlog_size'").Scan(&unused, &value)).To(Succeed())
+		maxBinlogSizeInBytes, err := strconv.Atoi(value)
 		Expect(err).NotTo(HaveOccurred())
 
 		expectedbinlogSpaceLimit := vmTotalDiskInBytes * (float64(binlogSpaceLimitPercent) / 100.0)
