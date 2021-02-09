@@ -81,7 +81,8 @@ fi
 
  /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
     -f /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf \
-    -P "<%= p('engine_config.innodb_buffer_pool_size_percent') %>"
+    -P "<%= p('engine_config.innodb_buffer_pool_size_percent') %>" \
+    -D "<%= p('engine_config.binlog.space_limit_percent') %>"
 
 ln -sf ${PXC_JOB_DIR}/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
 chmod 440 /etc/sudoers.d/pxc-sudoers

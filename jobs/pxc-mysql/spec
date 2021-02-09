@@ -194,6 +194,9 @@ properties:
   engine_config.binlog.expire_logs_days:
     description: 'Time in days to store binlogs before purging'
     default: 7
+  engine_config.binlog.space_limit_percent:
+    description: 'Set this to an integer which represents the percentage of disk space to reserve for binary logs. 0 indicates no limit on binary log space.'
+    default: 0
 
 
   # InnoDB Config
