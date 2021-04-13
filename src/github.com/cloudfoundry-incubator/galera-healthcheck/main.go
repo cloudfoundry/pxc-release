@@ -31,23 +31,20 @@ func main() {
 	}
 
 	db, err := sql.Open("mysql",
-		fmt.Sprintf("%s:%s@tcp(%s:%d)/",
+		fmt.Sprintf("%s:%s@unix(%s)/",
 			rootConfig.DB.User,
 			rootConfig.DB.Password,
-			rootConfig.DB.Host,
-			rootConfig.DB.Port))
+			rootConfig.DB.Socket))
 
 	if err != nil {
 		logger.Fatal("db-initialize", err, lager.Data{
-			"dbHost": rootConfig.DB.Host,
-			"dbPort": rootConfig.DB.Port,
-			"dbUser": rootConfig.DB.User,
+			"dbSocket": rootConfig.DB.Socket,
+			"dbUser":   rootConfig.DB.User,
 		})
 	} else {
 		logger.Info("db-initialize", lager.Data{
-			"dbHost": rootConfig.DB.Host,
-			"dbPort": rootConfig.DB.Port,
-			"dbUser": rootConfig.DB.User,
+			"dbSocket": rootConfig.DB.Socket,
+			"dbUser":   rootConfig.DB.User,
 		})
 	}
 

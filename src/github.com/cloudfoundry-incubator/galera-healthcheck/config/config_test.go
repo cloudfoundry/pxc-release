@@ -31,9 +31,7 @@ var _ = Describe("Config", func() {
 				"AvailableWhenReadOnly": false,
 				"AvailableWhenDonor": true,
 				"DB": {
-					"Host": "localhost",
 					"User": "vcap",
-					"Port": 3000,
 					"Password": "password"
 				},
 				"Monit" : {
@@ -88,18 +86,13 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns an error if DB.Host is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "DB.Host")
+		It("returns an error if DB.Socket is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "DB.Socket")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("returns an error if DB.User is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "DB.User")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns an error if DB.Port is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "DB.Port")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

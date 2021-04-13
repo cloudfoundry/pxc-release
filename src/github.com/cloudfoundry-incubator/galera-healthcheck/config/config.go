@@ -27,10 +27,9 @@ type Config struct {
 }
 
 type DBConfig struct {
-	Host     string `yaml:"Host" validate:"nonzero"`
 	User     string `yaml:"User" validate:"nonzero"`
-	Port     int    `yaml:"Port" validate:"nonzero"`
 	Password string `yaml:"Password" validate:"nonzero"`
+	Socket   string `yaml:"Socket" validate:"nonzero"`
 }
 
 type MonitConfig struct {
@@ -49,20 +48,17 @@ type SidecarEndpointConfig struct {
 }
 
 func defaultConfig() *Config {
-	var defaultConfig Config
-	defaultConfig = Config{
+	return &Config{
 		Host: "0.0.0.0",
 		Port: 8080,
 		DB: DBConfig{
-			Host:     "0.0.0.0",
-			Port:     3306,
+			Socket:   "/var/vcap/sys/run/pxc-mysql/mysqld.sock",
 			User:     "root",
 			Password: "",
 		},
 		AvailableWhenDonor:    true,
 		AvailableWhenReadOnly: false,
 	}
-	return &defaultConfig
 }
 
 func NewConfig(osArgs []string) (*Config, error) {
