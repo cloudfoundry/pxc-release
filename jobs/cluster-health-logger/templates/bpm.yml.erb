@@ -6,4 +6,6 @@ processes:
   - -configPath=/var/vcap/jobs/cluster-health-logger/config/cluster_health_logger_config.yml
   hooks:
     pre_start: /var/vcap/jobs/cluster-health-logger/bin/setup
-
+  additional_volumes:
+  - path: /var/vcap/sys/run/pxc-mysql
+    writable: false

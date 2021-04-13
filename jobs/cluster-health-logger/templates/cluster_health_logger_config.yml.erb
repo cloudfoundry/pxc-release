@@ -1,5 +1,5 @@
 ---
-Port: <%= link('mysql').p('port') %>
+Socket: "/var/vcap/sys/run/pxc-mysql/mysqld.sock"
 User: cluster-health-logger
 Password: <%= p('db_password') %>
 LogPath: /var/vcap/sys/log/cluster-health-logger/cluster_health.log
