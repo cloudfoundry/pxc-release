@@ -8,10 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/logwriter"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
+
+	"github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/logwriter"
 )
 
 func main() {
@@ -29,15 +30,15 @@ func main() {
 
 	err = validator.Validate(config)
 	if err != nil {
-		log.Fatal("Failed to validate config", err)
+		log.Fatalf("Failed to validate config: %v", err)
 	}
 
 	db, err := sql.Open("mysql",
-		fmt.Sprintf("%s:%s@tcp(%s:%d)/",
+		fmt.Sprintf("%s:%s@unix(%s)/",
 			config.User,
 			config.Password,
-			"127.0.0.1",
-			config.Port))
+			config.Socket,
+		))
 
 	if err != nil {
 		log.Fatal("Failed to initialize database pool", err)
