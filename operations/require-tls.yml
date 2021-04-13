@@ -1,0 +1,5 @@
+---
+# Enforce TLS for all MySQL connections
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/tls?/required?
+  value: true

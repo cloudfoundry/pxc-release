@@ -16,6 +16,39 @@ describe 'pxc mysql job' do
 
   describe 'my.cnf template' do
     let(:template) { job.template('config/my.cnf') }
+    let(:spec) { {} }
+
+    context 'tls.required is enabled ' do
+      before do
+          spec["tls"] = { "required" => true }
+      end
+
+      it 'enables require-secure-transport' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).to include("require-secure-transport=ON")
+      end
+    end
+    context 'tls.required is disabled' do
+      before do
+          spec["tls"] = { "required" => false }
+      end
+
+      it 'does not enable require-secure-transport' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).not_to include("require-secure-transport")
+      end
+    end
+    context 'tls.required is not set' do
+      before do
+          spec.delete("tls")
+      end
+
+      it 'does not set require-secure-transport' do
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).not_to include("require-secure-transport")
+      end
+    end
+
     context 'when galera is not enabled' do
       let(:spec) {{
         "engine_config" => {
