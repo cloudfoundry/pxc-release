@@ -1,9 +1,12 @@
 package tls_test
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"os"
 	"testing"
+
+	"github.com/go-sql-driver/mysql"
 
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 
@@ -38,6 +41,11 @@ var _ = BeforeSuite(func() {
 	if os.Getenv("BOSH_ALL_PROXY") != "" {
 		helpers.SetupSocks5Proxy()
 	}
+
+	Expect(mysql.RegisterTLSConfig("deprecated-tls11", &tls.Config{
+		MaxVersion: tls.VersionTLS11,
+		InsecureSkipVerify: true,
+	})).To(Succeed())
 
 	mysqlUsername := "root"
 	mysqlPassword, err := helpers.GetMySQLAdminPassword()

@@ -1,40 +1,55 @@
 package tls_test
 
 import (
+	"database/sql"
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
-var _ = Describe("Tls", func() {
-	It("tests all the connections are TLS", func() {
-
-		query := `SELECT sbt.variable_value AS tls_version,  t2.variable_value AS cipher,
-			processlist_user AS user, processlist_host AS host
-			FROM performance_schema.status_by_thread  AS sbt
-			JOIN performance_schema.threads AS t ON t.thread_id = sbt.thread_id
-			JOIN performance_schema.status_by_thread AS t2 ON t2.thread_id = t.thread_id
-			WHERE sbt.variable_name = 'Ssl_version' and t2.variable_name = 'Ssl_cipher' ORDER BY tls_version`
-		rows, err := mysqlConn.Query(query)
+var _ = Describe("TLS", func() {
+	var (
+		rootPassword string
+		proxyHost    string
+	)
+	BeforeEach(func() {
+		var err error
+		rootPassword, err = helpers.GetMySQLAdminPassword()
 		Expect(err).NotTo(HaveOccurred())
 
-		var (
-			tls_version string
-			cipher      string
-			user        string
-			host        string
-		)
+		proxyHost, err = helpers.FirstProxyHost(helpers.BoshDeployment)
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-		defer rows.Close()
-		for rows.Next() {
-			err = rows.Scan(&tls_version, &cipher, &user, &host)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(user).NotTo(BeNil())
-			Expect(host).NotTo(BeNil())
+	It("requires a secure transport for client connections", func() {
+		dsn := fmt.Sprintf("root:%s@tcp(%s:3306)/?tls=false", rootPassword, proxyHost)
+		db, err := sql.Open("mysql", dsn)
+		Expect(err).NotTo(HaveOccurred())
 
-			if !(host == "localhost" || host == "127.0.0.1") {
-				Expect(tls_version).To(MatchRegexp("TLSv1\\.[1,2,3]"))
-				Expect(cipher).To(MatchRegexp("ECDHE-RSA.+"))
-			}
-		}
+		err = db.Ping()
+		Expect(err).To(MatchError(`Error 3159: Connections using insecure transport are prohibited while --require_secure_transport=ON.`))
+	})
+
+	It("requires TLSv1.2 for connections", func() {
+		dsn := fmt.Sprintf("root:%s@tcp(%s:3306)/?tls=deprecated-tls11", rootPassword, proxyHost)
+		db, err := sql.Open("mysql", dsn)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Ping()
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("accepts valid TLS connections", func() {
+		// certificates aren't setup such that we can do proper TLS verification
+		// This test exists to prove TLS < v1.2, fails but normal TLS connections succeed
+		dsn := fmt.Sprintf("root:%s@tcp(%s:3306)/?tls=skip-verify", rootPassword, proxyHost)
+		db, err := sql.Open("mysql", dsn)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Ping()
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
