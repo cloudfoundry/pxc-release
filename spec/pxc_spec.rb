@@ -100,6 +100,18 @@ describe 'pxc mysql job' do
         }
       }}
 
+      context 'when audit logs are enabled' do
+        before do
+            spec["engine_config"]["audit_logs"] = { "enabled" => true }
+        end
+
+        it 'excludes system accounts from the audit logs' do
+          tpl_output = template.render(spec, consumes: links)
+          expect(tpl_output).to match(/audit_log_exclude_accounts\s*=.*'galera-agent'@'localhost'.*/)
+          expect(tpl_output).to match(/audit_log_exclude_accounts\s*=.*'cluster-health-logger'@'localhost'.*/)
+        end
+      end
+
       it 'do nothing if read_write_permissions specified' do
         spec["engine_config"]["read_write_permissions"] = "super_read_only"
         tpl_output = template.render(spec, consumes: links)
