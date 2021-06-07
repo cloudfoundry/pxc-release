@@ -3,8 +3,8 @@ package credhub
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -57,13 +57,15 @@ func (ch *CredHub) request(client requester, method string, pathStr string, quer
 	}
 
 	resp, err := client.Do(req)
+	if err != nil {
+		if os.Getenv("CREDHUB_DEBUG") == "true" {
+			fmt.Println(fmt.Sprintf("[DEBUG] %s: %v", "An error occurred during the data request.", err))
+		}
+		return resp, err
+	}
 
 	if os.Getenv("CREDHUB_DEBUG") == "true" {
 		dumpResponse(resp)
-	}
-
-	if err != nil {
-		return resp, err
 	}
 
 	if checkServerErr {
@@ -78,15 +80,23 @@ func (ch *CredHub) request(client requester, method string, pathStr string, quer
 func (ch *CredHub) checkForServerError(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		defer resp.Body.Close()
-		defer io.Copy(ioutil.Discard, resp.Body)
-		dec := json.NewDecoder(resp.Body)
-
-		respErr := &Error{}
-
-		if err := dec.Decode(respErr); err != nil {
-			return err
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return errors.New("The response body could not be read: " + err.Error())
 		}
 
+		var respErr error
+
+		switch resp.StatusCode {
+		case http.StatusNotFound:
+			respErr = &NotFoundError{}
+		default:
+			respErr = &Error{}
+		}
+
+		if err := json.Unmarshal(body, &respErr); err != nil {
+			return errors.New("The response body could not be decoded: " + err.Error())
+		}
 		return respErr
 	}
 

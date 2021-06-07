@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	gourl "net/url"
 	"strings"
 
@@ -137,22 +138,42 @@ func (d DeploymentImpl) Ignore(slug InstanceSlug, enabled bool) error {
 }
 
 func (d DeploymentImpl) Start(slug AllOrInstanceGroupOrInstanceSlug, opts StartOpts) error {
+	if !opts.Converge {
+		return d.nonConvergingJobAction("start", slug, false, false, false)
+	}
 	return d.changeJobState("started", slug, false, false, false, false, opts.Canaries, opts.MaxInFlight)
 }
 
 func (d DeploymentImpl) Stop(slug AllOrInstanceGroupOrInstanceSlug, opts StopOpts) error {
-	if opts.Hard {
-		return d.changeJobState("detached", slug, opts.SkipDrain, opts.Force, false, false, opts.Canaries, opts.MaxInFlight)
+	if !opts.Converge {
+		return d.nonConvergingJobAction("stop", slug, opts.SkipDrain, opts.Hard, false)
 	}
-	return d.changeJobState("stopped", slug, opts.SkipDrain, opts.Force, false, false, opts.Canaries, opts.MaxInFlight)
+
+	state := "stopped"
+	if opts.Hard {
+		state = "detached"
+	}
+	return d.changeJobState(state, slug, opts.SkipDrain, opts.Force, false, false, opts.Canaries, opts.MaxInFlight)
 }
 
 func (d DeploymentImpl) Restart(slug AllOrInstanceGroupOrInstanceSlug, opts RestartOpts) error {
+	if !opts.Converge {
+		return d.nonConvergingJobAction("restart", slug, opts.SkipDrain, false, false)
+	}
+
 	return d.changeJobState("restart", slug, opts.SkipDrain, opts.Force, false, false, opts.Canaries, opts.MaxInFlight)
 }
 
 func (d DeploymentImpl) Recreate(slug AllOrInstanceGroupOrInstanceSlug, opts RecreateOpts) error {
+	if !opts.Converge {
+		return d.nonConvergingJobAction("recreate", slug, opts.SkipDrain, false, opts.Fix)
+	}
+
 	return d.changeJobState("recreate", slug, opts.SkipDrain, opts.Force, opts.Fix, opts.DryRun, opts.Canaries, opts.MaxInFlight)
+}
+
+func (d DeploymentImpl) nonConvergingJobAction(action string, slug AllOrInstanceGroupOrInstanceSlug, skipDrain bool, hard bool, ignoreUnresponsiveAgent bool) error {
+	return d.client.NonConvergingJobAction(action, d.name, slug.Name(), slug.IndexOrID(), skipDrain, hard, ignoreUnresponsiveAgent)
 }
 
 func (d DeploymentImpl) changeJobState(state string, slug AllOrInstanceGroupOrInstanceSlug, skipDrain bool, force bool, fix bool, dryRun bool, canaries string, maxInFlight string) error {
@@ -191,13 +212,16 @@ func (d DeploymentImpl) Delete(force bool) error {
 	return nil
 }
 
-func (d DeploymentImpl) AttachDisk(slug InstanceSlug, diskCID string) error {
+func (d DeploymentImpl) AttachDisk(slug InstanceSlug, diskCID string, diskProperties string) error {
 	values := gourl.Values{}
 	values.Add("deployment", d.Name())
 	values.Add("job", slug.Name())
 	values.Add("instance_id", slug.IndexOrID())
+	if diskProperties != "" {
+		values.Add("disk_properties", diskProperties)
+	}
 
-	path := fmt.Sprintf("/disks/%s/attachments?%s", diskCID, values.Encode())
+	path := fmt.Sprintf("/disks/%s/attachments?%s", url.PathEscape(diskCID), values.Encode())
 	_, err := d.client.taskClientRequest.PutResult(path, []byte{}, func(*http.Request) {})
 	return err
 }
@@ -218,7 +242,12 @@ func (d DeploymentImpl) IsInProgress() (bool, error) {
 }
 
 func (d DeploymentImpl) Variables() ([]VariableResult, error) {
-	path := fmt.Sprintf("/deployments/%s/variables", d.name)
+	url, err := gourl.Parse(fmt.Sprintf("/deployments/%s/variables", d.name))
+	if err != nil {
+		return nil, bosherr.WrapError(err, "Parsing variables path")
+	}
+
+	path := url.RequestURI()
 	response := []VariableResult{}
 
 	if err := d.client.clientRequest.Get(path, &response); err != nil {
@@ -336,6 +365,30 @@ func (c Client) EnableResurrection(deploymentName, job, indexOrID string, enable
 	if err != nil {
 		msg := "Changing VM resurrection state for '%s/%s' in deployment '%s'"
 		return bosherr.WrapErrorf(err, msg, job, indexOrID, deploymentName)
+	}
+
+	return nil
+}
+
+func (c Client) NonConvergingJobAction(action string, deployment string, instanceGroup string, id string, skipDrain bool, hard bool, ignoreUnresponsiveAgent bool) error {
+	setHeaders := func(req *http.Request) {
+		req.Header.Add("Content-Type", "text/yaml")
+	}
+	query := gourl.Values{}
+	if skipDrain {
+		query.Add("skip_drain", "true")
+	}
+	if hard {
+		query.Add("hard", "true")
+	}
+	if ignoreUnresponsiveAgent {
+		query.Add("ignore_unresponsive_agent", "true")
+	}
+
+	path := fmt.Sprintf("/deployments/%s/instance_groups/%s/%s/actions/%s?%s", deployment, instanceGroup, id, action, query.Encode())
+	_, err := c.taskClientRequest.PostResult(path, []byte{}, setHeaders)
+	if err != nil {
+		return bosherr.WrapErrorf(err, "Non-converging action failed")
 	}
 
 	return nil
@@ -473,6 +526,10 @@ func (c Client) UpdateDeployment(manifest []byte, opts UpdateOpts) error {
 
 	if opts.Recreate {
 		query.Add("recreate", "true")
+	}
+
+	if opts.RecreatePersistentDisks {
+		query.Add("recreate_persistent_disks", "true")
 	}
 
 	if opts.Fix {
