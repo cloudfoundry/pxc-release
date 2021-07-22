@@ -190,6 +190,8 @@ plugin-load                     = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
 audit_log_format                = JSON
 audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
+audit_log_rotations             = 1
+audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
 <% end %>
 
 [sst]
