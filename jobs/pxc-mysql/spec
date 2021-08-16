@@ -159,6 +159,9 @@ properties:
   engine_config.audit_logs.enabled:
     description: 'Enable audit logging'
     default: false
+  engine_config.audit_logs.audit_logging_events:
+    description: 'Audit events to log'
+    default: ALL
   engine_config.audit_logs.audit_log_exclude_accounts:
     default: []
     description: 'Database users to exclude from audit logging'

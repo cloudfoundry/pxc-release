@@ -100,9 +100,26 @@ describe 'pxc mysql job' do
         }
       }}
 
+      context 'when audit logs are disabled (default)' do
+        it 'has no audit log format' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).not_to include("audit_log_format")
+        end
+      end
+
       context 'when audit logs are enabled' do
         before do
             spec["engine_config"]["audit_logs"] = { "enabled" => true }
+        end
+
+        it 'has audit log format' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).to match(/audit_log_format\s+= JSON/)
+        end
+
+        it 'defaults audit_log_policy to ALL' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).to match(/audit_log_policy\s+= ALL/)
         end
 
         it 'excludes system accounts from the audit logs' do
