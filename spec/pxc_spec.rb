@@ -129,6 +129,23 @@ describe 'pxc mysql job' do
         end
       end
 
+      context 'when audit logs are enabled with a legacy default event type' do
+        before do
+            spec["engine_config"]["audit_logs"] = { "enabled" => true }
+            spec["engine_config"]["audit_logs"]["audit_logging_events"] = "connect,query"
+        end
+
+        it 'has audit log format' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).to match(/audit_log_format\s+= JSON/)
+        end
+
+        it 'translates legacy default inputs into default audit_log_policy ALL' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).to match(/audit_log_policy\s+= ALL/)
+        end
+      end
+
       it 'do nothing if read_write_permissions specified' do
         spec["engine_config"]["read_write_permissions"] = "super_read_only"
         tpl_output = template.render(spec, consumes: links)
