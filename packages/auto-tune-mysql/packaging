@@ -5,7 +5,6 @@ set -eu
 source /var/vcap/packages/golang-1.15-linux/bosh/compile.env
 
 export GOBIN="${BOSH_INSTALL_TARGET}/bin"
-export GOFLAGS="-mod=vendor"
 
 cd generate-auto-tune-mysql
   go install github.com/cloudfoundry/generate-auto-tune-mysql

@@ -5,5 +5,5 @@ set -eu
 source /var/vcap/packages/golang-1.15-linux/bosh/compile.env
 
 cd github.com/cloudfoundry/galera-init/cmd/start
-  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/galera-init"
+  go build -o "${BOSH_INSTALL_TARGET}/bin/galera-init"
 cd -

@@ -5,5 +5,5 @@ set -eu
 source /var/vcap/packages/golang-1.15-linux/bosh/compile.env
 
 cd github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger
-  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/pxc-cluster-health-logger"
+  go build -o "${BOSH_INSTALL_TARGET}/bin/pxc-cluster-health-logger"
 cd -

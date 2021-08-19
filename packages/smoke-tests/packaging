@@ -4,7 +4,6 @@ set -eux
 
 source /var/vcap/packages/golang-1.15-linux/bosh/compile.env
 export GOBIN="${BOSH_INSTALL_TARGET}/bin"
-export GOFLAGS="-mod=vendor"
 
 mkdir -p ${GOPATH}/src
 mv github.com ${GOPATH}/src
