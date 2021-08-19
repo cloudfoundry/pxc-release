@@ -14,8 +14,6 @@ github.com/DATA-DOG/go-sqlmock
 ## explicit
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5
-## explicit
 # github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
 github.com/containerd/continuity/pathdriver
 # github.com/docker/docker v1.4.2-0.20181208172742-edf5134ba77d
@@ -44,8 +42,6 @@ github.com/docker/docker/pkg/system
 github.com/docker/go-connections/nat
 # github.com/docker/go-units v0.3.3
 github.com/docker/go-units
-# github.com/docker/libnetwork v0.8.0-dev.2.0.20181115152545-1f28166bb386
-## explicit
 # github.com/fsouza/go-dockerclient v1.3.6
 ## explicit
 github.com/fsouza/go-dockerclient
@@ -61,8 +57,6 @@ github.com/gogo/protobuf/proto
 # github.com/google/uuid v1.1.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/context v1.1.1
-## explicit
 # github.com/hpcloud/tail v1.0.0
 github.com/hpcloud/tail
 github.com/hpcloud/tail/ratelimiter
@@ -140,10 +134,6 @@ github.com/pkg/errors
 # github.com/sirupsen/logrus v1.4.2
 ## explicit
 github.com/sirupsen/logrus
-# github.com/vishvananda/netlink v1.0.0
-## explicit
-# github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
-## explicit
 # golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee
 golang.org/x/mod/module
 golang.org/x/mod/semver
@@ -188,12 +178,8 @@ golang.org/x/tools/internal/packagesinternal
 # golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# gopkg.in/airbrake/gobrake.v2 v2.0.9
-## explicit
 # gopkg.in/fsnotify.v1 v1.4.7 => gopkg.in/fsnotify/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
-# gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2
-## explicit
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
 # gopkg.in/validator.v2 v2.0.0-20160201165114-3e4f037f12a1
