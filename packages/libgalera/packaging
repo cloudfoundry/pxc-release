@@ -20,7 +20,7 @@ pushd boost_1_59_0
 popd
 
 tar -xf scons/scons-*.tar.gz
-pushd scons-*/
+pushd SCons-*/
     python3 setup.py install --prefix=/usr
 popd
 
