@@ -19,13 +19,8 @@ pushd boost_1_59_0
     ./b2 -j "${NPROC}" install
 popd
 
-tar -xf scons/scons-*.tar.gz
-pushd scons-*/
-    python3 setup.py install --prefix=/usr
-popd
-
 tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
 pushd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera
-    HOME=$PWD python3 "$(command -v scons)" tests=0
-    install --mode=0644 -D libgalera_smm.so "${BOSH_INSTALL_TARGET}/lib/libgalera_smm.so"
+    cmake . -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}"
+    make -j4 install
 popd
