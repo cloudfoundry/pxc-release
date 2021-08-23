@@ -19,8 +19,8 @@ pushd boost_1_59_0
     ./b2 -j "${NPROC}" install
 popd
 
-tar -xf scons/scons-*.tar.gz
-pushd SCons-*/
+tar -xf scons/scons_*.tar.gz
+pushd scons-*/
     python3 setup.py install --prefix=/usr
 popd
 

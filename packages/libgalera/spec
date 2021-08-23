@@ -7,4 +7,4 @@ files:
 - boost/boost_1_59_0.tar.gz
 - check/check-*.tar.gz
 - pxc/Percona-XtraDB-Cluster-*.tar.gz
-- scons/scons-*.tar.gz
+- scons/scons_*.tar.gz
