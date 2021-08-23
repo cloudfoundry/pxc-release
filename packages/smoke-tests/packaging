@@ -2,8 +2,8 @@
 
 set -eux
 
-source /var/vcap/packages/golang-1.15-linux/bosh/compile.env
+source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
 
 cd specs/integration/connection/
-  go test -o "${BOSH_INSTALL_TARGET}/bin/connection.test" -c
+  go test -c -o "${BOSH_INSTALL_TARGET}"/bin/connection.test
 cd -

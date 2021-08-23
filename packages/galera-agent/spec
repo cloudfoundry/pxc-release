@@ -1,6 +1,6 @@
 ---
 name: galera-agent
 dependencies:
-  - golang-1.15-linux
+  - golang-1.16-linux
 files:
   - github.com/cloudfoundry-incubator/galera-healthcheck/**
