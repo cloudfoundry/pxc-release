@@ -7,7 +7,6 @@ import (
 	"os/exec"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 
 	"github.com/cloudfoundry/galera-init/config"
@@ -58,19 +57,11 @@ var BuildUserSeeder = func(db *sql.DB, logger lager.Logger) UserSeeder {
 }
 
 func FormatDSN(config config.DBHelper) string {
-	connectorConfig := mysql.Config{
-		User:   config.User,
-		Passwd: config.Password,
-		Net:    "unix",
-		Addr:   config.Socket,
-	}
+	skipBinLog := ""
 	if config.SkipBinlog {
-		connectorConfig.Params = map[string]string{
-			"sql_log_bin": "off",
-		}
+		skipBinLog = "?sql_log_bin=off"
 	}
-
-	return connectorConfig.FormatDSN()
+	return fmt.Sprintf("%s:%s@unix(%s)/%s", config.User, config.Password, config.Socket, skipBinLog)
 }
 
 // Overridable methods to allow mocking DB connections in tests

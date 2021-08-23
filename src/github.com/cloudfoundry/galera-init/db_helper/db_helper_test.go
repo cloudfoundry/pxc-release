@@ -13,6 +13,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gbytes"
 
 	"github.com/cloudfoundry/galera-init/config"
@@ -449,7 +450,7 @@ var _ = Describe("GaleraDBHelper", func() {
 					Socket:     "/some/socket/path.sock",
 					User:       "some-user",
 				}
-
+				format.TruncatedDiff = false
 				Expect(db_helper.FormatDSN(config)).To(Equal(`some-user:some-password@unix(/some/socket/path.sock)/?sql_log_bin=off`))
 			})
 		})
@@ -461,7 +462,7 @@ var _ = Describe("GaleraDBHelper", func() {
 					Socket:   "/some/socket/path.sock",
 					User:     "some-user",
 				}
-
+				format.TruncatedDiff = false
 				Expect(db_helper.FormatDSN(config)).To(Equal(`some-user:some-password@unix(/some/socket/path.sock)/`))
 			})
 		})

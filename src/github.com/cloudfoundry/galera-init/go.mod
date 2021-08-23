@@ -8,7 +8,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/docker/docker v1.4.2-0.20181208172742-edf5134ba77d // indirect
 	github.com/fsouza/go-dockerclient v1.3.6
-	github.com/go-sql-driver/mysql v1.2.1-0.20160802113842-0b58b37b664c
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/google/uuid v1.1.0
 	github.com/imdario/mergo v0.0.0-20160517064435-50d4dbd4eb0e // indirect
