@@ -121,6 +121,16 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 
 			Expect(string(auditLogContents)).To(ContainSubstring("\"user\":\"included_user[included_user]"))
 		})
+
+		It("does NOT log the user's LOGIN event in the audit log", func() {
+			firstProxy, err := helpers.FirstProxyHost(helpers.BoshDeployment)
+			Expect(err).NotTo(HaveOccurred())
+
+			dbConn := helpers.DbConnWithUser(includedUser, includedUserPassword, firstProxy)
+			auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, activeBackend, auditLogPath)
+
+			Expect(string(auditLogContents)).ToNot(ContainSubstring("{\"audit_record\":{\"name\":\"Connect\""))
+		})
 	})
 })
 

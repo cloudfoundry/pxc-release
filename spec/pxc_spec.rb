@@ -129,10 +129,10 @@ describe 'pxc mysql job' do
         end
       end
 
-      context 'when audit logs are enabled with a legacy default event type' do
+      context 'when audit logs are enabled with a non default value' do
         before do
             spec["engine_config"]["audit_logs"] = { "enabled" => true }
-            spec["engine_config"]["audit_logs"]["audit_logging_events"] = "connect,query"
+            spec["engine_config"]["audit_logs"]["audit_log_policy"] = "some-policy"
         end
 
         it 'has audit log format' do
@@ -140,9 +140,9 @@ describe 'pxc mysql job' do
             expect(tpl_output).to match(/audit_log_format\s+= JSON/)
         end
 
-        it 'translates legacy default inputs into default audit_log_policy ALL' do
+        it 'sets the audit_log_policy based on the property' do
             tpl_output = template.render(spec, consumes: links)
-            expect(tpl_output).to match(/audit_log_policy\s+= ALL/)
+            expect(tpl_output).to match(/audit_log_policy\s+= some-policy/)
         end
       end
 
