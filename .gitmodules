@@ -13,6 +13,3 @@
 [submodule "src/github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger"]
 	path = src/github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger
 	url = https://github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger.git
-[submodule "src/github.com/onsi/ginkgo"]
-	path = src/github.com/onsi/ginkgo
-	url = https://github.com/onsi/ginkgo

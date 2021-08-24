@@ -4,4 +4,3 @@ dependencies:
   - golang-1.15-linux
 files:
   - specs/**/*
-  - github.com/onsi/ginkgo/**/*
