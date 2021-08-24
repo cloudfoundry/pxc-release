@@ -3,6 +3,7 @@ package failover_test
 import (
 	"database/sql"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
-	"os/exec"
 	"github.com/onsi/gomega/gexec"
+
+	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
 func cloudCheck(deployment director.Deployment) {
@@ -100,6 +101,7 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 	})
 
 	AfterEach(func() {
+		Eventually(db.Ping, "30s").Should(Succeed())
 		helpers.DbCleanup(db)
 		cloudCheck(deployment)
 	})
