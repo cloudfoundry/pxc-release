@@ -3,4 +3,4 @@
 MIGRATE_TO_PXC_BIN_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 RELEASE_DIR="${MIGRATE_TO_PXC_BIN_DIR}/../../.."
 
-ginkgo -r "${RELEASE_DIR}/src/migrate-to-pxc/disk/"
+go run github.com/onsi/ginkgo/ginkgo -r "${RELEASE_DIR}/src/migrate-to-pxc/disk/"
