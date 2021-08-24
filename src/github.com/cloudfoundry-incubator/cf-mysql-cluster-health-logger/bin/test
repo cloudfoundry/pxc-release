@@ -10,7 +10,7 @@ go fmt ./...
 popd
 
 echo -e "\nTesting packages..."
-ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@" $MY_DIR/..
+go run github.com/onsi/ginkgo/ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@" $MY_DIR/..
 let "result+=$?"
 
 echo -e "\nExit Code: $result"
