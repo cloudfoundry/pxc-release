@@ -2,10 +2,12 @@ package disk
 
 import (
 	"errors"
-	"github.com/cloudfoundry/gosigar"
+
+	sigar "github.com/cloudfoundry/gosigar"
 )
 
-//go:generate counterfeiter . Sigar
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate . Sigar
 type Sigar interface {
 	GetFileSystemUsage(string) (sigar.FileSystemUsage, error)
 }

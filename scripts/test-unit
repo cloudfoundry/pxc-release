@@ -14,8 +14,6 @@ echo -e "\n>>>>>>>> Testing our bash scripts fatally..."
 # TODO: port over a download logs script for pxc #157104900
 #shellcheck --shell=bash "${RELEASE_DIR}/scripts/download-logs"
 
-go get github.com/maxbrunsfeld/counterfeiter
-
 echo -e "\n>>>>>>>> Testing Switchboard..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/switchboard/bin/test" "$@"
 
