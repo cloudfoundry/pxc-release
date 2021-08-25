@@ -4,13 +4,13 @@ result=0
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-pushd "${MY_DIR}/.."
+cd "${MY_DIR}/.." || exit 1
+
 echo -e "\nFormatting packages..."
 go fmt ./...
-popd
 
 echo -e "\nTesting packages..."
-go run github.com/onsi/ginkgo/ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@" $MY_DIR/..
+go run github.com/onsi/ginkgo/ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@"
 let "result+=$?"
 
 echo -e "\nExit Code: $result"
