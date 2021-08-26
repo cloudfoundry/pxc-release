@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /instance_groups/name=proxy/vm_extensions?/-
+  value: mysql-proxy-lb
