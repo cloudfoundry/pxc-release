@@ -1,4 +1,6 @@
 SET SESSION SQL_LOG_BIN = off;
 DROP USER IF EXISTS 'galera-agent'@'127.0.0.1';
-GRANT USAGE ON mysql.* TO 'galera-agent'@'localhost' IDENTIFIED BY '<%= p('db_password') %>';
+CREATE USER IF NOT EXISTS 'galera-agent'@'localhost' IDENTIFIED BY '<%= p('db_password') %>';
+ALTER USER IF EXISTS 'galera-agent'@'localhost' IDENTIFIED BY '<%= p('db_password') %>';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'galera-agent'@'localhost';
 SET SESSION SQL_LOG_BIN = on;

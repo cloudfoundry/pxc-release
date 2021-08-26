@@ -67,6 +67,7 @@ wsrep_replicate_myisam          = OFF
 wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
 wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
 wsrep_sst_method                = xtrabackup-v2
+pxc-encrypt-cluster-traffic     = OFF
 <% else %>
 gtid_mode = ON
 enforce_gtid_consistency = ON

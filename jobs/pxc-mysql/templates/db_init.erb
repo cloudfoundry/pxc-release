@@ -36,12 +36,12 @@ GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_b
 
 <% hosts.each do |host| %>
 CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
-SET PASSWORD FOR '<%= p('admin_username') %>'@'<%= host %>' = PASSWORD('<%= p('admin_password') %>');
+ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
 GRANT ALL PRIVILEGES ON *.* TO '<%= p('admin_username') %>'@'<%= host %>' WITH GRANT OPTION;
 
   <% if p('roadmin_enabled') %>
 CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED BY '<%= p('roadmin_password') %>';
-SET PASSWORD FOR 'roadmin'@'<%= host %>' = PASSWORD('<%= p('roadmin_password') %>');
+ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
 GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
   <% end %>
 <% end %>

@@ -1,4 +1,4 @@
 SET SESSION SQL_LOG_BIN = off;
-DROP USER IF EXISTS 'cluster-health-logger'@'127.0.0.1';
-GRANT USAGE ON mysql.* TO 'cluster-health-logger'@'localhost' IDENTIFIED BY '<%= p('db_password') %>';
+CREATE USER IF NOT EXISTS 'cluster-health-logger'@'127.0.0.1' IDENTIFIED BY '<%= p('db_password') %>';
+ALTER USER IF EXISTS 'cluster-health-logger'@'127.0.0.1' IDENTIFIED BY '<%= p('db_password') %>';
 SET SESSION SQL_LOG_BIN = on;
