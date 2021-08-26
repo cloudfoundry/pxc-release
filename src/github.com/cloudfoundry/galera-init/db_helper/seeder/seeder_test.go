@@ -166,7 +166,7 @@ var _ = Describe("Seeder", func() {
 
 		BeforeEach(func() {
 			updateUserExec = fmt.Sprintf(
-				"SET PASSWORD FOR `%s` = PASSWORD\\('%s'\\)",
+				"SET PASSWORD FOR `%s` = '%s'",
 				dbConfig.User,
 				dbConfig.Password,
 			)

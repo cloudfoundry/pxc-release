@@ -73,7 +73,7 @@ func (s seeder) CreateUser() error {
 
 func (s seeder) UpdateUser() error {
 	_, err := s.db.Exec(fmt.Sprintf(
-		"SET PASSWORD FOR `%s` = PASSWORD('%s')",
+		"SET PASSWORD FOR `%s` = '%s'",
 		s.config.User,
 		s.config.Password,
 	))
