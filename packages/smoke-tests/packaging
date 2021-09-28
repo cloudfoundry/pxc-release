@@ -5,5 +5,5 @@ set -eux
 source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
 
 cd specs/integration/connection/
-  go test -c -o "${BOSH_INSTALL_TARGET}"/bin/connection.test
+  go test -mod=vendor -c -o "${BOSH_INSTALL_TARGET}"/bin/connection.test
 cd -

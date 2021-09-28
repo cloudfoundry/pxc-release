@@ -7,5 +7,5 @@ source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
 export GOBIN="${BOSH_INSTALL_TARGET}/bin"
 
 cd gra-log-purger
-  go install github.com/cloudfoundry/gra-log-purger
+  go install -mod=vendor github.com/cloudfoundry/gra-log-purger
 cd -

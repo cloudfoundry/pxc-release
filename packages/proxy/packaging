@@ -5,6 +5,6 @@ set -eu
 source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
 
 cd github.com/cloudfoundry-incubator/switchboard
-  go build -o "${BOSH_INSTALL_TARGET}/bin/proxy"
+  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/proxy"
   cp -r static "${BOSH_INSTALL_TARGET}/static"
 cd -

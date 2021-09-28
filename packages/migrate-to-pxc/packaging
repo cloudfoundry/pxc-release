@@ -6,5 +6,5 @@ source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
 export GOBIN="${BOSH_INSTALL_TARGET}/bin"
 
 cd migrate-to-pxc
-  go install github.com/cloudfoundry/migrate-to-pxc
+  go install -mod=vendor github.com/cloudfoundry/migrate-to-pxc
 cd -

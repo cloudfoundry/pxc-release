@@ -7,5 +7,5 @@ source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
 export GOBIN="${BOSH_INSTALL_TARGET}/bin"
 
 cd generate-auto-tune-mysql
-  go install github.com/cloudfoundry/generate-auto-tune-mysql
+  go install -mod=vendor github.com/cloudfoundry/generate-auto-tune-mysql
 cd -
