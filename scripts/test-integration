@@ -7,7 +7,5 @@ RELEASE_DIR="$( cd "${MY_DIR}/.." && pwd )"
 
 source "${RELEASE_DIR}/.envrc"
 
-go get github.com/maxbrunsfeld/counterfeiter
-
 echo -e "\n>>>>>>>> Testing Galera Init Integration..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-integration" "$@"
