@@ -3,7 +3,7 @@
 set -exuo pipefail
 
 cluster_options=(
-    --ops-file operations/use-clustered.yml
+    --ops-file operations/use-clustered.yml --ops-file operations/dev-release.yml
 )
 
 integration_options=(
