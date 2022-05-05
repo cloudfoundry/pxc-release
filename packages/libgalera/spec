@@ -6,5 +6,5 @@ dependencies: []
 files:
 - boost/boost_1_59_0.tar.gz
 - check/check-*.tar.gz
-- scons/scons-*.tar.gz
 - pxc/Percona-XtraDB-Cluster-*.tar.gz
+- patches/libgalera/cmake_socket_watchdog.patch
