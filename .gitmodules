@@ -1,6 +1,3 @@
-[submodule "src/github.com/cloudfoundry-incubator/galera-healthcheck"]
-	path = src/github.com/cloudfoundry-incubator/galera-healthcheck
-	url = https://github.com/cloudfoundry-incubator/galera-healthcheck
 [submodule "src/github.com/cloudfoundry-incubator/cf-mysql-bootstrap"]
 	path = src/github.com/cloudfoundry-incubator/cf-mysql-bootstrap
 	url = https://github.com/cloudfoundry-incubator/cf-mysql-bootstrap
