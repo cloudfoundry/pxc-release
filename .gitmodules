@@ -1,6 +1,3 @@
-[submodule "src/github.com/cloudfoundry/galera-init"]
-	path = src/github.com/cloudfoundry/galera-init
-	url = https://github.com/cloudfoundry/galera-init
 [submodule "src/github.com/cloudfoundry-incubator/switchboard"]
 	path = src/github.com/cloudfoundry-incubator/switchboard
 	url = https://github.com/cloudfoundry-incubator/switchboard
