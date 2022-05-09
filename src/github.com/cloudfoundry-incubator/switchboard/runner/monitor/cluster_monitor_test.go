@@ -1,18 +1,16 @@
 package monitor_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"bytes"
-	"io/ioutil"
-
-	"sync"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
@@ -32,11 +30,13 @@ var _ = Describe("ClusterMonitor", func() {
 		subscriberA                  chan *domain.Backend
 		subscriberB                  chan *domain.Backend
 		useLowestIndex               bool
+		urlGetter 					 *monitorfakes.FakeUrlGetter
 
 		m sync.RWMutex
 	)
 
 	BeforeEach(func() {
+		urlGetter = new(monitorfakes.FakeUrlGetter)
 		clusterMonitor = nil
 
 		logger = lagertest.NewTestLogger("ClusterMonitor test")
@@ -90,6 +90,7 @@ var _ = Describe("ClusterMonitor", func() {
 
 	JustBeforeEach(func() {
 		clusterMonitor = monitor.NewClusterMonitor(
+			urlGetter,
 			backends,
 			healthcheckTimeout,
 			logger,
@@ -101,8 +102,6 @@ var _ = Describe("ClusterMonitor", func() {
 
 	Describe("Monitor", func() {
 		var (
-			urlGetter *monitorfakes.FakeUrlGetter
-
 			stopMonitoringChan chan interface{}
 			backendToIndex     map[*domain.Backend]int
 		)
@@ -113,11 +112,6 @@ var _ = Describe("ClusterMonitor", func() {
 				backend1: 0,
 				backend2: 1,
 				backend3: 2,
-			}
-
-			urlGetter = new(monitorfakes.FakeUrlGetter)
-			monitor.UrlGetterProvider = func(time.Duration) monitor.UrlGetter {
-				return urlGetter
 			}
 
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
@@ -137,8 +131,6 @@ var _ = Describe("ClusterMonitor", func() {
 		})
 
 		AfterEach(func() {
-			monitor.UrlGetterProvider = monitor.HttpUrlGetterProvider
-
 			close(stopMonitoringChan)
 		})
 
@@ -283,7 +275,6 @@ var _ = Describe("ClusterMonitor", func() {
 
 	Describe("QueryBackendHealth", func() {
 		var (
-			urlGetter     *monitorfakes.FakeUrlGetter
 			backend       *domain.Backend
 			backendStatus *monitor.BackendStatus
 
@@ -292,11 +283,6 @@ var _ = Describe("ClusterMonitor", func() {
 		)
 
 		BeforeEach(func() {
-			urlGetter = new(monitorfakes.FakeUrlGetter)
-			monitor.UrlGetterProvider = func(time.Duration) monitor.UrlGetter {
-				return urlGetter
-			}
-
 			backendStatusPort = 9292
 			backendHost = "192.0.2.10"
 
@@ -325,19 +311,15 @@ var _ = Describe("ClusterMonitor", func() {
 			}
 		})
 
-		AfterEach(func() {
-			monitor.UrlGetterProvider = monitor.HttpUrlGetterProvider
-		})
-
 		It("changes the backend health and index", func() {
 			Expect(backendStatus.Healthy).To(BeFalse())
 			Expect(backendStatus.Index).To(Equal(2))
 
-			clusterMonitor.QueryBackendHealth(backend, backendStatus, urlGetter)
+			clusterMonitor.QueryBackendHealth(backend, backendStatus)
 			Expect(urlGetter.GetCallCount()).To(Equal(1))
 
 			expectedURL := fmt.Sprintf(
-				"http://%s:%d/api/v1/status",
+				"https://%s:%d/api/v1/status",
 				backendHost,
 				backendStatusPort,
 			)
@@ -359,7 +341,7 @@ var _ = Describe("ClusterMonitor", func() {
 			It("marks the backend as unhealthy", func() {
 				backend.SetHealthy()
 
-				clusterMonitor.QueryBackendHealth(backend, backendStatus, urlGetter)
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
 				Expect(urlGetter.GetCallCount()).To(Equal(1))
 
 				Expect(backendStatus.Healthy).To(BeFalse())
@@ -382,7 +364,7 @@ var _ = Describe("ClusterMonitor", func() {
 			It("marks the backend as unhealthy", func() {
 				backend.SetHealthy()
 
-				clusterMonitor.QueryBackendHealth(backend, backendStatus, urlGetter)
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
 				Expect(urlGetter.GetCallCount()).To(Equal(1))
 
 				Expect(backendStatus.Healthy).To(BeFalse())

@@ -122,5 +122,14 @@ var _ = Describe("Config", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "StaticDir")
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("returns an error if ServerName is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "ServerName")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("returns an error if CA is blank", func() {
+			err := test_helpers.IsRequiredField(rootConfig, "CA")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 	})
 })

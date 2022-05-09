@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 
@@ -37,7 +40,24 @@ func main() {
 
 	backends := domain.NewBackends(rootConfig.Proxy.Backends, logger)
 
+	certPool := x509.NewCertPool()
+	if ok := certPool.AppendCertsFromPEM([]byte(rootConfig.CA)); !ok {
+		// handle the error
+	}
+	tlsConfig := tls.Config{
+		RootCAs:    certPool,
+		ServerName: rootConfig.ServerName,
+	}
+
+	client := &http.Client{
+		Timeout: rootConfig.Proxy.HealthcheckTimeout(),
+		Transport: &http.Transport{
+			TLSClientConfig: &tlsConfig,
+		},
+	}
+
 	activeNodeClusterMonitor := monitor.NewClusterMonitor(
+		client,
 		backends,
 		rootConfig.Proxy.HealthcheckTimeout(),
 		logger.Session("active-monitor"),
@@ -88,6 +108,7 @@ func main() {
 
 	if rootConfig.Proxy.InactiveMysqlPort != 0 {
 		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(
+			client,
 			backends,
 			rootConfig.Proxy.HealthcheckTimeout(),
 			logger.Session("inactive-monitor"),

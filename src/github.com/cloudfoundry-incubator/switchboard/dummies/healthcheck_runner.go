@@ -1,9 +1,9 @@
 package dummies
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -20,9 +20,10 @@ type HealthcheckRunner struct {
 	statusCode int
 	index      int
 	hang       bool
+	tlsConfig  *tls.Config
 }
 
-func NewHealthcheckRunner(backend config.Backend, index int) *HealthcheckRunner {
+func NewHealthcheckRunner(backend config.Backend, index int, tlsConfig *tls.Config) *HealthcheckRunner {
 	return &HealthcheckRunner{
 		port:       backend.StatusPort,
 		endpoint:   backend.StatusEndpoint,
@@ -30,6 +31,7 @@ func NewHealthcheckRunner(backend config.Backend, index int) *HealthcheckRunner 
 		statusCode: http.StatusOK,
 		index:      index,
 		hang:       false,
+		tlsConfig:  tlsConfig,
 	}
 }
 
@@ -57,7 +59,7 @@ func (fh *HealthcheckRunner) Run(signals <-chan os.Signal, ready chan<- struct{}
 		Handler: mux,
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", fh.port))
+	listener, err := tls.Listen("tcp", fmt.Sprintf(":%d", fh.port), fh.tlsConfig)
 	if err != nil {
 		return err
 	}

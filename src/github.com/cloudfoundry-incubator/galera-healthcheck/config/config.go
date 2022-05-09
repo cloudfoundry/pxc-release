@@ -24,6 +24,8 @@ type Config struct {
 	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
 	MyCnfPath             string                `yaml:"MyCnfPath" validate:"nonzero"`
 	SidecarEndpoint       SidecarEndpointConfig `yaml:"SidecarEndpoint" validate:"nonzero"`
+	ServerCert            string                `yaml:"ServerCert"`
+	ServerKey             string                `yaml:"ServerKey"`
 }
 
 type DBConfig struct {

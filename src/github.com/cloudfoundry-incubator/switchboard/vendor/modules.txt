@@ -4,6 +4,10 @@ code.cloudfoundry.org/lager
 code.cloudfoundry.org/lager/lagerctx
 code.cloudfoundry.org/lager/lagerflags
 code.cloudfoundry.org/lager/lagertest
+# code.cloudfoundry.org/tlsconfig v0.0.0-20211123175040-23cc9f05b6b3
+## explicit
+code.cloudfoundry.org/tlsconfig
+code.cloudfoundry.org/tlsconfig/certtest
 # github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
 github.com/bmizerany/pat
 # github.com/cloudfoundry-incubator/galera-healthcheck v0.0.0-20210824173504-1ceac3424420
@@ -83,6 +87,8 @@ github.com/onsi/gomega/types
 ## explicit
 github.com/pivotal-cf-experimental/service-config
 github.com/pivotal-cf-experimental/service-config/test_helpers
+# github.com/square/certstrap v1.2.0
+github.com/square/certstrap/pkix
 # github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
 ## explicit
 github.com/tedsuo/ifrit

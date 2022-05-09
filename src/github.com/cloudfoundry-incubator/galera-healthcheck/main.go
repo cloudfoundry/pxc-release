@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/tlsconfig"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
@@ -83,14 +85,34 @@ func main() {
 	}
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
-	l, err := net.Listen("tcp", address)
+
+	// TODO: stop logging private keys
+	serverCert, err := tls.X509KeyPair([]byte(rootConfig.ServerCert), []byte(rootConfig.ServerKey))
+	if err != nil {
+		logger.Fatal("parsing server cert", err, lager.Data{
+			"ServerCert": rootConfig.ServerCert,
+			"ServerKey":  rootConfig.ServerKey,
+		})
+	}
+
+	certConfig := tlsconfig.Build(
+		tlsconfig.WithInternalServiceDefaults(),
+		tlsconfig.WithIdentity(serverCert),
+	)
+	serverTLSConfig, err := certConfig.Server()
+	if err != nil {
+		logger.Fatal("generate TLS config", err, lager.Data{})
+	}
+
+	l, err := tls.Listen("tcp", address, serverTLSConfig)
+
 	if err != nil {
 		logger.Fatal("tcp-listen", err, lager.Data{
 			"address": address,
 		})
 	}
 
-	url := fmt.Sprintf("http://%s/", address)
+	url := fmt.Sprintf("https://%s/", address)
 	logger.Info("Serving healthcheck endpoint", lager.Data{
 		"url": url,
 	})

@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"code.cloudfoundry.org/tlsconfig"
+	"code.cloudfoundry.org/tlsconfig/certtest"
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/dummies"
@@ -130,6 +133,29 @@ func matchConnectionDisconnect() types.GomegaMatcher {
 	)
 }
 
+func serverTLSConfig(ca string) (caPEM string, tlsConfig *tls.Config) {
+
+	serverAuthority, err := certtest.BuildCA(ca)
+	Expect(err).ToNot(HaveOccurred())
+
+	caPEMBytes, err := serverAuthority.CertificatePEM()
+	Expect(err).ToNot(HaveOccurred())
+
+	serverCert, err := serverAuthority.BuildSignedCertificate("serverCert")
+	Expect(err).ToNot(HaveOccurred())
+
+	tlsCert, err := serverCert.TLSCertificate()
+	Expect(err).ToNot(HaveOccurred())
+
+	config := tlsconfig.Build(
+		tlsconfig.WithInternalServiceDefaults(),
+		tlsconfig.WithIdentity(tlsCert))
+
+	serverConfig, err := config.Server()
+	Expect(err).ToNot(HaveOccurred())
+	return string(caPEMBytes), serverConfig
+}
+
 const startupTimeout = 10 * time.Second
 
 var _ = Describe("Switchboard", func() {
@@ -149,18 +175,21 @@ var _ = Describe("Switchboard", func() {
 		proxyConfig                  config.Proxy
 		apiConfig                    config.API
 		staticDir                    string
+		testCA                       string
+		testTLSConfig                *tls.Config
 	)
 
 	BeforeEach(func() {
 		testDir := getDirOfCurrentFile()
 		staticDir = filepath.Join(testDir, "static")
 
+		testCA, testTLSConfig = serverTLSConfig("testCA")
+
 		proxyPort = uint(10000 + GinkgoParallelNode())
 		proxyInactiveNodePort = uint(10600 + GinkgoParallelNode())
 		switchboardAPIPort = uint(10100 + GinkgoParallelNode())
 		switchboardAPIAggregatorPort = uint(10800 + GinkgoParallelNode())
 		switchboardHealthPort = uint(6160 + GinkgoParallelNode())
-
 		backend1 := config.Backend{
 			Host:           "localhost",
 			Port:           uint(10200 + GinkgoParallelNode()),
@@ -200,6 +229,8 @@ var _ = Describe("Switchboard", func() {
 			API:        apiConfig,
 			HealthPort: switchboardHealthPort,
 			StaticDir:  staticDir,
+			ServerName: "localhost",
+			CA:         testCA,
 		}
 		healthcheckWaitDuration = 3 * proxyConfig.HealthcheckTimeout()
 	})
@@ -209,8 +240,8 @@ var _ = Describe("Switchboard", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		healthcheckRunners = []*dummies.HealthcheckRunner{
-			dummies.NewHealthcheckRunner(backends[0], 0),
-			dummies.NewHealthcheckRunner(backends[1], 1),
+			dummies.NewHealthcheckRunner(backends[0], 0, testTLSConfig),
+			dummies.NewHealthcheckRunner(backends[1], 1, testTLSConfig),
 		}
 
 		logLevel := "debug"

@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
+	code.cloudfoundry.org/tlsconfig v0.0.0-20211123175040-23cc9f05b6b3
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5

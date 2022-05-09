@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -57,7 +56,7 @@ func (b *Backend) HealthcheckUrl() string {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
-	return fmt.Sprintf("http://%s:%d/%s", b.host, b.statusPort, b.statusEndpoint)
+	return fmt.Sprintf("https://%s:%d/%s", b.host, b.statusPort, b.statusEndpoint)
 }
 
 func (b *Backend) Bridge(clientConn net.Conn) error {

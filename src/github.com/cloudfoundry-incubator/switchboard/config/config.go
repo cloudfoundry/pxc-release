@@ -19,6 +19,8 @@ type Config struct {
 	StaticDir  string `yaml:"StaticDir" validate:"nonzero"`
 	HealthPort uint   `yaml:"HealthPort" validate:"nonzero"`
 	Logger     lager.Logger
+	ServerName string `yaml:"ServerName" validate:"nonzero"`
+	CA         string `yaml:"CA" validate:"nonzero"`
 }
 
 type Proxy struct {

@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
+	code.cloudfoundry.org/tlsconfig v0.0.0-20211123175040-23cc9f05b6b3
 	github.com/cloudfoundry-incubator/galera-healthcheck v0.0.0-20210824173504-1ceac3424420
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3

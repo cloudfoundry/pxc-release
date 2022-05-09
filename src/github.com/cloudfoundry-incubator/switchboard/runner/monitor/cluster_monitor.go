@@ -1,15 +1,12 @@
 package monitor
 
 import (
-	"fmt"
-	"net/http"
-	"time"
-
-	"sync"
-
-	"math"
-
 	"encoding/json"
+	"fmt"
+	"math"
+	"net/http"
+	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
@@ -21,14 +18,6 @@ type UrlGetter interface {
 	Get(url string) (*http.Response, error)
 }
 
-func HttpUrlGetterProvider(healthcheckTimeout time.Duration) UrlGetter {
-	return &http.Client{
-		Timeout: healthcheckTimeout,
-	}
-}
-
-var UrlGetterProvider = HttpUrlGetterProvider
-
 type BackendStatus struct {
 	Index    int
 	Healthy  bool
@@ -36,6 +25,7 @@ type BackendStatus struct {
 }
 
 type ClusterMonitor struct {
+	client             UrlGetter
 	backends           []*domain.Backend
 	logger             lager.Logger
 	healthcheckTimeout time.Duration
@@ -44,12 +34,14 @@ type ClusterMonitor struct {
 }
 
 func NewClusterMonitor(
+	client UrlGetter,
 	backends []*domain.Backend,
 	healthcheckTimeout time.Duration,
 	logger lager.Logger,
 	useLowestIndex bool,
 ) *ClusterMonitor {
 	return &ClusterMonitor{
+		client:             client,
 		backends:           backends,
 		logger:             logger,
 		healthcheckTimeout: healthcheckTimeout,
@@ -58,8 +50,6 @@ func NewClusterMonitor(
 }
 
 func (c *ClusterMonitor) Monitor(stopChan <-chan interface{}) {
-	client := UrlGetterProvider(c.healthcheckTimeout)
-
 	backendHealthMap := make(map[*domain.Backend]*BackendStatus)
 
 	for _, backend := range c.backends {
@@ -81,7 +71,7 @@ func (c *ClusterMonitor) Monitor(stopChan <-chan interface{}) {
 					wg.Add(1)
 					go func(backend *domain.Backend, healthStatus *BackendStatus) {
 						defer wg.Done()
-						c.QueryBackendHealth(backend, healthStatus, client)
+						c.QueryBackendHealth(backend, healthStatus)
 					}(backend, healthStatus)
 				}
 
@@ -149,11 +139,11 @@ func ChooseActiveBackend(backendHealths map[*domain.Backend]*BackendStatus, useL
 	}
 }
 
-func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, client UrlGetter, shouldLog bool) (bool, *int) {
+func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shouldLog bool) (bool, *int) {
 	j := backend.AsJSON()
 
-	url := fmt.Sprintf("http://%s:%d/api/v1/status", j.Host, j.StatusPort)
-	resp, err := client.Get(url)
+	url := fmt.Sprintf("https://%s:%d/api/v1/status", j.Host, j.StatusPort)
+	resp, err := c.client.Get(url)
 
 	healthy := false
 	var index *int
@@ -204,12 +194,12 @@ func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, clie
 	return healthy, index
 }
 
-func (c *ClusterMonitor) QueryBackendHealth(backend *domain.Backend, healthMonitor *BackendStatus, client UrlGetter) {
+func (c *ClusterMonitor) QueryBackendHealth(backend *domain.Backend, healthMonitor *BackendStatus) {
 	c.logger.Debug("Querying Backend", lager.Data{"backend": backend.AsJSON(), "healthMonitor": healthMonitor})
 	healthMonitor.Counters.IncrementCount("dial")
 	shouldLog := healthMonitor.Counters.Should("log")
 
-	healthy, index := c.determineStateFromBackend(backend, client, shouldLog)
+	healthy, index := c.determineStateFromBackend(backend, shouldLog)
 
 	if index != nil {
 		healthMonitor.Index = *index
