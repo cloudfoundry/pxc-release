@@ -1,0 +1,11 @@
+sudo: false
+language: go
+go:
+  - 1.4.2
+install:
+  - go get -v github.com/onsi/ginkgo/ginkgo
+  - PATH=$PATH:$HOME/gopath/bin
+  - go get -t -v -d ./...
+script:
+  - ./bin/test-unit
+  - ./bin/test-integration

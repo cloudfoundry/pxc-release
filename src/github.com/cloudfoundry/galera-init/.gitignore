@@ -1,0 +1,5 @@
+.idea
+*.iml
+config.yml
+**/*.test
+out
