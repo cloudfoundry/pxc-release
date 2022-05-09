@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<monit>
+    <service type="3">
+        <name>mysql</name>
+        <status>4608</status>
+        <status_hint>0</status_hint>
+        <monitor>1</monitor>
+        <monitormode>0</monitormode>
+        <pendingaction>0</pendingaction>
+        <status_message><![CDATA[process is not running]]></status_message>
+    </service>
+    <service type="3">
+        <name>other-process</name>
+        <status>0</status>
+        <monitor>0</monitor>
+        <monitormode>0</monitormode>
+        <pendingaction>6</pendingaction>
+        <pid>67890</pid>
+        <ppid>0</ppid>
+    </service>
+</monit>
+
+<!--
+FULL RESPONSE:
+
+<?xml version="1.0" encoding="ISO-8859-1"?><monit>
+<server>
+    <id>48f02e34a7255994224c87cbb8df1c2c</id>
+    <incarnation>1510007733</incarnation>
+    <version>5.2.5</version>
+    <uptime>247623</uptime>
+    <poll>10</poll>
+    <startdelay>0</startdelay>
+    <localhostname>localhost</localhostname>
+    <controlfile>/var/vcap/bosh/etc/monitrc</controlfile>
+    <httpd>
+        <address>127.0.0.1</address>
+        <port>2822</port>
+        <ssl>0</ssl>
+    </httpd>
+</server>
+<platform>
+    <name>Linux</name>
+    <release>4.4.0-92-generic</release>
+    <version>#115~14.04.1-Ubuntu SMP Thu Aug 10 15:06:53 UTC 2017</version>
+    <machine>x86_64</machine>
+    <cpu>4</cpu>
+    <memory>8175176</memory>
+    <swap>8177080</swap>
+</platform>
+<service type="3">
+    <name>mysql</name>
+    <collected_sec>1510255352</collected_sec>
+    <collected_usec>839990</collected_usec>
+    <status>0</status>
+    <status_hint>0</status_hint>
+    <monitor>1</monitor>
+    <monitormode>0</monitormode>
+    <pendingaction>0</pendingaction>
+    <pid>119666</pid>
+    <ppid>0</ppid>
+    <uptime>247559</uptime>
+    <children>0</children>
+    <memory>
+        <percent>2.3</percent>
+        <percenttotal>2.3</percenttotal>
+        <kilobyte>195060</kilobyte>
+        <kilobytetotal>195060</kilobytetotal>
+    </memory>
+    <cpu>
+        <percent>0.2</percent>
+        <percenttotal>0.2</percenttotal>
+    </cpu>
+</service>
+<service type="3">
+    <name>agent</name>
+    <collected_sec>1510255352</collected_sec>
+    <collected_usec>840042</collected_usec>
+    <status>0</status>
+    <status_hint>0</status_hint>
+    <monitor>1</monitor>
+    <monitormode>0</monitormode>
+    <pendingaction>0</pendingaction>
+    <pid>119242</pid>
+    <ppid>0</ppid>
+    <uptime>247620</uptime>
+    <children>0</children>
+    <memory>
+        <percent>0.0</percent>
+        <percenttotal>0.0</percenttotal>
+        <kilobyte>532</kilobyte>
+        <kilobytetotal>532</kilobytetotal>
+    </memory>
+    <cpu>
+        <percent>0.0</percent>
+        <percenttotal>0.0</percenttotal>
+    </cpu>
+</service>
+<service type="5">
+    <name>system_localhost</name>
+    <collected_sec>1510255352</collected_sec>
+    <collected_usec>840043</collected_usec>
+    <status>0</status>
+    <status_hint>0</status_hint>
+    <monitor>1</monitor>
+    <monitormode>0</monitormode>
+    <pendingaction>0</pendingaction>
+    <system>
+        <load>
+            <avg01>3.11</avg01>
+            <avg05>4.08</avg05>
+            <avg15>3.57</avg15>
+        </load>
+        <cpu>
+            <user>3.4</user>
+            <system>13.2</system>
+            <wait>0.1</wait>
+        </cpu>
+        <memory>
+            <percent>85.5</percent>
+            <kilobyte>6991780</kilobyte>
+        </memory>
+        <swap>
+            <percent>34.2</percent>
+            <kilobyte>2799004</kilobyte>
+        </swap>
+    </system>
+</service>
+</monit>
+
+-->
