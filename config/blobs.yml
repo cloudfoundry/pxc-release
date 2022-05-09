@@ -26,7 +26,7 @@ socat/socat-1.7.4.1.tar.gz:
   size: 648888
   object_id: f0547b7c-9f0d-4193-5f65-c3f85f76ec02
   sha: sha256:0c7e635070af1b9037fd96869fc45eacf9845cb54547681de9d885044538736d
-xtrabackup/percona-xtrabackup-2.4.24.tar.gz:
-  size: 61985764
-  object_id: 9bcf1ee8-7991-4356-49b5-e0a163f03eb2
-  sha: sha256:21ee01ca6dab43e8b7ef8790280b97925f39b87a31629b33524b8fc3ec7553f4
+xtrabackup/percona-xtrabackup-2.4.26.tar.gz:
+  size: 62011032
+  object_id: 67a6526e-f0b4-4641-7770-cf2eae4cf0fc
+  sha: sha256:250ebafb5929a6ca50c6cbec41592f519bd161de3deea8b5e4f829063cb53844
