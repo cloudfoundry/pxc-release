@@ -15,5 +15,7 @@ Proxy:
     Name: backend-0
 HealthPort: 9200
 StaticDir: fake-path
-CA: test
-ServerName: test
+BackendTLS:
+  Enabled: false
+  CA: "this-should-be-a-PEM-encoded-CA"
+  ServerName: "Expected server certificate identity"

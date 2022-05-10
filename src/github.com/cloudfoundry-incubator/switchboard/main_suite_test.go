@@ -25,7 +25,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	var err error
-	switchboardBinPath, err = gexec.Build(switchboardPackage, "-race")
+	switchboardBinPath, err = gexec.Build(switchboardPackage)
 	Expect(err).NotTo(HaveOccurred())
 })
 

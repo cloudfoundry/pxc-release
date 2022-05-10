@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/lagertest"
+
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor/monitorfakes"
@@ -30,12 +31,13 @@ var _ = Describe("ClusterMonitor", func() {
 		subscriberA                  chan *domain.Backend
 		subscriberB                  chan *domain.Backend
 		useLowestIndex               bool
-		urlGetter 					 *monitorfakes.FakeUrlGetter
-
-		m sync.RWMutex
+		urlGetter                    *monitorfakes.FakeUrlGetter
+		useTLSForAgent               bool
+		m                            sync.RWMutex
 	)
 
 	BeforeEach(func() {
+		useTLSForAgent = false
 		urlGetter = new(monitorfakes.FakeUrlGetter)
 		clusterMonitor = nil
 
@@ -89,13 +91,7 @@ var _ = Describe("ClusterMonitor", func() {
 	})
 
 	JustBeforeEach(func() {
-		clusterMonitor = monitor.NewClusterMonitor(
-			urlGetter,
-			backends,
-			healthcheckTimeout,
-			logger,
-			useLowestIndex,
-		)
+		clusterMonitor = monitor.NewClusterMonitor(urlGetter, useTLSForAgent, backends, healthcheckTimeout, logger, useLowestIndex)
 		clusterMonitor.RegisterBackendSubscriber(subscriberA)
 		clusterMonitor.RegisterBackendSubscriber(subscriberB)
 	})
@@ -118,11 +114,11 @@ var _ = Describe("ClusterMonitor", func() {
 				m.RLock()
 				defer m.RUnlock()
 
-				if url == backend1.HealthcheckUrl() {
+				if url == backend1.HealthcheckUrl(useTLSForAgent) {
 					return healthyResponse(backendToIndex[backend1]), nil
-				} else if url == backend2.HealthcheckUrl() {
+				} else if url == backend2.HealthcheckUrl(useTLSForAgent) {
 					return healthyResponse(backendToIndex[backend2]), nil
-				} else if url == backend3.HealthcheckUrl() {
+				} else if url == backend3.HealthcheckUrl(useTLSForAgent) {
 					return healthyResponse(backendToIndex[backend3]), nil
 				}
 
@@ -158,7 +154,7 @@ var _ = Describe("ClusterMonitor", func() {
 				m.RLock()
 				defer m.RUnlock()
 
-				if url == backend2.HealthcheckUrl() {
+				if url == backend2.HealthcheckUrl(useTLSForAgent) {
 					return unhealthyResponse(0), nil
 				} else {
 					return healthyResponse(0), nil
@@ -181,7 +177,7 @@ var _ = Describe("ClusterMonitor", func() {
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
-				if url == backend2.HealthcheckUrl() {
+				if url == backend2.HealthcheckUrl(useTLSForAgent) {
 					return nil, errors.New("some error")
 				} else {
 					return healthyResponse(0), nil
@@ -206,7 +202,7 @@ var _ = Describe("ClusterMonitor", func() {
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
-				if url == backend2.HealthcheckUrl() && isUnhealthy {
+				if url == backend2.HealthcheckUrl(useTLSForAgent) && isUnhealthy {
 					isUnhealthy = false
 					return unhealthyResponse(0), nil
 				} else {
@@ -291,7 +287,7 @@ var _ = Describe("ClusterMonitor", func() {
 				backendHost,
 				3306,
 				backendStatusPort,
-				"",
+				"api/v1/status",
 				logger,
 			)
 		})
@@ -319,7 +315,7 @@ var _ = Describe("ClusterMonitor", func() {
 			Expect(urlGetter.GetCallCount()).To(Equal(1))
 
 			expectedURL := fmt.Sprintf(
-				"https://%s:%d/api/v1/status",
+				"http://%s:%d/api/v1/status",
 				backendHost,
 				backendStatusPort,
 			)
@@ -327,6 +323,24 @@ var _ = Describe("ClusterMonitor", func() {
 
 			Expect(backendStatus.Healthy).To(BeTrue())
 			Expect(backendStatus.Index).To(Equal(0))
+		})
+
+		When("TLS is enabled for Galera Agent communication", func() {
+			BeforeEach(func() {
+				useTLSForAgent = true
+			})
+
+			It("communicates with the agent over an encrypt channel", func() {
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
+				Expect(urlGetter.GetCallCount()).To(Equal(1))
+
+				expectedURL := fmt.Sprintf(
+					"https://%s:%d/api/v1/status",
+					backendHost,
+					backendStatusPort,
+				)
+				Expect(urlGetter.GetArgsForCall(0)).To(Equal(expectedURL))
+			})
 		})
 
 		Context("when GETting the API returns an error", func() {

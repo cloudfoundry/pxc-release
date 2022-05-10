@@ -1,9 +1,12 @@
 package config
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -14,13 +17,18 @@ import (
 )
 
 type Config struct {
-	Proxy      Proxy  `yaml:"Proxy" validate:"nonzero"`
-	API        API    `yaml:"API" validate:"nonzero"`
-	StaticDir  string `yaml:"StaticDir" validate:"nonzero"`
-	HealthPort uint   `yaml:"HealthPort" validate:"nonzero"`
-	Logger     lager.Logger
-	ServerName string `yaml:"ServerName" validate:"nonzero"`
-	CA         string `yaml:"CA" validate:"nonzero"`
+	Proxy      Proxy        `yaml:"Proxy" validate:"nonzero"`
+	API        API          `yaml:"API" validate:"nonzero"`
+	StaticDir  string       `yaml:"StaticDir" validate:"nonzero"`
+	HealthPort uint         `yaml:"HealthPort" validate:"nonzero"`
+	BackendTLS BackendTLS   `yaml:"BackendTLS"`
+	Logger     lager.Logger `yaml:"-"`
+}
+
+type BackendTLS struct {
+	Enabled    bool   `yaml:"Enabled"`
+	ServerName string `yaml:"ServerName"`
+	CA         string `yaml:"CA"`
 }
 
 type Proxy struct {
@@ -95,10 +103,42 @@ func (c Config) Validate() error {
 		}
 	}
 
+
+	if c.BackendTLS.Enabled {
+		certPool := x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM([]byte(c.BackendTLS.CA)); !ok {
+			errString += fmt.Sprintf("%s%s : %s\n", "", "BackendTLS.CA", "Failed to Parse CA.")
+		}
+	}
+
+
+
 	if len(errString) > 0 {
 		return errors.New(fmt.Sprintf("Validation errors: %s\n", errString))
 	}
 	return nil
+}
+
+func (c *Config) HTTPClient() *http.Client {
+	httpClient := &http.Client{
+		Timeout: c.Proxy.HealthcheckTimeout(),
+	}
+
+	if c.BackendTLS.Enabled {
+		certPool := x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM([]byte(c.BackendTLS.CA)); !ok {
+			// TODO: should we handle the failure parsing a CA?
+		}
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:    certPool,
+				ServerName: c.BackendTLS.ServerName,
+			},
+		}
+	}
+
+	return httpClient
 }
 
 func formatErrorString(err error, keyPrefix string) string {

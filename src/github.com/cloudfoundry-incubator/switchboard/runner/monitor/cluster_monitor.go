@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
+
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
@@ -31,21 +32,17 @@ type ClusterMonitor struct {
 	healthcheckTimeout time.Duration
 	backendSubscribers []chan<- *domain.Backend
 	useLowestIndex     bool
+	useTLSForAgent     bool
 }
 
-func NewClusterMonitor(
-	client UrlGetter,
-	backends []*domain.Backend,
-	healthcheckTimeout time.Duration,
-	logger lager.Logger,
-	useLowestIndex bool,
-) *ClusterMonitor {
+func NewClusterMonitor(client UrlGetter, useTLSForAgent bool, backends []*domain.Backend, healthcheckTimeout time.Duration, logger lager.Logger, useLowestIndex bool) *ClusterMonitor {
 	return &ClusterMonitor{
 		client:             client,
 		backends:           backends,
 		logger:             logger,
 		healthcheckTimeout: healthcheckTimeout,
 		useLowestIndex:     useLowestIndex,
+		useTLSForAgent:     useTLSForAgent,
 	}
 }
 
@@ -140,9 +137,7 @@ func ChooseActiveBackend(backendHealths map[*domain.Backend]*BackendStatus, useL
 }
 
 func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shouldLog bool) (bool, *int) {
-	j := backend.AsJSON()
-
-	url := fmt.Sprintf("https://%s:%d/api/v1/status", j.Host, j.StatusPort)
+	url := backend.HealthcheckUrl(c.useTLSForAgent)
 	resp, err := c.client.Get(url)
 
 	healthy := false

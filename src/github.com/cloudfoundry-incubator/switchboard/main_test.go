@@ -18,9 +18,6 @@ import (
 
 	"code.cloudfoundry.org/tlsconfig"
 	"code.cloudfoundry.org/tlsconfig/certtest"
-	"github.com/cloudfoundry-incubator/switchboard/api"
-	"github.com/cloudfoundry-incubator/switchboard/config"
-	"github.com/cloudfoundry-incubator/switchboard/dummies"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
@@ -28,6 +25,10 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
+
+	"github.com/cloudfoundry-incubator/switchboard/api"
+	"github.com/cloudfoundry-incubator/switchboard/config"
+	"github.com/cloudfoundry-incubator/switchboard/dummies"
 )
 
 type Response struct {
@@ -229,8 +230,11 @@ var _ = Describe("Switchboard", func() {
 			API:        apiConfig,
 			HealthPort: switchboardHealthPort,
 			StaticDir:  staticDir,
-			ServerName: "localhost",
-			CA:         testCA,
+			BackendTLS: config.BackendTLS{
+				Enabled:    true,
+				ServerName: "localhost",
+				CA:         testCA,
+			},
 		}
 		healthcheckWaitDuration = 3 * proxyConfig.HealthcheckTimeout()
 	})

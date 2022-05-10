@@ -5,10 +5,11 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry-incubator/switchboard/domain"
+	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 )
 
 var _ = Describe("Backend", func() {
@@ -31,9 +32,17 @@ var _ = Describe("Backend", func() {
 	})
 
 	Describe("HealthcheckUrl", func() {
-		It("has the correct protocol, backend host and health check port", func() {
-			healthcheckURL := backend.HealthcheckUrl()
-			Expect(healthcheckURL).To(Equal("http://1.2.3.4:9902/status"))
+		When("using TLS for agent communcation", func() {
+			It("has the correct protocol, backend host and health check port", func() {
+				healthcheckURL := backend.HealthcheckUrl(true)
+				Expect(healthcheckURL).To(Equal("https://1.2.3.4:9902/status"))
+			})
+		})
+		When("NOT using TLS for agent communcation", func() {
+			It("has the correct protocol, backend host and health check port", func() {
+				healthcheckURL := backend.HealthcheckUrl(false)
+				Expect(healthcheckURL).To(Equal("http://1.2.3.4:9902/status"))
+			})
 		})
 	})
 

@@ -1,14 +1,15 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 
 	"code.cloudfoundry.org/lager"
+
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/sigmon"
 
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/apiaggregator"
@@ -19,9 +20,6 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
 	"github.com/cloudfoundry-incubator/switchboard/runner/health"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/sigmon"
 )
 
 func main() {
@@ -40,29 +38,9 @@ func main() {
 
 	backends := domain.NewBackends(rootConfig.Proxy.Backends, logger)
 
-	certPool := x509.NewCertPool()
-	if ok := certPool.AppendCertsFromPEM([]byte(rootConfig.CA)); !ok {
-		// handle the error
-	}
-	tlsConfig := tls.Config{
-		RootCAs:    certPool,
-		ServerName: rootConfig.ServerName,
-	}
+	client := rootConfig.HTTPClient()
 
-	client := &http.Client{
-		Timeout: rootConfig.Proxy.HealthcheckTimeout(),
-		Transport: &http.Transport{
-			TLSClientConfig: &tlsConfig,
-		},
-	}
-
-	activeNodeClusterMonitor := monitor.NewClusterMonitor(
-		client,
-		backends,
-		rootConfig.Proxy.HealthcheckTimeout(),
-		logger.Session("active-monitor"),
-		true,
-	)
+	activeNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.BackendTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("active-monitor"), true)
 
 	activeNodeBridgeRunner := bridge.NewRunner(
 		rootConfig.Proxy.Port,
@@ -107,13 +85,7 @@ func main() {
 	}
 
 	if rootConfig.Proxy.InactiveMysqlPort != 0 {
-		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(
-			client,
-			backends,
-			rootConfig.Proxy.HealthcheckTimeout(),
-			logger.Session("inactive-monitor"),
-			false,
-		)
+		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.BackendTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("inactive-monitor"), false)
 
 		inactiveNodeBridgeRunner := bridge.NewRunner(
 			rootConfig.Proxy.InactiveMysqlPort,
