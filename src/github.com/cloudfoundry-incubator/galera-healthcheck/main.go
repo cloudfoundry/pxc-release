@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/tlsconfig"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
@@ -86,30 +85,27 @@ func main() {
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 
-	// TODO: stop logging private keys
-	serverCert, err := tls.X509KeyPair([]byte(rootConfig.ServerCert), []byte(rootConfig.ServerKey))
-	if err != nil {
-		logger.Fatal("parsing server cert", err, lager.Data{
-			"ServerCert": rootConfig.ServerCert,
-			"ServerKey":  rootConfig.ServerKey,
-		})
-	}
+	// TODO: Think about pulling this logic into a more testable place
+	var listener net.Listener
+	if rootConfig.SidecarEndpoint.TLS.Enabled {
+		var serverTLSConfig *tls.Config
+		serverTLSConfig, err = rootConfig.TLSConfig()
+		if err != nil {
+			logger.Fatal("parsing TLS config", err, lager.Data{})
+		}
 
-	certConfig := tlsconfig.Build(
-		tlsconfig.WithInternalServiceDefaults(),
-		tlsconfig.WithIdentity(serverCert),
-	)
-	serverTLSConfig, err := certConfig.Server()
-	if err != nil {
-		logger.Fatal("generate TLS config", err, lager.Data{})
-	}
-
-	l, err := tls.Listen("tcp", address, serverTLSConfig)
-
-	if err != nil {
-		logger.Fatal("tcp-listen", err, lager.Data{
-			"address": address,
-		})
+		listener, err = tls.Listen("tcp", address, serverTLSConfig)
+		if err != nil {
+			logger.Fatal("tls-listen", err, lager.Data{
+				"address": address,
+			})
+		}
+	} else {
+		if listener, err = net.Listen("tcp", address); err != nil {
+			logger.Fatal("tcp-listen", err, lager.Data{
+				"address": address,
+			})
+		}
 	}
 
 	url := fmt.Sprintf("https://%s/", address)
@@ -117,7 +113,7 @@ func main() {
 		"url": url,
 	})
 
-	if err := http.Serve(l, router); err != nil {
+	if err := http.Serve(listener, router); err != nil {
 		logger.Fatal("http-server", err)
 	}
 	logger.Info("graceful-exit")

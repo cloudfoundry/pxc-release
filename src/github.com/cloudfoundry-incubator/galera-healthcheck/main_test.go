@@ -10,10 +10,11 @@ import (
 
 	"code.cloudfoundry.org/tlsconfig"
 	"code.cloudfoundry.org/tlsconfig/certtest"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 )
 
 var _ = Describe("Galera Agent", func() {
@@ -51,9 +52,12 @@ var _ = Describe("Galera Agent", func() {
 			SidecarEndpoint: config.SidecarEndpointConfig{
 				Username: "basic-auth-username",
 				Password: "basic-auth-password",
+				TLS: config.EndpointTLS{
+					Enabled:     true,
+					Certificate: string(serverCertPEM),
+					PrivateKey:  string(serverKeyPEM),
+				},
 			},
-			ServerCert: string(serverCertPEM),
-			ServerKey:  string(serverKeyPEM),
 		}
 		b, err := json.Marshal(&cfg)
 		Expect(err).NotTo(HaveOccurred())
