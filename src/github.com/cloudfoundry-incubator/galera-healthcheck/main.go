@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"net"
@@ -84,28 +83,11 @@ func main() {
 	}
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
-
-	// TODO: Think about pulling this logic into a more testable place
-	var listener net.Listener
-	if rootConfig.SidecarEndpoint.TLS.Enabled {
-		var serverTLSConfig *tls.Config
-		serverTLSConfig, err = rootConfig.TLSConfig()
-		if err != nil {
-			logger.Fatal("parsing TLS config", err, lager.Data{})
-		}
-
-		listener, err = tls.Listen("tcp", address, serverTLSConfig)
-		if err != nil {
-			logger.Fatal("tls-listen", err, lager.Data{
-				"address": address,
-			})
-		}
-	} else {
-		if listener, err = net.Listen("tcp", address); err != nil {
-			logger.Fatal("tcp-listen", err, lager.Data{
-				"address": address,
-			})
-		}
+	listener, err := rootConfig.NetworkListener()
+	if err != nil {
+		logger.Fatal("tcp-listen", err, lager.Data{
+			"address": address,
+		})
 	}
 
 	url := fmt.Sprintf("https://%s/", address)

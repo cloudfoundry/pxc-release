@@ -1,7 +1,12 @@
 package config_test
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"net"
 
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
@@ -71,21 +76,63 @@ var _ = Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("can provide a TLS config when correct certificates are provided", func() {
-			tlsConfig, err := rootConfig.TLSConfig()
+		It("can provide a TLS listener", func() {
+			l, err := rootConfig.NetworkListener()
 			Expect(err).NotTo(HaveOccurred())
+			defer l.Close()
 
-			Expect(tlsConfig).NotTo(BeNil())
-			Expect(tlsConfig.Certificates).To(HaveLen(1))
+			errCh := make(chan error)
+			go func() {
+				conn, err := l.Accept()
+				if err != nil {
+					errCh <- err
+					return
+				}
+				defer conn.Close()
+				conn.Write([]byte("foo"))
+				errCh <- err
+			}()
+
+			block, _ := pem.Decode([]byte(rootConfig.SidecarEndpoint.TLS.Certificate))
+			cert, err := x509.ParseCertificate(block.Bytes)
+			Expect(err).NotTo(HaveOccurred())
+			certPool := x509.NewCertPool()
+			certPool.AddCert(cert)
+
+			conn, err := tls.Dial("tcp", "localhost:8080", &tls.Config{
+				RootCAs:    certPool,
+				ServerName: "PXC Release Testing Certificate",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(conn.Close()).To(Succeed())
+
+			Eventually(errCh).Should(Receive(nil))
 		})
 
 		When("tls is disabled", func() {
-			It("returns an error when requesting a TLS config", func() {
+			It("provides a plaintext TCP listener", func() {
 				rootConfig.SidecarEndpoint.TLS.Enabled = false
 
-				_, err := rootConfig.TLSConfig()
+				l, err := rootConfig.NetworkListener()
+				Expect(err).NotTo(HaveOccurred())
+				defer l.Close()
 
-				Expect(err).To(MatchError(`endpoint_tls.enabled is false - no tls configuration available`))
+				errCh := make(chan error, 1)
+				go func() {
+					conn, err := l.Accept()
+					defer conn.Close()
+					_, _ = conn.Write([]byte("foo"))
+					errCh <- err
+				}()
+
+				conn, err := net.Dial("tcp", "localhost:8080")
+				Expect(err).NotTo(HaveOccurred())
+
+				msg, err := ioutil.ReadAll(conn)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(msg)).To(Equal("foo"))
+				Expect(conn.Close()).To(Succeed())
+				Eventually(errCh).Should(Receive(nil))
 			})
 		})
 
@@ -94,8 +141,7 @@ var _ = Describe("Config", func() {
 				rootConfig.SidecarEndpoint.TLS.Enabled = true
 				rootConfig.SidecarEndpoint.TLS.Certificate = "not proper PEM content"
 
-				_, err := rootConfig.TLSConfig()
-
+				_, err := rootConfig.NetworkListener()
 				Expect(err).To(MatchError(`tls: failed to find any PEM data in certificate input`))
 			})
 		})

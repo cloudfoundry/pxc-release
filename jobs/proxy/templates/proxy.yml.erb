@@ -38,8 +38,15 @@
     HealthPort: p('health_port'),
     StaticDir: '/var/vcap/packages/proxy/static',
     PidFile: '/var/vcap/sys/run/proxy/proxy.pid'
-
   }
+
+  if link('galera-agent').p('endpoint_tls.enabled')
+    config[:BackendTLS] = {
+        Enabled: true,
+        CA: link('galera-agent').p('endpoint_tls.ca'),
+        ServerName: link('galera-agent').p('endpoint_tls.server_name'),
+    }
+  end
 
   if_p('inactive_mysql_port') do |inactive_mysql_port|
     config[:Proxy][:InactiveMysqlPort] = inactive_mysql_port

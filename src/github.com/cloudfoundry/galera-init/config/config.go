@@ -1,9 +1,13 @@
 package config
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
@@ -16,6 +20,7 @@ type Config struct {
 	Db              DBHelper     `yaml:"Db"`
 	Manager         StartManager `yaml:"Manager"`
 	Upgrader        Upgrader     `yaml:"Upgrader"`
+	BackendTLS      BackendTLS   `yaml:"BackendTLS"`
 	Logger          lager.Logger
 }
 
@@ -42,6 +47,12 @@ type StartManager struct {
 type Upgrader struct {
 	PackageVersionFile      string `yaml:"PackageVersionFile" validate:"nonzero"`
 	LastUpgradedVersionFile string `yaml:"LastUpgradedVersionFile" validate:"nonzero"`
+}
+
+type BackendTLS struct {
+	Enabled    bool   `yaml:"Enabled"`
+	ServerName string `yaml:"ServerName"`
+	CA         string `yaml:"CA"`
 }
 
 type PreseededDatabase struct {
@@ -118,4 +129,33 @@ func formatErrorString(err error, keyPrefix string) string {
 		errsString += fmt.Sprintf("%s%s : %s\n", keyPrefix, fieldName, validationMessage)
 	}
 	return errsString
+}
+
+func (c *Config) HTTPClient() *http.Client {
+	httpClient := &http.Client{
+		Timeout: time.Duration(c.Manager.ClusterProbeTimeout) * time.Second,
+	}
+
+	if c.BackendTLS.Enabled {
+		certPool := x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM([]byte(c.BackendTLS.CA)); !ok {
+			// TODO: should we handle the failure parsing a CA?
+		}
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:    certPool,
+				ServerName: c.BackendTLS.ServerName,
+			},
+		}
+	}
+
+	return httpClient
+}
+
+func (c *Config) ClusterUrls() (urls []string) {
+	for _, ip := range c.Manager.ClusterIps {
+		urls = append(urls, "http://"+ip+":9200/", "https://"+ip+":9201/")
+	}
+	return urls
 }

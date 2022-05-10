@@ -8,7 +8,7 @@ source /var/vcap/packages/pxc-utils/logging.sh
 <% if_link('galera-agent') do |galera_agent_link| %>
 # If galera-agent exists, check that the cluster is healthy before draining
 cluster_nodes=(<%= link('mysql').instances.map(&:address).join(' ') %>)
-galera_agent_port=<%= galera_agent_link.p("port") %>
+galera_agent_port=<%= galera_agent_link.p("port") %> # old_nodes => 9200, new_nodes => 9201 
 log_dir="/var/vcap/sys/log/pxc-mysql"
 
 # If the node is not running, exit drain successfully
@@ -23,7 +23,12 @@ fi
 # and exit.
 for NODE in "${cluster_nodes[@]}"; do
   set +e
-  status_code=$(curl -s -o "/dev/null" -w "%{http_code}" "${NODE}:${galera_agent_port}")
+  # TODO: Do we need to fallback to plaintext http to determine node health?
+<% if galera_agent_link.p('endpoint_tls.enabled') %>
+  status_code=$(curl -k -s -o "/dev/null" -w "%{http_code}" "https://${NODE}:${galera_agent_port}")
+<% else %>
+  status_code=$(curl -s -o "/dev/null" -w "%{http_code}" "http://${NODE}:${galera_agent_port}")
+<% end %>
   set -e
   if [[ ${status_code} -eq 000 || ${status_code} -eq 200 ]]; then
     continue

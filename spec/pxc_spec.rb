@@ -11,8 +11,76 @@ describe 'pxc mysql job' do
       name: 'mysql',
       instances: [Bosh::Template::Test::LinkInstance.new(address: 'mysql-address')],
       properties: {}
+    ),
+    Bosh::Template::Test::Link.new(
+      name: 'galera-agent',
+      properties: {
+        "endpoint_tls" => {
+            "enabled" => true,
+            "ca" => "PEM Cert",
+            "server_name" => "server name"
+        }
+      }
     )
   ]}
+
+  describe 'galera init-config template' do
+    let(:template) { job.template('config/galera-init-config.yml') }
+    let(:spec) { {} }
+
+    before do
+      spec["admin_password"] = "test"
+
+      array = []
+      hash1 = {"username" => "username", "user_config" => {}}
+      array.push(hash1)
+      spec["seeded_databases"] = [
+		{
+			"name" => "test",
+			"username" => "test-user",
+			"password" => "test-password"
+		},
+		{
+			"name" => "test1",
+			"username" => "test-user1",
+			"password" => "test-password1"
+		}
+      ]
+      spec["seeded_users"] = [
+      		[
+      			"user1",
+      			{"password" => "test-password1","host" => "host1","role" => "role1"}
+      		],
+			[
+				"user2",
+				{"password" => "test-password2","host" => "host2","role" => "role2"}
+			]
+      ]
+    end
+
+    it 'fails' do
+      tpl_output = template.render(spec, consumes: links)
+      File.open("./galera-init-config.yml", 'w') { |file| file.write(tpl_output) }
+      expect(tpl_output).to include("Db")
+      expect(tpl_output).to include("SkipBinlog: true")
+
+      expect(tpl_output).to include("SeededUsers")
+      expect(tpl_output).to include("Host: host1")
+
+      expect(tpl_output).to include("PreseededDatabases")
+      expect(tpl_output).to include("DBName: test")
+
+      expect(tpl_output).to include("Upgrader")
+
+      expect(tpl_output).to include("Manager")
+
+      expect(tpl_output).to include("ClusterIps")
+      expect(tpl_output).to include("- mysql-address")
+
+      expect(tpl_output).to include("BackEndTLS")
+      expect(tpl_output).to include("Enabled: true")
+    end
+  end
 
   describe 'my.cnf template' do
     let(:template) { job.template('config/my.cnf') }

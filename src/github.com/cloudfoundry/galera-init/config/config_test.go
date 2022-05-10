@@ -4,29 +4,31 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf-experimental/service-config"
+	. "github.com/pivotal-cf-experimental/service-config"
 
-	"github.com/cloudfoundry/galera-init/config"
+	. "github.com/cloudfoundry/galera-init/config"
 )
 
 var _ = Describe("Config", func() {
 
 	Describe("Validate", func() {
-		var rootConfig config.Config
-		var serviceConfig *service_config.ServiceConfig
+		var rootConfig Config
+		var serviceConfig *ServiceConfig
 
 		BeforeEach(func() {
-			serviceConfig = service_config.New()
+			serviceConfig = New()
 			flags := flag.NewFlagSet("galera-init", flag.ExitOnError)
 			serviceConfig.AddFlags(flags)
 
-			serviceConfig.AddDefaults(config.Config{
-				Db: config.DBHelper{
+			serviceConfig.AddDefaults(Config{
+				Db: DBHelper{
 					User: "root",
 				},
 			})
@@ -130,6 +132,98 @@ var _ = Describe("Config", func() {
 
 				It("does not an error if Db.PreseededDatabases.Password is blank", isOptionalField("Db.PreseededDatabases.Password"))
 			})
+		})
+	})
+
+	Describe("HTTPClient", func() {
+		var rootConfig *Config
+		BeforeEach(func() {
+			osArgs := []string{
+				"galera-init",
+				"-configPath=fixtures/validConfig.yml",
+			}
+
+			var err error
+			rootConfig, err = NewConfig(osArgs)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("provides an http client for communicating with galera-agent", func() {
+			httpClient := rootConfig.HTTPClient()
+
+			Expect(rootConfig.Manager.ClusterProbeTimeout).To(BeEquivalentTo(13))
+
+			Expect(httpClient).NotTo(BeZero())
+			Expect(httpClient.Timeout).To(Equal(time.Duration(rootConfig.Manager.ClusterProbeTimeout) * time.Second))
+		})
+
+		When("the proxy timeout is configured differently", func() {
+			BeforeEach(func() {
+				rootConfig.Manager.ClusterProbeTimeout = 42
+			})
+
+			It("configures the http client timeout with Config.Manager.ClusterProbeTimeout", func() {
+				httpClient := rootConfig.HTTPClient()
+
+				Expect(httpClient.Timeout).To(Equal(time.Duration(rootConfig.Manager.ClusterProbeTimeout) * time.Second))
+			})
+		})
+
+		When("Galera Agent TLS is not enabled", func() {
+			BeforeEach(func() {
+				rootConfig.BackendTLS.Enabled = false
+			})
+
+			It("does not configure a TLSClientConfig", func() {
+				httpClient := rootConfig.HTTPClient()
+
+				Expect(httpClient.Transport).To(BeNil())
+			})
+		})
+
+		When("Galera Agent TLS is enabled", func() {
+			BeforeEach(func() {
+				rootConfig.BackendTLS.Enabled = true
+			})
+
+			It("configures a TLSClientConfig", func() {
+				httpClient := rootConfig.HTTPClient()
+
+				Expect(httpClient.Transport).To(BeAssignableToTypeOf(&http.Transport{}))
+
+				transport := httpClient.Transport.(*http.Transport)
+
+				Expect(transport.TLSClientConfig.ServerName).To(Equal(rootConfig.BackendTLS.ServerName))
+				Expect(transport.TLSClientConfig.RootCAs).NotTo(BeNil()) // doesn't look like we can inspect the CA
+			})
+		})
+	})
+
+	Describe("ClusterUrls", func() {
+		var rootConfig *Config
+		BeforeEach(func() {
+			osArgs := []string{
+				"galera-init",
+				"-configPath=fixtures/validConfig.yml",
+			}
+
+			var err error
+			rootConfig, err = NewConfig(osArgs)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("generates URLs from IPs", func() {
+			urls := rootConfig.ClusterUrls()
+
+			expected := []string{
+				"http://1.1.1.1:9200/",
+				"https://1.1.1.1:9201/",
+				"http://1.1.1.2:9200/",
+				"https://1.1.1.2:9201/",
+				"http://1.1.1.3:9200/",
+				"https://1.1.1.3:9201/",
+			}
+			Expect(urls).To(ConsistOf(expected))
 		})
 	})
 })

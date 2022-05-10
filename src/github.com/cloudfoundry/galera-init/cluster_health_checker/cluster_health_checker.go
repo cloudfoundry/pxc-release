@@ -3,13 +3,12 @@ package cluster_health_checker
 import (
 	"net/http"
 
-	"time"
-
 	"code.cloudfoundry.org/lager"
 )
 
-var MakeRequest = func(url string, client http.Client) (*http.Response, error) {
-	return client.Get(url)
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . UrlGetter
+type UrlGetter interface {
+	Get(url string) (*http.Response, error)
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ClusterHealthChecker
@@ -18,34 +17,29 @@ type ClusterHealthChecker interface {
 }
 
 type httpClusterHealthChecker struct {
-	clusterIps          []string
-	clusterProbeTimeout int
-	logger              lager.Logger
+	clusterUrls []string
+	logger      lager.Logger
+	client      UrlGetter
 }
 
-func NewClusterHealthChecker(ips []string, clusterProbeTimeout int, logger lager.Logger) ClusterHealthChecker {
+func NewClusterHealthChecker(urls []string, logger lager.Logger, client UrlGetter) ClusterHealthChecker {
 	return httpClusterHealthChecker{
-		clusterIps:          ips,
-		clusterProbeTimeout: clusterProbeTimeout,
-		logger:              logger,
+		clusterUrls: urls,
+		logger:      logger,
+		client:      client,
 	}
 }
 
 func (h httpClusterHealthChecker) HealthyCluster() bool {
 	h.logger.Info("Checking for healthy cluster", lager.Data{
-		"ClusterIps": h.clusterIps,
+		"ClusterIps": h.clusterUrls,
 	})
-	for _, ip := range h.clusterIps {
-		h.logger.Info("Checking if node is healthy: " + ip)
+	for _, url := range h.clusterUrls {
+		h.logger.Info("Checking if node is healthy: " + url)
 
-		timeout := time.Duration(h.clusterProbeTimeout) * time.Second
-		client := http.Client{
-			Timeout: timeout,
-		}
-
-		resp, _ := MakeRequest("http://"+ip+":9200/", client)
+		resp, _ := h.client.Get(url)
 		if resp != nil && resp.StatusCode == 200 {
-			h.logger.Info("node " + ip + " is healthy - cluster is healthy.")
+			h.logger.Info("node " + url + " is healthy - cluster is healthy.")
 			return true
 		}
 	}

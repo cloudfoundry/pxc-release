@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -17,7 +18,6 @@ import (
 	"github.com/cloudfoundry/galera-init/start_manager"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 	"github.com/cloudfoundry/galera-init/upgrader"
-	"net"
 )
 
 func main() {
@@ -83,9 +83,9 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 	)
 
 	ClusterHealthChecker := cluster_health_checker.NewClusterHealthChecker(
-		cfg.Manager.ClusterIps,
-		cfg.Manager.ClusterProbeTimeout,
+		cfg.ClusterUrls(),
 		cfg.Logger,
+		cfg.HTTPClient(),
 	)
 
 	NodeStarter := node_starter.NewStarter(

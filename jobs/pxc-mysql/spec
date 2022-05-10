@@ -41,6 +41,7 @@ consumes:
 - name: galera-agent
   type: galera-agent
   optional: true
+  # TODO: is this really optional?
 
 provides:
 - name: mysql

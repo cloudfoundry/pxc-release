@@ -1,21 +1,33 @@
----
-Port: <%= p('port') %>
-PidFile: '/var/vcap/sys/run/bpm/galera-agent/galera-agent.pid'
-MysqldPath: '/var/vcap/packages/pxc/bin/mysqld'
-MyCnfPath: '/var/vcap/jobs/pxc-mysql/config/my.cnf'
-DB:
-  User: 'galera-agent'
-  Password: "<%= p('db_password') %>"
-  Socket: "/var/vcap/sys/run/pxc-mysql/mysqld.sock"
-# This is the config that bosh sets up by default for monit.
-Monit:
-  User: 'vcap'
-  Password: 'random-password'
-  Host: 'localhost'
-  Port: 2822
-  MysqlStateFilePath: '/var/vcap/store/pxc-mysql/state.txt'
-  ServiceName: 'galera-init'
-  GaleraInitStatusServerAddress: "127.0.0.1:8114"
-SidecarEndpoint:
-  Username: <%= p('endpoint_username') %>
-  Password: <%= p('endpoint_password') %>
+<%=
+config = {
+  "Port" => p('port'),
+  "PidFile" => '/var/vcap/sys/run/bpm/galera-agent/galera-agent.pid',
+  "MysqldPath" => '/var/vcap/packages/pxc/bin/mysqld',
+  "MyCnfPath" => '/var/vcap/jobs/pxc-mysql/config/my.cnf',
+  "DB" => {
+    "User" => 'galera-agent',
+    "Password" => p('db_password'),
+  },
+  "Socket" => "/var/vcap/sys/run/pxc-mysql/mysqld.sock",
+  # This is the config that bosh sets up by default for monit.
+  "Monit" => {
+    "User" => 'vcap',
+    "Password" => 'random-password',
+    "Host" => 'localhost',
+    "Port" => 2822,
+    "MysqlStateFilePath" => '/var/vcap/store/pxc-mysql/state.txt',
+    "ServiceName" => 'galera-init',
+    "GaleraInitStatusServerAddress" => "127.0.0.1:8114",
+  },
+  "SidecarEndpoint" => {
+    "Username" => p('endpoint_username'),
+    "Password" => p('endpoint_password'),
+    "TLS" => {
+        "Enabled" => p('endpoint_tls.enabled'),
+        "Certificate" => p('endpoint_tls.certificate', ''),
+        "PrivateKey" => p('endpoint_tls.private_key', ''),
+    },
+  },
+}
+YAML.dump(config)
+%>

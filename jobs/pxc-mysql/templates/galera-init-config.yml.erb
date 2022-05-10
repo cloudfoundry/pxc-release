@@ -1,39 +1,54 @@
----
-<%
-  cluster_ips = link('mysql').instances.map(&:address)
-%>
+<%=
+cluster_ips = link('mysql').instances.map(&:address)
 
-LogFileLocation: /var/vcap/sys/log/pxc-mysql/galera-init.log
-PidFile: /var/vcap/sys/run/pxc-ctl/pxc-ctl.pid
-ChildPidFile: /var/vcap/sys/run/pxc-mysql/mysql.pid
-Db:
-  SkipBinlog: <%= !p('engine_config.galera.enabled') %>
-  UpgradePath: /var/vcap/packages/pxc/bin/mysql_upgrade
-  User: <%= p('admin_username')%>
-  Password: <%= p('admin_password')%>
-  PreseededDatabases:
-  <% p('seeded_databases').each do |seed| %>
-  - DBName: <%= seed["name"] %>
-    User: <%= seed["username"]%>
-    Password: <%= seed["password"] %>
-  <% end %>
-  SeededUsers:
-  <% p('seeded_users').each do |username, user_config| %>
-  - User: <%= username %>
-    Password: <%= user_config["password"] %>
-    Host: <%= user_config["host"] %>
-    Role: <%= user_config["role"] %>
-  <% end %>
-  Socket: <%= p('mysql_socket') %>
-Upgrader:
-  PackageVersionFile: /var/vcap/packages/pxc/VERSION
-  LastUpgradedVersionFile: /var/vcap/store/pxc-mysql/mysql_upgrade_info
-Manager:
-  GaleraInitStatusServerAddress: "127.0.0.1:8114"
-  StateFileLocation: /var/vcap/store/pxc-mysql/state.txt
-  ClusterIps:
-  <% cluster_ips.each do |ip| %>
-  - <%= ip %>
-  <% end %>
-  BootstrapNode: <%= spec.bootstrap %>
-  ClusterProbeTimeout: <%= p('cluster_probe_timeout') %>
+databases = []
+p('seeded_databases').each do |seed|
+  databases << {
+  "DBName" => seed["name"],
+  "User" => seed["username"],
+  "Password" => seed["password"]
+  }
+end
+
+users = []
+p('seeded_users').each do |username, user_config|
+  users << {
+  "User" => username,
+  "Password" => user_config["password"],
+  "Host" => user_config["host"],
+  "Role" => user_config["role"]
+  }
+end
+
+config = {
+    "LogFileLocation" => '/var/vcap/sys/log/pxc-mysql/galera-init.log',
+    "PidFile" => '/var/vcap/sys/run/pxc-ctl/pxc-ctl.pid',
+    "ChildPidFile" => '/var/vcap/sys/run/pxc-mysql/mysql.pid',
+    "Db" => {
+      "SkipBinlog" => !p('engine_config.galera.enabled'),
+      "UpgradePath" => '/var/vcap/packages/pxc/bin/mysql_upgrade',
+      "User" => p('admin_username'),
+      "Password" => p('admin_password'),
+      "PreseededDatabases" => databases,
+      "SeededUsers" => users,
+      "Socket" => p('mysql_socket'),
+    },
+    "Upgrader" => {
+      "PackageVersionFile" => '/var/vcap/packages/pxc/VERSION',
+      "LastUpgradedVersionFile" => '/var/vcap/store/pxc-mysql/mysql_upgrade_info',
+    },
+    "Manager" => {
+      "GaleraInitStatusServerAddress" => '127.0.0.1:8114',
+      "StateFileLocation" => '/var/vcap/store/pxc-mysql/state.txt',
+      "ClusterIps" => cluster_ips,
+      "BootstrapNode" => spec.bootstrap,
+      "ClusterProbeTimeout" => p('cluster_probe_timeout'),
+    },
+    "BackEndTLS" => {
+      "Enabled" => link('galera-agent').p('endpoint_tls.enabled'),
+      "CA" => link('galera-agent').p('endpoint_tls.ca', ''),
+      "ServerName" => link('galera-agent').p('endpoint_tls.server_name', ''),
+    }
+}
+YAML.dump(config)
+%>

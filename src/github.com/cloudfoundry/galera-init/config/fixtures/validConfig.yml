@@ -1,0 +1,25 @@
+LogFileLocation: testPath
+PidFile: testPidFile
+ChildPidFile: childTestFile
+Db:
+  UpgradePath: testUpgradePath
+  User: testUser
+  Password:
+  PreseededDatabases:
+    - DBName: testDbName1
+      User: testUser1
+      Password:
+Upgrader:
+  PackageVersionFile: testPackageVersionFile
+  LastUpgradedVersionFile: testLastUpgradedVersionFile
+Manager:
+  StateFileLocation: testStateFileLocation
+  BootstrapNode: true
+  ClusterIps: ["1.1.1.1", "1.1.1.2", "1.1.1.3"]
+  MaxDatabaseSeedTries: 1
+  ClusterProbeTimeout: 13
+  GaleraInitStatusServerAddress: "127.0.0.1:8999"
+BackendTLS:
+  Enabled: true
+  CA: "this-should-be-a-PEM-encoded-CA"
+  ServerName: "Expected server certificate identity"

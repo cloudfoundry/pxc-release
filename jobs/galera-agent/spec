@@ -16,6 +16,9 @@ provides:
   type: galera-agent
   properties:
   - port
+  - endpoint_tls.enabled
+  - endpoint_tls.ca
+  - endpoint_tls.server_name
   - endpoint_username
   - endpoint_password
 
@@ -25,6 +28,22 @@ consumes:
   optional: true
 
 properties:
+  endpoint_tls.enabled:
+    description: >
+      Enable TLS for galera-agent endpoints. This requires the endpoint_tls.certificate and endpoint_tls.private_key
+      options are configured.
+    default: false
+  endpoint_tls.ca:
+    description: PEM-encoded certificate authority (CA) for securing TLS communication over the galera-agent endpoint
+    default: ""
+  endpoint_tls.certificate:
+    description: PEM-encoded certificate for securing TLS communication over the galera-agent endpoint
+  endpoint_tls.private_key:
+    description: PEM-encoded key for securing TLS communication over the galera-agent endpoint
+  endpoint_tls.server_name:
+    description: >
+      The host name a client should accept on the endpoint_tls.certificate when communicating with galera-agent
+    default: ""
   endpoint_username:
     description: 'Username used by the sidecar endpoints for Basic Auth'
     default: galera-agent
@@ -35,7 +54,6 @@ properties:
     default: 9200
   db_password:
     description: 'Password used by the sidecar to connect to the database'
-
   logging.format.timestamp:
     description: |
       Format for timestamp in component logs. Valid values are 'rfc3339', 'unix-epoch'. 'rfc3339' is the recommended
