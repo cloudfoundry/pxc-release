@@ -15,3 +15,5 @@ require (
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
 	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0
 )
+
+replace github.com/cloudfoundry-incubator/galera-healthcheck => ../galera-healthcheck

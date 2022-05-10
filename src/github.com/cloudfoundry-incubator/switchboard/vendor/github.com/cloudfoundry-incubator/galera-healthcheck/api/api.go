@@ -85,6 +85,8 @@ func NewRouter(
 		{Name: "sequence_number", Method: "GET", Path: "/sequence_number"},
 		{Name: "galera_status", Method: "GET", Path: "/galera_status"},
 		{Name: "root", Method: "GET", Path: "/"},
+
+		{Name: "health", Method: "GET", Path: "/health"},
 	}
 
 	handlers := rata.Handlers{
@@ -98,6 +100,7 @@ func NewRouter(
 		"sequence_number":         r.getSecureHandler(r.sequenceNumberChecker.Check),
 		"galera_status":           r.getInsecureHandler(r.reqHealthChecker.CheckReq),
 		"root":                    r.getInsecureHandler(r.reqHealthChecker.CheckReq),
+		"health":                  r.getInsecureHandler(func(req *http.Request) (string, error) { return "", nil }),
 	}
 
 	handler, err := rata.NewRouter(routes, handlers)

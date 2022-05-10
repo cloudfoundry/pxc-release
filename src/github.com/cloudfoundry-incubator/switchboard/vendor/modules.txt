@@ -10,7 +10,7 @@ code.cloudfoundry.org/tlsconfig
 code.cloudfoundry.org/tlsconfig/certtest
 # github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
 github.com/bmizerany/pat
-# github.com/cloudfoundry-incubator/galera-healthcheck v0.0.0-20210824173504-1ceac3424420
+# github.com/cloudfoundry-incubator/galera-healthcheck v0.0.0-20210824173504-1ceac3424420 => ../galera-healthcheck
 ## explicit
 github.com/cloudfoundry-incubator/galera-healthcheck/api
 github.com/cloudfoundry-incubator/galera-healthcheck/api/middleware
@@ -183,3 +183,4 @@ gopkg.in/tomb.v1
 gopkg.in/validator.v2
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
+# github.com/cloudfoundry-incubator/galera-healthcheck => ../galera-healthcheck

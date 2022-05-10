@@ -1,12 +1,14 @@
 package config
 
 import (
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/tlsconfig"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 
@@ -14,16 +16,16 @@ import (
 )
 
 type Config struct {
-	DB                    DBConfig    `yaml:"DB" validate:"nonzero"`
-	Monit                 MonitConfig `yaml:"Monit" validate:"nonzero"`
-	Host                  string      `yaml:"Host" validate:"nonzero"`
-	Port                  int         `yaml:"Port" validate:"nonzero"`
-	AvailableWhenDonor    bool        `yaml:"AvailableWhenDonor"`
-	AvailableWhenReadOnly bool        `yaml:"AvailableWhenReadOnly"`
-	Logger                lager.Logger
+	DB                    DBConfig              `yaml:"DB" validate:"nonzero"`
+	Monit                 MonitConfig           `yaml:"Monit" validate:"nonzero"`
+	Host                  string                `yaml:"Host" validate:"nonzero"`
+	Port                  int                   `yaml:"Port" validate:"nonzero"`
+	AvailableWhenDonor    bool                  `yaml:"AvailableWhenDonor"`
+	AvailableWhenReadOnly bool                  `yaml:"AvailableWhenReadOnly"`
 	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
 	MyCnfPath             string                `yaml:"MyCnfPath" validate:"nonzero"`
 	SidecarEndpoint       SidecarEndpointConfig `yaml:"SidecarEndpoint" validate:"nonzero"`
+	Logger                lager.Logger          `yaml:"-"`
 }
 
 type DBConfig struct {
@@ -43,8 +45,15 @@ type MonitConfig struct {
 }
 
 type SidecarEndpointConfig struct {
-	Username string `yaml:"Username" validate:"nonzero"`
-	Password string `yaml:"Password" validate:"nonzero"`
+	Username string      `yaml:"Username" validate:"nonzero"`
+	Password string      `yaml:"Password" validate:"nonzero"`
+	TLS      EndpointTLS `yaml:"TLS"`
+}
+
+type EndpointTLS struct {
+	Enabled     bool   `yaml:"Enabled"`
+	Certificate string `yaml:"Certificate"`
+	PrivateKey  string `yaml:"PrivateKey"`
 }
 
 func defaultConfig() *Config {
@@ -101,6 +110,26 @@ func formatErrorString(err error, keyPrefix string) string {
 		errsString += fmt.Sprintf("%s%s : %s\n", keyPrefix, fieldName, validationMessage)
 	}
 	return errsString
+}
+
+func (c *Config) TLSConfig() (*tls.Config, error) {
+	if !c.SidecarEndpoint.TLS.Enabled {
+		return nil, errors.New("endpoint_tls.enabled is false - no tls configuration available")
+	}
+
+	serverCert, err := tls.X509KeyPair([]byte(c.SidecarEndpoint.TLS.Certificate), []byte(c.SidecarEndpoint.TLS.PrivateKey))
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig, err := tlsconfig.Build(
+		tlsconfig.WithInternalServiceDefaults(),
+		tlsconfig.WithIdentity(serverCert),
+	).Server()
+	if err != nil {
+		return nil, err
+	}
+	return tlsConfig, nil
 }
 
 func (c *Config) IsHealthy(state domain.DBState) bool {
