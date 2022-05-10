@@ -1,30 +1,35 @@
 #!/bin/bash
 
-set -exuo pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 
-cluster_options=(
-    --ops-file operations/use-clustered.yml --ops-file operations/dev-release.yml
-)
+main() {
+  local deployment_name=${PXC_DEPLOYMENT_NAME:-pxc}
+  local -a deploy_opts=(
+    --ops-file=operations/deployment-name.yml
+    --ops-file=operations/dev-release.yml
+    --var=deployment_name="${deployment_name}"
+  )
 
-integration_options=(
-    --ops-file operations/integration-tests.yml
-)
+  if [[ ${ENABLE_CLUSTER:-true} == "true" ]]; then
+    deploy_opts+=(--ops-file=operations/use-clustered.yml)
+  fi
 
-function deploy() {
-    local no_redact="--"
-    if [[ "${REDACT:-"false"}" != "true" ]]; then
-        no_redact="--no-redact"
-    fi
-    bosh -d "${PXC_DEPLOYMENT_NAME:-pxc}" -n deploy "$@" "${no_redact}"
+  if [[ ${ENABLE_INTEGRATION:-false} == "true" ]]; then
+    deploy_opts+=(--ops-file=operations/integration-tests.yml)
+  fi
+
+  if [[ "${REDACT:-}" == "false" ]]; then
+    deploy_opts+=("--no-redact")
+  fi
+
+  deploy_opts+=("$@")
+
+  bosh deploy pxc-deployment.yml \
+    --deployment="${deployment_name}" \
+    --non-interactive \
+    "${deploy_opts[@]}"
 }
 
-if [[ ${ENABLE_CLUSTER:-"true"} == "true" ]]
-then
-    deploy_options+=("${cluster_options[@]}")
-fi
-
-if [[ ${ENABLE_INTEGRATION:-"false"} == "true" ]]
-then
-    deploy_options+=("${integration_options[@]}")
-fi
-deploy pxc-deployment.yml "${deploy_options[@]}"
+main "$@"
