@@ -11,15 +11,23 @@ import (
 
 type Config struct {
 	Logger                    lager.Logger
-	HealthcheckURLs           []string `yaml:"HealthcheckURLs" validate:"nonzero"`
-	Username                  string   `yaml:"Username" validate:"nonzero"`
-	Password                  string   `yaml:"Password" validate:"nonzero"`
+	HealthcheckURLs           []string   `yaml:"HealthcheckURLs" validate:"nonzero"`
+	BackendTLS                BackendTLS `yaml:"BackendTLS"`
+	Username                  string     `yaml:"Username" validate:"nonzero"`
+	Password                  string     `yaml:"Password" validate:"nonzero"`
 	ShutDownMysql             string
 	MysqlStatus               string
 	GetSeqNumber              string
 	StartMysqlInJoinMode      string
 	StartMysqlInBootstrapMode string
 	RepairMode                string `yaml:"RepairMode" validate:"nonzero,regexp=^(bootstrap|rejoin-unsafe)$"`
+}
+
+type BackendTLS struct {
+	Enabled            bool   `yaml:"Enabled"`
+	ServerName         string `yaml:"ServerName"`
+	CA                 string `yaml:"CA"`
+	InsecureSkipVerify bool   `yaml:"InsecureSkipVerify"`
 }
 
 func defaultConfig() *Config {

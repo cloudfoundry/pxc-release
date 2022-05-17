@@ -18,18 +18,7 @@ var _ = Describe("Config", func() {
 		osArgs     []string
 	)
 
-	BeforeEach(func() {
-		rawConfig = `{
-			"HealthcheckURLs": [
-				"10.10.10.10:9200",
-				"11.11.11.11:9200",
-				"12.12.12.12:9200"
-			],
-			"Username": "fake-username",
-			"Password": "fake-password",
-			"RepairMode": "bootstrap"
-		}`
-
+	JustBeforeEach(func() {
 		osArgs = []string{
 			"bootstrap",
 			fmt.Sprintf("-config=%s", rawConfig),
@@ -39,7 +28,20 @@ var _ = Describe("Config", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("Validate", func() {
+	Describe("Non-TLS Config", func() {
+		BeforeEach(func() {
+			rawConfig = `{
+			"HealthcheckURLs": [
+				"http://10.10.10.10:9200",
+				"http://11.11.11.11:9200",
+				"http://12.12.12.12:9200"
+			],
+			"Username": "fake-username",
+			"Password": "fake-password",
+			"RepairMode": "bootstrap"
+			}`
+		})
+
 		Context("valid config", func() {
 			It("accepts bootstrap as a value for RepairMode", func() {
 				err := rootConfig.Validate()
@@ -78,6 +80,45 @@ var _ = Describe("Config", func() {
 			err := rootConfig.Validate()
 			Expect(err).To(HaveOccurred())
 		})
+	})
 
+	Describe("TLS Config", func() {
+		When("BackendTLS params are provided", func() {
+			BeforeEach(func() {
+				rawConfig = `{
+				"HealthcheckURLs": [
+					"https://10.10.10.10:9200",
+					"https://11.11.11.11:9200",
+					"https://12.12.12.12:9200"
+				],
+				"Username": "fake-username",
+				"Password": "fake-password",
+				"RepairMode": "bootstrap",
+				"BackendTLS": {
+					"Enabled": true,
+					"ServerName": "backendTlsServerName",
+					"CA": "backendTlsCA",
+					"InsecureSkipVerify": false,
+				}
+			}`
+			})
+			It("accepts BackendTLS params in the config", func() {
+				err := rootConfig.Validate()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(rootConfig.BackendTLS.Enabled).To(BeTrue())
+				Expect(rootConfig.BackendTLS.ServerName).To(Equal("backendTlsServerName"))
+				Expect(rootConfig.BackendTLS.CA).To(Equal("backendTlsCA"))
+				Expect(rootConfig.BackendTLS.InsecureSkipVerify).To(BeFalse())
+			})
+		})
+		When("BackendTLS params aren't provided", func() {
+			BeforeEach(func() {
+				rawConfig = `{}`
+			})
+			It("configures the expected defaults", func() {
+				Expect(rootConfig.BackendTLS.Enabled).To(BeFalse())
+				Expect(rootConfig.BackendTLS.InsecureSkipVerify).To(BeFalse())
+			})
+		})
 	})
 })

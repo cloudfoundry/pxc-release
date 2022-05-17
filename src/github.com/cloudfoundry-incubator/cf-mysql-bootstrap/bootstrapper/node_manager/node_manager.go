@@ -1,6 +1,8 @@
 package node_manager
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +28,8 @@ var GetShutDownTimeout = func() int {
 	return ShutDownTimeout
 }
 
+var skipCAVerification = false  // Only unit tests should set this to True.
+
 type NodeManager interface {
 	VerifyClusterIsUnhealthy() (bool, error)
 	VerifyAllNodesAreReachable() error
@@ -44,8 +48,8 @@ type nodeManager struct {
 
 func New(rootConfig *config.Config, clock clock.Clock) NodeManager {
 	return &nodeManager{
-		rootConfig: rootConfig,
-		clock:      clock,
+		rootConfig:         rootConfig,
+		clock:              clock,
 	}
 }
 
@@ -297,7 +301,25 @@ func (nm *nodeManager) sendRequest(endpoint string, method string) (string, erro
 	}
 	req.SetBasicAuth(nm.rootConfig.Username, nm.rootConfig.Password)
 
-	resp, err := http.DefaultClient.Do(req)
+	// create new http client
+	httpClient := &http.Client{}
+
+	if nm.rootConfig.BackendTLS.Enabled {
+		certPool := x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM([]byte(nm.rootConfig.BackendTLS.CA)); !ok {
+			// TODO: should we handle the failure parsing a CA?
+		}
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:    certPool,
+				ServerName: nm.rootConfig.BackendTLS.ServerName,
+				InsecureSkipVerify: nm.rootConfig.BackendTLS.InsecureSkipVerify,
+			},
+		}
+	}
+
+	resp, err := httpClient.Do(req)
 	responseBody := ""
 	if err != nil {
 		return responseBody, fmt.Errorf("Failed to %s: %s", endpoint, err.Error())

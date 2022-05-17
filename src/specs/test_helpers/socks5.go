@@ -1,6 +1,9 @@
 package test_helpers
 
 import (
+	_ "context"
+	"crypto/tls"
+	"crypto/x509"
 	"io/ioutil"
 	"log"
 	"net"
@@ -55,10 +58,20 @@ func SetupSocks5Proxy() {
 		log.New(ginkgo.GinkgoWriter, "[socks5proxy] ", log.LstdFlags),
 	)
 	Expect(err).NotTo(HaveOccurred())
+	CA, err := GetDeploymentCAByName("cf_mysql_mysql_galera_healthcheck_endpoint_tls")
+	Expect(err).NotTo(HaveOccurred())
+	certPool := x509.NewCertPool()
+	if ok := certPool.AppendCertsFromPEM([]byte(CA)); !ok {
+		// TODO: should we handle the failure parsing a CA?
+	}
 
 	HttpClient = &http.Client{
 		Transport: &http.Transport{
 			Dial: dialer,
+			TLSClientConfig: &tls.Config{
+				RootCAs:    certPool,
+				ServerName: "galera_healthcheck_endpoint_tls",
+			},
 		},
 		Timeout: 2 * time.Minute,
 	}

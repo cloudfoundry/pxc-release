@@ -845,3 +845,84 @@ var _ = Describe("Bootstrap", func() {
 		})
 	})
 })
+
+var _ = Describe("TLS connectivity", func() {
+	BeforeEach(func() {
+		rootConfig = &config.Config{
+			ShutDownMysql:             "stop_mysql",
+			MysqlStatus:               "mysql_status",
+			GetSeqNumber:              "sequence_number",
+			StartMysqlInJoinMode:      "start_mysql_join",
+			StartMysqlInBootstrapMode: "start_mysql_bootstrap",
+		}
+		rootConfig.BackendTLS = config.BackendTLS{
+			Enabled:    true,
+			ServerName: "example.com", // set in TLS server by httptest
+			CA:         "unavailableInTest",
+			InsecureSkipVerify: true,	// req'd for TLS to mock httptest nodes
+		}
+		rootConfig.Logger = lagertest.NewTestLogger("nodeManager test")
+
+		endpointHandlers = []*test_helpers.EndpointHandler{}
+		for i := 0; i < ServerCount; i++ {
+			newHandler := test_helpers.NewEndpointHandler()
+			newHandler.StubEndpointWithStatus("/mysql_status", http.StatusOK)
+			endpointHandlers = append(endpointHandlers, newHandler)
+		}
+	})
+	JustBeforeEach(func() {
+		testServers = []*httptest.Server{}
+		for i := 0; i < ServerCount; i++ {
+			newServer := httptest.NewTLSServer(endpointHandlers[i])
+			testServers = append(testServers, newServer)
+			rootConfig.HealthcheckURLs = append(rootConfig.HealthcheckURLs, newServer.URL)
+		}
+
+		fakeClock := &clockPkg.FakeClock{}
+		fakeClock.AfterStub = func(interval time.Duration) <-chan time.Time {
+			return time.After(1 * time.Millisecond)
+		}
+		nodeManager = node_manager.New(rootConfig, fakeClock)
+	})
+	When("TLS is properly configured", func() {
+		It("connects via TLS", func() {
+			err := nodeManager.VerifyAllNodesAreReachable()
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+	When("the client attempts a non-TLS connection to a TLS back-end", func() {
+		BeforeEach(func() {
+			rootConfig.BackendTLS.Enabled = false
+		})
+		It("returns the expected error", func() {
+			err := nodeManager.VerifyAllNodesAreReachable()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(HavePrefix("Could not reach node: https://"))
+			Expect(err.Error()).To(HaveSuffix("x509: “Acme Co” certificate is not trusted"))
+		})
+	})
+	When("the server's certificate cannot be authenticated", func() {
+		BeforeEach(func() {
+			// Since httptest nodes don't support secure TLS connections,
+			// this provokes the desired authentication failure.
+			rootConfig.BackendTLS.InsecureSkipVerify = false
+		})
+		It("returns the expected error", func() {
+			err := nodeManager.VerifyAllNodesAreReachable()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(HaveSuffix("x509: certificate signed by unknown authority"))
+		})
+	})
+	When("the server's certificate doesn't contains the expected name", func() {
+		BeforeEach(func() {
+			rootConfig.BackendTLS.InsecureSkipVerify = false
+			rootConfig.BackendTLS.ServerName = "incorrectValue.org"
+		})
+		It("returns the expected error", func() {
+			err := nodeManager.VerifyAllNodesAreReachable()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(HaveSuffix("x509: certificate is valid for example.com, not incorrectValue.org"))
+		})
+	})
+
+})

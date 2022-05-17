@@ -45,6 +45,17 @@ func GetDeploymentCertificateByName(name string) (tls.Certificate, error) {
 	return tls.X509KeyPair([]byte(cert.Value.Certificate), []byte(cert.Value.PrivateKey))
 }
 
+func GetDeploymentCAByName(name string) (string, error) {
+	client, err := NewCredhubClient()
+
+	cert, err := client.GetLatestCertificate(credhubKey(name))
+	if err != nil {
+		return "", err
+	}
+
+	return cert.Value.Ca, err
+}
+
 func GetMySQLAdminPassword() (string, error) {
 	client, err := NewCredhubClient()
 	if err != nil {

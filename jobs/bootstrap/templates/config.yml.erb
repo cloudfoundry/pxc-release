@@ -4,12 +4,20 @@
   galera_agent_port = galera_agent_link.p('port')
   galera_agent_username = galera_agent_link.p('endpoint_username')
   galera_agent_password = galera_agent_link.p('endpoint_password')
+  tls_enabled = galera_agent_link.p('endpoint_tls.enabled')
+  tls_cert = galera_agent_link.p('endpoint_tls.ca', '')
+  server_name = galera_agent_link.p('endpoint_tls.server_name', '')
 
-  config = {
-    HealthcheckURLs: cluster_ips.map {|ip| "http://#{ip}:#{galera_agent_port}" },
+  config = { 
+    HealthcheckURLs: cluster_ips.map {|ip| "http#{tls_enabled ?'s':''}://#{ip}:#{galera_agent_port}" },
     Username: galera_agent_username,
     Password: galera_agent_password,
-    RepairMode: 'bootstrap'
+    RepairMode: 'bootstrap',
+    BackendTLS: {
+            Enabled: tls_enabled,
+            CA: tls_cert,
+            ServerName: server_name,
+        },
   }
 
   JSON.pretty_generate(config)

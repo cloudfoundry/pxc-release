@@ -15,7 +15,7 @@ import (
 )
 
 func stopMySQL(host string) error {
-	stopMySQLEndpoint := fmt.Sprintf("http://%s:9200/stop_mysql", host)
+	stopMySQLEndpoint := fmt.Sprintf("https://%s:9201/stop_mysql", host)
 	req, err := http.NewRequest("POST", stopMySQLEndpoint, nil)
 	if err != nil {
 		return err
