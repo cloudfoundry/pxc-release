@@ -8,7 +8,7 @@
   value: true
 
 - type: replace
-  path: /instance_groups/name=mysql/jobs/-
+  path: /instance_groups/name=mysql/jobs/name=cluster-health-logger?
   value:
     name: cluster-health-logger
     properties:
@@ -23,7 +23,7 @@
     role: minimal
 
 - type: replace
-  path: /instance_groups/-
+  path: /instance_groups/name=proxy?
   value:
     name: proxy
     instances: 2
@@ -38,7 +38,7 @@
         api_password: ((cf_mysql_proxy_api_password))
 
 - type: replace
-  path: /instance_groups/name=mysql/jobs/-
+  path: /instance_groups/name=mysql/jobs/name=galera-agent?
   value:
     name: galera-agent
     properties:
@@ -54,37 +54,37 @@
     role: minimal
 
 - type: replace
-  path: /instance_groups/name=mysql/jobs/-
+  path: /instance_groups/name=mysql/jobs/name=gra-log-purger?
   value:
     name: gra-log-purger
     release: pxc
 
 - type: replace
-  path: /instance_groups/name=mysql/jobs/-
+  path: /instance_groups/name=mysql/jobs/name=bootstrap?
   value:
     name: bootstrap
     release: pxc
 
 - type: replace
-  path: /variables/-
+  path: /variables/name=cf_mysql_mysql_cluster_health_password?
   value:
     name: cf_mysql_mysql_cluster_health_password
     type: password
 
 - type: replace
-  path: /variables/-
+  path: /variables/name=cf_mysql_proxy_api_password?
   value:
     name: cf_mysql_proxy_api_password
     type: password
 
 - type: replace
-  path: /variables/-
+  path: /variables/name=cf_mysql_mysql_galera_healthcheck_db_password?
   value:
     name: cf_mysql_mysql_galera_healthcheck_db_password
     type: password
 
 - type: replace
-  path: /variables/-
+  path: /variables/name=cf_mysql_mysql_galera_healthcheck_endpoint_password?
   value:
     name: cf_mysql_mysql_galera_healthcheck_endpoint_password
     type: password

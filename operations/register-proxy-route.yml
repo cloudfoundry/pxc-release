@@ -6,7 +6,7 @@
     version: latest
 
 - type: replace
-  path: /instance_groups/name=proxy/jobs/-
+  path: /instance_groups/name=proxy/jobs/name=route_registrar?
   value:
     release: routing
     name: route_registrar
