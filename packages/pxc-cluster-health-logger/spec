@@ -1,6 +1,6 @@
 ---
 name: pxc-cluster-health-logger
 dependencies:
-  - golang-1.16-linux
+  - golang-1.18-linux
 files:
   - github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/**

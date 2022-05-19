@@ -2,7 +2,7 @@
 
 set -eu
 
-source /var/vcap/packages/golang-1.16-linux/bosh/compile.env
+source /var/vcap/packages/golang-1.18-linux/bosh/compile.env
 
 cd github.com/cloudfoundry-incubator/cf-mysql-bootstrap
   go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/cf-mysql-bootstrap"
