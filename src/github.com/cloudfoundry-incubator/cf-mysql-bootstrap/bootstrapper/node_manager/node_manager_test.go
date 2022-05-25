@@ -898,7 +898,7 @@ var _ = Describe("TLS connectivity", func() {
 			err := nodeManager.VerifyAllNodesAreReachable()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(HavePrefix("Could not reach node: https://"))
-			Expect(err.Error()).To(HaveSuffix("x509: “Acme Co” certificate is not trusted"))
+			Expect(err.Error()).To(HaveSuffix("x509: certificate signed by unknown authority"))
 		})
 	})
 	When("the server's certificate cannot be authenticated", func() {
