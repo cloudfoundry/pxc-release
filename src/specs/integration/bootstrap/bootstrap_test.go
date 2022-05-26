@@ -14,23 +14,33 @@ import (
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
-func stopMySQL(host string) error {
-	stopMySQLEndpoint := fmt.Sprintf("https://%s:9201/stop_mysql", host)
-	req, err := http.NewRequest("POST", stopMySQLEndpoint, nil)
-	if err != nil {
-		return err
-	}
 
+func doPost(url string, galeraAgentPassword string) (*http.Response, error){
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(galeraAgentUsername, galeraAgentPassword)
+	return helpers.HttpClient.Do(req)
+}
+
+func stopMySQL(host string) error {
 	galeraAgentPassword, err := helpers.GetGaleraAgentPassword()
 	if err != nil {
 		return err
 	}
 
-	req.SetBasicAuth(galeraAgentUsername, galeraAgentPassword)
+	stopMySQLEndpoint := fmt.Sprintf("http://%s:9200/stop_mysql", host)
+	res, err := doPost(stopMySQLEndpoint, galeraAgentPassword)
 
-	res, err := helpers.HttpClient.Do(req)
 	if err != nil {
-		return err
+
+		stopMySQLEndpoint = fmt.Sprintf("https://%s:9201/stop_mysql", host)
+		res, err = doPost(stopMySQLEndpoint, galeraAgentPassword)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	responseBody, _ := ioutil.ReadAll(res.Body)

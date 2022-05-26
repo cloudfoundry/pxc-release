@@ -58,22 +58,30 @@ func SetupSocks5Proxy() {
 		log.New(ginkgo.GinkgoWriter, "[socks5proxy] ", log.LstdFlags),
 	)
 	Expect(err).NotTo(HaveOccurred())
-	CA, err := GetDeploymentCAByName("cf_mysql_mysql_galera_healthcheck_endpoint_tls")
-	Expect(err).NotTo(HaveOccurred())
-	certPool := x509.NewCertPool()
-	if ok := certPool.AppendCertsFromPEM([]byte(CA)); !ok {
-		// TODO: should we handle the failure parsing a CA?
-	}
+	CA, _ := GetDeploymentCAByName("cf_mysql_mysql_galera_healthcheck_endpoint_tls")
+	if err == nil {
+		certPool := x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM([]byte(CA)); !ok {
+			// TODO: should we handle the failure parsing a CA?
+		}
 
-	HttpClient = &http.Client{
-		Transport: &http.Transport{
-			Dial: dialer,
-			TLSClientConfig: &tls.Config{
-				RootCAs:    certPool,
-				ServerName: "galera_healthcheck_endpoint_tls",
+		HttpClient = &http.Client{
+			Transport: &http.Transport{
+				Dial: dialer,
+				TLSClientConfig: &tls.Config{
+					RootCAs:    certPool,
+					ServerName: "galera_healthcheck_endpoint_tls",
+				},
 			},
-		},
-		Timeout: 2 * time.Minute,
+			Timeout: 2 * time.Minute,
+		}
+	} else {
+		HttpClient = &http.Client{
+			Transport: &http.Transport{
+				Dial: dialer,
+			},
+			Timeout: 2 * time.Minute,
+		}
 	}
 
 	mysql.RegisterDial("tcp", func(addr string) (net.Conn, error) {
