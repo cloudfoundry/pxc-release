@@ -88,8 +88,8 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
-// AddRaw starts watching the named file or directory (non-recursively). Symlinks are not implicitly resolved.
-func (w *Watcher) AddRaw(name string) error {
+// Add starts watching the named file or directory (non-recursively).
+func (w *Watcher) Add(name string) error {
 	name = filepath.Clean(name)
 	if w.isClosed() {
 		return errors.New("inotify instance already closed")
@@ -97,7 +97,7 @@ func (w *Watcher) AddRaw(name string) error {
 
 	const agnosticEvents = unix.IN_MOVED_TO | unix.IN_MOVED_FROM |
 		unix.IN_CREATE | unix.IN_ATTRIB | unix.IN_MODIFY |
-		unix.IN_MOVE_SELF | unix.IN_DELETE | unix.IN_DELETE_SELF | unix.IN_DONT_FOLLOW
+		unix.IN_MOVE_SELF | unix.IN_DELETE | unix.IN_DELETE_SELF
 
 	var flags uint32 = agnosticEvents
 
@@ -161,6 +161,19 @@ func (w *Watcher) Remove(name string) error {
 	}
 
 	return nil
+}
+
+// WatchList returns the directories and files that are being monitered.
+func (w *Watcher) WatchList() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	entries := make([]string, 0, len(w.watches))
+	for pathname := range w.watches {
+		entries = append(entries, pathname)
+	}
+
+	return entries
 }
 
 type watch struct {

@@ -1,12 +1,8 @@
 # File system notifications for Go
 
-[![GoDoc](https://godoc.org/github.com/fsnotify/fsnotify?status.svg)](https://godoc.org/github.com/fsnotify/fsnotify) [![Go Report Card](https://goreportcard.com/badge/github.com/fsnotify/fsnotify)](https://goreportcard.com/report/github.com/fsnotify/fsnotify)
+[![Go Reference](https://pkg.go.dev/badge/github.com/fsnotify/fsnotify.svg)](https://pkg.go.dev/github.com/fsnotify/fsnotify) [![Go Report Card](https://goreportcard.com/badge/github.com/fsnotify/fsnotify)](https://goreportcard.com/report/github.com/fsnotify/fsnotify) [![Maintainers Wanted](https://img.shields.io/badge/maintainers-wanted-red.svg)](https://github.com/fsnotify/fsnotify/issues/413)
 
-fsnotify utilizes [golang.org/x/sys](https://godoc.org/golang.org/x/sys) rather than `syscall` from the standard library. Ensure you have the latest version installed by running:
-
-```console
-go get -u golang.org/x/sys/...
-```
+fsnotify utilizes [`golang.org/x/sys`](https://pkg.go.dev/golang.org/x/sys) rather than [`syscall`](https://pkg.go.dev/syscall) from the standard library.
 
 Cross platform: Windows, Linux, BSD and macOS.
 
@@ -16,22 +12,20 @@ Cross platform: Windows, Linux, BSD and macOS.
 | kqueue                | BSD, macOS, iOS\*                | Supported |
 | ReadDirectoryChangesW | Windows                          | Supported |
 | FSEvents              | macOS                            | [Planned](https://github.com/fsnotify/fsnotify/issues/11)                                                                       |
-| FEN                   | Solaris 11                       | [In Progress](https://github.com/fsnotify/fsnotify/issues/12)                                                                   |
-| fanotify              | Linux 2.6.37+                    | [Planned](https://github.com/fsnotify/fsnotify/issues/114)                                                                      |
+| FEN                   | Solaris 11                       | [In Progress](https://github.com/fsnotify/fsnotify/pull/371)                                                                   |
+| fanotify              | Linux 2.6.37+                    | [Maybe](https://github.com/fsnotify/fsnotify/issues/114)                                                                      |
 | USN Journals          | Windows                          | [Maybe](https://github.com/fsnotify/fsnotify/issues/53)                                                                         |
 | Polling               | *All*                            | [Maybe](https://github.com/fsnotify/fsnotify/issues/9)                                                                          |
 
 \* Android and iOS are untested.
 
-Please see [the documentation](https://godoc.org/github.com/fsnotify/fsnotify) and consult the [FAQ](#faq) for usage information.
+Please see [the documentation](https://pkg.go.dev/github.com/fsnotify/fsnotify) and consult the [FAQ](#faq) for usage information.
 
 ## API stability
 
-fsnotify is a fork of [howeyc/fsnotify](https://godoc.org/github.com/howeyc/fsnotify) with a new API as of v1.0. The API is based on [this design document](http://goo.gl/MrYxyA). 
+fsnotify is a fork of [howeyc/fsnotify](https://github.com/howeyc/fsnotify) with a new API as of v1.0. The API is based on [this design document](http://goo.gl/MrYxyA).
 
-All [releases](https://github.com/fsnotify/fsnotify/releases) are tagged based on [Semantic Versioning](http://semver.org/). Further API changes are [planned](https://github.com/fsnotify/fsnotify/milestones), and will be tagged with a new major revision number.
-
-Go 1.6 supports dependencies located in the `vendor/` folder. Unless you are creating a library, it is recommended that you copy fsnotify into `vendor/github.com/fsnotify/fsnotify` within your project, and likewise for `golang.org/x/sys`.
+All [releases](https://github.com/fsnotify/fsnotify/releases) are tagged based on [Semantic Versioning](http://semver.org/).
 
 ## Usage
 
@@ -72,18 +66,10 @@ func main() {
 		}
 	}()
 
-	// if this is a link, it will follow all the links and watch the file pointed to
 	err = watcher.Add("/tmp/foo")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// this will watch the link, rather than the file it points to
-	err = watcher.AddRaw("/tmp/link")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	<-done
 }
 ```
@@ -92,15 +78,7 @@ func main() {
 
 Please refer to [CONTRIBUTING][] before opening an issue or pull request.
 
-## Example
-
-See [example_test.go](https://github.com/fsnotify/fsnotify/blob/master/example_test.go).
-
 ## FAQ
-
-**Are symlinks resolved?**
-Symlinks are implicitly resolved by [`filepath.EvalSymlinks(path)`](https://golang.org/pkg/path/filepath/#EvalSymlinks) when `watcher.Add(name)` is used. If that is not desired, you can use `watcher.AddRaw(name)` to not follow any symlinks before watching. See [example_test.go](https://github.com/fsnotify/fsnotify/blob/master/example_test.go).
-
 
 **When a file is moved to another directory is it still being watched?**
 
@@ -139,3 +117,4 @@ fsnotify requires support from underlying OS to work. The current NFS protocol d
 
 * [notify](https://github.com/rjeczalik/notify)
 * [fsevents](https://github.com/fsnotify/fsevents)
+

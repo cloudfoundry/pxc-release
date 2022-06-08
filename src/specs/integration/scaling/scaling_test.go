@@ -1,17 +1,17 @@
 package scaling_test
 
 import (
+	"database/sql"
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"database/sql"
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 
-	boshdir "github.com/cloudfoundry/bosh-cli/director"
-	yaml "gopkg.in/yaml.v2"
+	boshdir "github.com/cloudfoundry/bosh-cli/v7/director"
+	"gopkg.in/yaml.v2"
 )
 
 func scaleDeployment(instanceCount int) error {

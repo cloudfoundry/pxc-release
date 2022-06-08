@@ -10,8 +10,8 @@ import (
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/commandreporter"
 
-	boshdir "github.com/cloudfoundry/bosh-cli/director"
-	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	boshdir "github.com/cloudfoundry/bosh-cli/v7/director"
+	boshuaa "github.com/cloudfoundry/bosh-cli/v7/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

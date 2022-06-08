@@ -13,7 +13,7 @@ import (
 
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 
-	boshdir "github.com/cloudfoundry/bosh-cli/director"
+	boshdir "github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -207,9 +207,9 @@ var _ = Describe("CF PXC MySQL Autotune", func() {
 
 		var (
 			unused string
-			value string
+			value  string
 		)
-		
+
 		Expect(mysqlConn.QueryRow("SHOW variables LIKE 'binlog_space_limit'").Scan(&unused, &value)).To(Succeed())
 		binlogSpaceLimitInBytes, err := strconv.Atoi(value)
 		Expect(err).NotTo(HaveOccurred())
@@ -221,8 +221,8 @@ var _ = Describe("CF PXC MySQL Autotune", func() {
 		expectedbinlogSpaceLimit := vmTotalDiskInBytes * (float64(binlogSpaceLimitPercent) / 100.0)
 
 		expectedmaxBinlogSize := uint64(expectedbinlogSpaceLimit / 3)
-		expectedmaxBinlogSize = (expectedmaxBinlogSize/binlogBlockSize) * binlogBlockSize
-		if expectedmaxBinlogSize > 1024 * 1024 * 1024 {
+		expectedmaxBinlogSize = (expectedmaxBinlogSize / binlogBlockSize) * binlogBlockSize
+		if expectedmaxBinlogSize > 1024*1024*1024 {
 			expectedmaxBinlogSize = 1024 * 1024 * 1024
 		}
 

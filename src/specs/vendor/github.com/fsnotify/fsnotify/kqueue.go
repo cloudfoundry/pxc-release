@@ -91,8 +91,8 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
-// AddRaw starts watching the named file or directory (non-recursively). Symlinks are not implicitly resolved.
-func (w *Watcher) AddRaw(name string) error {
+// Add starts watching the named file or directory (non-recursively).
+func (w *Watcher) Add(name string) error {
 	w.mu.Lock()
 	w.externalWatches[name] = true
 	w.mu.Unlock()
@@ -148,6 +148,19 @@ func (w *Watcher) Remove(name string) error {
 	return nil
 }
 
+// WatchList returns the directories and files that are being monitered.
+func (w *Watcher) WatchList() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	entries := make([]string, 0, len(w.watches))
+	for pathname := range w.watches {
+		entries = append(entries, pathname)
+	}
+
+	return entries
+}
+
 // Watch all events (except NOTE_EXTEND, NOTE_LINK, NOTE_REVOKE)
 const noteAllEvents = unix.NOTE_DELETE | unix.NOTE_WRITE | unix.NOTE_ATTRIB | unix.NOTE_RENAME
 
@@ -190,7 +203,33 @@ func (w *Watcher) addWatch(name string, flags uint32) (string, error) {
 			return "", nil
 		}
 
-		watchfd, err = unix.Open(name, openMode|unix.O_SYMLINK, 0700)
+		// Follow Symlinks
+		// Unfortunately, Linux can add bogus symlinks to watch list without
+		// issue, and Windows can't do symlinks period (AFAIK). To  maintain
+		// consistency, we will act like everything is fine. There will simply
+		// be no file events for broken symlinks.
+		// Hence the returns of nil on errors.
+		if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+			name, err = filepath.EvalSymlinks(name)
+			if err != nil {
+				return "", nil
+			}
+
+			w.mu.Lock()
+			_, alreadyWatching = w.watches[name]
+			w.mu.Unlock()
+
+			if alreadyWatching {
+				return name, nil
+			}
+
+			fi, err = os.Lstat(name)
+			if err != nil {
+				return "", nil
+			}
+		}
+
+		watchfd, err = unix.Open(name, openMode, 0700)
 		if watchfd == -1 {
 			return "", err
 		}

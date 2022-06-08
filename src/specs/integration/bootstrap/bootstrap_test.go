@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	boshdir "github.com/cloudfoundry/bosh-cli/director"
+	boshdir "github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -14,8 +14,7 @@ import (
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
 
-
-func doPost(url string, galeraAgentPassword string) (*http.Response, error){
+func doPost(url string, galeraAgentPassword string) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return nil, err
