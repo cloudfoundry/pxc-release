@@ -110,6 +110,7 @@ var _ = Describe("ClusterMonitor", func() {
 				backend3: 2,
 			}
 
+			useTLSForAgent := useTLSForAgent
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
