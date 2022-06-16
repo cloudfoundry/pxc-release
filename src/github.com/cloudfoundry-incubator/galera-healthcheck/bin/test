@@ -11,5 +11,4 @@ echo -e "\nVetting packages for potential issues..."
 "$MY_DIR/govet" || exit 1
 
 echo -e "\nTesting packages..."
-# TODO: Revisit need to run tests without -p; there seems to be test pollution in pipeline
-go run github.com/onsi/ginkgo/ginkgo -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@"
+go run github.com/onsi/ginkgo/ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@"
