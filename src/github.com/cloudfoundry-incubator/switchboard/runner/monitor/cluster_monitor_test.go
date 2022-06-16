@@ -150,7 +150,7 @@ var _ = Describe("ClusterMonitor", func() {
 		}, 5)
 
 		It("notices when a healthy backend becomes unhealthy", func(done Done) {
-
+			useTLSForAgent := useTLSForAgent
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
@@ -175,6 +175,7 @@ var _ = Describe("ClusterMonitor", func() {
 		}, 5)
 
 		It("notices when a healthy backend becomes unresponsive", func() {
+			useTLSForAgent := useTLSForAgent
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
@@ -199,6 +200,7 @@ var _ = Describe("ClusterMonitor", func() {
 		It("notices when an unhealthy backend becomes healthy", func() {
 			backend2.SetUnhealthy()
 
+			useTLSForAgent := useTLSForAgent
 			isUnhealthy := true
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
