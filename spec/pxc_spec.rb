@@ -99,27 +99,29 @@ describe 'pxc mysql job' do
       ]
     end
 
-    it 'fails' do
+    it 'renders a valid galera-init-config.yml' do
       tpl_output = template.render(spec, consumes: links)
-      File.open("./galera-init-config.yml", 'w') { |file| file.write(tpl_output) }
-      expect(tpl_output).to include("Db")
-      expect(tpl_output).to include("SkipBinlog: true")
+      hash_from_yaml = YAML.load(tpl_output)
 
-      expect(tpl_output).to include("SeededUsers")
-      expect(tpl_output).to include("Host: host1")
+      expect(hash_from_yaml).to include("Db")
+      db = hash_from_yaml["Db"]
+      expect(hash_from_yaml["Db"]).to include("SkipBinlog"=>true)
 
-      expect(tpl_output).to include("PreseededDatabases")
-      expect(tpl_output).to include("DBName: test")
+      expect(hash_from_yaml["Db"]).to include("SeededUsers" => [
+          {"Host"=>"host1", "Password"=>"test-password1", "Role"=>"role1", "User"=>"user1"},
+          {"Host"=>"host2", "Password"=>"test-password2", "Role"=>"role2", "User"=>"user2"}])
 
-      expect(tpl_output).to include("Upgrader")
+      expect(hash_from_yaml["Db"]).to include("PreseededDatabases" => [
+          {"DBName"=>"test", "Password"=>"test-password", "User"=>"test-user"},
+          {"DBName"=>"test1", "Password"=>"test-password1", "User"=>"test-user1"}])
 
-      expect(tpl_output).to include("Manager")
+      expect(hash_from_yaml).to include("Upgrader")
 
-      expect(tpl_output).to include("ClusterIps")
-      expect(tpl_output).to include("- mysql-address")
+      expect(hash_from_yaml).to include("Manager")
 
-      expect(tpl_output).to include("BackEndTLS")
-      expect(tpl_output).to include("Enabled: true")
+      expect(hash_from_yaml["Manager"]).to include("ClusterIps" => ["mysql-address"])
+
+      expect(hash_from_yaml).to include("BackendTLS" => {"CA"=>"PEM Cert", "Enabled"=>true, "ServerName"=>"server name"})
     end
   end
 

@@ -1,6 +1,7 @@
 package cluster_health_checker
 
 import (
+	"io/ioutil"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
@@ -37,11 +38,20 @@ func (h httpClusterHealthChecker) HealthyCluster() bool {
 	for _, url := range h.clusterUrls {
 		h.logger.Info("Checking if node is healthy: " + url)
 
-		resp, _ := h.client.Get(url)
+		resp, err := h.client.Get(url)
+		if err != nil {
+			h.logger.Error("checking cluster member health failed", err)
+			continue
+		}
 		if resp != nil && resp.StatusCode == 200 {
 			h.logger.Info("node " + url + " is healthy - cluster is healthy.")
 			return true
 		}
+		body, _ := ioutil.ReadAll(resp.Body)
+		h.logger.Info("node "+url+" is NOT healthy", lager.Data{
+			"status": resp.Status,
+			"body":   string(body),
+		})
 	}
 
 	h.logger.Info("No nodes in cluster are healthy.")

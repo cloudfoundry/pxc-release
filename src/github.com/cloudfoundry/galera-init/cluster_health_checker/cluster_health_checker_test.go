@@ -1,15 +1,17 @@
 package cluster_health_checker_test
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
@@ -41,11 +43,16 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 		requestURLs := []string{}
 		fakeUrlGetter.GetStub = func(url string) (*http.Response, error) {
 			requestURLs = append(requestURLs, url)
-			return &http.Response{StatusCode: 503}, nil
+			return &http.Response{StatusCode: 503, Status: "503 Service Unavailable", Body: io.NopCloser(bytes.NewBufferString("some body"))}, nil
 		}
 
 		checker := NewClusterHealthChecker([]string{"https://1.2.3.4:9201", "https://5.6.7.8:9201"}, testLogger, fakeUrlGetter)
 		healthy := checker.HealthyCluster()
+
+		Expect(testLogger.LogMessages()).To(ContainElement("cluster_health_checker.node https://1.2.3.4:9201 is NOT healthy"))
+		Expect(testLogger.LogMessages()).To(ContainElement("cluster_health_checker.node https://5.6.7.8:9201 is NOT healthy"))
+		Expect(testLogger.Buffer()).To(gbytes.Say(`"status":"503 Service Unavailable"`))
+		Expect(testLogger.Buffer()).To(gbytes.Say(`"body":"some body"`))
 
 		Expect(healthy).To(BeFalse())
 		Expect(len(requestURLs)).To(Equal(2))
@@ -62,6 +69,9 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 		healthy := checker.HealthyCluster()
 
 		Expect(healthy).To(BeFalse())
+
+		Expect(testLogger.LogMessages()).To(ContainElement("cluster_health_checker.checking cluster member health failed"))
+
 		Expect(len(requestURLs)).To(Equal(2))
 	})
 })

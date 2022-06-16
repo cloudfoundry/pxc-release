@@ -47,10 +47,10 @@ config = {
 }
 
 if_link('galera-agent') do |galera_agent_link|
-    config[:BackEndTLS] = {
-        Enabled: galera_agent_link.p('endpoint_tls.enabled'),
-        CA: galera_agent_link.p('endpoint_tls.ca'),
-        ServerName: galera_agent_link.p('endpoint_tls.server_name'),
+    config["BackendTLS"] = {
+        "Enabled" => galera_agent_link.p('endpoint_tls.enabled'),
+        "CA" => galera_agent_link.p('endpoint_tls.ca'),
+        "ServerName" => galera_agent_link.p('endpoint_tls.server_name'),
     }
 end
 YAML.dump(config)
