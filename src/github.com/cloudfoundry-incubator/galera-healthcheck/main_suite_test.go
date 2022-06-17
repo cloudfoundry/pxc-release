@@ -1,10 +1,11 @@
 package main_test
 
 import (
-	"github.com/onsi/gomega/gexec"
-	"path"
-	"runtime"
+	"net"
+	"strconv"
 	"testing"
+
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,11 +29,20 @@ var _ = BeforeSuite(func() {
 	Expect(binaryPath).To(BeAnExistingFile())
 })
 
-func getDirOfCurrentFile() string {
-	_, filename, _, _ := runtime.Caller(1)
-	return path.Dir(filename)
-}
-
 var _ = AfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
 })
+
+func randomPort() int {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	defer l.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	_, port, err := net.SplitHostPort(l.Addr().String())
+	Expect(err).NotTo(HaveOccurred())
+
+	intPort, err := strconv.Atoi(port)
+	Expect(err).NotTo(HaveOccurred())
+
+	return intPort
+}

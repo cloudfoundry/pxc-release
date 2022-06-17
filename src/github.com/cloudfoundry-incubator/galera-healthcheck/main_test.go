@@ -18,8 +18,11 @@ import (
 )
 
 var _ = Describe("Galera Agent", func() {
-	var session *gexec.Session
-	var serverAuthority *certtest.Authority
+	var (
+		session         *gexec.Session
+		serverAuthority *certtest.Authority
+		galeraAgentPort int
+	)
 
 	BeforeEach(func() {
 		var err error
@@ -32,6 +35,7 @@ var _ = Describe("Galera Agent", func() {
 		serverCertPEM, serverKeyPEM, err := serverCert.CertificatePEMAndPrivateKey()
 		Expect(err).ToNot(HaveOccurred())
 
+		galeraAgentPort = randomPort()
 		cfg := config.Config{
 			DB: config.DBConfig{
 				Password: "root-password",
@@ -46,7 +50,7 @@ var _ = Describe("Galera Agent", func() {
 				GaleraInitStatusServerAddress: "foo",
 			},
 			Host:       "localhost",
-			Port:       8080,
+			Port:       galeraAgentPort,
 			MysqldPath: "mysqld",
 			MyCnfPath:  "my.cnf",
 			SidecarEndpoint: config.SidecarEndpointConfig{
@@ -76,8 +80,9 @@ var _ = Describe("Galera Agent", func() {
 	})
 
 	It("Only accepts connections over TLS", func() {
+		galeraAgentURL := fmt.Sprintf("http://127.0.0.1:%d/health", galeraAgentPort)
 		Eventually(func() error {
-			res, err := http.Get("http://127.0.0.1:8080")
+			res, err := http.Get(galeraAgentURL)
 			if err != nil {
 				return err
 			}
@@ -106,8 +111,10 @@ var _ = Describe("Galera Agent", func() {
 			},
 		}
 
+		galeraAgentURL := fmt.Sprintf("https://127.0.0.1:%d/health", galeraAgentPort)
+
 		Eventually(func() error {
-			res, err := httpClient.Get("https://127.0.0.1:8080/health")
+			res, err := httpClient.Get(galeraAgentURL)
 			if err != nil {
 				return err
 			}
