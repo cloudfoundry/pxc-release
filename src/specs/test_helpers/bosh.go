@@ -130,10 +130,11 @@ func buildUAA() (boshuaa.UAA, error) {
 	logger := boshlog.NewLogger(boshlog.LevelError)
 	factory := boshuaa.NewFactory(logger)
 
+	boshEnvironment := strings.Split(strings.TrimPrefix(BoshEnvironment(), "https://"), ":")[0]
+
 	// Build a UAA config from a URL.
 	// HTTPS is required and certificates are always verified.
-
-	config, err := boshuaa.NewConfigFromURL(fmt.Sprintf("https://%s:8443", BoshEnvironment()))
+	config, err := boshuaa.NewConfigFromURL(fmt.Sprintf("https://%s:8443", boshEnvironment))
 	if err != nil {
 		return nil, fmt.Errorf("ERROR build uaa config: %s", err)
 	}
