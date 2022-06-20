@@ -8,15 +8,14 @@ import (
 	"io/ioutil"
 	"net"
 
-	"github.com/pivotal-cf-experimental/service-config/test_helpers"
-
-	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
+	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
+	. "github.com/cloudfoundry-incubator/galera-healthcheck/test_helpers"
 )
 
 var _ = Describe("Config", func() {
@@ -77,6 +76,7 @@ var _ = Describe("Config", func() {
 		})
 
 		It("can provide a TLS listener", func() {
+			rootConfig.Port = RandomPort()
 			l, err := rootConfig.NetworkListener()
 			Expect(err).NotTo(HaveOccurred())
 			defer l.Close()
@@ -99,7 +99,8 @@ var _ = Describe("Config", func() {
 			certPool := x509.NewCertPool()
 			certPool.AddCert(cert)
 
-			conn, err := tls.Dial("tcp", "localhost:8080", &tls.Config{
+			address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
+			conn, err := tls.Dial("tcp", address, &tls.Config{
 				RootCAs:    certPool,
 				ServerName: "PXC Release Testing Certificate",
 			})
@@ -111,6 +112,7 @@ var _ = Describe("Config", func() {
 
 		When("tls is disabled", func() {
 			It("provides a plaintext TCP listener", func() {
+				rootConfig.Port = RandomPort()
 				rootConfig.SidecarEndpoint.TLS.Enabled = false
 
 				l, err := rootConfig.NetworkListener()
@@ -125,7 +127,8 @@ var _ = Describe("Config", func() {
 					errCh <- err
 				}()
 
-				conn, err := net.Dial("tcp", "localhost:8080")
+				address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
+				conn, err := net.Dial("tcp", address)
 				Expect(err).NotTo(HaveOccurred())
 
 				msg, err := ioutil.ReadAll(conn)

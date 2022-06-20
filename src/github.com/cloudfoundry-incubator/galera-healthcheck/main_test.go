@@ -15,6 +15,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/test_helpers"
 )
 
 var _ = Describe("Galera Agent", func() {
@@ -35,7 +36,7 @@ var _ = Describe("Galera Agent", func() {
 		serverCertPEM, serverKeyPEM, err := serverCert.CertificatePEMAndPrivateKey()
 		Expect(err).ToNot(HaveOccurred())
 
-		galeraAgentPort = randomPort()
+		galeraAgentPort = test_helpers.RandomPort()
 		cfg := config.Config{
 			DB: config.DBConfig{
 				Password: "root-password",
