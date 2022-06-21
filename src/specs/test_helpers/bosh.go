@@ -23,8 +23,6 @@ var (
 	BoshCredhubPrefix string
 )
 
-const boshPath = "/usr/local/bin/bosh"
-
 func BuildBoshDirector() (boshdir.Director, error) {
 
 	logger := boshlog.NewLogger(boshlog.LevelError)
@@ -73,7 +71,7 @@ func BoshCaCert() string {
 }
 
 func ExecuteBosh(args []string, timeout time.Duration) *gexec.Session {
-	command := exec.Command(boshPath, args...)
+	command := exec.Command("bosh", args...)
 	reporter := commandreporter.NewCommandReporter(ginkgo.GinkgoWriter)
 	reporter.Report(time.Now(), command)
 	session, err := gexec.Start(command, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
