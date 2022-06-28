@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -eu
+set -o errexit
+set -o nounset
 
 ## PXC
 tar --directory="${BOSH_INSTALL_TARGET}" --extract \
@@ -12,3 +13,6 @@ tar --directory="${BOSH_INSTALL_TARGET}" --extract \
 # Install it, but copy it into /var/vcap/packages so mysqld will start cleanly
 apt-get update && apt-get install -y libnuma1
 cp /usr/lib/x86_64-linux-gnu/libnuma.so.1 "${BOSH_INSTALL_TARGET}/lib/private/"
+
+libldap=$(ldconfig -p | awk '/libldap/ {print $NF}')
+ln -s "${libldap}" "${BOSH_INSTALL_TARGET}/lib/private/libldap_r-2.4.so.2"
