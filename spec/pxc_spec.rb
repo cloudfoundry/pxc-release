@@ -129,6 +129,12 @@ describe 'pxc mysql job' do
     let(:template) { job.template('config/my.cnf') }
     let(:spec) { {} }
 
+    context 'binlog_expire_logs_seconds' do
+        it 'renders the correct binlog_expire_logs_seconds from a day value' do
+            tpl_output = template.render(spec, consumes: links)
+            expect(tpl_output).to match("binlog_expire_logs_seconds.*=.*604800")
+        end
+    end
     context 'tls.required is enabled ' do
       before do
           spec["tls"] = { "required" => true }

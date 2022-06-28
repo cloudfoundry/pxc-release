@@ -32,7 +32,6 @@ packages:
 - migrate-to-pxc
 - percona-xtrabackup
 - pxc
-- pxc-8.0
 - pxc-utils
 - socat
 

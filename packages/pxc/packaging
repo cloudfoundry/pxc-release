@@ -1,42 +1,18 @@
 #!/bin/bash
 
-set -eu -o pipefail
-
-NPROC=$(nproc)
-
-tar -xf boost/boost_1_59_0.tar.gz
-
-tar -xf libaio/libaio_*.orig.tar.gz
-make -j "${NPROC}" -C libaio-*/ install
+set -o errexit
+set -o nounset
 
 ## PXC
-tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
-pxc_version=$(basename pxc/Percona-XtraDB-Cluster-*.tar.gz .tar.gz | sed 's/Percona-XtraDB-Cluster-//')
-compilation_comment="Percona XtraDB Cluster (GPL) ${pxc_version}"
-pushd Percona-XtraDB-Cluster-*/
-    patch -p1 < "../patches/mysql/opensslv3.patch"
-    cmake . \
-        -DBUILD_CONFIG=mysql_release \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-        -DCOMPILATION_COMMENT="${compilation_comment}" \
-        -DINSTALL_MYSQLTESTDIR= \
-        -DWITH_BOOST=../boost_1_59_0/ \
-        -DWITH_EMBEDDED_SERVER=OFF \
-        -DWITH_INNODB_DISALLOW_WRITES=ON \
-        -DWITH_RAPID=OFF \
-        -DWITH_READLINE=system \
-        -DWITH_ROCKSDB=OFF \
-        -DWITH_SCALABILITY_METRICS=ON \
-        -DWITH_SSL=system \
-        -DWITH_TOKUDB=OFF \
-        -DWITH_UNIT_TESTS=OFF \
-        -DWITH_WSREP=ON \
-        -DWITH_ZLIB=system
+tar --directory="${BOSH_INSTALL_TARGET}" --extract \
+  --file pxc/Percona-XtraDB-Cluster_8.0.*.tar.gz \
+  --strip-components=1
 
-    grep MYSQL_SERVER_VERSION include/mysql_version.h | \
-        cut -d '"' -f2 > "${BOSH_INSTALL_TARGET}/VERSION"
+# PXC 8 is built with numa support which requires libnuma
+# libnuma.so is not installed in the stemcell.
+# Install it, but copy it into /var/vcap/packages so mysqld will start cleanly
+apt-get update && apt-get install -y libnuma1
+cp /usr/lib/x86_64-linux-gnu/libnuma.so.1 "${BOSH_INSTALL_TARGET}/lib/private/"
 
-    make -j "${NPROC}"
-    make -j "${NPROC}" install
-popd
+libldap=$(ldconfig -p | awk '/libldap/ {print $NF}')
+ln -s "${libldap}" "${BOSH_INSTALL_TARGET}/lib/private/libldap_r-2.4.so.2"

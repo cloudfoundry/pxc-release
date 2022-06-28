@@ -2,7 +2,4 @@
 name: pxc
 
 files:
-- boost/boost_1_59_0.tar.gz
-- libaio/libaio_*.orig.tar.gz
-- pxc/Percona-XtraDB-Cluster-5.7.*.tar.gz
-- patches/mysql/*
+- pxc/Percona-XtraDB-Cluster_8.0.*.tar.gz

@@ -88,24 +88,21 @@ collation_server                = <%= p('engine_config.collation_server') %>
 lower_case_table_names          = <%= p('engine_config.enable_lower_case_table_names') ? 1 : 0 %>
 user                            = vcap
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
+mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 port                            = <%= p('port') %>
 basedir                         = /var/vcap/packages/pxc
 datadir                         = /var/vcap/store/pxc-mysql
 tmpdir                          = /var/vcap/data/pxc-mysql/tmp
-language                        = /var/vcap/packages/pxc/share
 pid-file                        = /var/vcap/store/pxc-mysql/mysql.pid
 log_error                       = /var/vcap/sys/log/pxc-mysql/mysql.err.log
 init_file                       = /var/vcap/jobs/pxc-mysql/config/db_init
 skip_external_locking           = TRUE
-symbolic-links                  = OFF
 secure_file_priv                = /var/vcap/data/pxc-mysql/files
 table_definition_cache          = <%= p('engine_config.table_definition_cache') %>
 table_open_cache                = <%= p('engine_config.table_open_cache') %>
 
 max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
 skip_name_resolve               = ON
-
-sql-mode                        = NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,STRICT_ALL_TABLES
 
 local_infile                    = <%= bool_to_on_off(p('engine_config.local_infile')) %>
 
@@ -114,8 +111,8 @@ local_infile                    = <%= bool_to_on_off(p('engine_config.local_infi
 sync_binlog                     = 1
     <% end %>
 log_bin                         = mysql-bin
-log_slave_updates               = 1
-expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
+log_replica_updates             = 1
+binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
 <% end %>
 
 <% if_p("engine_config.wait_timeout") do |timeout| %>
@@ -139,10 +136,7 @@ log_queries_not_using_indexes   = <%= bool_to_on_off(p('engine_config.log_querie
 userstat                        = <%= bool_to_on_off(p('engine_config.userstat')) %>
 
 innodb_file_per_table           = ON
-innodb_file_format              = Barracuda
 innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>MB
-innodb_support_xa               = OFF
-innodb_large_prefix             = <%= bool_to_on_off(p('engine_config.innodb_large_prefix')) %>
 innodb_strict_mode              = <%= bool_to_on_off(p('engine_config.innodb_strict_mode')) %>
 
 max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
@@ -153,8 +147,6 @@ binlog_format                   = ROW
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2
 innodb_doublewrite              = 1
-query_cache_size                = 0
-query_cache_type                = OFF
 
 # These are required to make the quota enforcer work
 innodb_stats_on_metadata        = ON
@@ -180,11 +172,9 @@ max_connections                 = <%= p('engine_config.max_connections') %>
 # Event Scheduler
 event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
 
-master_info_repository          = TABLE
-relay_log_info_repository       = TABLE
 relay_log                       = mysql-relay
 relay_log_recovery              = OFF
-master_verify_checksum          = 1
+source_verify_checksum          = 1
 
 <% if p('engine_config.audit_logs.enabled') %>
 plugin-load                     = audit_log=audit_log.so
