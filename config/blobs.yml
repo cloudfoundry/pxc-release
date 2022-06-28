@@ -18,6 +18,10 @@ pxc/Percona-XtraDB-Cluster-5.7.37-31.57.tar.gz:
   size: 86992289
   object_id: 17e832eb-4034-42c1-624f-9d68e13f2652
   sha: sha256:95ed58ce51dc649d6ad53ffe0655a582af291e6a08a187c35b51388eae0c0f8d
+pxc/Percona-XtraDB-Cluster_8.0.27-18.1.tar.gz:
+  size: 128163718
+  object_id: 05cb2313-4226-44cd-5846-6666ca2cd116
+  sha: sha256:dfc6799872da056cabb9465bda440bc83720c86de8a143aac22f07092f953f09
 socat/socat-1.7.4.1.tar.gz:
   size: 648888
   object_id: f0547b7c-9f0d-4193-5f65-c3f85f76ec02

@@ -1,0 +1,5 @@
+---
+name: pxc-8.0
+
+files:
+- pxc/Percona-XtraDB-Cluster_8.0.*.tar.gz

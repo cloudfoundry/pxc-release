@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eu
+
+## PXC
+tar --directory="${BOSH_INSTALL_TARGET}" --extract \
+  --file pxc/Percona-XtraDB-Cluster_8.0.*.tar.gz \
+  --strip-components=1
+
+# PXC 8 is built with numa support which requires libnuma
+# libnuma.so is not installed in the stemcell.
+# Install it, but copy it into /var/vcap/packages so mysqld will start cleanly
+apt-get update && apt-get install -y libnuma1
+cp /usr/lib/x86_64-linux-gnu/libnuma.so.1 "${BOSH_INSTALL_TARGET}/lib/private/"
