@@ -19,7 +19,6 @@ type Config struct {
 	LogFileLocation string       `yaml:"LogFileLocation" validate:"nonzero"`
 	Db              DBHelper     `yaml:"Db"`
 	Manager         StartManager `yaml:"Manager"`
-	Upgrader        Upgrader     `yaml:"Upgrader"`
 	BackendTLS      BackendTLS   `yaml:"BackendTLS"`
 	Logger          lager.Logger
 }
@@ -31,7 +30,6 @@ type DBHelper struct {
 	SeededUsers        []SeededUser        `yaml:"SeededUsers"`
 	SkipBinlog         bool                `yaml:"SkipBinlog"`
 	Socket             string              `yaml:"Socket"`
-	UpgradePath        string              `yaml:"UpgradePath" validate:"nonzero"`
 	User               string              `yaml:"User" validate:"nonzero"`
 }
 
@@ -42,11 +40,6 @@ type StartManager struct {
 	BootstrapNode                 bool     `yaml:"BootstrapNode"`
 	ClusterProbeTimeout           int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
 	GaleraInitStatusServerAddress string   `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`
-}
-
-type Upgrader struct {
-	PackageVersionFile      string `yaml:"PackageVersionFile" validate:"nonzero"`
-	LastUpgradedVersionFile string `yaml:"LastUpgradedVersionFile" validate:"nonzero"`
 }
 
 type BackendTLS struct {

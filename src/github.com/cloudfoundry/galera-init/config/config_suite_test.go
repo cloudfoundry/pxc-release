@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestUpgrader(t *testing.T) {
+func TestConfig(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Config Suite")
 }

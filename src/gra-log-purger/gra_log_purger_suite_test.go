@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestUpgrader(t *testing.T) {
+func TestGraLogPurger(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Gra Log Purger Suite")
 }

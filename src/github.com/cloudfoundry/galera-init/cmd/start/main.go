@@ -17,7 +17,6 @@ import (
 	"github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/cloudfoundry/galera-init/start_manager"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
-	"github.com/cloudfoundry/galera-init/upgrader"
 )
 
 func main() {
@@ -75,13 +74,6 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 		cfg.Logger,
 	)
 
-	Upgrader := upgrader.NewUpgrader(
-		OsHelper,
-		cfg.Upgrader,
-		cfg.Logger,
-		DBHelper,
-	)
-
 	ClusterHealthChecker := cluster_health_checker.NewClusterHealthChecker(
 		cfg.ClusterUrls(),
 		cfg.Logger,
@@ -107,7 +99,6 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 		OsHelper,
 		cfg.Manager,
 		DBHelper,
-		Upgrader,
 		NodeStarter,
 		cfg.Logger,
 		ClusterHealthChecker,

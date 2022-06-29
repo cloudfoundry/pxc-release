@@ -115,8 +115,6 @@ describe 'pxc mysql job' do
           {"DBName"=>"test", "Password"=>"test-password", "User"=>"test-user"},
           {"DBName"=>"test1", "Password"=>"test-password1", "User"=>"test-user1"}])
 
-      expect(hash_from_yaml).to include("Upgrader")
-
       expect(hash_from_yaml).to include("Manager")
 
       expect(hash_from_yaml["Manager"]).to include("ClusterIps" => ["mysql-address"])

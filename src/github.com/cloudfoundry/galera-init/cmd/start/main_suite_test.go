@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestUpgrader(t *testing.T) {
+func TestGaleraInit(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Start Executable Suite")
 }

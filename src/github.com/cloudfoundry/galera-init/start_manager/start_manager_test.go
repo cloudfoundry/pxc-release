@@ -21,7 +21,6 @@ import (
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter/node_starterfakes"
 	"github.com/cloudfoundry/galera-init/start_manager/start_managerfakes"
-	"github.com/cloudfoundry/galera-init/upgrader/upgraderfakes"
 )
 
 var _ = Describe("StartManager", func() {
@@ -30,7 +29,6 @@ var _ = Describe("StartManager", func() {
 
 	var testLogger *lagertest.TestLogger
 	var fakeOs *os_helperfakes.FakeOsHelper
-	var fakeUpgrader *upgraderfakes.FakeUpgrader
 	var fakeDBHelper *db_helperfakes.FakeDBHelper
 	var fakeStarter *node_starterfakes.FakeStarter
 	var fakeHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
@@ -78,7 +76,6 @@ var _ = Describe("StartManager", func() {
 				ClusterIps:        clusterIps,
 			},
 			fakeDBHelper,
-			fakeUpgrader,
 			fakeStarter,
 			testLogger,
 			fakeHealthChecker,
@@ -89,7 +86,6 @@ var _ = Describe("StartManager", func() {
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_helperfakes.FakeOsHelper)
-		fakeUpgrader = new(upgraderfakes.FakeUpgrader)
 		fakeStarter = new(node_starterfakes.FakeStarter)
 		fakeDBHelper = new(db_helperfakes.FakeDBHelper)
 		fakeHealthChecker = new(cluster_health_checkerfakes.FakeClusterHealthChecker)
@@ -184,43 +180,6 @@ var _ = Describe("StartManager", func() {
 
 			err := mgr.Execute(ctx)
 			Expect(err).To(MatchError(`mysqld process does not exist`))
-		})
-	})
-
-	Describe("Upgrading the cluster", func() {
-		Context("When determining whether an upgrade is required exits with an error", func() {
-			BeforeEach(func() {
-				mgr = createManager(managerArgs{
-					NodeCount: 3,
-				})
-
-				fakeUpgrader.NeedsUpgradeReturns(false, errors.New("Error determining whether upgrade is required"))
-			})
-
-			It("forwards the error", func() {
-				err := mgr.Execute(context.TODO())
-				Expect(err).To(HaveOccurred())
-				Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("When upgrade is required", func() {
-			Context("And performing the upgrade exits with an error", func() {
-				BeforeEach(func() {
-					mgr = createManager(managerArgs{
-						NodeCount: 3,
-					})
-
-					fakeUpgrader.NeedsUpgradeReturns(true, nil)
-					fakeUpgrader.UpgradeReturns(errors.New("Error while performing upgrade"))
-				})
-
-				It("forwards the error", func() {
-					err := mgr.Execute(context.TODO())
-					Expect(err).To(HaveOccurred())
-					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
-				})
-			})
 		})
 	})
 

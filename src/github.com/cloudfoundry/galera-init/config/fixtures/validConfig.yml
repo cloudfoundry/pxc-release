@@ -2,16 +2,12 @@ LogFileLocation: testPath
 PidFile: testPidFile
 ChildPidFile: childTestFile
 Db:
-  UpgradePath: testUpgradePath
   User: testUser
   Password:
   PreseededDatabases:
     - DBName: testDbName1
       User: testUser1
       Password:
-Upgrader:
-  PackageVersionFile: testPackageVersionFile
-  LastUpgradedVersionFile: testLastUpgradedVersionFile
 Manager:
   StateFileLocation: testStateFileLocation
   BootstrapNode: true

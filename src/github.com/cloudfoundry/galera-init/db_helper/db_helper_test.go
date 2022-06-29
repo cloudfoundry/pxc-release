@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -79,9 +78,8 @@ var _ = Describe("GaleraDBHelper", func() {
 		ioutil.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)
 
 		dbConfig = &config.DBHelper{
-			UpgradePath: "/mysql_upgrade",
-			User:        "user",
-			Password:    "password",
+			User:     "user",
+			Password: "password",
 			PreseededDatabases: []config.PreseededDatabase{
 				config.PreseededDatabase{
 					DBName:   "DB1",
@@ -123,48 +121,6 @@ var _ = Describe("GaleraDBHelper", func() {
 
 	AfterEach(func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
-	})
-
-	Describe("StartMysqldForUpgrade", func() {
-		BeforeEach(func() {
-			fakeOs.StartCommandStub = func(logFile string, executable string, args ...string) (cmd *exec.Cmd, e error) {
-				return exec.Command("stub"), nil
-			}
-		})
-
-		It("start mysql in an upgrade mode and return an exec.Cmd value", func() {
-			options := []string{
-				"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-				"--wsrep-on=OFF",
-				"--wsrep-desync=ON",
-				"--wsrep-OSU-method=RSU",
-				"--wsrep-provider=none",
-				"--skip-networking",
-			}
-			cmd, err := helper.StartMysqldForUpgrade()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cmd).To(SatisfyAll(
-				Not(BeNil()),
-				BeAssignableToTypeOf(&exec.Cmd{}),
-			))
-
-			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
-			logFile, executable, args := fakeOs.StartCommandArgsForCall(0)
-			Expect(logFile).ToNot(BeEmpty())
-			Expect(executable).To(Equal("mysqld"))
-			Expect(args).To(Equal(options))
-		})
-
-		Context("when an error occurs while starting mysqld", func() {
-			It("should return an error", func() {
-				fakeOs.StartCommandStub = func(logfile string, command string, args ...string) (*exec.Cmd, error) {
-					return nil, errors.New("starting somehow failed")
-				}
-
-				_, err := helper.StartMysqldForUpgrade()
-				Expect(err).To(MatchError(`Error starting mysqld in stand-alone: starting somehow failed`))
-			})
-		})
 	})
 
 	Describe("StopMysqld", func() {
@@ -213,25 +169,6 @@ var _ = Describe("GaleraDBHelper", func() {
 			executable, args := fakeOs.RunCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqladmin"))
 			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf", "status"}))
-		})
-	})
-
-	Describe("Upgrade", func() {
-		It("calls the mysql upgrade script", func() {
-			helper.Upgrade()
-			Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
-
-			executable, args := fakeOs.RunCommandArgsForCall(0)
-			Expect(executable).To(Equal(dbConfig.UpgradePath))
-			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf"}))
-		})
-
-		It("returns the output and error", func() {
-			fakeOs.RunCommandReturns("some output", errors.New("some error"))
-
-			output, err := helper.Upgrade()
-			Expect(output).To(Equal("some output"))
-			Expect(err.Error()).To(Equal("some error"))
 		})
 	})
 

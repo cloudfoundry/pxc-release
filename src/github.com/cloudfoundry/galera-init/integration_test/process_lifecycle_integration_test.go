@@ -22,7 +22,6 @@ var _ = Describe("galera-init integration", func() {
 		baseCfg = config.Config{
 			LogFileLocation: "/tmp/galera-init.log",
 			Db: config.DBHelper{
-				UpgradePath:        "mysql_upgrade",
 				User:               "root",
 				PreseededDatabases: nil,
 				Socket:             "/var/lib/mysql/mysql.sock",
@@ -36,10 +35,6 @@ var _ = Describe("galera-init integration", func() {
 				},
 				BootstrapNode:       true,
 				ClusterProbeTimeout: 10,
-			},
-			Upgrader: config.Upgrader{
-				PackageVersionFile:      "/tmp/VERSION",
-				LastUpgradedVersionFile: "/var/lib/mysql/mysql_upgrade_info",
 			},
 		}
 	})

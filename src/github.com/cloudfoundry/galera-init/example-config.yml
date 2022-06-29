@@ -5,8 +5,6 @@ LogFileLocation: testPath
 PidFile: testPidFile
 ChildPidFile: childTestFile
 Db:
-  # Specifies the location of the script that performs the MySQL upgrade
-  UpgradePath: testUpgradePath
   # Specifies the user name for MySQL
   User: testUser
   # Specifies the password for connecting to MySQL
@@ -15,11 +13,6 @@ Db:
   - DBName: testDbName1
     User: testUser1
     Password:
-Upgrader:
-  # Specifies the location of the file containing the MySQL version as deployed
-  PackageVersionFile: testPackageVersionFile
-  # Specifies the location of the file MySQL upgrade writes.
-  LastUpgradedVersionFile: testLastUpgradedVersionFile
 Manager:
   # Specifies the location to store the statefile for MySQL boot
   StateFileLocation: testStateFileLocation

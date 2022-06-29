@@ -108,11 +108,6 @@ var _ = Describe("Config", func() {
 			It("returns an error if LogFileLocation is blank", isRequiredField("LogFileLocation"))
 		})
 
-		Describe("Upgrader", func() {
-			It("returns an error if Upgrader.PackageVersionFile is blank", isRequiredField("Upgrader.PackageVersionFile"))
-			It("returns an error if Upgrader.LastUpgradedVersionFile is blank", isRequiredField("Upgrader.LastUpgradedVersionFile"))
-		})
-
 		Describe("StartManager", func() {
 			It("returns an error if Manager.StateFileLocation is blank", isRequiredField("Manager.StateFileLocation"))
 			It("returns an error if Manager.ClusterIps is blank", isRequiredField("Manager.ClusterIps"))
@@ -120,7 +115,6 @@ var _ = Describe("Config", func() {
 		})
 
 		Describe("DBHelper", func() {
-			It("returns an error if Db.UpgradePath is blank", isRequiredField("Db.UpgradePath"))
 			It("returns an error if Db.User is blank", isRequiredField("Db.User"))
 
 			It("does not return an error if Db.Password is blank", isOptionalField("Db.Password"))

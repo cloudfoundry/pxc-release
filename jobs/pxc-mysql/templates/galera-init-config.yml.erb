@@ -26,16 +26,11 @@ config = {
     "ChildPidFile" => '/var/vcap/sys/run/pxc-mysql/mysql.pid',
     "Db" => {
       "SkipBinlog" => !p('engine_config.galera.enabled'),
-      "UpgradePath" => '/var/vcap/packages/pxc/bin/mysql_upgrade',
       "User" => p('admin_username'),
       "Password" => p('admin_password'),
       "PreseededDatabases" => databases,
       "SeededUsers" => users,
       "Socket" => p('mysql_socket'),
-    },
-    "Upgrader" => {
-      "PackageVersionFile" => '/var/vcap/packages/pxc/VERSION',
-      "LastUpgradedVersionFile" => '/var/vcap/store/pxc-mysql/mysql_upgrade_info',
     },
     "Manager" => {
       "GaleraInitStatusServerAddress" => '127.0.0.1:8114',

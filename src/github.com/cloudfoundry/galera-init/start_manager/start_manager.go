@@ -14,7 +14,6 @@ import (
 	"github.com/cloudfoundry/galera-init/db_helper"
 	"github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
-	"github.com/cloudfoundry/galera-init/upgrader"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . StartManager
@@ -32,7 +31,6 @@ type startManager struct {
 	osHelper               os_helper.OsHelper
 	config                 config.StartManager
 	dbHelper               db_helper.DBHelper
-	upgrader               upgrader.Upgrader
 	startCaller            node_starter.Starter
 	logger                 lager.Logger
 	healthChecker          cluster_health_checker.ClusterHealthChecker
@@ -45,7 +43,6 @@ func New(
 	osHelper os_helper.OsHelper,
 	config config.StartManager,
 	dbHelper db_helper.DBHelper,
-	upgrader upgrader.Upgrader,
 	startCaller node_starter.Starter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
@@ -56,7 +53,6 @@ func New(
 		config:                 config,
 		logger:                 logger,
 		dbHelper:               dbHelper,
-		upgrader:               upgrader,
 		startCaller:            startCaller,
 		healthChecker:          healthChecker,
 		galeraInitStatusServer: galeraInitStatusServer,
@@ -71,19 +67,6 @@ func (m *startManager) Execute(ctx context.Context) error {
 		m.logger.Info("mysqld-already-running")
 		m.logger.Info("shutdown-old-mysql")
 		m.Shutdown()
-	}
-
-	needsUpgrade, err := m.upgrader.NeedsUpgrade()
-	if err != nil {
-		m.logger.Error("upgrade-check-failed", err)
-		return err
-	}
-	if needsUpgrade {
-		err = m.upgrader.Upgrade()
-		if err != nil {
-			m.logger.Error("mysql-upgrade-failed", err)
-			return err
-		}
 	}
 
 	m.logger.Info("determining-bootstrap-procedure", lager.Data{

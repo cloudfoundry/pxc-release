@@ -7,8 +7,6 @@ import (
 	"os/exec"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/pkg/errors"
-
 	"github.com/cloudfoundry/galera-init/config"
 	s "github.com/cloudfoundry/galera-init/db_helper/seeder"
 	"github.com/cloudfoundry/galera-init/os_helper"
@@ -16,11 +14,9 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . DBHelper
 type DBHelper interface {
-	StartMysqldForUpgrade() (*exec.Cmd, error)
 	StartMysqldInJoin() (*exec.Cmd, error)
 	StartMysqldInBootstrap() (*exec.Cmd, error)
 	StopMysqld()
-	Upgrade() (output string, err error)
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
 	Seed() error
@@ -85,25 +81,6 @@ func (m GaleraDBHelper) IsProcessRunning() bool {
 	return err == nil
 }
 
-func (m GaleraDBHelper) StartMysqldForUpgrade() (*exec.Cmd, error) {
-	cmd, err := m.osHelper.StartCommand(
-		m.logFileLocation,
-		"mysqld",
-		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-		"--wsrep-on=OFF",
-		"--wsrep-desync=ON",
-		"--wsrep-OSU-method=RSU",
-		"--wsrep-provider=none",
-		"--skip-networking",
-	)
-
-	if err != nil {
-		return nil, errors.Wrap(err, "Error starting mysqld in stand-alone")
-	}
-
-	return cmd, nil
-}
-
 func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
 	cmd, err := m.startMysqldAsChildProcess("--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf")
@@ -142,13 +119,6 @@ func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cm
 		m.logFileLocation,
 		"mysqld",
 		mysqlArgs...)
-}
-
-func (m GaleraDBHelper) Upgrade() (output string, err error) {
-	return m.osHelper.RunCommand(
-		m.config.UpgradePath,
-		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf",
-	)
 }
 
 func (m GaleraDBHelper) IsDatabaseReachable() bool {
