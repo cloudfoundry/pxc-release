@@ -856,10 +856,10 @@ var _ = Describe("TLS connectivity", func() {
 			StartMysqlInBootstrapMode: "start_mysql_bootstrap",
 		}
 		rootConfig.BackendTLS = config.BackendTLS{
-			Enabled:    true,
-			ServerName: "example.com", // set in TLS server by httptest
-			CA:         "unavailableInTest",
-			InsecureSkipVerify: true,	// req'd for TLS to mock httptest nodes
+			Enabled:            true,
+			ServerName:         "example.com", // set in TLS server by httptest
+			CA:                 "unavailableInTest",
+			InsecureSkipVerify: true, // req'd for TLS to mock httptest nodes
 		}
 		rootConfig.Logger = lagertest.NewTestLogger("nodeManager test")
 
