@@ -28,9 +28,7 @@ templates:
 packages:
 - auto-tune-mysql
 - galera-init
-- libgalera
 - migrate-to-pxc
-- percona-xtrabackup
 - pxc
 - pxc-utils
 - socat
