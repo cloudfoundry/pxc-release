@@ -14,6 +14,12 @@ var _ = Describe("CF PXC Single Node", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("runs Percona XtraDB Cluster v8.0.x", func() {
+		var mysqlVersion string
+		Expect(mysqlConn.QueryRow(`SELECT @@global.version`).Scan(&mysqlVersion)).To(Succeed())
+		Expect(mysqlVersion).To(HavePrefix("8.0."))
+	})
+
 	It("has an empty GTID transaction history on startup", func() {
 		var queryResultString string
 		query := "select @@GLOBAL.gtid_executed;"
