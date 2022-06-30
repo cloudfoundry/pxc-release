@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
-set -eux
+set -o errexit
+set -o nounset
+set -o pipefail
 
 echo -e "\n>>>>>>>> Running Unit Tests Script for PXC release..."
-MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-# This script assumes that it lives one directory below the release directory.
-RELEASE_DIR="$( cd "${MY_DIR}/.." && pwd )"
+RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 source "${RELEASE_DIR}/.envrc"
 
@@ -31,10 +30,10 @@ echo -e "\n>>>>>>>> Testing Cluster Health Logger..."
 
 echo -e "\n>>>>>>>> Testing Migrate To PXC..."
 pushd "${RELEASE_DIR}/src/migrate-to-pxc"
-  ./bin/test "$@"
+./bin/test "$@"
 popd
 
 pushd ${RELEASE_DIR}/spec
-  bundle install
-  bundle exec rspec ./
+bundle install
+bundle exec rspec ./
 popd

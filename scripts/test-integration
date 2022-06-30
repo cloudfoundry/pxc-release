@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-set -eu
+set -o errexit
+set -o nounset
 
-MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-RELEASE_DIR="$( cd "${MY_DIR}/.." && pwd )"
+RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 source "${RELEASE_DIR}/.envrc"
 
