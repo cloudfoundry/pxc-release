@@ -1,18 +1,20 @@
 #!/bin/bash -e
 
-MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_DIR="$( cd $MY_DIR/.. && pwd )"
+set -o errexit
+set -o nounset
+set -o pipefail
 
-pushd "${PROJECT_DIR}"
-  echo -e "\nFormatting packages..."
-  go fmt $(go list ./... | grep -v /vendor/)
+PROJECT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd)"
 
-  echo -e "\nGenerating fakes..."
-  go generate $(go list ./... | grep -v /vendor/)
+cd "${PROJECT_DIR}" || exit 1
 
-  echo -e "\nVetting packages for potential issues..."
-  go vet $(go list ./... | grep -v /vendor/)
+go fmt ./...
 
-  echo -e "\nTesting packages..."
-  go run github.com/onsi/ginkgo/ginkgo -r -race -failOnPending -randomizeAllSpecs "$@" integration_test
-popd
+echo "Generating fakes..."
+go generate ./...
+
+echo "Vetting packages for potential issues..."
+go vet ./...
+
+echo "Testing packages..."
+go run github.com/onsi/ginkgo/ginkgo -r -race -failOnPending -randomizeAllSpecs -p "$@" integration_test
