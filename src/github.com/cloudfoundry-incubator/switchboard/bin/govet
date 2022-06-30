@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -e
-
-SRC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
-
-go vet -composites=false $SRC_DIR/...
