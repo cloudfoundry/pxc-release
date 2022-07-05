@@ -47,14 +47,14 @@ tls_version=TLSv1.2
 <%- if p('tls.required') -%>
 require-secure-transport=ON
 <%- end -%>
-default-authentication-plugin=mysql_native_password
+
+authentication-policy=mysql_native_password
 
 <% if p('engine_config.galera.enabled') %>
 # GALERA options:
 pxc-strict-mode                 = MASTER
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
-wsrep_debug                     = <%= bool_to_on_off(p('engine_config.galera.wsrep_debug')) %>
 wsrep_load_data_splitting       = ON
 wsrep_log_conflicts             = <%= bool_to_on_off(p('engine_config.galera.wsrep_log_conflicts')) %>
 wsrep_max_ws_rows               = <%= p('engine_config.galera.wsrep_max_ws_rows') %>
@@ -62,11 +62,12 @@ wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size'
 wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
-wsrep_provider                  = /var/vcap/packages/libgalera/lib/libgalera_smm.so
+wsrep_provider                  = /var/vcap/packages/pxc/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
-wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
-wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
+
+wsrep_applier_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
+
 wsrep_sst_method                = xtrabackup-v2
 pxc-encrypt-cluster-traffic     = OFF
 <% else %>

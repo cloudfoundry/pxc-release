@@ -290,9 +290,6 @@ properties:
   engine_config.galera.port:
     description: 'Port which Galera Cluster uses for communication across nodes'
     default: 4567
-  engine_config.galera.wsrep_debug:
-    description: 'Enables additional debugging output for the database server error log.'
-    default: false
   engine_config.galera.wsrep_log_conflicts:
     description: 'Defines whether the node logs additional information about conflicts. The values that were in conflict are logged, so it is possible for user data to end up in the logs.'
     default: true

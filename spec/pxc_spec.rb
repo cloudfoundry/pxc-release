@@ -127,6 +127,11 @@ describe 'pxc mysql job' do
     let(:template) { job.template('config/my.cnf') }
     let(:spec) { {} }
 
+    it 'sets the authentication-policy' do
+    	tpl_output = template.render(spec, consumes: links)
+    	expect(tpl_output).to include("authentication-policy=mysql_native_password")
+   	end
+
     context 'binlog_expire_logs_seconds' do
         it 'renders the correct binlog_expire_logs_seconds from a day value' do
             tpl_output = template.render(spec, consumes: links)
@@ -215,6 +220,11 @@ describe 'pxc mysql job' do
         }
       }}
 
+      it 'does not set the wsrep_sst_auth' do
+       	tpl_output = template.render(spec, consumes: links)
+       	expect(tpl_output).not_to include("wsrep_sst_auth")
+      end
+
       context 'when audit logs are disabled (default)' do
         it 'has no audit log format' do
             tpl_output = template.render(spec, consumes: links)
@@ -289,7 +299,7 @@ describe 'pxc mysql job' do
 
       it 'defaults Galera applier threads to 1' do
         tpl_output = template.render(spec, consumes: links)
-        expect(tpl_output).to match(/wsrep_slave_threads\s+= 1/)
+        expect(tpl_output).to match(/wsrep_applier_threads\s+= 1/)
       end
 
       it 'allows mysql to default to the sync binlog setting of 0 which does not sync to disk immediately' do
@@ -309,9 +319,9 @@ describe 'pxc mysql job' do
               }
             }}
 
-          it 'configures wsrep_slave_threads to that value' do
+          it 'configures wsrep_applier_threads to that value' do
             tpl_output = template.render(spec, consumes: links)
-            expect(tpl_output).to match(/wsrep_slave_threads\s+= 32/)
+            expect(tpl_output).to match(/wsrep_applier_threads\s+= 32/)
           end
       end
 
