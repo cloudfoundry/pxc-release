@@ -47,6 +47,7 @@ tls_version=TLSv1.2
 <%- if p('tls.required') -%>
 require-secure-transport=ON
 <%- end -%>
+default-authentication-plugin=mysql_native_password
 
 <% if p('engine_config.galera.enabled') %>
 # GALERA options:
