@@ -3,6 +3,7 @@ package connection_test
 import (
 	"database/sql"
 	"os"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +18,10 @@ func TestConnection(t *testing.T) {
 }
 
 var (
-	mysqlConn *sql.DB
+	mysqlConn     *sql.DB
+	mysqlHosts    []string
+	mysqlUsername string
+	mysqlPassword string
 )
 
 // This test package is used as the pxc smoke-test, thus has different required
@@ -25,15 +29,17 @@ var (
 // want to move this test package somewhere else.
 var _ = BeforeSuite(func() {
 	requiredEnvs := []string{
-		"MYSQL_HOST",
 		"MYSQL_USERNAME",
 		"MYSQL_PASSWORD",
+		"MYSQL_HOSTS",
+		"PROXY_HOST",
 	}
 
 	helpers.CheckForRequiredEnvVars(requiredEnvs)
 
-	mysqlHost := os.Getenv("MYSQL_HOST")
-	mysqlUsername := os.Getenv("MYSQL_USERNAME")
-	mysqlPassword := os.Getenv("MYSQL_PASSWORD")
-	mysqlConn = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, mysqlHost)
+	proxyHost := os.Getenv("PROXY_HOST")
+	mysqlHosts = strings.Fields(os.Getenv("MYSQL_HOSTS"))
+	mysqlUsername = os.Getenv("MYSQL_USERNAME")
+	mysqlPassword = os.Getenv("MYSQL_PASSWORD")
+	mysqlConn = helpers.DbConnWithUser(mysqlUsername, mysqlPassword, proxyHost)
 })

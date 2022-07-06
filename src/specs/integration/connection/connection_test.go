@@ -1,6 +1,8 @@
 package connection_test
 
 import (
+	"database/sql"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -18,19 +20,30 @@ var _ = Describe("CF PXC MySQL Connection", func() {
 	})
 
 	It("allows reading and writing data", func() {
-		query := "INSERT INTO pxc_release_test_db.connection_test_table VALUES('connecting!')"
-		_, err := mysqlConn.Query(query)
+		_, err := mysqlConn.Exec("INSERT INTO pxc_release_test_db.connection_test_table VALUES('connecting!')")
 		Expect(err).NotTo(HaveOccurred())
 
-		var queryResultString string
-		query = "SELECT * FROM pxc_release_test_db.connection_test_table"
-		rows, err := mysqlConn.Query(query)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(testConnection(mysqlConn)).To(Equal("connecting!"))
 
-		rows.Next()
-		rows.Scan(&queryResultString)
-
-		Expect(queryResultString).To(Equal("connecting!"))
+		for _, host := range mysqlHosts {
+			conn := helpers.DbConnWithUser(mysqlUsername, mysqlPassword, host)
+			EventuallyWithOffset(1, func() string {
+				return testConnection(conn)
+			}).Should(Equal("connecting!"))
+		}
 	})
 
 })
+
+func testConnection(conn *sql.DB) string {
+	var queryResultString string
+	query := "SELECT * FROM pxc_release_test_db.connection_test_table"
+	rows, err := conn.Query(query)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	rows.Next()
+	rows.Scan(&queryResultString)
+
+	return queryResultString
+
+}
