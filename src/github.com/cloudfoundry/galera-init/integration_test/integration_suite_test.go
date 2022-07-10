@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -29,7 +29,7 @@ func TestIntegration(t *testing.T) {
 }
 
 const (
-	pxcDockerImage                   = "percona/percona-xtradb-cluster:5.7.27"
+	pxcDockerImage                   = "percona/percona-xtradb-cluster:8.0"
 	pxcMySQLPort         docker.Port = "3306/tcp"
 	galeraInitStatusPort docker.Port = "8114/tcp"
 )
@@ -49,12 +49,6 @@ var _ = BeforeSuite(func() {
 	var err error
 	dockerClient, err = docker.NewClientFromEnv()
 	Expect(err).NotTo(HaveOccurred())
-
-	Expect(PullImage(dockerClient, pxcDockerImage)).To(Succeed())
-
-	// Hack to ensure docker can map galera-init into a container on OS X
-	// (/var/folders isn't shared by default)
-	os.Setenv("TMPDIR", "/tmp")
 
 	galeraInitPath, err = gexec.BuildWithEnvironment(
 		"github.com/cloudfoundry/galera-init/cmd/start/",
@@ -110,11 +104,11 @@ func createGaleraContainer(
 		AddExposedPorts(pxcMySQLPort, galeraInitStatusPort),
 		AddBinds(
 			galeraInitPath+":/usr/local/bin/galera-init",
+			// galera-init currently embeds this /var/vcap path internally
 			sessionTmpdir+":"+"/var/vcap/jobs/pxc-mysql/config/",
 			mustAbsPath("fixtures/docker_entrypoint.sh:/usr/local/bin/docker_entrypoint.sh"),
 			mustAbsPath("fixtures/init.sql:/usr/local/etc/init.sql"),
 			mustAbsPath("fixtures/my.cnf.template:/usr/local/etc/my.cnf.template"),
-			mustAbsPath("fixtures/mylogin.cnf:/var/vcap/jobs/pxc-mysql/config/mylogin.cnf"),
 		),
 		AddEnvVars(
 			"CONFIG="+string(marshalledConfig),

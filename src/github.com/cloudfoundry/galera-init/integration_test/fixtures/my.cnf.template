@@ -10,10 +10,12 @@ log-error                       = /var/log/mysql/mysql.err.log
 
 pxc-strict-mode                 = MASTER
 wsrep_on                        = ON
-wsrep_provider                  = /usr/lib64/galera3/libgalera_smm.so
+wsrep_provider                  = /usr/lib64/galera4/libgalera_smm.so
 wsrep_provider_options          = "pc.wait_prim_timeout=PT5S;pc.recovery=FALSE;pc.checksum=TRUE"
 wsrep_cluster_address           = @@WSREP_CLUSTER_ADDRESS@@
 wsrep_node_address              = @@WSREP_NODE_ADDRESS@@
 wsrep_node_name                 = @@WSREP_NODE_NAME@@
 wsrep_cluster_name              = galera-cluster
-wsrep_sst_auth                  = root:
+
+skip-ssl                        = on
+pxc-encrypt-cluster-traffic     = off

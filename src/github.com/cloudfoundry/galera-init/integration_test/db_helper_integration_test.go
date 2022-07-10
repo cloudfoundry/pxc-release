@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/go-sql-driver/mysql"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
@@ -44,7 +44,7 @@ var _ = Describe("DB Helper", func() {
 				"MYSQL_ALLOW_EMPTY_PASSWORD=1",
 				"CLUSTER_NAME=db-helper-cluster",
 			),
-			test_helpers.WithCmd("--wsrep-provider=none"),
+			test_helpers.WithCmd("--pxc-strict-mode=MASTER"),
 		)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -165,7 +165,7 @@ var _ = Describe("DB Helper", func() {
 					defer userDb.Close()
 
 					//check that user has CREATE permission
-					_, err = userDb.Exec("CREATE TABLE testTable ( ID int )")
+					_, err = userDb.Exec("CREATE TABLE testTable (ID int PRIMARY KEY)")
 					Expect(err).NotTo(HaveOccurred())
 
 					//check that user has INSERT permission

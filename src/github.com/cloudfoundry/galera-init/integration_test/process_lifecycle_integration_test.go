@@ -5,7 +5,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -93,7 +93,7 @@ var _ = Describe("galera-init integration", func() {
 					galeraNode,
 					"/var/log/mysql/mysql.err.log",
 				),
-			).To(HaveSuffix(`[Note] mysqld: Shutdown complete`))
+			).To(MatchRegexp(`mysqld: Shutdown complete.*$`))
 		})
 
 		It("will terminate with an error when mysql terminates ungracefully", func() {
@@ -164,7 +164,7 @@ var _ = Describe("galera-init integration", func() {
 
 			Expect(mysqlErrLogContents).To(
 				ContainSubstring(
-					`WSREP: Provider/Node (gcomm://mysql0.%s) failed to establish connection with cluster`,
+					`[WSREP] Provider/Node (gcomm://mysql0.%s) failed to establish connection with cluster`,
 					sessionID,
 				),
 			)
