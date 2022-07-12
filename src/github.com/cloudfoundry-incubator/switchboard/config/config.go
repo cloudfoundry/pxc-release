@@ -11,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/tlsconfig"
 
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
@@ -47,6 +48,11 @@ type API struct {
 	Password       string   `yaml:"Password" validate:"nonzero"`
 	ForceHttps     bool     `yaml:"ForceHttps"`
 	ProxyURIs      []string `yaml:"ProxyURIs"`
+	TLS            struct {
+		Enabled     bool   `yaml:"Enabled"`
+		Certificate string `yaml:"Certificate"`
+		PrivateKey  string `yaml:"PrivateKey"`
+	} `yaml:"TLS"`
 }
 
 type Backend struct {
@@ -141,6 +147,17 @@ func (c *Config) HTTPClient() *http.Client {
 	}
 
 	return httpClient
+}
+
+func (c Config) ServerTLSConfig() (*tls.Config, error) {
+	serverCert, err := tls.X509KeyPair([]byte(c.API.TLS.Certificate), []byte(c.API.TLS.PrivateKey))
+	if err != nil {
+		return nil, err
+	}
+	return tlsconfig.Build(
+		tlsconfig.WithInternalServiceDefaults(),
+		tlsconfig.WithIdentity(serverCert),
+	).Server()
 }
 
 func formatErrorString(err error, keyPrefix string) string {

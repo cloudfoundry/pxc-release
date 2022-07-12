@@ -37,7 +37,7 @@ var _ = Describe("HTTPRunner", func() {
 
 		runnerURL = "http://" + address
 
-		healthRunner = httprunner.NewHTTPRunner(address, handler)
+		healthRunner = httprunner.NewRunner(address, handler, nil, false)
 		healthProcess = ifrit.Invoke(healthRunner)
 		isReady := healthProcess.Ready()
 		Eventually(isReady, "30s").Should(BeClosed(), "Error starting Health Runner")
@@ -98,7 +98,7 @@ var _ = Describe("HTTPRunnerWithTLS", func() {
 
 		runnerURL = "https://" + address
 
-		healthRunner = httprunner.NewHTTPRunnerWithTLS(address, handler, serverTlsCfg)
+		healthRunner = httprunner.NewRunner(address, handler, serverTlsCfg, true)
 		healthProcess = ifrit.Invoke(healthRunner)
 		isReady := healthProcess.Ready()
 		Eventually(isReady, "30s").Should(BeClosed(), "Error starting Health Runner")

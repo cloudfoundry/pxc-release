@@ -25,17 +25,17 @@ func NewBackendRunner(index uint, backend config.Backend) *BackendRunner {
 func (fb *BackendRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	address := fmt.Sprintf("%s:%d", "localhost", fb.port)
 
-	l, err := net.Listen("tcp", address)
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Backend error listening on address: %s - %s\n", address, err.Error()))
 	}
-	defer l.Close()
+	defer listener.Close()
 
 	errChan := make(chan error, 1)
 	var conn net.Conn
 	go func() {
 		for {
-			conn, err = l.Accept()
+			conn, err = listener.Accept()
 			if err != nil {
 				errChan <- errors.New(fmt.Sprintf("Error accepting: %v", err.Error()))
 			} else {
@@ -53,7 +53,7 @@ func (fb *BackendRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 		case err := <-errChan:
 			return err
 		case <-signals:
-			l.Close()
+			listener.Close()
 			return nil
 		}
 	}

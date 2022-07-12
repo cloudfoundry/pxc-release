@@ -1,12 +1,23 @@
 package testing
 
 import (
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 
 	"code.cloudfoundry.org/tlsconfig"
 	"code.cloudfoundry.org/tlsconfig/certtest"
 )
+
+func CertificatePEM(derBytes []byte) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+}
+
+func PrivateKeyPEM(key crypto.PrivateKey) []byte {
+	derBytes, _ := x509.MarshalPKCS8PrivateKey(key)
+	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: derBytes})
+}
 
 func GenerateSelfSignedCertificate(names ...string) (caPEM []byte, tlsCert tls.Certificate, err error) {
 	authority, err := certtest.BuildCA("testCA")
@@ -41,7 +52,7 @@ func ServerConfigFromCertificate(certificate tls.Certificate) (*tls.Config, erro
 
 func ClientConfigFromAuthority(caPEM []byte) (*tls.Config, error) {
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM([]byte(caPEM))
+	caCertPool.AppendCertsFromPEM(caPEM)
 	return tlsconfig.Build(
 		tlsconfig.WithInternalServiceDefaults(),
 	).Client(tlsconfig.WithAuthority(caCertPool))

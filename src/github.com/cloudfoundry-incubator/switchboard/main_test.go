@@ -16,8 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/tlsconfig"
-	"code.cloudfoundry.org/tlsconfig/certtest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
@@ -29,6 +27,7 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/dummies"
+	"github.com/cloudfoundry-incubator/switchboard/testing"
 )
 
 type Response struct {
@@ -37,17 +36,17 @@ type Response struct {
 	Message      string
 }
 
-func allowTraffic(allow bool, port uint) {
+func allowTraffic(httpClient *http.Client, allow bool, port uint) {
 	var url string
 	if allow {
 		url = fmt.Sprintf(
-			"http://localhost:%d/v0/cluster?trafficEnabled=%t",
+			"https://localhost:%d/v0/cluster?trafficEnabled=%t",
 			port,
 			allow,
 		)
 	} else {
 		url = fmt.Sprintf(
-			"http://localhost:%d/v0/cluster?trafficEnabled=%t&message=%s",
+			"https://localhost:%d/v0/cluster?trafficEnabled=%t&message=%s",
 			port,
 			allow,
 			"main%20test%20is%20disabling%20traffic",
@@ -58,15 +57,13 @@ func allowTraffic(allow bool, port uint) {
 	Expect(err).NotTo(HaveOccurred())
 	req.SetBasicAuth("username", "password")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(resp.StatusCode).To(Equal(http.StatusOK))
 }
 
-func getClusterFromAPI(req *http.Request) map[string]interface{} {
-	client := &http.Client{}
-	resp, err := client.Do(req)
+func getClusterFromAPI(httpClient *http.Client, req *http.Request) map[string]interface{} {
+	resp, err := httpClient.Do(req)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -109,14 +106,12 @@ func verifyHeaderContains(header http.Header, key, valueSubstring string) {
 	Expect(found).To(BeTrue(), fmt.Sprintf("%s: %s not found in header", key, valueSubstring))
 }
 
-func getBackendsFromApi(req *http.Request) []map[string]interface{} {
-	client := &http.Client{}
-	resp, err := client.Do(req)
+func getBackendsFromApi(httpClient *http.Client, req *http.Request) []map[string]interface{} {
+	resp, err := httpClient.Do(req)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-	returnedBackends := []map[string]interface{}{}
-
+	var returnedBackends []map[string]interface{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&returnedBackends)
 	Expect(err).NotTo(HaveOccurred())
@@ -132,29 +127,6 @@ func matchConnectionDisconnect() types.GomegaMatcher {
 			syscall.ECONNRESET.Error(),
 		),
 	)
-}
-
-func serverTLSConfig(ca string) (caPEM string, tlsConfig *tls.Config) {
-
-	serverAuthority, err := certtest.BuildCA(ca)
-	Expect(err).ToNot(HaveOccurred())
-
-	caPEMBytes, err := serverAuthority.CertificatePEM()
-	Expect(err).ToNot(HaveOccurred())
-
-	serverCert, err := serverAuthority.BuildSignedCertificate("serverCert")
-	Expect(err).ToNot(HaveOccurred())
-
-	tlsCert, err := serverCert.TLSCertificate()
-	Expect(err).ToNot(HaveOccurred())
-
-	config := tlsconfig.Build(
-		tlsconfig.WithInternalServiceDefaults(),
-		tlsconfig.WithIdentity(tlsCert))
-
-	serverConfig, err := config.Server()
-	Expect(err).ToNot(HaveOccurred())
-	return string(caPEMBytes), serverConfig
 }
 
 const startupTimeout = 10 * time.Second
@@ -176,15 +148,142 @@ var _ = Describe("Switchboard", func() {
 		proxyConfig                  config.Proxy
 		apiConfig                    config.API
 		staticDir                    string
-		testCA                       string
-		testTLSConfig                *tls.Config
+		testServerTLSConfig          *tls.Config
+
+		httpClient *http.Client
 	)
+
+	var acceptsAndClosesTCPConnections = func(address string) {
+		Eventually(func() error {
+			req, _ := http.NewRequest(http.MethodGet, address, nil)
+			req.SetBasicAuth(rootConfig.API.Username, rootConfig.API.Password)
+			if res, err := httpClient.Do(req); err != nil {
+				return err
+			} else if res.StatusCode != http.StatusOK {
+				return errors.New("health check port returned unexpected status: " + res.Status)
+			}
+			return nil
+		}, "10s", "1s").Should(Succeed())
+	}
+
+	var startYourServers = func(rootConfig config.Config) {
+		runnableRootConfig, err := json.Marshal(rootConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		healthcheckRunners = []*dummies.HealthcheckRunner{
+			dummies.NewHealthcheckRunner(backends[0], 0, testServerTLSConfig),
+			dummies.NewHealthcheckRunner(backends[1], 1, testServerTLSConfig),
+		}
+
+		logLevel := "debug"
+		switchboardRunner := ginkgomon.New(ginkgomon.Config{
+			Command: exec.Command(
+				switchboardBinPath,
+				fmt.Sprintf("-config=%s", string(runnableRootConfig)),
+				fmt.Sprintf("-logLevel=%s", logLevel),
+			),
+			Name:              fmt.Sprintf("switchboard"),
+			StartCheck:        "started",
+			StartCheckTimeout: startupTimeout,
+		})
+
+		group := grouper.NewOrdered(os.Interrupt, grouper.Members{
+			{Name: "backend-0", Runner: dummies.NewBackendRunner(0, backends[0])},
+			{Name: "backend-1", Runner: dummies.NewBackendRunner(1, backends[1])},
+			{Name: "healthcheck-0", Runner: healthcheckRunners[0]},
+			{Name: "healthcheck-1", Runner: healthcheckRunners[1]},
+			{Name: "switchboard", Runner: switchboardRunner},
+		})
+		process = ifrit.Invoke(sigmon.New(group))
+
+	}
+
+	var waitForServersToBeReady = func(protocol string) {
+		var response Response
+		Eventually(func() error {
+			url := fmt.Sprintf("%s://localhost:%d/v0/cluster", protocol, switchboardAPIPort)
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				return err
+			}
+			req.SetBasicAuth("username", "password")
+
+			resp, err := httpClient.Do(req)
+			if err != nil {
+				return err
+			}
+
+			var returnedCluster api.ClusterJSON
+			decoder := json.NewDecoder(resp.Body)
+			err = decoder.Decode(&returnedCluster)
+			if err != nil {
+				return err
+			}
+			if returnedCluster.ActiveBackend == nil || returnedCluster.ActiveBackend.Port != backends[0].Port {
+				return errors.New("expected backend not active yet")
+			}
+
+			return err
+		}, startupTimeout).Should(Succeed())
+
+		Eventually(func() error {
+			url := fmt.Sprintf("%s://localhost:%d/v0/backends", protocol, switchboardAPIPort)
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				return err
+			}
+			req.SetBasicAuth("username", "password")
+
+			resp, err := httpClient.Do(req)
+			if err != nil {
+				return err
+			}
+
+			var returnedBackends []api.V0BackendResponse
+			decoder := json.NewDecoder(resp.Body)
+			err = decoder.Decode(&returnedBackends)
+			if err != nil {
+				return err
+			}
+
+			for _, backend := range returnedBackends {
+				if backend.Healthy == true && backend.Active == false {
+					return nil
+				}
+			}
+
+			return errors.New("inactive backend never became healthy")
+		}, startupTimeout).Should(Succeed())
+
+		Eventually(func() error {
+			conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+			if err != nil {
+				return err
+			}
+			defer conn.Close()
+
+			response, err = sendData(conn, "detect active")
+			return err
+		}, startupTimeout).Should(Succeed())
+
+		initialActiveBackend = backends[response.BackendIndex]
+		initialInactiveBackend = backends[(response.BackendIndex+1)%2]
+	}
 
 	BeforeEach(func() {
 		testDir := getDirOfCurrentFile()
 		staticDir = filepath.Join(testDir, "static")
 
-		testCA, testTLSConfig = serverTLSConfig("testCA")
+		testCA, testCert, err := testing.GenerateSelfSignedCertificate("localhost")
+		Expect(err).NotTo(HaveOccurred())
+
+		testServerTLSConfig, err = testing.ServerConfigFromCertificate(testCert)
+		Expect(err).NotTo(HaveOccurred())
+
+		testClientTLSConfig, err := testing.ClientConfigFromAuthority(testCA)
+		Expect(err).NotTo(HaveOccurred())
+
+		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: testClientTLSConfig}}
 
 		proxyPort = uint(10000 + GinkgoParallelNode())
 		proxyInactiveNodePort = uint(10600 + GinkgoParallelNode())
@@ -225,6 +324,10 @@ var _ = Describe("Switchboard", func() {
 			ProxyURIs:      []string{"some-proxy-uri-0", "some-proxy-uri-1"},
 		}
 
+		apiConfig.TLS.Enabled = false
+		apiConfig.TLS.Certificate = string(testing.CertificatePEM(testCert.Certificate[0]))
+		apiConfig.TLS.PrivateKey = string(testing.PrivateKeyPEM(testCert.PrivateKey))
+
 		rootConfig = config.Config{
 			BindAddress: "127.0.0.1",
 			Proxy:       proxyConfig,
@@ -234,487 +337,496 @@ var _ = Describe("Switchboard", func() {
 			BackendTLS: config.BackendTLS{
 				Enabled:    true,
 				ServerName: "localhost",
-				CA:         testCA,
+				CA:         string(testCA),
 			},
 		}
 		healthcheckWaitDuration = 3 * proxyConfig.HealthcheckTimeout()
 	})
 
-	JustBeforeEach(func() {
-		b, err := json.Marshal(rootConfig)
-		Expect(err).NotTo(HaveOccurred())
+	Context("Non TLS", func() {
 
-		healthcheckRunners = []*dummies.HealthcheckRunner{
-			dummies.NewHealthcheckRunner(backends[0], 0, testTLSConfig),
-			dummies.NewHealthcheckRunner(backends[1], 1, testTLSConfig),
-		}
-
-		logLevel := "debug"
-		switchboardRunner := ginkgomon.New(ginkgomon.Config{
-			Command: exec.Command(
-				switchboardBinPath,
-				fmt.Sprintf("-config=%s", string(b)),
-				fmt.Sprintf("-logLevel=%s", logLevel),
-			),
-			Name:              fmt.Sprintf("switchboard"),
-			StartCheck:        "started",
-			StartCheckTimeout: startupTimeout,
-		})
-
-		group := grouper.NewOrdered(os.Interrupt, grouper.Members{
-			{Name: "backend-0", Runner: dummies.NewBackendRunner(0, backends[0])},
-			{Name: "backend-1", Runner: dummies.NewBackendRunner(1, backends[1])},
-			{Name: "healthcheck-0", Runner: healthcheckRunners[0]},
-			{Name: "healthcheck-1", Runner: healthcheckRunners[1]},
-			{Name: "switchboard", Runner: switchboardRunner},
-		})
-		process = ifrit.Invoke(sigmon.New(group))
-	})
-
-	AfterEach(func() {
-		ginkgomon.Interrupt(process, 10*time.Second)
-	})
-
-	Context("when switchboard starts successfully", func() {
 		JustBeforeEach(func() {
-			var response Response
-			Eventually(func() error {
-				url := fmt.Sprintf("http://localhost:%d/v0/cluster", switchboardAPIPort)
-				req, err := http.NewRequest("GET", url, nil)
-				if err != nil {
-					return err
-				}
-				req.SetBasicAuth("username", "password")
-
-				client := &http.Client{}
-				resp, err := client.Do(req)
-				if err != nil {
-					return err
-				}
-
-				var returnedCluster api.ClusterJSON
-				decoder := json.NewDecoder(resp.Body)
-				err = decoder.Decode(&returnedCluster)
-				if err != nil {
-					return err
-				}
-				if returnedCluster.ActiveBackend == nil || returnedCluster.ActiveBackend.Port != backends[0].Port {
-					return errors.New("Expected backend not active yet")
-				}
-
-				return err
-			}, startupTimeout).Should(Succeed())
-
-			Eventually(func() error {
-				url := fmt.Sprintf("http://localhost:%d/v0/backends", switchboardAPIPort)
-				req, err := http.NewRequest("GET", url, nil)
-				if err != nil {
-					return err
-				}
-				req.SetBasicAuth("username", "password")
-
-				client := &http.Client{}
-				resp, err := client.Do(req)
-				if err != nil {
-					return err
-				}
-
-				var returnedBackends []api.V0BackendResponse
-				decoder := json.NewDecoder(resp.Body)
-				err = decoder.Decode(&returnedBackends)
-				if err != nil {
-					return err
-				}
-
-				for _, backend := range returnedBackends {
-					if backend.Healthy == true && backend.Active == false {
-						return nil
-					}
-				}
-
-				return errors.New("Inactive backend never became healthy")
-			}, startupTimeout).Should(Succeed())
-
-			Eventually(func() error {
-				conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-				if err != nil {
-					return err
-				}
-				defer conn.Close()
-
-				response, err = sendData(conn, "detect active")
-				return err
-			}, startupTimeout).Should(Succeed())
-
-			initialActiveBackend = backends[response.BackendIndex]
-			initialInactiveBackend = backends[(response.BackendIndex+1)%2]
+			startYourServers(rootConfig)
 		})
 
-		Describe("Health", func() {
-			var httpClient *http.Client
-
-			BeforeEach(func() {
-				httpClient = &http.Client{}
-			})
-
-			var acceptsAndClosesTCPConnections = func() {
-				address := fmt.Sprintf("http://127.0.0.1:%d", rootConfig.HealthPort)
-				Eventually(func() error {
-					req, _ := http.NewRequest(http.MethodGet, address, nil)
-					req.SetBasicAuth(rootConfig.API.Username, rootConfig.API.Password)
-					if res, err := httpClient.Do(req); err != nil {
-						return err
-					} else if res.StatusCode != http.StatusOK {
-						return errors.New("health check port returned unexpected status: " + res.Status)
-					}
-					return nil
-				}, "10s", "1s").Should(Succeed())
-			}
-
-			It("accepts and immediately closes TCP connections on HealthPort", func() {
-				acceptsAndClosesTCPConnections()
-			})
-
-			Context("when HealthPort == API.Port", func() {
-				BeforeEach(func() {
-					rootConfig.HealthPort = rootConfig.API.Port
-				})
-
-				It("operates normally", func() {
-					acceptsAndClosesTCPConnections()
-				})
-			})
+		AfterEach(func() {
+			ginkgomon.Interrupt(process, 10*time.Second)
 		})
 
-		Describe("API Aggregator", func() {
-			Describe("/", func() {
-				var url string
-
-				BeforeEach(func() {
-					url = fmt.Sprintf("http://localhost:%d/", switchboardAPIAggregatorPort)
-				})
-
-				It("prompts for Basic Auth creds when they aren't provided", func() {
-					resp, err := http.Get(url)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-					Expect(resp.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Authorization Required"`))
-				})
-
-				It("does not accept bad Basic Auth creds", func() {
-					req, err := http.NewRequest("GET", url, nil)
-					req.SetBasicAuth("bad_username", "bad_password")
-					client := &http.Client{}
-					resp, err := client.Do(req)
-
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-
-				It("responds with 200 and contains proxy URIs when authorized", func() {
-					req, err := http.NewRequest("GET", url, nil)
-					req.SetBasicAuth("username", "password")
-					client := &http.Client{}
-					resp, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-					Expect(resp.Body).ToNot(BeNil())
-					defer resp.Body.Close()
-					body, err := ioutil.ReadAll(resp.Body)
-					Expect(len(body)).To(BeNumerically(">", 0), "Expected body to not be empty")
-
-					Expect(string(body)).To(ContainSubstring(apiConfig.ProxyURIs[0]))
-					Expect(string(body)).To(ContainSubstring(apiConfig.ProxyURIs[1]))
-				})
+		When("switchboard starts successfully without TLS", func() {
+			JustBeforeEach(func() {
+				waitForServersToBeReady("http")
 			})
+			When("switchboard starts without TLS", func() {
+				Context("Aggregator Dashboard", func() {
+					It("makes a successful request", func() {
+						acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIAggregatorPort))
+					})
+				})
+
+				Context("Proxy Dashboard", func() {
+					It("makes a successful request", func() {
+						acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIPort))
+
+					})
+				})
+
+				Context("Healthchecks", func() {
+					It("makes a successful HTTP request", func() {
+						acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardHealthPort))
+					})
+				})
+
+			})
+
+		})
+	})
+
+	Context("TLS", func() {
+
+		JustBeforeEach(func() {
+			rootConfig.API.TLS.Enabled = true
+			startYourServers(rootConfig)
 		})
 
-		Describe("UI", func() {
-			Describe("/", func() {
-				var url string
-
-				BeforeEach(func() {
-					url = fmt.Sprintf("http://localhost:%d/", switchboardAPIPort)
-				})
-
-				It("prompts for Basic Auth creds when they aren't provided", func() {
-					resp, err := http.Get(url)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-					Expect(resp.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Authorization Required"`))
-				})
-
-				It("does not accept bad Basic Auth creds", func() {
-					req, err := http.NewRequest("GET", url, nil)
-					req.SetBasicAuth("bad_username", "bad_password")
-					client := &http.Client{}
-					resp, err := client.Do(req)
-
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-
-				It("responds with 200 and contains non-zero body when authorized", func() {
-					req, err := http.NewRequest("GET", url, nil)
-					req.SetBasicAuth("username", "password")
-					client := &http.Client{}
-					resp, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-					Expect(resp.Body).ToNot(BeNil())
-					defer resp.Body.Close()
-					body, err := ioutil.ReadAll(resp.Body)
-					Expect(len(body)).To(BeNumerically(">", 0), "Expected body to not be empty")
-				})
-			})
+		AfterEach(func() {
+			ginkgomon.Interrupt(process, 10*time.Second)
 		})
 
-		Describe("api", func() {
-			Describe("/v0/backends/", func() {
-				var url string
+		When("switchboard starts successfully with TLS", func() {
+			JustBeforeEach(func() {
+				waitForServersToBeReady("https")
+			})
 
-				BeforeEach(func() {
-					url = fmt.Sprintf("http://localhost:%d/v0/backends", switchboardAPIPort)
+			Describe("Health", func() {
+
+				It("accepts and immediately closes TCP connections on HealthPort", func() {
+					acceptsAndClosesTCPConnections(fmt.Sprintf("https://127.0.0.1:%d", rootConfig.HealthPort))
 				})
 
-				It("prompts for Basic Auth creds when they aren't provided", func() {
-					resp, err := http.Get(url)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-					Expect(resp.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Authorization Required"`))
+				Context("when HealthPort == API.Port", func() {
+					BeforeEach(func() {
+						rootConfig.HealthPort = rootConfig.API.Port
+					})
+
+					It("operates normally", func() {
+						acceptsAndClosesTCPConnections(fmt.Sprintf("https://127.0.0.1:%d", rootConfig.HealthPort))
+					})
 				})
+			})
 
-				It("does not accept bad Basic Auth creds", func() {
-					req, err := http.NewRequest("GET", url, nil)
-					req.SetBasicAuth("bad_username", "bad_password")
-					client := &http.Client{}
-					resp, err := client.Do(req)
-
-					Expect(err).NotTo(HaveOccurred())
-					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-
-				Context("When authorized", func() {
-					var req *http.Request
+			Describe("API Aggregator", func() {
+				Describe("/", func() {
+					var url string
 
 					BeforeEach(func() {
-						var err error
-						req, err = http.NewRequest("GET", url, nil)
-						Expect(err).NotTo(HaveOccurred())
-						req.SetBasicAuth("username", "password")
+						url = fmt.Sprintf("https://localhost:%d/", switchboardAPIAggregatorPort)
 					})
 
-					It("returns correct headers", func() {
-						client := &http.Client{}
-						resp, err := client.Do(req)
+					It("prompts for Basic Auth creds when they aren't provided", func() {
+						resp, err := httpClient.Get(url)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+						Expect(resp.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Authorization Required"`))
+					})
+
+					It("does not accept bad Basic Auth creds", func() {
+						req, err := http.NewRequest("GET", url, nil)
+						req.SetBasicAuth("bad_username", "bad_password")
+						resp, err := httpClient.Do(req)
+
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+
+					It("responds with 200 and contains proxy URIs when authorized", func() {
+						req, err := http.NewRequest("GET", url, nil)
+						req.SetBasicAuth("username", "password")
+						resp, err := httpClient.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(resp.StatusCode).To(Equal(http.StatusOK))
-						verifyHeaderContains(resp.Header, "Content-Type", "application/json")
+
+						Expect(resp.Body).ToNot(BeNil())
+						defer resp.Body.Close()
+						body, err := ioutil.ReadAll(resp.Body)
+						Expect(len(body)).To(BeNumerically(">", 0), "Expected body to not be empty")
+
+						Expect(string(body)).To(ContainSubstring(apiConfig.ProxyURIs[0]))
+						Expect(string(body)).To(ContainSubstring(apiConfig.ProxyURIs[1]))
+					})
+				})
+			})
+
+			Describe("UI", func() {
+				Describe("/", func() {
+					var url string
+
+					BeforeEach(func() {
+						url = fmt.Sprintf("https://localhost:%d/", switchboardAPIPort)
 					})
 
-					It("returns valid JSON in body", func() {
-						returnedBackends := getBackendsFromApi(req)
-
-						Expect(len(returnedBackends)).To(Equal(2))
-
-						Expect(returnedBackends[0]["host"]).To(Equal("localhost"))
-						Expect(returnedBackends[0]["healthy"]).To(BeTrue(), "Expected backends[0] to be healthy")
-
-						Expect(returnedBackends[1]["host"]).To(Equal("localhost"))
-						Expect(returnedBackends[1]["healthy"]).To(BeTrue(), "Expected backends[1] to be healthy")
-
-						if returnedBackends[0]["active"] == true {
-							Expect(returnedBackends[1]["active"]).To(BeFalse())
-						} else {
-							Expect(returnedBackends[1]["active"]).To(BeTrue())
-						}
-
-						switch returnedBackends[0]["name"] {
-
-						case backends[0].Name:
-							Expect(returnedBackends[0]["port"]).To(BeNumerically("==", backends[0].Port))
-							Expect(returnedBackends[1]["port"]).To(BeNumerically("==", backends[1].Port))
-							Expect(returnedBackends[1]["name"]).To(Equal(backends[1].Name))
-
-						case backends[1].Name: // order reversed in response
-							Expect(returnedBackends[1]["port"]).To(BeNumerically("==", backends[0].Port))
-							Expect(returnedBackends[0]["port"]).To(BeNumerically("==", backends[1].Port))
-							Expect(returnedBackends[0]["name"]).To(Equal(backends[1].Name))
-						default:
-							Fail(fmt.Sprintf("Invalid backend name: %s", returnedBackends[0]["name"]))
-						}
+					It("prompts for Basic Auth creds when they aren't provided", func() {
+						resp, err := httpClient.Get(url)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+						Expect(resp.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Authorization Required"`))
 					})
 
-					It("returns session count for backends", func() {
-						var err error
-						var conn net.Conn
-						Eventually(func() error {
-							conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-							if err != nil {
-								return err
+					It("does not accept bad Basic Auth creds", func() {
+						req, err := http.NewRequest("GET", url, nil)
+						resp, err := httpClient.Do(req)
+
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+
+					It("responds with 200 and contains non-zero body when authorized", func() {
+						req, err := http.NewRequest("GET", url, nil)
+						req.SetBasicAuth("username", "password")
+						resp, err := httpClient.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+						Expect(resp.Body).ToNot(BeNil())
+						defer resp.Body.Close()
+						body, err := ioutil.ReadAll(resp.Body)
+						Expect(len(body)).To(BeNumerically(">", 0), "Expected body to not be empty")
+					})
+				})
+			})
+
+			Describe("api", func() {
+				Describe("/v0/backends/", func() {
+					var url string
+
+					BeforeEach(func() {
+						url = fmt.Sprintf("https://localhost:%d/v0/backends", switchboardAPIPort)
+					})
+
+					It("prompts for Basic Auth creds when they aren't provided", func() {
+						resp, err := httpClient.Get(url)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+						Expect(resp.Header.Get("WWW-Authenticate")).To(Equal(`Basic realm="Authorization Required"`))
+					})
+
+					It("does not accept bad Basic Auth creds", func() {
+						req, err := http.NewRequest("GET", url, nil)
+						req.SetBasicAuth("bad_username", "bad_password")
+						resp, err := httpClient.Do(req)
+
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+
+					Context("When authorized", func() {
+						var req *http.Request
+
+						BeforeEach(func() {
+							var err error
+							req, err = http.NewRequest("GET", url, nil)
+							Expect(err).NotTo(HaveOccurred())
+							req.SetBasicAuth("username", "password")
+						})
+
+						It("returns correct headers", func() {
+							resp, err := httpClient.Do(req)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(resp.StatusCode).To(Equal(http.StatusOK))
+							verifyHeaderContains(resp.Header, "Content-Type", "application/json")
+						})
+
+						It("returns valid JSON in body", func() {
+							returnedBackends := getBackendsFromApi(httpClient, req)
+
+							Expect(len(returnedBackends)).To(Equal(2))
+
+							Expect(returnedBackends[0]["host"]).To(Equal("localhost"))
+							Expect(returnedBackends[0]["healthy"]).To(BeTrue(), "Expected backends[0] to be healthy")
+
+							Expect(returnedBackends[1]["host"]).To(Equal("localhost"))
+							Expect(returnedBackends[1]["healthy"]).To(BeTrue(), "Expected backends[1] to be healthy")
+
+							if returnedBackends[0]["active"] == true {
+								Expect(returnedBackends[1]["active"]).To(BeFalse())
+							} else {
+								Expect(returnedBackends[1]["active"]).To(BeTrue())
 							}
-							return nil
 
-						}, startupTimeout).Should(Succeed())
-						defer conn.Close()
+							switch returnedBackends[0]["name"] {
 
-						connData, err := sendData(conn, "success")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(connData.Message).To(Equal("success"))
+							case backends[0].Name:
+								Expect(returnedBackends[0]["port"]).To(BeNumerically("==", backends[0].Port))
+								Expect(returnedBackends[1]["port"]).To(BeNumerically("==", backends[1].Port))
+								Expect(returnedBackends[1]["name"]).To(Equal(backends[1].Name))
 
-						returnedBackends := getBackendsFromApi(req)
+							case backends[1].Name: // order reversed in response
+								Expect(returnedBackends[1]["port"]).To(BeNumerically("==", backends[0].Port))
+								Expect(returnedBackends[0]["port"]).To(BeNumerically("==", backends[1].Port))
+								Expect(returnedBackends[0]["name"]).To(Equal(backends[1].Name))
+							default:
+								Fail(fmt.Sprintf("Invalid backend name: %s", returnedBackends[0]["name"]))
+							}
+						})
 
-						Eventually(func() interface{} {
-							return getBackendsFromApi(req)[0]["currentSessionCount"]
-						}).Should(BeNumerically("==", 1), "Expected active backend to have SessionCount == 1")
+						It("returns session count for backends", func() {
+							var err error
+							var conn net.Conn
+							Eventually(func() error {
+								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+								if err != nil {
+									return err
+								}
+								return nil
 
-						Expect(returnedBackends[1]["currentSessionCount"]).To(BeNumerically("==", 0), "Expected inactive backend to have SessionCount == 0")
+							}, startupTimeout).Should(Succeed())
+							defer conn.Close()
+
+							connData, err := sendData(conn, "success")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(connData.Message).To(Equal("success"))
+
+							returnedBackends := getBackendsFromApi(httpClient, req)
+
+							Eventually(func() interface{} {
+								return getBackendsFromApi(httpClient, req)[0]["currentSessionCount"]
+							}).Should(BeNumerically("==", 1), "Expected active backend to have SessionCount == 1")
+
+							Expect(returnedBackends[1]["currentSessionCount"]).To(BeNumerically("==", 0), "Expected inactive backend to have SessionCount == 0")
+						})
 					})
 				})
 			})
-		})
 
-		Describe("/v0/cluster", func() {
-			Describe("GET", func() {
-				It("returns valid JSON in body", func() {
-					url := fmt.Sprintf("http://localhost:%d/v0/cluster", switchboardAPIPort)
-					req, err := http.NewRequest("GET", url, nil)
-					Expect(err).NotTo(HaveOccurred())
-					req.SetBasicAuth("username", "password")
+			Describe("/v0/cluster", func() {
+				Describe("GET", func() {
+					It("returns valid JSON in body", func() {
+						url := fmt.Sprintf("https://localhost:%d/v0/cluster", switchboardAPIPort)
+						req, err := http.NewRequest("GET", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+						req.SetBasicAuth("username", "password")
 
-					returnedCluster := getClusterFromAPI(req)
+						returnedCluster := getClusterFromAPI(httpClient, req)
 
-					Expect(returnedCluster["trafficEnabled"]).To(BeTrue())
+						Expect(returnedCluster["trafficEnabled"]).To(BeTrue())
+					})
+				})
+
+				Describe("PATCH", func() {
+					It("returns valid JSON in body", func() {
+						url := fmt.Sprintf("https://localhost:%d/v0/cluster?trafficEnabled=true", switchboardAPIPort)
+						req, err := http.NewRequest("PATCH", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+						req.SetBasicAuth("username", "password")
+
+						returnedCluster := getClusterFromAPI(httpClient, req)
+
+						Expect(returnedCluster["trafficEnabled"]).To(BeTrue())
+						Expect(returnedCluster["lastUpdated"]).NotTo(BeEmpty())
+					})
+
+					It("persists the provided value of enableTraffic", func() {
+						url := fmt.Sprintf("https://localhost:%d/v0/cluster?trafficEnabled=false&message=some-reason", switchboardAPIPort)
+						req, err := http.NewRequest("PATCH", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+						req.SetBasicAuth("username", "password")
+
+						returnedCluster := getClusterFromAPI(httpClient, req)
+
+						Expect(returnedCluster["trafficEnabled"]).To(BeFalse())
+
+						url = fmt.Sprintf("https://localhost:%d/v0/cluster?trafficEnabled=true", switchboardAPIPort)
+						req, err = http.NewRequest("PATCH", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+						req.SetBasicAuth("username", "password")
+
+						returnedCluster = getClusterFromAPI(httpClient, req)
+
+						Expect(returnedCluster["trafficEnabled"]).To(BeTrue())
+					})
 				})
 			})
 
-			Describe("PATCH", func() {
-				It("returns valid JSON in body", func() {
-					url := fmt.Sprintf("http://localhost:%d/v0/cluster?trafficEnabled=true", switchboardAPIPort)
-					req, err := http.NewRequest("PATCH", url, nil)
-					Expect(err).NotTo(HaveOccurred())
-					req.SetBasicAuth("username", "password")
+			Describe("proxy", func() {
+				Context("when connecting to the active port", func() {
 
-					returnedCluster := getClusterFromAPI(req)
+					Context("when there are multiple concurrent clients", func() {
+						It("proxies all the connections to the lowest indexed backend", func() {
+							var doneArray = make([]chan interface{}, 3)
+							var dataMessages = make([]Response, 3)
 
-					Expect(returnedCluster["trafficEnabled"]).To(BeTrue())
-					Expect(returnedCluster["lastUpdated"]).NotTo(BeEmpty())
-				})
+							for i := 0; i < 3; i++ {
+								doneArray[i] = make(chan interface{})
+								go func(index int) {
+									defer GinkgoRecover()
+									defer close(doneArray[index])
 
-				It("persists the provided value of enableTraffic", func() {
-					url := fmt.Sprintf("http://localhost:%d/v0/cluster?trafficEnabled=false&message=some-reason", switchboardAPIPort)
-					req, err := http.NewRequest("PATCH", url, nil)
-					Expect(err).NotTo(HaveOccurred())
-					req.SetBasicAuth("username", "password")
+									var err error
+									var conn net.Conn
 
-					returnedCluster := getClusterFromAPI(req)
+									Eventually(func() error {
+										conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+										return err
+									}, startupTimeout).ShouldNot(HaveOccurred())
 
-					Expect(returnedCluster["trafficEnabled"]).To(BeFalse())
+									data, err := sendData(conn, fmt.Sprintf("test%d", index))
+									Expect(err).ToNot(HaveOccurred())
+									dataMessages[index] = data
+								}(i)
+							}
 
-					url = fmt.Sprintf("http://localhost:%d/v0/cluster?trafficEnabled=true", switchboardAPIPort)
-					req, err = http.NewRequest("PATCH", url, nil)
-					Expect(err).NotTo(HaveOccurred())
-					req.SetBasicAuth("username", "password")
+							for _, done := range doneArray {
+								<-done
+							}
 
-					returnedCluster = getClusterFromAPI(req)
+							for i, dataResponse := range dataMessages {
+								Expect(dataResponse.Message).Should(Equal(fmt.Sprintf("test%d", i)))
+								Expect(dataResponse.BackendIndex).To(BeEquivalentTo(0))
+							}
+						})
+					})
 
-					Expect(returnedCluster["trafficEnabled"]).To(BeTrue())
-				})
-			})
-		})
+					Context("when other clients disconnect", func() {
+						var conn net.Conn
+						var connToDisconnect net.Conn
 
-		Describe("proxy", func() {
-			Context("when connecting to the active port", func() {
-
-				Context("when there are multiple concurrent clients", func() {
-					It("proxies all the connections to the lowest indexed backend", func() {
-						var doneArray = make([]chan interface{}, 3)
-						var dataMessages = make([]Response, 3)
-
-						for i := 0; i < 3; i++ {
-							doneArray[i] = make(chan interface{})
-							go func(index int) {
-								defer GinkgoRecover()
-								defer close(doneArray[index])
-
+						It("maintains a long-lived connection", func() {
+							Eventually(func() error {
 								var err error
-								var conn net.Conn
+								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+								return err
+							}, startupTimeout).Should(Succeed())
 
+							Eventually(func() error {
+								var err error
+								connToDisconnect, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+								return err
+							}, "5s").Should(Succeed())
+
+							dataBeforeDisconnect, err := sendData(conn, "data before disconnect")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(dataBeforeDisconnect.Message).Should(Equal("data before disconnect"))
+
+							_ = connToDisconnect.Close()
+
+							dataAfterDisconnect, err := sendData(conn, "data after disconnect")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(dataAfterDisconnect.Message).Should(Equal("data after disconnect"))
+						})
+					})
+
+					Context("when the healthcheck succeeds", func() {
+						It("checks health again after the specified interval", func() {
+							var client net.Conn
+							Eventually(func() error {
+								var err error
+								client, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+								return err
+							}, startupTimeout).Should(Succeed())
+
+							data, err := sendData(client, "data around first healthcheck")
+							Expect(err).NotTo(HaveOccurred())
+							Expect(data.Message).To(Equal("data around first healthcheck"))
+
+							Consistently(func() error {
+								_, err = sendData(client, "data around subsequent healthcheck")
+								return err
+							}, 3*time.Second, 500*time.Millisecond).Should(Succeed())
+						})
+					})
+
+					Context("when the cluster is down", func() {
+						Context("when the healthcheck reports a 503", func() {
+							It("disconnects client connections", func() {
+								var conn net.Conn
 								Eventually(func() error {
+									var err error
 									conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
 									return err
-								}, startupTimeout).ShouldNot(HaveOccurred())
+								}, startupTimeout).Should(Succeed())
 
-								data, err := sendData(conn, fmt.Sprintf("test%d", index))
+								dataWhileHealthy, err := sendData(conn, "data while healthy")
 								Expect(err).ToNot(HaveOccurred())
-								dataMessages[index] = data
-							}(i)
-						}
+								Expect(dataWhileHealthy.Message).To(Equal("data while healthy"))
 
-						for _, done := range doneArray {
-							<-done
-						}
+								if initialActiveBackend == backends[0] {
+									healthcheckRunners[0].SetStatusCode(http.StatusServiceUnavailable)
+								} else {
+									healthcheckRunners[1].SetStatusCode(http.StatusServiceUnavailable)
+								}
 
-						for i, dataResponse := range dataMessages {
-							Expect(dataResponse.Message).Should(Equal(fmt.Sprintf("test%d", i)))
-							Expect(dataResponse.BackendIndex).To(BeEquivalentTo(0))
-						}
+								Eventually(func() error {
+									_, err := sendData(conn, "data when unhealthy")
+									return err
+								}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
+							})
+						})
+
+						Context("when a backend goes down", func() {
+							var conn net.Conn
+							var data Response
+
+							JustBeforeEach(func() {
+								Eventually(func() (err error) {
+									conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+									return err
+								}, startupTimeout).Should(Succeed())
+
+								data, err := sendData(conn, "data before hang")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(data.Message).To(Equal("data before hang"))
+
+								if initialActiveBackend == backends[0] {
+									healthcheckRunners[0].SetHang(true)
+								} else {
+									healthcheckRunners[1].SetHang(true)
+								}
+							})
+
+							It("disconnects existing client connections", func() {
+								Eventually(func() error {
+									_, err := sendData(conn, "data after hang")
+									return err
+								}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
+							})
+
+							It("proxies new connections to another backend", func() {
+								var err error
+								Eventually(func() (uint, error) {
+									conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+									if err != nil {
+										return 0, err
+									}
+
+									data, err = sendData(conn, "test")
+									return data.BackendPort, err
+								}, healthcheckWaitDuration).Should(Equal(initialInactiveBackend.Port))
+
+								Expect(data.Message).To(Equal("test"))
+							})
+						})
+
+						Context("when all backends are down", func() {
+							JustBeforeEach(func() {
+								for _, hr := range healthcheckRunners {
+									hr.SetHang(true)
+								}
+							})
+
+							It("rejects any new connections that are attempted", func() {
+								Eventually(func() error {
+									conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+									if err != nil {
+										return err
+									}
+									_, err = sendData(conn, "write that should fail")
+									return err
+								}, healthcheckWaitDuration, 200*time.Millisecond).Should(matchConnectionDisconnect())
+							})
+						})
 					})
-				})
 
-				Context("when other clients disconnect", func() {
-					var conn net.Conn
-					var connToDisconnect net.Conn
-
-					It("maintains a long-lived connection", func() {
-						Eventually(func() error {
-							var err error
-							conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-							return err
-						}, startupTimeout).Should(Succeed())
-
-						Eventually(func() error {
-							var err error
-							connToDisconnect, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-							return err
-						}, "5s").Should(Succeed())
-
-						dataBeforeDisconnect, err := sendData(conn, "data before disconnect")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(dataBeforeDisconnect.Message).Should(Equal("data before disconnect"))
-
-						_ = connToDisconnect.Close()
-
-						dataAfterDisconnect, err := sendData(conn, "data after disconnect")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(dataAfterDisconnect.Message).Should(Equal("data after disconnect"))
-					})
-				})
-
-				Context("when the healthcheck succeeds", func() {
-					It("checks health again after the specified interval", func() {
-						var client net.Conn
-						Eventually(func() error {
-							var err error
-							client, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-							return err
-						}, startupTimeout).Should(Succeed())
-
-						data, err := sendData(client, "data around first healthcheck")
-						Expect(err).NotTo(HaveOccurred())
-						Expect(data.Message).To(Equal("data around first healthcheck"))
-
-						Consistently(func() error {
-							_, err = sendData(client, "data around subsequent healthcheck")
-							return err
-						}, 3*time.Second, 500*time.Millisecond).Should(Succeed())
-					})
-				})
-
-				Context("when the cluster is down", func() {
-					Context("when the healthcheck reports a 503", func() {
+					Context("when traffic is disabled", func() {
 						It("disconnects client connections", func() {
 							var conn net.Conn
 							Eventually(func() error {
@@ -722,235 +834,236 @@ var _ = Describe("Switchboard", func() {
 								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
 								return err
 							}, startupTimeout).Should(Succeed())
+							defer conn.Close()
 
 							dataWhileHealthy, err := sendData(conn, "data while healthy")
 							Expect(err).ToNot(HaveOccurred())
 							Expect(dataWhileHealthy.Message).To(Equal("data while healthy"))
 
-							if initialActiveBackend == backends[0] {
-								healthcheckRunners[0].SetStatusCode(http.StatusServiceUnavailable)
-							} else {
-								healthcheckRunners[1].SetStatusCode(http.StatusServiceUnavailable)
-							}
+							allowTraffic(httpClient, false, switchboardAPIPort)
 
 							Eventually(func() error {
 								_, err := sendData(conn, "data when unhealthy")
 								return err
 							}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
 						})
-					})
 
-					Context("when a backend goes down", func() {
-						var conn net.Conn
-						var data Response
-
-						JustBeforeEach(func() {
-							Eventually(func() (err error) {
-								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-								return err
-							}, startupTimeout).Should(Succeed())
-
-							data, err := sendData(conn, "data before hang")
-							Expect(err).ToNot(HaveOccurred())
-							Expect(data.Message).To(Equal("data before hang"))
-
-							if initialActiveBackend == backends[0] {
-								healthcheckRunners[0].SetHang(true)
-							} else {
-								healthcheckRunners[1].SetHang(true)
-							}
-						})
-
-						It("disconnects existing client connections", func() {
-							Eventually(func() error {
-								_, err := sendData(conn, "data after hang")
-								return err
-							}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
-						})
-
-						It("proxies new connections to another backend", func() {
-							var err error
-							Eventually(func() (uint, error) {
-								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-								if err != nil {
-									return 0, err
-								}
-
-								data, err = sendData(conn, "test")
-								return data.BackendPort, err
-							}, healthcheckWaitDuration).Should(Equal(initialInactiveBackend.Port))
-
-							Expect(data.Message).To(Equal("test"))
-						})
-					})
-
-					Context("when all backends are down", func() {
-						JustBeforeEach(func() {
-							for _, hr := range healthcheckRunners {
-								hr.SetHang(true)
-							}
-						})
-
-						It("rejects any new connections that are attempted", func() {
+						It("severs new connections", func() {
+							allowTraffic(httpClient, false, switchboardAPIPort)
 							Eventually(func() error {
 								conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
 								if err != nil {
 									return err
 								}
+								defer conn.Close()
 								_, err = sendData(conn, "write that should fail")
+
 								return err
-							}, healthcheckWaitDuration, 200*time.Millisecond).Should(matchConnectionDisconnect())
+							}).Should(matchConnectionDisconnect())
+						})
+
+						It("permits new connections again after re-enabling traffic", func() {
+							allowTraffic(httpClient, false, switchboardAPIPort)
+							allowTraffic(httpClient, true, switchboardAPIPort)
+
+							Eventually(func() error {
+								var err error
+								_, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+								return err
+							}, "5s").Should(Succeed())
 						})
 					})
 				})
-
-				Context("when traffic is disabled", func() {
-					It("disconnects client connections", func() {
-						var conn net.Conn
+				Context("when connecting to the inactive port", func() {
+					JustBeforeEach(func() {
 						Eventually(func() error {
-							var err error
-							conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-							return err
-						}, startupTimeout).Should(Succeed())
-						defer conn.Close()
-
-						dataWhileHealthy, err := sendData(conn, "data while healthy")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(dataWhileHealthy.Message).To(Equal("data while healthy"))
-
-						allowTraffic(false, switchboardAPIPort)
-
-						Eventually(func() error {
-							_, err := sendData(conn, "data when unhealthy")
-							return err
-						}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
-					})
-
-					It("severs new connections", func() {
-						allowTraffic(false, switchboardAPIPort)
-						Eventually(func() error {
-							conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+							conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
 							if err != nil {
 								return err
 							}
-							defer conn.Close()
-							_, err = sendData(conn, "write that should fail")
-
+							_, err = sendData(conn, "checking inactive port is ready")
 							return err
-						}).Should(matchConnectionDisconnect())
+						}, startupTimeout).ShouldNot(HaveOccurred(), "Switchboard inactive mysql port never became ready")
 					})
 
-					It("permits new connections again after re-enabling traffic", func() {
-						allowTraffic(false, switchboardAPIPort)
-						allowTraffic(true, switchboardAPIPort)
+					Context("when there are multiple concurrent clients", func() {
+						It("proxies all the connections to the highest indexed backend", func() {
+							var doneArray = make([]chan interface{}, 3)
+							var dataMessages = make([]Response, 3)
 
-						Eventually(func() error {
-							var err error
-							_, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-							return err
-						}, "5s").Should(Succeed())
+							for i := 0; i < 3; i++ {
+								doneArray[i] = make(chan interface{})
+								go func(index int) {
+									defer GinkgoRecover()
+									defer close(doneArray[index])
+
+									var err error
+									var conn net.Conn
+
+									Eventually(func() error {
+										conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+										return err
+									}, startupTimeout).ShouldNot(HaveOccurred())
+
+									data, err := sendData(conn, fmt.Sprintf("test%d", index))
+									Expect(err).ToNot(HaveOccurred())
+									dataMessages[index] = data
+								}(i)
+							}
+
+							for _, done := range doneArray {
+								<-done
+							}
+
+							for i, dataResponse := range dataMessages {
+								Expect(dataResponse.Message).Should(Equal(fmt.Sprintf("test%d", i)))
+								Expect(dataResponse.BackendIndex).To(BeEquivalentTo(1))
+							}
+						})
 					})
-				})
-			})
-			Context("when connecting to the inactive port", func() {
-				JustBeforeEach(func() {
-					Eventually(func() error {
-						conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-						if err != nil {
-							return err
-						}
-						_, err = sendData(conn, "checking inactive port is ready")
-						return err
-					}, startupTimeout).ShouldNot(HaveOccurred(), "Switchboard inactive mysql port never became ready")
-				})
 
-				Context("when there are multiple concurrent clients", func() {
-					It("proxies all the connections to the highest indexed backend", func() {
-						var doneArray = make([]chan interface{}, 3)
-						var dataMessages = make([]Response, 3)
+					Context("when other clients disconnect", func() {
+						var conn net.Conn
+						var connToDisconnect net.Conn
 
-						for i := 0; i < 3; i++ {
-							doneArray[i] = make(chan interface{})
-							go func(index int) {
-								defer GinkgoRecover()
-								defer close(doneArray[index])
-
+						It("maintains a long-lived connection when other clients disconnect", func() {
+							Eventually(func() error {
 								var err error
-								var conn net.Conn
+								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+								return err
+							}, startupTimeout).Should(Succeed())
 
+							Eventually(func() error {
+								var err error
+								connToDisconnect, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+								return err
+							}, "5s").Should(Succeed())
+
+							dataBeforeDisconnect, err := sendData(conn, "data before disconnect")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(dataBeforeDisconnect.Message).Should(Equal("data before disconnect"))
+
+							_ = connToDisconnect.Close()
+
+							dataAfterDisconnect, err := sendData(conn, "data after disconnect")
+							Expect(err).ToNot(HaveOccurred())
+							Expect(dataAfterDisconnect.Message).Should(Equal("data after disconnect"))
+						})
+					})
+
+					Context("when the healthcheck succeeds", func() {
+						It("checks health again after the specified interval", func() {
+							var client net.Conn
+							Eventually(func() error {
+								var err error
+								client, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+								return err
+							}, startupTimeout).Should(Succeed())
+
+							data, err := sendData(client, "data around first healthcheck")
+							Expect(err).NotTo(HaveOccurred())
+							Expect(data.Message).To(Equal("data around first healthcheck"))
+
+							Consistently(func() error {
+								_, err = sendData(client, "data around subsequent healthcheck")
+								return err
+							}, 3*time.Second, 500*time.Millisecond).Should(Succeed())
+						})
+					})
+
+					Context("when the cluster is down", func() {
+						Context("when the healthcheck reports a 503", func() {
+							It("disconnects client connections", func() {
+								var conn net.Conn
 								Eventually(func() error {
+									var err error
 									conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
 									return err
-								}, startupTimeout).ShouldNot(HaveOccurred())
+								}, startupTimeout).Should(Succeed())
 
-								data, err := sendData(conn, fmt.Sprintf("test%d", index))
+								dataWhileHealthy, err := sendData(conn, "data while healthy")
 								Expect(err).ToNot(HaveOccurred())
-								dataMessages[index] = data
-							}(i)
-						}
+								Expect(dataWhileHealthy.Message).To(Equal("data while healthy"))
 
-						for _, done := range doneArray {
-							<-done
-						}
+								if initialInactiveBackend == backends[0] {
+									healthcheckRunners[0].SetStatusCode(http.StatusServiceUnavailable)
+								} else {
+									healthcheckRunners[1].SetStatusCode(http.StatusServiceUnavailable)
+								}
 
-						for i, dataResponse := range dataMessages {
-							Expect(dataResponse.Message).Should(Equal(fmt.Sprintf("test%d", i)))
-							Expect(dataResponse.BackendIndex).To(BeEquivalentTo(1))
-						}
+								Eventually(func() error {
+									_, err := sendData(conn, "data when unhealthy")
+									return err
+								}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
+							})
+						})
+
+						Context("when a backend goes down", func() {
+							var conn net.Conn
+							var data Response
+
+							JustBeforeEach(func() {
+								Eventually(func() (err error) {
+									conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+									return err
+								}, startupTimeout).Should(Succeed())
+
+								data, err := sendData(conn, "data before hang")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(data.Message).To(Equal("data before hang"))
+
+								if initialInactiveBackend == backends[0] {
+									healthcheckRunners[0].SetHang(true)
+								} else {
+									healthcheckRunners[1].SetHang(true)
+								}
+							})
+
+							It("disconnects existing client connections", func() {
+								Eventually(func() error {
+									_, err := sendData(conn, "data after hang")
+									return err
+								}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
+							})
+
+							It("proxies new connections to another backend", func() {
+								var err error
+								Eventually(func() (uint, error) {
+									conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+									if err != nil {
+										return 0, err
+									}
+
+									data, err = sendData(conn, "test")
+									return data.BackendPort, err
+								}, healthcheckWaitDuration).Should(Equal(initialActiveBackend.Port))
+
+								Expect(data.Message).To(Equal("test"))
+							})
+						})
+
+						Context("when all backends are down", func() {
+							JustBeforeEach(func() {
+								for _, hr := range healthcheckRunners {
+									hr.SetHang(true)
+								}
+							})
+
+							It("rejects any new connections that are attempted", func() {
+
+								Eventually(func() error {
+									conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+									if err != nil {
+										return err
+									}
+									_, err = sendData(conn, "write that should fail")
+									return err
+								}, healthcheckWaitDuration, 200*time.Millisecond).Should(matchConnectionDisconnect())
+							})
+						})
 					})
-				})
 
-				Context("when other clients disconnect", func() {
-					var conn net.Conn
-					var connToDisconnect net.Conn
-
-					It("maintains a long-lived connection when other clients disconnect", func() {
-						Eventually(func() error {
-							var err error
-							conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-							return err
-						}, startupTimeout).Should(Succeed())
-
-						Eventually(func() error {
-							var err error
-							connToDisconnect, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-							return err
-						}, "5s").Should(Succeed())
-
-						dataBeforeDisconnect, err := sendData(conn, "data before disconnect")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(dataBeforeDisconnect.Message).Should(Equal("data before disconnect"))
-
-						_ = connToDisconnect.Close()
-
-						dataAfterDisconnect, err := sendData(conn, "data after disconnect")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(dataAfterDisconnect.Message).Should(Equal("data after disconnect"))
-					})
-				})
-
-				Context("when the healthcheck succeeds", func() {
-					It("checks health again after the specified interval", func() {
-						var client net.Conn
-						Eventually(func() error {
-							var err error
-							client, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-							return err
-						}, startupTimeout).Should(Succeed())
-
-						data, err := sendData(client, "data around first healthcheck")
-						Expect(err).NotTo(HaveOccurred())
-						Expect(data.Message).To(Equal("data around first healthcheck"))
-
-						Consistently(func() error {
-							_, err = sendData(client, "data around subsequent healthcheck")
-							return err
-						}, 3*time.Second, 500*time.Millisecond).Should(Succeed())
-					})
-				})
-
-				Context("when the cluster is down", func() {
-					Context("when the healthcheck reports a 503", func() {
+					Context("when traffic is disabled", func() {
 						It("disconnects client connections", func() {
 							var conn net.Conn
 							Eventually(func() error {
@@ -958,153 +1071,63 @@ var _ = Describe("Switchboard", func() {
 								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
 								return err
 							}, startupTimeout).Should(Succeed())
+							defer conn.Close()
 
 							dataWhileHealthy, err := sendData(conn, "data while healthy")
 							Expect(err).ToNot(HaveOccurred())
 							Expect(dataWhileHealthy.Message).To(Equal("data while healthy"))
 
-							if initialInactiveBackend == backends[0] {
-								healthcheckRunners[0].SetStatusCode(http.StatusServiceUnavailable)
-							} else {
-								healthcheckRunners[1].SetStatusCode(http.StatusServiceUnavailable)
-							}
+							allowTraffic(httpClient, false, switchboardAPIPort)
 
 							Eventually(func() error {
 								_, err := sendData(conn, "data when unhealthy")
 								return err
 							}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
 						})
-					})
 
-					Context("when a backend goes down", func() {
-						var conn net.Conn
-						var data Response
-
-						JustBeforeEach(func() {
-							Eventually(func() (err error) {
-								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-								return err
-							}, startupTimeout).Should(Succeed())
-
-							data, err := sendData(conn, "data before hang")
-							Expect(err).ToNot(HaveOccurred())
-							Expect(data.Message).To(Equal("data before hang"))
-
-							if initialInactiveBackend == backends[0] {
-								healthcheckRunners[0].SetHang(true)
-							} else {
-								healthcheckRunners[1].SetHang(true)
-							}
-						})
-
-						It("disconnects existing client connections", func() {
-							Eventually(func() error {
-								_, err := sendData(conn, "data after hang")
-								return err
-							}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
-						})
-
-						It("proxies new connections to another backend", func() {
-							var err error
-							Eventually(func() (uint, error) {
-								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
-								if err != nil {
-									return 0, err
-								}
-
-								data, err = sendData(conn, "test")
-								return data.BackendPort, err
-							}, healthcheckWaitDuration).Should(Equal(initialActiveBackend.Port))
-
-							Expect(data.Message).To(Equal("test"))
-						})
-					})
-
-					Context("when all backends are down", func() {
-						JustBeforeEach(func() {
-							for _, hr := range healthcheckRunners {
-								hr.SetHang(true)
-							}
-						})
-
-						It("rejects any new connections that are attempted", func() {
-
+						It("severs new connections", func() {
+							allowTraffic(httpClient, false, switchboardAPIPort)
 							Eventually(func() error {
 								conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
 								if err != nil {
 									return err
 								}
+								defer conn.Close()
 								_, err = sendData(conn, "write that should fail")
+
 								return err
-							}, healthcheckWaitDuration, 200*time.Millisecond).Should(matchConnectionDisconnect())
+							}).Should(matchConnectionDisconnect())
+						})
+
+						It("permits new connections again after re-enabling traffic", func() {
+							allowTraffic(httpClient, false, switchboardAPIPort)
+							allowTraffic(httpClient, true, switchboardAPIPort)
+
+							Eventually(func() error {
+								var err error
+								_, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
+								return err
+							}, "5s").Should(Succeed())
 						})
 					})
 				})
-
-				Context("when traffic is disabled", func() {
-					It("disconnects client connections", func() {
-						var conn net.Conn
-						Eventually(func() error {
-							var err error
-							conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-							return err
-						}, startupTimeout).Should(Succeed())
-						defer conn.Close()
-
-						dataWhileHealthy, err := sendData(conn, "data while healthy")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(dataWhileHealthy.Message).To(Equal("data while healthy"))
-
-						allowTraffic(false, switchboardAPIPort)
-
-						Eventually(func() error {
-							_, err := sendData(conn, "data when unhealthy")
-							return err
-						}, healthcheckWaitDuration).Should(matchConnectionDisconnect())
+				Context("when inactive port is not configured", func() {
+					BeforeEach(func() {
+						rootConfig.Proxy.InactiveMysqlPort = 0
 					})
 
-					It("severs new connections", func() {
-						allowTraffic(false, switchboardAPIPort)
+					It("does not crash", func() {
 						Eventually(func() error {
 							conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
 							if err != nil {
 								return err
 							}
-							defer conn.Close()
 							_, err = sendData(conn, "write that should fail")
-
 							return err
-						}).Should(matchConnectionDisconnect())
+						}, healthcheckWaitDuration, 200*time.Millisecond).Should(MatchError(ContainSubstring("connection refused")))
 					})
 
-					It("permits new connections again after re-enabling traffic", func() {
-						allowTraffic(false, switchboardAPIPort)
-						allowTraffic(true, switchboardAPIPort)
-
-						Eventually(func() error {
-							var err error
-							_, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-							return err
-						}, "5s").Should(Succeed())
-					})
 				})
-			})
-			Context("when inactive port is not configured", func() {
-				BeforeEach(func() {
-					rootConfig.Proxy.InactiveMysqlPort = 0
-				})
-
-				It("does not crash", func() {
-					Eventually(func() error {
-						conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
-						if err != nil {
-							return err
-						}
-						_, err = sendData(conn, "write that should fail")
-						return err
-					}, healthcheckWaitDuration, 200*time.Millisecond).Should(MatchError(ContainSubstring("connection refused")))
-				})
-
 			})
 		})
 	})

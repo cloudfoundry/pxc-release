@@ -4,6 +4,9 @@ API:
   Username: fake-username
   Password: fake-password
   ForceHttps: true
+  TLS:
+    Certificate: "some-pem-encoded-certificate"
+    PrivateKey: "some-pem-encoded-private-key"
 Proxy:
   Port: 3306
   HealthcheckTimeoutMillis: 5000
