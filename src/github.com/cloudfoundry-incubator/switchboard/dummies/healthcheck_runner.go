@@ -8,8 +8,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/onsi/ginkgo"
+
+	"github.com/cloudfoundry-incubator/switchboard/config"
 )
 
 type HealthcheckRunner struct {
