@@ -7,19 +7,20 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
 type Runner struct {
 	logger             lager.Logger
-	port               uint
+	address            string
 	TrafficEnabledChan chan bool
 	ActiveBackendChan  chan *domain.Backend
 	timeout            time.Duration
 }
 
 func NewRunner(
-	port uint,
+	address string,
 	timeout time.Duration,
 	logger lager.Logger,
 ) Runner {
@@ -30,15 +31,15 @@ func NewRunner(
 		logger:             logger,
 		ActiveBackendChan:  backendChan,
 		TrafficEnabledChan: trafficEnabledChan,
-		port:               port,
+		address:            address,
 		timeout:            timeout,
 	}
 }
 
 func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	r.logger.Info(fmt.Sprintf("Proxy listening on port %d", r.port))
+	r.logger.Info(fmt.Sprintf("Proxy listening on %s", r.address))
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", r.port))
+	listener, err := net.Listen("tcp", r.address)
 	if err != nil {
 		return err
 	}
