@@ -351,19 +351,24 @@ var _ = Describe("Switchboard", func() {
 		})
 
 		Describe("Health", func() {
+			var httpClient *http.Client
+
+			BeforeEach(func() {
+				httpClient = &http.Client{}
+			})
+
 			var acceptsAndClosesTCPConnections = func() {
-				var err error
-				var conn net.Conn
+				address := fmt.Sprintf("http://127.0.0.1:%d", rootConfig.HealthPort)
 				Eventually(func() error {
-					conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", rootConfig.HealthPort))
-					if err != nil {
+					req, _ := http.NewRequest(http.MethodGet, address, nil)
+					req.SetBasicAuth(rootConfig.API.Username, rootConfig.API.Password)
+					if res, err := httpClient.Do(req); err != nil {
 						return err
+					} else if res.StatusCode != http.StatusOK {
+						return errors.New("health check port returned unexpected status: " + res.Status)
 					}
 					return nil
-
-				}, startupTimeout).Should(Succeed())
-				defer conn.Close()
-
+				}, "10s", "1s").Should(Succeed())
 			}
 
 			It("accepts and immediately closes TCP connections on HealthPort", func() {
