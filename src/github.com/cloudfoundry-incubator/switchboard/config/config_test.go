@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/tlsconfig/certtest"
-	. "github.com/cloudfoundry-incubator/switchboard/config"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
+
+	. "github.com/cloudfoundry-incubator/switchboard/config"
 )
 
 var _ = Describe("Config", func() {

@@ -104,15 +104,12 @@ func (c Config) Validate() error {
 		}
 	}
 
-
 	if c.BackendTLS.Enabled {
 		certPool := x509.NewCertPool()
 		if ok := certPool.AppendCertsFromPEM([]byte(c.BackendTLS.CA)); !ok {
 			errString += fmt.Sprintf("%s%s : %s\n", "", "BackendTLS.CA", "Failed to Parse CA.")
 		}
 	}
-
-
 
 	if len(errString) > 0 {
 		return errors.New(fmt.Sprintf("Validation errors: %s\n", errString))
