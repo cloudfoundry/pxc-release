@@ -16,7 +16,8 @@
       route_registrar:
         routes:
         - name: cf-mysql-proxy
-          port: 8080
+          tls_port: 8080
+          server_cert_domain_san: proxy-tls
           registration_interval: 10s
           uris:
           # proxy_route_suffix should be set to <unique-prefix>.<cf_domain>

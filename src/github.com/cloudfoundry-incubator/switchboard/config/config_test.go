@@ -100,6 +100,12 @@ var _ = Describe("Config", func() {
 				`Expected fixtures/validConfig.yml to unmarshal the correct BackendTLS.ServerName property, but it did not.  Are the struct tags correct?`)
 		})
 
+		It("configures Proxy TLS properties", func() {
+			Expect(rootConfig.API.TLS.Certificate).To(Equal(`some-pem-encoded-certificate`),
+				`Expected fixtures/validConfig.yml to unmarshal the correct API.TLS.Certificate property, but it did not.  Are the struct tags correct?`)
+			Expect(rootConfig.API.TLS.PrivateKey).To(Equal(`some-pem-encoded-private-key`),
+				`Expected fixtures/validConfig.yml to unmarshal the correct API.TLS.Certificate property, but it did not.  Are the struct tags correct?`)
+		})
 		It("returns an error if API.Port is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "API.Port")
 			Expect(err).ToNot(HaveOccurred())

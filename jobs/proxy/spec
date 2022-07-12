@@ -51,6 +51,13 @@ properties:
   healthcheck_timeout_millis:
     description: "Timeout (milliseconds) before assuming a backend is unhealthy"
     default: 5000
+  api_tls:
+    enabled:
+      description: Enable TLS for client connections to the proxy's api endpoints
+    certificate:
+      description: PEM-encoded certificate for securing TLS communication to the proxy API
+    private_key:
+      description: PEM-encoded key for securing TLS communication to the proxy API
   api_port:
     description: "Port for the proxy API to listen on"
     default: 8080

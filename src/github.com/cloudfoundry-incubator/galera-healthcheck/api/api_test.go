@@ -1,26 +1,25 @@
 package api_test
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
-	"encoding/json"
-	"errors"
-
 	"code.cloudfoundry.org/lager/lagertest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api/apifakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 const (
 	ExpectedSeqno             = "4"
-	ArbitratorSeqnoResponse   = "no sequence number - running on arbitrator node"
 	ExpectedHealthCheckStatus = "synced"
 	ApiUsername               = "fake-username"
 	ApiPassword               = "fake-password"

@@ -35,6 +35,12 @@ func main() {
 		logger.Fatal(fmt.Sprintf("staticDir: %s does not exist", rootConfig.StaticDir), nil)
 	}
 
+	// TODO here
+	serverTLSConfig, err := rootConfig.ServerTLSConfig()
+	if err != nil {
+		logger.Fatal("load-tls-config", err)
+	}
+
 	backends := domain.NewBackends(rootConfig.Proxy.Backends, logger)
 
 	client := rootConfig.HTTPClient()
@@ -64,16 +70,20 @@ func main() {
 		},
 		{
 			Name: "api-aggregator",
-			Runner: httprunner.NewHTTPRunner(
+			Runner: httprunner.NewRunner(
 				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.API.AggregatorPort),
 				aggregatorHandler,
+				serverTLSConfig,
+				rootConfig.API.TLS.Enabled,
 			),
 		},
 		{
 			Name: "api",
-			Runner: httprunner.NewHTTPRunner(
+			Runner: httprunner.NewRunner(
 				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.API.Port),
 				apiHandler,
+				serverTLSConfig,
+				rootConfig.API.TLS.Enabled,
 			),
 		},
 		{
@@ -85,9 +95,11 @@ func main() {
 	if rootConfig.HealthPort != rootConfig.API.Port {
 		members = append(members, grouper.Member{
 			Name: "health",
-			Runner: httprunner.NewHTTPRunner(
+			Runner: httprunner.NewRunner(
 				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.HealthPort),
 				http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}),
+				serverTLSConfig,
+				rootConfig.API.TLS.Enabled,
 			),
 		})
 	}
