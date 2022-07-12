@@ -43,7 +43,7 @@ func main() {
 	activeNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.BackendTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("active-monitor"), true)
 
 	activeNodeBridgeRunner := bridge.NewRunner(
-		rootConfig.Proxy.Port,
+		fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.Proxy.Port),
 		rootConfig.Proxy.ShutdownDelay(),
 		logger.Session("active-bridge-runner"),
 	)
@@ -64,12 +64,18 @@ func main() {
 			Runner: activeNodeBridgeRunner,
 		},
 		{
-			Name:   "api-aggregator",
-			Runner: apiaggregatorrunner.NewRunner(rootConfig.API.AggregatorPort, aggregatorHandler),
+			Name: "api-aggregator",
+			Runner: apiaggregatorrunner.NewRunner(
+				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.API.AggregatorPort),
+				aggregatorHandler,
+			),
 		},
 		{
-			Name:   "api",
-			Runner: apirunner.NewRunner(rootConfig.API.Port, apiHandler),
+			Name: "api",
+			Runner: apirunner.NewRunner(
+				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.API.Port),
+				apiHandler,
+			),
 		},
 		{
 			Name:   "active-node-monitor",
@@ -80,7 +86,7 @@ func main() {
 	if rootConfig.HealthPort != rootConfig.API.Port {
 		members = append(members, grouper.Member{
 			Name:   "health",
-			Runner: health.NewRunner(rootConfig.HealthPort),
+			Runner: health.NewRunner(fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.HealthPort)),
 		})
 	}
 
@@ -88,7 +94,7 @@ func main() {
 		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.BackendTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("inactive-monitor"), false)
 
 		inactiveNodeBridgeRunner := bridge.NewRunner(
-			rootConfig.Proxy.InactiveMysqlPort,
+			fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.Proxy.InactiveMysqlPort),
 			0,
 			logger.Session("inactive-bridge-runner"),
 		)

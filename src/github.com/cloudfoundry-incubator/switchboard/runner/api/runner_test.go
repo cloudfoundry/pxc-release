@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/cloudfoundry-incubator/switchboard/runner/api"
 
@@ -15,7 +16,7 @@ import (
 var _ = Describe("APIRunner", func() {
 	It("shuts down gracefully when signalled", func() {
 		apiPort := 10000 + GinkgoParallelNode()
-		apiRunner := api.NewRunner(uint(apiPort), nil)
+		apiRunner := api.NewRunner("127.0.0.1:"+strconv.Itoa(apiPort), nil)
 		apiProcess := ifrit.Invoke(apiRunner)
 		apiProcess.Signal(os.Kill)
 		Eventually(apiProcess.Wait()).Should(Receive())

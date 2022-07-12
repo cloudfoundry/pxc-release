@@ -17,12 +17,13 @@ import (
 )
 
 type Config struct {
-	Proxy      Proxy        `yaml:"Proxy" validate:"nonzero"`
-	API        API          `yaml:"API" validate:"nonzero"`
-	StaticDir  string       `yaml:"StaticDir" validate:"nonzero"`
-	HealthPort uint         `yaml:"HealthPort" validate:"nonzero"`
-	BackendTLS BackendTLS   `yaml:"BackendTLS"`
-	Logger     lager.Logger `yaml:"-"`
+	BindAddress string       `yaml:"BindAddress"`
+	Proxy       Proxy        `yaml:"Proxy" validate:"nonzero"`
+	API         API          `yaml:"API" validate:"nonzero"`
+	StaticDir   string       `yaml:"StaticDir" validate:"nonzero"`
+	HealthPort  uint         `yaml:"HealthPort" validate:"nonzero"`
+	BackendTLS  BackendTLS   `yaml:"BackendTLS"`
+	Logger      lager.Logger `yaml:"-"`
 }
 
 type BackendTLS struct {

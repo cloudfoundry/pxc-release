@@ -59,7 +59,7 @@ func (fh *HealthcheckRunner) Run(signals <-chan os.Signal, ready chan<- struct{}
 		Handler: mux,
 	}
 
-	listener, err := tls.Listen("tcp", fmt.Sprintf(":%d", fh.port), fh.tlsConfig)
+	listener, err := tls.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", fh.port), fh.tlsConfig)
 	if err != nil {
 		return err
 	}

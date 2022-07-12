@@ -3,12 +3,11 @@ package health_test
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
-	"time"
+	"strconv"
 
 	"github.com/cloudfoundry-incubator/switchboard/runner/health"
-
-	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,20 +17,19 @@ import (
 var _ = Describe("HealthRunner", func() {
 
 	var (
-		healthPort     int
-		healthRunner   ifrit.Runner
-		healthProcess  ifrit.Process
-		startupTimeout = 5 * time.Second
+		healthPort    int
+		healthRunner  ifrit.Runner
+		healthProcess ifrit.Process
 	)
 
 	BeforeEach(func() {
 
 		healthPort = 10000 + GinkgoParallelNode()
 
-		healthRunner = health.NewRunner(uint(healthPort))
+		healthRunner = health.NewRunner("127.0.0.1:" + strconv.Itoa(healthPort))
 		healthProcess = ifrit.Invoke(healthRunner)
 		isReady := healthProcess.Ready()
-		Eventually(isReady, startupTimeout).Should(BeClosed(), "Error starting Health Runner")
+		Eventually(isReady, "30s").Should(BeClosed(), "Error starting Health Runner")
 	})
 
 	AfterEach(func() {

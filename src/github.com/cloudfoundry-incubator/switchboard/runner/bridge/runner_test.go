@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
+
+	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
 )
 
 var _ = Describe("Bridge Runner", func() {
@@ -20,7 +22,7 @@ var _ = Describe("Bridge Runner", func() {
 		proxyPort := 10000 + GinkgoParallelNode()
 		logger := lagertest.NewTestLogger("ProxyRunner test")
 
-		proxyRunner := bridge.NewRunner( uint(proxyPort), timeout, logger)
+		proxyRunner := bridge.NewRunner("127.0.0.1:"+strconv.Itoa(proxyPort), timeout, logger)
 		proxyProcess := ifrit.Invoke(proxyRunner)
 
 		Eventually(func() error {

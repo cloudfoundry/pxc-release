@@ -226,10 +226,11 @@ var _ = Describe("Switchboard", func() {
 		}
 
 		rootConfig = config.Config{
-			Proxy:      proxyConfig,
-			API:        apiConfig,
-			HealthPort: switchboardHealthPort,
-			StaticDir:  staticDir,
+			BindAddress: "127.0.0.1",
+			Proxy:       proxyConfig,
+			API:         apiConfig,
+			HealthPort:  switchboardHealthPort,
+			StaticDir:   staticDir,
 			BackendTLS: config.BackendTLS{
 				Enabled:    true,
 				ServerName: "localhost",
