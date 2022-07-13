@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 
@@ -15,10 +16,8 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/apiaggregator"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	apirunner "github.com/cloudfoundry-incubator/switchboard/runner/api"
-	apiaggregatorrunner "github.com/cloudfoundry-incubator/switchboard/runner/apiaggregator"
 	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
-	"github.com/cloudfoundry-incubator/switchboard/runner/health"
+	httprunner "github.com/cloudfoundry-incubator/switchboard/runner/http"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
 )
 
@@ -65,14 +64,14 @@ func main() {
 		},
 		{
 			Name: "api-aggregator",
-			Runner: apiaggregatorrunner.NewRunner(
+			Runner: httprunner.NewHTTPRunner(
 				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.API.AggregatorPort),
 				aggregatorHandler,
 			),
 		},
 		{
 			Name: "api",
-			Runner: apirunner.NewRunner(
+			Runner: httprunner.NewHTTPRunner(
 				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.API.Port),
 				apiHandler,
 			),
@@ -85,8 +84,11 @@ func main() {
 
 	if rootConfig.HealthPort != rootConfig.API.Port {
 		members = append(members, grouper.Member{
-			Name:   "health",
-			Runner: health.NewRunner(fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.HealthPort)),
+			Name: "health",
+			Runner: httprunner.NewHTTPRunner(
+				fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.HealthPort),
+				http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}),
+			),
 		})
 	}
 
