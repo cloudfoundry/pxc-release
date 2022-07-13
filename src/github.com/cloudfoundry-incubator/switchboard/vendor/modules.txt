@@ -87,6 +87,8 @@ github.com/onsi/gomega/types
 ## explicit
 github.com/pivotal-cf-experimental/service-config
 github.com/pivotal-cf-experimental/service-config/test_helpers
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # github.com/square/certstrap v1.2.0
 github.com/square/certstrap/pkix
 # github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00

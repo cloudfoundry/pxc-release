@@ -2,14 +2,15 @@ package config
 
 import (
 	"crypto/tls"
-	"errors"
 	"flag"
 	"fmt"
+	"net"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/tlsconfig"
 	"github.com/pivotal-cf-experimental/service-config"
+	"github.com/pkg/errors"
 	"gopkg.in/validator.v2"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
@@ -112,9 +113,11 @@ func formatErrorString(err error, keyPrefix string) string {
 	return errsString
 }
 
-func (c *Config) TLSConfig() (*tls.Config, error) {
+func (c *Config) NetworkListener() (net.Listener, error) {
+	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
+
 	if !c.SidecarEndpoint.TLS.Enabled {
-		return nil, errors.New("endpoint_tls.enabled is false - no tls configuration available")
+		return net.Listen("tcp", address)
 	}
 
 	serverCert, err := tls.X509KeyPair([]byte(c.SidecarEndpoint.TLS.Certificate), []byte(c.SidecarEndpoint.TLS.PrivateKey))
@@ -127,9 +130,10 @@ func (c *Config) TLSConfig() (*tls.Config, error) {
 		tlsconfig.WithIdentity(serverCert),
 	).Server()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "generating tls config")
 	}
-	return tlsConfig, nil
+
+	return tls.Listen("tcp", address, tlsConfig)
 }
 
 func (c *Config) IsHealthy(state domain.DBState) bool {
