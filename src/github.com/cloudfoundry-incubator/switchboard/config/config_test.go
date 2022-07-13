@@ -52,7 +52,7 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		When("BackendTLS is enabled", func() {
+		When("GaleraAgentTLS is enabled", func() {
 
 			var (
 				caPEMBytes []byte
@@ -60,14 +60,14 @@ var _ = Describe("Config", func() {
 			)
 
 			BeforeEach(func() {
-				rootConfig.BackendTLS.Enabled = true
+				rootConfig.GaleraAgentTLS.Enabled = true
 			})
 
 			JustBeforeEach(func() {
 				err = rootConfig.Validate()
 			})
 
-			When("BackendTLS.CA is valid", func() {
+			When("GaleraAgentTLS.CA is valid", func() {
 				BeforeEach(func() {
 					serverAuthority, err := certtest.BuildCA("test")
 
@@ -75,7 +75,7 @@ var _ = Describe("Config", func() {
 					caPEMBytes, err = serverAuthority.CertificatePEM()
 
 					Expect(err).ToNot(HaveOccurred())
-					rootConfig.BackendTLS.CA = string(caPEMBytes)
+					rootConfig.GaleraAgentTLS.CA = string(caPEMBytes)
 
 				})
 				It("does not throw an error", func() {
@@ -83,21 +83,21 @@ var _ = Describe("Config", func() {
 				})
 			})
 
-			When("BackendTLS.CA is invalid", func() {
+			When("GaleraAgentTLS.CA is invalid", func() {
 				It("returns an error", func() {
-					Expect(err).To(MatchError(errors.New(fmt.Sprintf("Validation errors: %s\n", fmt.Sprintf("%s%s : %s\n", "", "BackendTLS.CA", "Failed to Parse CA.")))))
+					Expect(err).To(MatchError(errors.New(fmt.Sprintf("Validation errors: %s\n", fmt.Sprintf("%s%s : %s\n", "", "GaleraAgentTLS.CA", "Failed to Parse CA.")))))
 				})
 			})
 
 		})
 
-		It("configures BackendTLS properties", func() {
-			Expect(rootConfig.BackendTLS.Enabled).To(BeFalse(),
-				`Expected fixtures/validConfig.yml to unmarshal a BackendTLS.Enabled = true property, but it did not.  Are the struct tags correct?`)
-			Expect(rootConfig.BackendTLS.CA).To(Equal("this-should-be-a-PEM-encoded-CA"),
-				`Expected fixtures/validConfig.yml to unmarshal the correct BackendTLS.CA property, but it did not.  Are the struct tags correct?`)
-			Expect(rootConfig.BackendTLS.ServerName).To(Equal(`Expected server certificate identity`),
-				`Expected fixtures/validConfig.yml to unmarshal the correct BackendTLS.ServerName property, but it did not.  Are the struct tags correct?`)
+		It("configures GaleraAgentTLS properties", func() {
+			Expect(rootConfig.GaleraAgentTLS.Enabled).To(BeFalse(),
+				`Expected fixtures/validConfig.yml to unmarshal a GaleraAgentTLS.Enabled = true property, but it did not.  Are the struct tags correct?`)
+			Expect(rootConfig.GaleraAgentTLS.CA).To(Equal("this-should-be-a-PEM-encoded-CA"),
+				`Expected fixtures/validConfig.yml to unmarshal the correct GaleraAgentTLS.CA property, but it did not.  Are the struct tags correct?`)
+			Expect(rootConfig.GaleraAgentTLS.ServerName).To(Equal(`Expected server certificate identity`),
+				`Expected fixtures/validConfig.yml to unmarshal the correct GaleraAgentTLS.ServerName property, but it did not.  Are the struct tags correct?`)
 		})
 
 		It("configures Proxy TLS properties", func() {
@@ -210,7 +210,7 @@ var _ = Describe("Config", func() {
 
 		When("Galera Agent TLS is not enabled", func() {
 			BeforeEach(func() {
-				rootConfig.BackendTLS.Enabled = false
+				rootConfig.GaleraAgentTLS.Enabled = false
 			})
 
 			It("does not configure a TLSClientConfig", func() {
@@ -222,7 +222,7 @@ var _ = Describe("Config", func() {
 
 		When("Galera Agent TLS is enabled", func() {
 			BeforeEach(func() {
-				rootConfig.BackendTLS.Enabled = true
+				rootConfig.GaleraAgentTLS.Enabled = true
 			})
 
 			It("configures a TLSClientConfig", func() {

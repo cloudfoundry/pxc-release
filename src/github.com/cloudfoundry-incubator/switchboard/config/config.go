@@ -18,16 +18,16 @@ import (
 )
 
 type Config struct {
-	BindAddress string       `yaml:"BindAddress"`
-	Proxy       Proxy        `yaml:"Proxy" validate:"nonzero"`
-	API         API          `yaml:"API" validate:"nonzero"`
-	StaticDir   string       `yaml:"StaticDir" validate:"nonzero"`
-	HealthPort  uint         `yaml:"HealthPort" validate:"nonzero"`
-	BackendTLS  BackendTLS   `yaml:"BackendTLS"`
-	Logger      lager.Logger `yaml:"-"`
+	BindAddress    string         `yaml:"BindAddress"`
+	Proxy          Proxy          `yaml:"Proxy" validate:"nonzero"`
+	API            API            `yaml:"API" validate:"nonzero"`
+	StaticDir      string         `yaml:"StaticDir" validate:"nonzero"`
+	HealthPort     uint           `yaml:"HealthPort" validate:"nonzero"`
+	GaleraAgentTLS GaleraAgentTLS `yaml:"GaleraAgentTLS"`
+	Logger         lager.Logger   `yaml:"-"`
 }
 
-type BackendTLS struct {
+type GaleraAgentTLS struct {
 	Enabled    bool   `yaml:"Enabled"`
 	ServerName string `yaml:"ServerName"`
 	CA         string `yaml:"CA"`
@@ -110,10 +110,10 @@ func (c Config) Validate() error {
 		}
 	}
 
-	if c.BackendTLS.Enabled {
+	if c.GaleraAgentTLS.Enabled {
 		certPool := x509.NewCertPool()
-		if ok := certPool.AppendCertsFromPEM([]byte(c.BackendTLS.CA)); !ok {
-			errString += fmt.Sprintf("%s%s : %s\n", "", "BackendTLS.CA", "Failed to Parse CA.")
+		if ok := certPool.AppendCertsFromPEM([]byte(c.GaleraAgentTLS.CA)); !ok {
+			errString += fmt.Sprintf("%s%s : %s\n", "", "GaleraAgentTLS.CA", "Failed to Parse CA.")
 		}
 	}
 
@@ -128,9 +128,9 @@ func (c *Config) HTTPClient() *http.Client {
 		Timeout: c.Proxy.HealthcheckTimeout(),
 	}
 
-	if c.BackendTLS.Enabled {
+	if c.GaleraAgentTLS.Enabled {
 		certPool := x509.NewCertPool()
-		if ok := certPool.AppendCertsFromPEM([]byte(c.BackendTLS.CA)); !ok {
+		if ok := certPool.AppendCertsFromPEM([]byte(c.GaleraAgentTLS.CA)); !ok {
 			// TODO: should we handle the failure parsing a CA?
 		}
 
@@ -138,7 +138,7 @@ func (c *Config) HTTPClient() *http.Client {
 			tlsconfig.WithInternalServiceDefaults(),
 		).Client(
 			tlsconfig.WithAuthority(certPool),
-			tlsconfig.WithServerName(c.BackendTLS.ServerName),
+			tlsconfig.WithServerName(c.GaleraAgentTLS.ServerName),
 		)
 
 		httpClient.Transport = &http.Transport{

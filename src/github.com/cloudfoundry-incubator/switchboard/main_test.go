@@ -334,7 +334,7 @@ var _ = Describe("Switchboard", func() {
 			API:         apiConfig,
 			HealthPort:  switchboardHealthPort,
 			StaticDir:   staticDir,
-			BackendTLS: config.BackendTLS{
+			GaleraAgentTLS: config.GaleraAgentTLS{
 				Enabled:    true,
 				ServerName: "localhost",
 				CA:         string(testCA),
