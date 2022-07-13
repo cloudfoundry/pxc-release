@@ -128,11 +128,15 @@ func (c *Config) HTTPClient() *http.Client {
 			// TODO: should we handle the failure parsing a CA?
 		}
 
+		tlsClientCfg, _ := tlsconfig.Build(
+			tlsconfig.WithInternalServiceDefaults(),
+		).Client(
+			tlsconfig.WithAuthority(certPool),
+			tlsconfig.WithServerName(c.BackendTLS.ServerName),
+		)
+
 		httpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    certPool,
-				ServerName: c.BackendTLS.ServerName,
-			},
+			TLSClientConfig: tlsClientCfg,
 		}
 	}
 
