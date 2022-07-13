@@ -1,0 +1,20 @@
+---
+- type: replace
+  path: /update/canaries?
+  value: 0
+
+- type: replace
+  path: /update/max_in_flight?
+  value: 100%
+
+- type: replace
+  path: /update/serial?
+  value: false
+
+- type: replace
+  path: /update/initial_deploy_az_update_strategy?
+  value: parallel
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=proxy/properties/startup_delay?
+  value: 0
