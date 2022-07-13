@@ -45,7 +45,7 @@ func main() {
 
 	client := rootConfig.HTTPClient()
 
-	activeNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.BackendTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("active-monitor"), true)
+	activeNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.GaleraAgentTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("active-monitor"), true)
 
 	activeNodeBridgeRunner := bridge.NewRunner(
 		fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.Proxy.Port),
@@ -105,7 +105,7 @@ func main() {
 	}
 
 	if rootConfig.Proxy.InactiveMysqlPort != 0 {
-		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.BackendTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("inactive-monitor"), false)
+		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.GaleraAgentTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("inactive-monitor"), false)
 
 		inactiveNodeBridgeRunner := bridge.NewRunner(
 			fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.Proxy.InactiveMysqlPort),
