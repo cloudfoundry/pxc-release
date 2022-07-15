@@ -50,6 +50,8 @@ var _ = BeforeSuite(func() {
 	dockerClient, err = docker.NewClientFromEnv()
 	Expect(err).NotTo(HaveOccurred())
 
+	Expect(PullImage(dockerClient, pxcDockerImage)).To(Succeed())
+
 	galeraInitPath, err = gexec.BuildWithEnvironment(
 		"github.com/cloudfoundry/galera-init/cmd/start/",
 		[]string{
