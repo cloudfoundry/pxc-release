@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/tlsconfig"
-
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 )
@@ -33,6 +32,12 @@ type GaleraAgentTLS struct {
 	CA         string `yaml:"CA"`
 }
 
+type SwitchboardApiTLS struct {
+	Enabled     bool   `yaml:"Enabled"`
+	Certificate string `yaml:"Certificate"`
+	PrivateKey  string `yaml:"PrivateKey"`
+}
+
 type Proxy struct {
 	Port                     uint      `yaml:"Port" validate:"nonzero"`
 	InactiveMysqlPort        uint      `yaml:"InactiveMysqlPort"`
@@ -42,17 +47,13 @@ type Proxy struct {
 }
 
 type API struct {
-	Port           uint     `yaml:"Port" validate:"nonzero"`
-	AggregatorPort uint     `yaml:"AggregatorPort" validate:"nonzero"`
-	Username       string   `yaml:"Username" validate:"nonzero"`
-	Password       string   `yaml:"Password" validate:"nonzero"`
-	ForceHttps     bool     `yaml:"ForceHttps"`
-	ProxyURIs      []string `yaml:"ProxyURIs"`
-	TLS            struct {
-		Enabled     bool   `yaml:"Enabled"`
-		Certificate string `yaml:"Certificate"`
-		PrivateKey  string `yaml:"PrivateKey"`
-	} `yaml:"TLS"`
+	Port           uint              `yaml:"Port" validate:"nonzero"`
+	AggregatorPort uint              `yaml:"AggregatorPort" validate:"nonzero"`
+	Username       string            `yaml:"Username" validate:"nonzero"`
+	Password       string            `yaml:"Password" validate:"nonzero"`
+	ForceHttps     bool              `yaml:"ForceHttps"`
+	ProxyURIs      []string          `yaml:"ProxyURIs"`
+	TLS            SwitchboardApiTLS `yaml:"TLS"`
 }
 
 type Backend struct {
@@ -117,6 +118,14 @@ func (c Config) Validate() error {
 		}
 	}
 
+	if c.API.TLS.Enabled {
+		_, err := tls.X509KeyPair([]byte(c.API.TLS.Certificate), []byte(c.API.TLS.PrivateKey))
+		if err != nil {
+			errString += fmt.Sprintf("%s%s : %s\n", "SwitchboardApi", ".Certificate/PrivateKey", "Failed to Parse Certificate or PrivateKey.")
+		}
+
+	}
+
 	if len(errString) > 0 {
 		return errors.New(fmt.Sprintf("Validation errors: %s\n", errString))
 	}
@@ -150,14 +159,14 @@ func (c *Config) HTTPClient() *http.Client {
 }
 
 func (c Config) ServerTLSConfig() (*tls.Config, error) {
-	serverCert, err := tls.X509KeyPair([]byte(c.API.TLS.Certificate), []byte(c.API.TLS.PrivateKey))
-	if err != nil {
-		return nil, err
+	if c.API.TLS.Enabled {
+		serverCert, _ := tls.X509KeyPair([]byte(c.API.TLS.Certificate), []byte(c.API.TLS.PrivateKey))
+		return tlsconfig.Build(
+			tlsconfig.WithInternalServiceDefaults(),
+			tlsconfig.WithIdentity(serverCert),
+		).Server()
 	}
-	return tlsconfig.Build(
-		tlsconfig.WithInternalServiceDefaults(),
-		tlsconfig.WithIdentity(serverCert),
-	).Server()
+	return nil, nil
 }
 
 func formatErrorString(err error, keyPrefix string) string {
