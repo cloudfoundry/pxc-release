@@ -28,11 +28,6 @@
       ForceHttps: p('api_force_https'),
       Username: p('api_username'),
       Password: p('api_password'),
-      TLS: {
-        Enabled: p('api_tls.enabled'),
-        Certificate: p('api_tls.certificate'),
-        PrivateKey: p('api_tls.private_key'),
-      },
     },
     Proxy: {
       Port: p('port'),
@@ -51,6 +46,14 @@
         CA: link('galera-agent').p('endpoint_tls.ca'),
         ServerName: link('galera-agent').p('endpoint_tls.server_name'),
     }
+  end
+
+  if_p('endpoint_tls')
+  	config[:API][:TLS] = {
+  		Enabled: p('api_tls.enabled'),
+        Certificate: p('api_tls.certificate'),
+        PrivateKey: p('api_tls.private_key'),
+  	}
   end
 
   if_p('inactive_mysql_port') do |inactive_mysql_port|

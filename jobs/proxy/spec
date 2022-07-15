@@ -54,10 +54,13 @@ properties:
   api_tls:
     enabled:
       description: Enable TLS for client connections to the proxy's api endpoints
+      default: false
     certificate:
       description: PEM-encoded certificate for securing TLS communication to the proxy API
+      default: ""
     private_key:
       description: PEM-encoded key for securing TLS communication to the proxy API
+      default: ""
   api_port:
     description: "Port for the proxy API to listen on"
     default: 8080
