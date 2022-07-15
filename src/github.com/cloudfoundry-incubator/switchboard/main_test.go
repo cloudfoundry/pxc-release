@@ -149,6 +149,7 @@ var _ = Describe("Switchboard", func() {
 		apiConfig                    config.API
 		staticDir                    string
 		testServerTLSConfig          *tls.Config
+		testCert                     tls.Certificate
 
 		httpClient *http.Client
 	)
@@ -271,10 +272,14 @@ var _ = Describe("Switchboard", func() {
 	}
 
 	BeforeEach(func() {
+		var (
+			err    error
+			testCA []byte
+		)
 		testDir := getDirOfCurrentFile()
 		staticDir = filepath.Join(testDir, "static")
 
-		testCA, testCert, err := testing.GenerateSelfSignedCertificate("localhost")
+		testCA, testCert, err = testing.GenerateSelfSignedCertificate("localhost")
 		Expect(err).NotTo(HaveOccurred())
 
 		testServerTLSConfig, err = testing.ServerConfigFromCertificate(testCert)
@@ -324,10 +329,6 @@ var _ = Describe("Switchboard", func() {
 			ProxyURIs:      []string{"some-proxy-uri-0", "some-proxy-uri-1"},
 		}
 
-		apiConfig.TLS.Enabled = false
-		apiConfig.TLS.Certificate = string(testing.CertificatePEM(testCert.Certificate[0]))
-		apiConfig.TLS.PrivateKey = string(testing.PrivateKeyPEM(testCert.PrivateKey))
-
 		rootConfig = config.Config{
 			BindAddress: "127.0.0.1",
 			Proxy:       proxyConfig,
@@ -343,38 +344,80 @@ var _ = Describe("Switchboard", func() {
 		healthcheckWaitDuration = 3 * proxyConfig.HealthcheckTimeout()
 	})
 
-	Context("Non TLS", func() {
+	Context("Non TLS for the API", func() {
 
-		JustBeforeEach(func() {
-			startYourServers(rootConfig)
-		})
-
-		AfterEach(func() {
-			ginkgomon.Interrupt(process, 10*time.Second)
-		})
-
-		When("switchboard starts successfully without TLS", func() {
+		When("apiConfig.TlS is provided", func() {
 			JustBeforeEach(func() {
-				waitForServersToBeReady("http")
+				rootConfig.API.TLS.Enabled = false
+				startYourServers(rootConfig)
 			})
-			When("switchboard starts without TLS", func() {
-				Context("Aggregator Dashboard", func() {
-					It("makes a successful request", func() {
-						acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIAggregatorPort))
+
+			AfterEach(func() {
+				ginkgomon.Interrupt(process, 10*time.Second)
+			})
+
+			When("switchboard starts successfully without TLS", func() {
+				JustBeforeEach(func() {
+					waitForServersToBeReady("http")
+				})
+				When("switchboard starts without TLS", func() {
+					Context("Aggregator Dashboard", func() {
+						It("makes a successful request", func() {
+							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIAggregatorPort))
+						})
 					})
+
+					Context("Proxy Dashboard", func() {
+						It("makes a successful request", func() {
+							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIPort))
+
+						})
+					})
+
+					Context("Healthchecks", func() {
+						It("makes a successful HTTP request", func() {
+							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardHealthPort))
+						})
+					})
+
 				})
 
-				Context("Proxy Dashboard", func() {
-					It("makes a successful request", func() {
-						acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIPort))
+			})
 
-					})
+		})
+		When("apiConfig.TlS is not provided", func() {
+			JustBeforeEach(func() {
+				startYourServers(rootConfig)
+			})
+
+			AfterEach(func() {
+				ginkgomon.Interrupt(process, 10*time.Second)
+			})
+
+			When("switchboard starts successfully without TLS", func() {
+				JustBeforeEach(func() {
+					waitForServersToBeReady("http")
 				})
-
-				Context("Healthchecks", func() {
-					It("makes a successful HTTP request", func() {
-						acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardHealthPort))
+				When("switchboard starts without TLS", func() {
+					Context("Aggregator Dashboard", func() {
+						It("makes a successful request", func() {
+							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIAggregatorPort))
+						})
 					})
+
+					Context("Proxy Dashboard", func() {
+						It("makes a successful request", func() {
+							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardAPIPort))
+
+						})
+					})
+
+					Context("Healthchecks", func() {
+						It("makes a successful HTTP request", func() {
+							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardHealthPort))
+						})
+					})
+
 				})
 
 			})
@@ -386,6 +429,8 @@ var _ = Describe("Switchboard", func() {
 
 		JustBeforeEach(func() {
 			rootConfig.API.TLS.Enabled = true
+			rootConfig.API.TLS.Certificate = string(testing.CertificatePEM(testCert.Certificate[0]))
+			rootConfig.API.TLS.PrivateKey = string(testing.PrivateKeyPEM(testCert.PrivateKey))
 			startYourServers(rootConfig)
 		})
 

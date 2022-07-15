@@ -35,7 +35,6 @@ func main() {
 		logger.Fatal(fmt.Sprintf("staticDir: %s does not exist", rootConfig.StaticDir), nil)
 	}
 
-	// TODO here
 	serverTLSConfig, err := rootConfig.ServerTLSConfig()
 	if err != nil {
 		logger.Fatal("load-tls-config", err)

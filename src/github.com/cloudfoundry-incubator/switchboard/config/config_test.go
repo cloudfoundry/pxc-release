@@ -90,6 +90,46 @@ var _ = Describe("Config", func() {
 			})
 
 		})
+		When("SwitchboardApiTLS is enabled", func() {
+
+			var (
+				err             error
+			)
+
+			BeforeEach(func() {
+				rootConfig.API.TLS.Enabled = true
+			})
+
+			JustBeforeEach(func() {
+				err = rootConfig.Validate()
+			})
+
+			When("SwitchboardApi Certificate and PrivateKey are valid", func() {
+				BeforeEach(func() {
+					authority, err := certtest.BuildCA("testCA")
+					Expect(err).NotTo(HaveOccurred())
+
+					certificate, err := authority.BuildSignedCertificate("localhost")
+					Expect(err).NotTo(HaveOccurred())
+
+					caPEMBytes, privateKeyBytes, err := certificate.CertificatePEMAndPrivateKey()
+					Expect(err).NotTo(HaveOccurred())
+
+					rootConfig.API.TLS.Certificate = string(caPEMBytes)
+					rootConfig.API.TLS.PrivateKey = string(privateKeyBytes)
+
+				})
+				It("does not throw an error", func() {
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+
+			When("SwitchboardApi Certificate and PrivateKey are invalid", func() {
+				It("returns an error", func() {
+					Expect(err).To(MatchError(errors.New(fmt.Sprintf("Validation errors: %s\n", fmt.Sprintf("%s%s : %s\n", "", "SwitchboardApi.Certificate/PrivateKey", "Failed to Parse Certificate or PrivateKey.")))))
+				})
+			})
+		})
 
 		It("configures GaleraAgentTLS properties", func() {
 			Expect(rootConfig.GaleraAgentTLS.Enabled).To(BeFalse(),

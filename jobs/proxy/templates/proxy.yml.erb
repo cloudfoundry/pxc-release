@@ -48,12 +48,14 @@
     }
   end
 
-  if_p('endpoint_tls')
-  	config[:API][:TLS] = {
-  		Enabled: p('api_tls.enabled'),
-        Certificate: p('api_tls.certificate'),
-        PrivateKey: p('api_tls.private_key'),
-  	}
+  if_p('api_tls') do |endpoint_tls|
+  	if p('api_tls.enabled')
+		config[:API][:TLS] = {
+			Enabled: true,
+			Certificate: p('api_tls.certificate'),
+			PrivateKey: p('api_tls.private_key'),
+		}
+	end
   end
 
   if_p('inactive_mysql_port') do |inactive_mysql_port|
