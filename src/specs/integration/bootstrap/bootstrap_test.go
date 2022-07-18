@@ -30,16 +30,18 @@ func stopMySQL(host string) error {
 	}
 
 	stopMySQLEndpoint := fmt.Sprintf("http://%s:9200/stop_mysql", host)
+	isEnabled, err := helpers.IsTLSEnabled("/instance_groups/name=mysql/jobs/name=galera-agent/properties/endpoint_tls?/enabled")
+	if err != nil {
+		return err
+	}
+	if isEnabled {
+		stopMySQLEndpoint = fmt.Sprintf("https://%s:9201/stop_mysql", host)
+	}
+
 	res, err := doPost(stopMySQLEndpoint, galeraAgentPassword)
 
 	if err != nil {
-
-		stopMySQLEndpoint = fmt.Sprintf("https://%s:9201/stop_mysql", host)
-		res, err = doPost(stopMySQLEndpoint, galeraAgentPassword)
-
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	responseBody, _ := ioutil.ReadAll(res.Body)
@@ -66,7 +68,7 @@ func stopGaleraInitOnAllMysqls() {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	EventuallyWithOffset(1, func() (string, error) {
-		return helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy, helpers.HttpClient)
+		return helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy)
 	}, "3m", "1s").Should(BeEmpty())
 }
 
