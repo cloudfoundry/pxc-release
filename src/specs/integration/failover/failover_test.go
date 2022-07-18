@@ -114,7 +114,7 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 
 		By("querying the proxy for the current mysql backend", func() {
 			var err error
-			oldBackend, err = helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy, helpers.HttpClient)
+			oldBackend, err = helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -125,7 +125,7 @@ var _ = Describe("CF PXC MySQL Failover", func() {
 
 		By("poll the proxy for a backend change", func() {
 			Eventually(func() bool {
-				backend, err := helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy, helpers.HttpClient)
+				backend, err := helpers.ActiveProxyBackend(proxyUsername, proxyPassword, firstProxy)
 				Expect(err).NotTo(HaveOccurred())
 
 				return backend != oldBackend

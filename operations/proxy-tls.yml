@@ -6,15 +6,6 @@
     certificate: ((proxy-tls.certificate))
     private_key: ((proxy-tls.private_key))
 
-- path: /variables/name=proxy-tls-ca?
-  type: replace
-  value:
-    name: proxy-tls-ca
-    type: certificate
-    options:
-      is_ca: true
-      common_name: proxy-tls-ca
-
 - path: /variables/name=proxy-tls?
   type: replace
   value:
@@ -22,7 +13,7 @@
     type: certificate
     update_mode: converge
     options:
-      ca: proxy-tls-ca
+      ca: pxc_galera_ca
       extended_key_usage: ["server_auth"]
       common_name: proxy-tls-ca
-      alternative_names: ["proxy-tls"]
+      alternative_names: ["proxy-tls", "e2e-tests"]

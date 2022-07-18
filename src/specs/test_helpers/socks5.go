@@ -58,7 +58,7 @@ func SetupSocks5Proxy() {
 		log.New(ginkgo.GinkgoWriter, "[socks5proxy] ", log.LstdFlags),
 	)
 	Expect(err).NotTo(HaveOccurred())
-	CA, _ := GetDeploymentCAByName("cf_mysql_mysql_galera_healthcheck_endpoint_tls")
+	CA, _ := GetDeploymentCAByName("pxc_galera_ca")
 
 	certPool := x509.NewCertPool()
 	if ok := certPool.AppendCertsFromPEM([]byte(CA)); !ok {
@@ -70,7 +70,7 @@ func SetupSocks5Proxy() {
 			Dial: dialer,
 			TLSClientConfig: &tls.Config{
 				RootCAs:    certPool,
-				ServerName: "galera_healthcheck_endpoint_tls",
+				ServerName: "e2e-tests",
 			},
 		},
 		Timeout: 2 * time.Minute,
