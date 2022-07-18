@@ -41,7 +41,7 @@
   }
 
   if link('galera-agent').p('endpoint_tls.enabled')
-    config[:BackendTLS] = {
+    config[:GaleraAgentTLS] = {
         Enabled: true,
         CA: link('galera-agent').p('endpoint_tls.ca'),
         ServerName: link('galera-agent').p('endpoint_tls.server_name'),
