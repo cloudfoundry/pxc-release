@@ -3,11 +3,13 @@ package config_test
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net"
 
+	"code.cloudfoundry.org/tlsconfig/certtest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -18,54 +20,77 @@ import (
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/test_helpers"
 )
 
+func generatePrivateKeyPair(names ...string) (string, string) {
+	authority, err := certtest.BuildCA("testCA")
+	Expect(err).ToNot(HaveOccurred())
+
+	certificate, err := authority.BuildSignedCertificate("localhost", certtest.WithDomains(names...))
+	Expect(err).ToNot(HaveOccurred())
+
+	caPEMBytes, privateKeyBytes, err := certificate.CertificatePEMAndPrivateKey()
+	Expect(err).ToNot(HaveOccurred())
+
+	return string(caPEMBytes), string(privateKeyBytes)
+
+}
+
 var _ = Describe("Config", func() {
 	Describe("Validate", func() {
 
 		var (
-			rootConfig *Config
-			rawConfig  string
+			rootConfig        *Config
+			serverName        string
+			healthCheckConfig Config
+			ca                string
+			privateKey        string
 		)
 
+		serverName = "PXC Release Testing Certificate"
+		ca, privateKey = generatePrivateKeyPair(serverName)
+		healthCheckConfig = Config{
+			DB: DBConfig{
+				User:     "vcap",
+				Password: "password",
+				Socket:   "",
+			},
+			Monit: MonitConfig{
+				Host:                          "localhost",
+				User:                          "vcap",
+				Port:                          "2822",
+				Password:                      "random-password",
+				MysqlStateFilePath:            "/var/vcap/store/mysql/state.txt",
+				ServiceName:                   "mariadb_ctrl",
+				GaleraInitStatusServerAddress: "127.0.0.1:8114",
+			},
+			Host:                  "localhost",
+			Port:                  8080,
+			AvailableWhenDonor:    true,
+			AvailableWhenReadOnly: false,
+			MysqldPath:            "/var/vcap/packages/mariadb/bin/mysqld",
+			MyCnfPath:             "/path/to/my.cnf",
+			SidecarEndpoint: SidecarEndpointConfig{
+				Username: "username",
+				Password: "password",
+				TLS: EndpointTLS{
+					Enabled:     true,
+					Certificate: ca,
+					PrivateKey:  privateKey,
+				},
+			},
+			Logger: nil,
+		}
+
 		BeforeEach(func() {
-			rawConfig = `{
-				"StatusEndpoint": "fake",
-				"Host": "localhost",
-				"Port": 8080,
-				"ArbitratorNode": "false",
-				"AvailableWhenReadOnly": false,
-				"AvailableWhenDonor": true,
-				"DB": {
-					"User": "vcap",
-					"Password": "password"
-				},
-				"Monit" : {
-					"Host": "localhost",
-					"User": "vcap",
-					"Port": 2822,
-					"Password": "random-password",
-					"MysqlStateFilePath": "/var/vcap/store/mysql/state.txt",
-					"ServiceName": "mariadb_ctrl",
-					"GaleraInitStatusServerAddress": "127.0.0.1:8114"
-				},
-				"MysqldPath": "/var/vcap/packages/mariadb/bin/mysqld",
-				"MyCnfPath": "/path/to/my.cnf",
-				"SidecarEndpoint": {
-					"Username": "username",
-					"Password": "password",
-					"TLS": {
-						"Enabled": true,
-						"Certificate": "-----BEGIN CERTIFICATE-----\nMIIEdDCCAlygAwIBAgIQcJMKm22mv8duqnxlET8tqjANBgkqhkiG9w0BAQsFADAh\nMR8wHQYDVQQDExZQWEMgUmVsZWFzZSBUZXN0aW5nIENBMB4XDTIyMDUxMDE0MTUx\nOFoXDTIzMTExMDE0MTIyMlowKjEoMCYGA1UEAxMfUFhDIFJlbGVhc2UgVGVzdGlu\nZyBDZXJ0aWZpY2F0ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMpV\nOlpV8n7UzVZOzarEDC0pj48PqWsVROz7h+evdWvk8oI2VopAgh1h7lxfYRBVXBwF\nt8gUVFPcySGaaBFvNenZ0z07ht9K97ephws4zv+iFJZ9dXbXuO6ONz1/nErf4zlv\nij8PCNNJqyhkpZGfapl7yMt+tTioqaPmHYKvzg2vDOd2pIOlG6Db3LOMMkSkzaes\nqJBc8lAAAVFokItpeCsuibshW+fm0KGpZUd4Ja4x8pylbPJMnUebsCqsAv3fXHXz\nTX5j7Tk9NsvdfafUv7Ky55Cr+ZGECxwOyR7ikUJ/yqtVuKA3PNBmSnzyt77OQi2g\nMxHg+FqFDIZ36rDn32ECAwEAAaOBnjCBmzAOBgNVHQ8BAf8EBAMCA7gwHQYDVR0l\nBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMB0GA1UdDgQWBBQhFT4ikvcHNOTu/BRD\nlAcJ/dGWSTAfBgNVHSMEGDAWgBSEeJrL3GiaTrqlwqYxNoHToOg3eDAqBgNVHREE\nIzAhgh9QWEMgUmVsZWFzZSBUZXN0aW5nIENlcnRpZmljYXRlMA0GCSqGSIb3DQEB\nCwUAA4ICAQBSWN4WaELIsYYPsZg5JkwSzaB9obL/mIyyoWcI801IzLOleY3A7/rg\nD/JDqymnmciqwCCAF6Vq3C16jPXqNluHySxkNMUaJ6TTPqJHq/bs4GQjbs195fB9\nGv65+i5i+4CI+dHbmmBJz6JJXTRjurXIXX5BDZaYK6gu1yzskhwsGfcYG820p0vU\nXbwW1iH745Aw+2fHp/dvxo3LfJ8Dz5RoVf3wpWfHYxxwVmNpkXphWk7LD2VHJE+A\nYrsnQwfz5OyaSg1qdD7w1W4X7kGvGVQLl7sCtlknzd3eI27Vnsxw6ixAvpcakzLK\n7lPUHt6OYZzcdmqN3AjZWEGSVyzlrk7FU+dk/Fn3lchlpIHOcXxYLWDYnjiAkhYF\nwO4Bnwf524EFpI47CABmqwXINf+ivZvwqkCM2FIz+ANMYtMOb7fBe4wqs6pU8esE\nHMj0xf7z+IXKgSMBNZ4RT5oh1W4EdTGuMOgaZZNjy1rBvNQwDgjcZ3zXy4WOWYpI\nEpVicvfzpFKGAV7i0qUmPaxYI2b7fP2wkU4OVE+d4CHrMs3eAnOz1LXgVR65EzJk\nQ98UHv3CyKN6snZOjHcFHWnXRwd31PdyvEPNTtWyhJd3JOLQh5NOhx0wUkvjKZ1A\niIIwCVN1039vvYaBJE3DGQ3AfTlfPRvOjf+wMkxLTbWENu0w+KBHsQ==\n-----END CERTIFICATE-----",
-						"PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAylU6WlXyftTNVk7NqsQMLSmPjw+paxVE7PuH5691a+TygjZW\nikCCHWHuXF9hEFVcHAW3yBRUU9zJIZpoEW816dnTPTuG30r3t6mHCzjO/6IUln11\ndte47o43PX+cSt/jOW+KPw8I00mrKGSlkZ9qmXvIy361OKipo+Ydgq/ODa8M53ak\ng6UboNvcs4wyRKTNp6yokFzyUAABUWiQi2l4Ky6JuyFb5+bQoallR3glrjHynKVs\n8kydR5uwKqwC/d9cdfNNfmPtOT02y919p9S/srLnkKv5kYQLHA7JHuKRQn/Kq1W4\noDc80GZKfPK3vs5CLaAzEeD4WoUMhnfqsOffYQIDAQABAoIBABRevD84A+/s8LdN\nu7sDfc5WLtPSWdYkEApj0Gzs5z9zj064tcG5eOAIafz2xUjlrx5LHRORqGPBCKbP\nasbGkYD3oyK5CX0ViRb+hFAG6iAmazgzbU4HreCmhL02Sb/oBnJT3nE2zEapVgf9\nCgY9LHhDVBXYrdoEcP/FPRdZJ7+MwDvussmyusEEims+6DBgfBfJ0n5/q5wrFVRY\nRqGBVTOkyoKdVDWl7ZyFP47nsWL5z7vXouFsZkcPBLVnKcTokiGjWJ0bHJSQMN35\nWe5HcWxKS58GpIZpwZdSNYL61INC7GS5p9wtXXuz11yznVhhHXiWnWVqRwtflBZU\nTg/YVgECgYEA7VnRzgCuyMRXlMPQ+EswcHCAkoO3m0YY4JHJSWI4yAxiR1mQa9PE\nQZajBc42PchgU9TFmKzK/x5mogpjNiIuvjs3EjMMShcJQ1+QkkMf7qjWAbOLHw5C\nZR7pYHsUoLVe6lo/PVbDeksvWYn7NHbeNZMxQU3Zapdjryk39Ao0r/ECgYEA2jsK\nxoK/hWNpYDu6KXk8AkIx0UiziVRLLEFiK2OL1vWrqWDfvyc4FR4A3D9R4UadwaLi\nSMjVDHNXhK5zgw74R4r+QkK9TfE1Nu2Sh510p0zraZN59Heu6HMa0qwER2Gd+sqv\nGL4JTouuevolS2jmRwwJDqGqarNuXTZvXIh/lnECgYEArbrK6QBy7x1YBdn2wWc3\nw3V1hsjGwe7jEq1jKkWszjDSVutl3Kcaxe9e0EcKSNq8N2BMad5Aj9BOy1jTGbKX\niEKLotSesDSAYUI37fcYDnaifohO0qJ7Usz3gdlVVfSrztnT5C/30THrLJzktJg1\nOf3NVcGH3I+HNZT0EbrOqeECgYBFZREAHwOX/wy7NUL1fT+/2BzPWDb/LHbbE8+L\nzJPjPyvfKJb9yhLjZC8R2nDHGhWARbN/QZ2938+suWyx+EirN1+y4lYgOtuZI+K8\njS1TJfqWD/dv7b8I29FjvJ9/s2LxJRKY45VCDNjm8jR5zlmrrgATTwVJ+NTXfz/a\nRO2NgQKBgBc/6VY4bfDjyd6cNhVWL98XMCl0e6w+0ltDMrr9fT7sVM2lIfO62WD3\nb23ZbJjnYkk9LDOoqI7CghmB98vrPQrSo5WsZPm8emWnuPiqVnN3hWnCpA+ismYh\n+fWZLdA9i5eWFZdRdgsDmtG/WeB81bo4SuHEgvw67M+u6zMlwutl\n-----END RSA PRIVATE KEY-----"
-					}
-				}
-			}`
+			var err error
+
+			rawConfig, err := json.Marshal(healthCheckConfig)
+			Expect(err).NotTo(HaveOccurred())
 
 			osArgs := []string{
 				"galera-healthcheck",
 				fmt.Sprintf("-config=%s", rawConfig),
 			}
 
-			var err error
 			rootConfig, err = NewConfig(osArgs)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -102,7 +127,7 @@ var _ = Describe("Config", func() {
 			address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 			conn, err := tls.Dial("tcp", address, &tls.Config{
 				RootCAs:    certPool,
-				ServerName: "PXC Release Testing Certificate",
+				ServerName: serverName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(conn.Close()).To(Succeed())
