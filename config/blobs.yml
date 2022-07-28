@@ -1,8 +1,36 @@
-pxc/Percona-XtraDB-Cluster_8.0.27-18.1.tar.gz:
-  size: 128163718
-  object_id: 05cb2313-4226-44cd-5846-6666ca2cd116
-  sha: sha256:dfc6799872da056cabb9465bda440bc83720c86de8a143aac22f07092f953f09
-socat/socat-1.7.4.1.tar.gz:
-  size: 648888
-  object_id: f0547b7c-9f0d-4193-5f65-c3f85f76ec02
-  sha: sha256:0c7e635070af1b9037fd96869fc45eacf9845cb54547681de9d885044538736d
+Percona-XtraDB-Cluster-8.0.27-18.tar.gz:
+  size: 516429881
+  object_id: bc074699-43c1-44f3-5084-884ec23eebcf
+  sha: sha256:476fd882de54cba1d50e3f3cb5ce366b1f3189c513fee88cd9646354dcfe10f0
+boost_1_59_0.tar.bz2:
+  size: 70389425
+  object_id: 7344fc77-b911-45c2-5467-c6d5fcab6d29
+  sha: sha256:727a932322d94287b62abb1bd2d41723eec4356a7728909e38adb65ca25241ca
+boost_1_73_0.tar.bz2:
+  size: 109247910
+  object_id: ab69147a-2b3d-4f11-6d27-d564f0ac63d5
+  sha: sha256:4eb3b8d442b426dc35346235c8733b5ae35ba431690e38c6a8263dce9fcbb402
+check_0.15.2.orig.tar.gz:
+  size: 773805
+  object_id: d1c4eec5-21ea-433c-6572-7ca6a1e60f5b
+  sha: sha256:8451b68ac5d6f3157b24f22eceff575bcf566264f6d78f3852f89d4e08cf42e1
+libaio_0.3.112.orig.tar.xz:
+  size: 38196
+  object_id: 882ebd2d-d1ec-43f2-796e-3060030a4474
+  sha: sha256:f69e5800425f4ea957426693ac09f9896bb993db5490fa021644454adcc72a32
+libev-4.33.tar.gz:
+  size: 569527
+  object_id: 0ea3b0f6-7b83-4fe5-7ff8-966bcc56ab73
+  sha: sha256:507eb7b8d1015fbec5b935f34ebed15bf346bed04a11ab82b8eee848c4205aea
+percona-xtrabackup-2.4.26.tar.gz:
+  size: 62011032
+  object_id: 57bce684-5dd9-42a8-53b9-0f7d9a1c78cc
+  sha: sha256:250ebafb5929a6ca50c6cbec41592f519bd161de3deea8b5e4f829063cb53844
+percona-xtrabackup-8.0.28-21.tar.gz:
+  size: 304192336
+  object_id: db65fa12-ca5a-415d-723b-cc08293b5778
+  sha: sha256:66d7f15f8e61d0231cbc814dff73fc6181ed9aa91d55b14a34a5b32b63e8ca02
+socat-1.7.4.3.tar.gz:
+  size: 655520
+  object_id: 1eb3f0ca-cc7a-4872-4b7a-7a1b9bfa4b34
+  sha: sha256:d697245144731423ddbbceacabbd29447089ea223e9a439b28f9ff90d0dd216e

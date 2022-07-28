@@ -1,0 +1,11 @@
+---
+name: percona-xtrabackup-2.4
+
+dependencies: []
+
+files:
+- boost_1_59_0.tar.bz2
+- patches/xtrabackup/opensslv3_2.4.patch
+- percona-xtrabackup-2.4*.tar.gz
+- libev-*.tar.gz
+- libaio_*.tar.xz

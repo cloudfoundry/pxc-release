@@ -1,0 +1,18 @@
+diff --git a/plugin/group_replication/CMakeLists.txt b/plugin/group_replication/CMakeLists.txt
+index db07fdf6..b3619653 100644
+--- a/plugin/group_replication/CMakeLists.txt
++++ b/plugin/group_replication/CMakeLists.txt
+@@ -20,6 +20,7 @@
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+
++IF(WITH_GROUP_REPLICATION)
+ # Destination of generated protobuf files.
+ SET(GR_GENERATE_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+@@ -189,3 +190,4 @@ MYSQL_ADD_PLUGIN(group_replication
+ IF(UNIX_INSTALL_RPATH_ORIGIN_PRIV_LIBDIR)
+   ADD_INSTALL_RPATH_FOR_PROTOBUF(group_replication)
+ ENDIF()
++ENDIF()
+
