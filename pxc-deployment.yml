@@ -37,7 +37,7 @@ instance_groups:
 
 stemcells:
 - alias: default
-  os: ubuntu-xenial
+  os: ubuntu-jammy
   version: latest
 
 update:
