@@ -1,0 +1,21 @@
+diff --git a/percona-xtradb-cluster-galera/galera/src/CMakeLists.txt b/percona-xtradb-cluster-galera/galera/src/CMakeLists.txt
+index 3ca84c42..0faf5337 100644
+--- a/percona-xtradb-cluster-galera/galera/src/CMakeLists.txt
++++ b/percona-xtradb-cluster-galera/galera/src/CMakeLists.txt
+@@ -19,6 +19,7 @@ add_library(galera
+   galera_info.cpp
+   replicator.cpp
+   ist.cpp
++  socket_watchdog.cpp
+   gcs_dummy.cpp
+   saved_state.cpp
+   replicator_smm.cpp
+@@ -26,6 +27,8 @@ add_library(galera
+   replicator_smm_stats.cpp
+   )
+ 
++set_source_files_properties(socket_watchdog.cpp PROPERTIES COMPILE_FLAGS -std=c++11)
++
+ target_include_directories(galera
+   PRIVATE
+   ${CMAKE_SOURCE_DIR}/wsrep/src

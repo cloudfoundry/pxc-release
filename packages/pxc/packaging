@@ -2,125 +2,17 @@
 
 set -o errexit
 set -o nounset
-set -o pipefail
 
-main() {
-  bundle_xtrabackup_dependencies
-  install_runtime_dependencies
-  install_build_dependencies
-  unpack_source
-  apply_patches
-  configure_source
-  build_source
-  install_distribution
-}
+## PXC
+tar --directory="${BOSH_INSTALL_TARGET}" --extract \
+  --file pxc/Percona-XtraDB-Cluster_8.0.*.tar.gz \
+  --strip-components=1
 
-install_build_dependencies() {
-  tar -xf libaio_*.orig.tar.xz
-  cd libaio-*/
-  make install
-  cd -
+# PXC 8 is built with numa support which requires libnuma
+# libnuma.so is not installed in the stemcell.
+# Install it, but copy it into /var/vcap/packages so mysqld will start cleanly
+apt-get update && apt-get install -y libnuma1
+cp /usr/lib/x86_64-linux-gnu/libnuma.so.1 "${BOSH_INSTALL_TARGET}/lib/private/"
 
-  tar -xf boost_1_73_0.tar.bz2
-  cd boost_1_73_0/
-  ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
-  ./b2 -j "$(nproc)" install
-  cd -
-
-  tar -xf check_*.tar.gz
-  cd check-*/
-  ./configure --prefix=/usr
-  make -j $(nproc) install
-  cd -
-}
-
-install_runtime_dependencies() {
-  tar -xf socat-*.tar.gz
-  cd socat-*/
-  ./configure "--prefix=${BOSH_INSTALL_TARGET}"
-  make -j "$(nproc)"
-  make -j "$(nproc)" install
-  cd -
-}
-
-unpack_source() {
-  tar -xf Percona-XtraDB-Cluster-*.tar.gz
-}
-
-apply_patches() {
-  cd Percona-XtraDB-Cluster-*/
-  find ../patches/pxc/ ../patches/libgalera/ \
-    -type f \
-    -name "*.patch" \
-    -print0 \
-    | xargs -0 -n1 -t patch -p1 -i
-  cd -
-}
-
-configure_source() {
-  (
-    cd Percona-XtraDB-Cluster-*/
-    source MYSQL_VERSION
-    mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
-    wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
-    compilation_comment="Percona XtraDB Cluster (GPL) ${mysql_version}, WSREP version ${wsrep_version}"
-
-    echo "${mysql_version}" > "${BOSH_INSTALL_TARGET}/VERSION"
-
-    mkdir bld && cd bld
-    cmake .. \
-      -DBUILD_CONFIG=mysql_release \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-      -DCOMPILATION_COMMENT="${compilation_comment}" \
-      -DENABLED_LOCAL_INFILE=off \
-      -DINSTALL_MYSQLTESTDIR= \
-      -DINSTALL_SECURE_FILE_PRIVDIR=NULL \
-      -DINSTALL_STATIC_LIBRARIES=OFF \
-      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/xmysqlx.sock \
-      -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql \
-      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysql.sock \
-      -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config \
-      -DWITH_AUTHENTICATION_LDAP=OFF \
-      -DWITH_AUTHENTICATION_FIDO=OFF \
-      -DWITH_AUTHENTICATION_KERBEROS=OFF \
-      -DWITH_BOOST=../../boost_1_73_0/ \
-      -DWITH_ICU=system \
-      -DWITH_READLINE=system \
-      -DWITH_ROUTER=off \
-      -DWITH_SSL=system \
-      -DWITH_UNIT_TESTS=OFF \
-      -DWITH_WSREP=ON \
-      -DWITH_ZLIB=system
-  )
-
-  (
-    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
-    cmake . -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}"
-  )
-}
-
-build_source() {
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
-  make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc)
-}
-
-install_distribution() {
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc) install/strip
-  make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc) install/strip
-  mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
-  rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
-}
-
-bundle_xtrabackup_dependencies() {
-  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-2.4"
-  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-8.0"
-
-  local version
-  for version in 2.4 8.0;do
-  tar -C /var/vcap/packages/percona-xtrabackup-"${version}" -c . \
-    | tar -C "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}/" -x
-  done
-}
-
-main
+libldap=$(ldconfig -p | awk '/libldap/ {print $NF}')
+ln -s "${libldap}" "${BOSH_INSTALL_TARGET}/lib/private/libldap_r-2.4.so.2"

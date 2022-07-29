@@ -31,6 +31,7 @@ packages:
 - migrate-to-pxc
 - pxc
 - pxc-utils
+- socat
 
 consumes:
 - name: mysql
