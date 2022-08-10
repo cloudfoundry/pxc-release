@@ -18,7 +18,7 @@ main() {
     deploy_opts+=(--ops-file=operations/proxy-tls.yml)
   fi
 
-  if [[ ${ENABLE_INTEGRATION:-false} == "true" ]]; then
+  if [[ ${ENABLE_INTEGRATION:-true} == "true" ]]; then
     deploy_opts+=(--ops-file=operations/integration-tests.yml)
   fi
 
