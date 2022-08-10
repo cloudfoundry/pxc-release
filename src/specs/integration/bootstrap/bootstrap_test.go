@@ -1,15 +1,21 @@
 package bootstrap_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os/exec"
+	"strings"
 	"time"
 
 	boshdir "github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 
 	helpers "github.com/cloudfoundry/pxc-release/specs/test_helpers"
 )
@@ -77,49 +83,124 @@ func bootstrapCluster() {
 	errandResult, err := helpers.BoshDeployment.RunErrand("bootstrap", false, false, slugList)
 	Expect(err).NotTo(HaveOccurred())
 
-	fmt.Println(fmt.Sprintf("Errand STDOUT: %s", errandResult[0].Stdout))
-	fmt.Println(fmt.Sprintf("Errand STDERR: %s", errandResult[0].Stderr))
+	fmt.Printf("Errand STDOUT: %s", errandResult[0].Stdout)
+	fmt.Printf("Errand STDERR: %s", errandResult[0].Stderr)
 }
 
 var _ = Describe("CF PXC MySQL Bootstrap", func() {
-	BeforeEach(func() {
-		helpers.DbSetup(mysqlConn, "bootstrap_test_table")
+	When("manually bootstrapping", func() {
+		BeforeEach(func() {
+			stopGaleraInitOnAllMysqls()
+		})
+
+		AfterEach(func() {
+			bootstrapCluster()
+		})
+
+		fetchGraStateDat := func() map[string]interface{} {
+			cmd := exec.Command("bosh", "ssh", "mysql/0",
+				"--results",
+				"--column=Stdout",
+				"--command",
+				"sudo cat /var/vcap/store/pxc-mysql/grastate.dat",
+			)
+			var buf bytes.Buffer
+			cmd.Stdout = io.MultiWriter(GinkgoWriter, &buf)
+			cmd.Stderr = GinkgoWriter
+			Expect(cmd.Run()).To(Succeed())
+
+			var m map[string]interface{}
+			in := bytes.ReplaceAll(buf.Bytes(), []byte("\t"), nil)
+			Expect(yaml.Unmarshal(in, &m)).To(Succeed())
+
+			return m
+		}
+
+		fetchInstanceID := func() string {
+			cmd := exec.Command("bosh", "ssh", "mysql/0",
+				"--results",
+				"--column=Stdout",
+				"--command",
+				"cat /var/vcap/instance/id",
+			)
+			var buf bytes.Buffer
+			cmd.Stdout = io.MultiWriter(GinkgoWriter, &buf)
+			cmd.Stderr = GinkgoWriter
+			Expect(cmd.Run()).To(Succeed())
+
+			return strings.TrimSpace(buf.String())
+		}
+
+		It("provides a script to output the galera seqno", func() {
+			cmd := exec.Command("bosh", "ssh", "mysql/0",
+				"--results",
+				"--column=Stdout",
+				"--command",
+				"sudo /var/vcap/jobs/pxc-mysql/bin/get-sequence-number",
+			)
+			var buf bytes.Buffer
+			cmd.Stdout = io.MultiWriter(GinkgoWriter, &buf)
+			cmd.Stderr = GinkgoWriter
+			Expect(cmd.Run()).To(Succeed())
+
+			type getSeqNoResponse struct {
+				ClusterUUID string `json:"cluster_uuid"`
+				Seqno       int    `json:"seqno"`
+				InstanceID  string `json:"instance_id"`
+			}
+
+			var m getSeqNoResponse
+			Expect(json.Unmarshal(buf.Bytes(), &m)).To(Succeed())
+
+			graStateInfo := fetchGraStateDat()
+			Expect(m).To(Equal(getSeqNoResponse{
+				ClusterUUID: graStateInfo["uuid"].(string),
+				Seqno:       graStateInfo["seqno"].(int),
+				InstanceID:  fetchInstanceID(),
+			}))
+		})
 	})
 
-	AfterEach(func() {
-		helpers.DbCleanup(mysqlConn)
-	})
+	When("running the bootstrap errand", func() {
+		BeforeEach(func() {
+			helpers.DbSetup(mysqlConn, "bootstrap_test_table")
+		})
 
-	It("bootstraps a cluster", func() {
-		By("Write data")
-		_, err := mysqlConn.Query("INSERT INTO pxc_release_test_db.bootstrap_test_table VALUES('the only data')")
-		Expect(err).NotTo(HaveOccurred())
+		AfterEach(func() {
+			helpers.DbCleanup(mysqlConn)
+		})
 
-		By("Stop all instances of mysql")
-		stopGaleraInitOnAllMysqls()
+		It("bootstraps a cluster", func() {
+			By("Write data")
+			_, err := mysqlConn.Query("INSERT INTO pxc_release_test_db.bootstrap_test_table VALUES('the only data')")
+			Expect(err).NotTo(HaveOccurred())
 
-		By("Wait for monit to finish stopping")
-		time.Sleep(5 * time.Second)
+			By("Stop all instances of mysql")
+			stopGaleraInitOnAllMysqls()
 
-		bootstrapCluster()
+			By("Wait for monit to finish stopping")
+			time.Sleep(5 * time.Second)
 
-		By("Verify cluster has three nodes")
-		var variableName, variableValue string
-		rows, err := mysqlConn.Query("SHOW status LIKE 'wsrep_cluster_size'")
-		Expect(err).NotTo(HaveOccurred())
+			bootstrapCluster()
 
-		Expect(rows.Next()).To(BeTrue())
-		Expect(rows.Scan(&variableName, &variableValue)).To(Succeed())
+			By("Verify cluster has three nodes")
+			var variableName, variableValue string
+			rows, err := mysqlConn.Query("SHOW status LIKE 'wsrep_cluster_size'")
+			Expect(err).NotTo(HaveOccurred())
 
-		Expect(variableValue).To(Equal("3"))
+			Expect(rows.Next()).To(BeTrue())
+			Expect(rows.Scan(&variableName, &variableValue)).To(Succeed())
 
-		By("Verifying the data still exists")
-		var queryResultString string
-		rows, err = mysqlConn.Query("SELECT * FROM pxc_release_test_db.bootstrap_test_table")
-		Expect(err).NotTo(HaveOccurred())
+			Expect(variableValue).To(Equal("3"))
 
-		Expect(rows.Next()).To(BeTrue())
-		Expect(rows.Scan(&queryResultString)).To(Succeed())
-		Expect(queryResultString).To(Equal("the only data"))
+			By("Verifying the data still exists")
+			var queryResultString string
+			rows, err = mysqlConn.Query("SELECT * FROM pxc_release_test_db.bootstrap_test_table")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(rows.Next()).To(BeTrue())
+			Expect(rows.Scan(&queryResultString)).To(Succeed())
+			Expect(queryResultString).To(Equal("the only data"))
+		})
 	})
 })
