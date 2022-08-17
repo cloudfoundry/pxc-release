@@ -2,7 +2,6 @@ package node_starter_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -32,14 +31,6 @@ var _ = Describe("Starter", func() {
 	var errorChan chan error
 	var grastateFile *os.File
 
-	ensureSeedDatabases := func() {
-		Expect(fakeDBHelper.SeedCallCount()).To(BeNumerically(">=", 1))
-	}
-
-	ensureSeedUsers := func() {
-		Expect(fakeDBHelper.SeedUsersCallCount()).To(BeNumerically(">=", 1))
-	}
-
 	ensureBootstrap := func() {
 		Expect(fakeDBHelper.StartMysqldInBootstrapCallCount()).To(Equal(1))
 	}
@@ -53,10 +44,6 @@ var _ = Describe("Starter", func() {
 		Expect(runCmd.Path).To(Equal(cmd))
 	}
 
-	ensureRunPostStartSQLs := func() {
-		Expect(fakeDBHelper.RunPostStartSQLCallCount()).To(BeNumerically(">=", 1))
-	}
-
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("start_manager")
 		fakeOs = new(os_helperfakes.FakeOsHelper)
@@ -66,7 +53,7 @@ var _ = Describe("Starter", func() {
 		fakeDBHelper = new(db_helperfakes.FakeDBHelper)
 		fakeDBHelper.IsDatabaseReachableReturns(true)
 
-		grastateFile, _ = ioutil.TempFile(os.TempDir(), "grastateFile")
+		grastateFile, _ = os.CreateTemp(os.TempDir(), "grastateFile")
 		starter = node_starter.NewStarter(
 			fakeDBHelper,
 			fakeOs,
@@ -103,16 +90,13 @@ var _ = Describe("Starter", func() {
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
 				Expect(mysqlErrChan).NotTo(BeNil())
 				ensureBootstrap()
-				ensureSeedDatabases()
-				ensureSeedUsers()
-				ensureRunPostStartSQLs()
 				ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 			})
 
 			Describe("grastate file", func() {
 				BeforeEach(func() {
 					grastateFile.Chmod(0777)
-					err := ioutil.WriteFile(grastateFile.Name(), []byte("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 0\nLESS IMPORTANT STUFF"), 0777)
+					err := os.WriteFile(grastateFile.Name(), []byte("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 0\nLESS IMPORTANT STUFF"), 0777)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -120,7 +104,7 @@ var _ = Describe("Starter", func() {
 					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
 					Expect(err).ToNot(HaveOccurred())
 
-					grastateFileOutput, _ := ioutil.ReadFile(grastateFile.Name())
+					grastateFileOutput, _ := os.ReadFile(grastateFile.Name())
 					Expect(string(grastateFileOutput)).To(Equal("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 1\nLESS IMPORTANT STUFF"))
 				})
 
@@ -149,16 +133,13 @@ var _ = Describe("Starter", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureBootstrap()
-					ensureSeedDatabases()
-					ensureSeedUsers()
-					ensureRunPostStartSQLs()
 					ensureMysqlCmdMatches(fakeCommandBootstrapStr)
 				})
 
 				Describe("grastate file", func() {
 					BeforeEach(func() {
 						grastateFile.Chmod(0777)
-						err := ioutil.WriteFile(grastateFile.Name(), []byte("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 0\nLESS IMPORTANT STUFF"), 0777)
+						err := os.WriteFile(grastateFile.Name(), []byte("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 0\nLESS IMPORTANT STUFF"), 0777)
 						Expect(err).ToNot(HaveOccurred())
 					})
 
@@ -166,7 +147,7 @@ var _ = Describe("Starter", func() {
 						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
 						Expect(err).ToNot(HaveOccurred())
 
-						grastateFileOutput, _ := ioutil.ReadFile(grastateFile.Name())
+						grastateFileOutput, _ := os.ReadFile(grastateFile.Name())
 						Expect(string(grastateFileOutput)).To(Equal("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 1\nLESS IMPORTANT STUFF"))
 					})
 
@@ -194,9 +175,6 @@ var _ = Describe("Starter", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
-					ensureSeedDatabases()
-					ensureSeedUsers()
-					ensureRunPostStartSQLs()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
 				})
 			})
@@ -212,9 +190,6 @@ var _ = Describe("Starter", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
-				ensureSeedDatabases()
-				ensureSeedUsers()
-				ensureRunPostStartSQLs()
 				ensureMysqlCmdMatches(fakeCommandJoinStr)
 			})
 		})
@@ -282,31 +257,6 @@ var _ = Describe("Starter", func() {
 				})
 			})
 
-			Context("when database seeding fails", func() {
-				var expectedErr error
-				BeforeEach(func() {
-					expectedErr = errors.New("seeding databases failed")
-					fakeDBHelper.SeedReturns(expectedErr)
-				})
-
-				It("forwards the error", func() {
-					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(expectedErr))
-				})
-			})
-
-			Context("when running post start sql fails", func() {
-				BeforeEach(func() {
-					fakeDBHelper.RunPostStartSQLReturns(errors.New("post start sql failed"))
-				})
-
-				It("forwards the error", func() {
-					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("post start sql failed"))
-				})
-			})
 		})
 	})
 })

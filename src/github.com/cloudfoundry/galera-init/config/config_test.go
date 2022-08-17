@@ -118,14 +118,6 @@ var _ = Describe("Config", func() {
 			It("returns an error if Db.User is blank", isRequiredField("Db.User"))
 
 			It("does not return an error if Db.Password is blank", isOptionalField("Db.Password"))
-			It("does not return an error if Db.PreseededDatabases is blank", isOptionalField("Db.PreseededDatabases"))
-
-			Describe("PreseededDatabase", func() {
-				It("returns an error if Db.PreseededDatabases.DBName is blank", isRequiredField("Db.PreseededDatabases.DBName"))
-				It("returns an error if Db.PreseededDatabases.User is blank", isRequiredField("Db.PreseededDatabases.User"))
-
-				It("does not an error if Db.PreseededDatabases.Password is blank", isOptionalField("Db.PreseededDatabases.Password"))
-			})
 		})
 	})
 

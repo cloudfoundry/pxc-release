@@ -71,32 +71,6 @@ describe 'pxc mysql job' do
 
     before do
       spec["admin_password"] = "test"
-
-      array = []
-      hash1 = {"username" => "username", "user_config" => {}}
-      array.push(hash1)
-      spec["seeded_databases"] = [
-		{
-			"name" => "test",
-			"username" => "test-user",
-			"password" => "test-password"
-		},
-		{
-			"name" => "test1",
-			"username" => "test-user1",
-			"password" => "test-password1"
-		}
-      ]
-      spec["seeded_users"] = [
-      		[
-      			"user1",
-      			{"password" => "test-password1","host" => "host1","role" => "role1"}
-      		],
-			[
-				"user2",
-				{"password" => "test-password2","host" => "host2","role" => "role2"}
-			]
-      ]
     end
 
     it 'renders a valid galera-init-config.yml' do
@@ -104,16 +78,8 @@ describe 'pxc mysql job' do
       hash_from_yaml = YAML.load(tpl_output)
 
       expect(hash_from_yaml).to include("Db")
-      db = hash_from_yaml["Db"]
+
       expect(hash_from_yaml["Db"]).to include("SkipBinlog"=>true)
-
-      expect(hash_from_yaml["Db"]).to include("SeededUsers" => [
-          {"Host"=>"host1", "Password"=>"test-password1", "Role"=>"role1", "User"=>"user1"},
-          {"Host"=>"host2", "Password"=>"test-password2", "Role"=>"role2", "User"=>"user2"}])
-
-      expect(hash_from_yaml["Db"]).to include("PreseededDatabases" => [
-          {"DBName"=>"test", "Password"=>"test-password", "User"=>"test-user"},
-          {"DBName"=>"test1", "Password"=>"test-password1", "User"=>"test-user1"}])
 
       expect(hash_from_yaml).to include("Manager")
 

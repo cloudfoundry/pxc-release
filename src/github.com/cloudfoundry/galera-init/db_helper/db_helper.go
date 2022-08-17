@@ -3,12 +3,11 @@ package db_helper
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os/exec"
 
 	"code.cloudfoundry.org/lager"
+
 	"github.com/cloudfoundry/galera-init/config"
-	s "github.com/cloudfoundry/galera-init/db_helper/seeder"
 	"github.com/cloudfoundry/galera-init/os_helper"
 )
 
@@ -19,14 +18,10 @@ type DBHelper interface {
 	StopMysqld()
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
-	Seed() error
-	SeedUsers() error
-	RunPostStartSQL() error
 }
 
 type GaleraDBHelper struct {
 	osHelper        os_helper.OsHelper
-	dbSeeder        s.Seeder
 	logFileLocation string
 	logger          lager.Logger
 	config          *config.DBHelper
@@ -43,13 +38,6 @@ func NewDBHelper(
 		logFileLocation: logFileLocation,
 		logger:          logger,
 	}
-}
-
-var BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) s.Seeder {
-	return s.NewSeeder(db, config, logger)
-}
-var BuildUserSeeder = func(db *sql.DB, logger lager.Logger) UserSeeder {
-	return NewUserSeeder(db, logger)
 }
 
 func FormatDSN(config config.DBHelper) string {
@@ -130,7 +118,7 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
-		m.logger.Info("database not reachable", lager.Data{"err": err})
+		m.logger.Info("database not reachable", lager.Data{"err": err.Error()})
 		return false
 	}
 	defer CloseDBConnection(db)
@@ -163,122 +151,4 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 
 	m.logger.Info(fmt.Sprintf("Galera Database state is %s", value))
 	return value == "Synced"
-}
-
-func (m GaleraDBHelper) Seed() error {
-	if m.config.PreseededDatabases == nil || len(m.config.PreseededDatabases) == 0 {
-		m.logger.Info("No preseeded databases specified, skipping seeding.")
-		return nil
-	}
-
-	m.logger.Info("Preseeding Databases")
-
-	db, err := OpenDBConnection(m.config)
-	if err != nil {
-		m.logger.Error("database not reachable", err)
-		return err
-	}
-	defer CloseDBConnection(db)
-
-	for _, dbToCreate := range m.config.PreseededDatabases {
-		seeder := BuildSeeder(db, dbToCreate, m.logger)
-
-		if err := seeder.CreateDBIfNeeded(); err != nil {
-			return err
-		}
-
-		userAlreadyExists, err := seeder.IsExistingUser()
-		if err != nil {
-			return err
-		}
-
-		if userAlreadyExists == false {
-			if err := seeder.CreateUser(); err != nil {
-				return err
-			}
-		} else {
-			if err := seeder.UpdateUser(); err != nil {
-				return err
-			}
-		}
-
-		if err := seeder.GrantUserPrivileges(); err != nil {
-			return err
-		}
-	}
-
-	if err := m.flushPrivileges(db); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m GaleraDBHelper) SeedUsers() error {
-	if m.config.SeededUsers == nil || len(m.config.SeededUsers) == 0 {
-		m.logger.Info("No seeded users specified, skipping seeding.")
-		return nil
-	}
-
-	m.logger.Info("Seeding Users")
-
-	db, err := OpenDBConnection(m.config)
-	if err != nil {
-		m.logger.Error("database not reachable", err)
-		return err
-	}
-	defer CloseDBConnection(db)
-
-	for _, userToCreate := range m.config.SeededUsers {
-		seeder := BuildUserSeeder(db, m.logger)
-
-		err = seeder.SeedUser(
-			userToCreate.User,
-			userToCreate.Password,
-			userToCreate.Host,
-			userToCreate.Role,
-		)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return nil
-}
-
-func (m GaleraDBHelper) flushPrivileges(db *sql.DB) error {
-	if _, err := db.Exec("FLUSH PRIVILEGES"); err != nil {
-		m.logger.Error("Error flushing privileges", err)
-		return err
-	}
-
-	return nil
-}
-
-func (m GaleraDBHelper) RunPostStartSQL() error {
-	m.logger.Info("Running Post Start SQL Queries")
-
-	db, err := OpenDBConnection(m.config)
-	if err != nil {
-		m.logger.Error("database not reachable", err)
-		return err
-	}
-	defer CloseDBConnection(db)
-
-	for _, file := range m.config.PostStartSQLFiles {
-		sqlString, err := ioutil.ReadFile(file)
-		if err != nil {
-			m.logger.Error("error reading PostStartSQL file", err, lager.Data{
-				"filePath": file,
-			})
-		} else {
-			if _, err := db.Exec(string(sqlString)); err != nil {
-				return err
-			}
-
-		}
-	}
-
-	return nil
 }

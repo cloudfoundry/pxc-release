@@ -24,13 +24,10 @@ type Config struct {
 }
 
 type DBHelper struct {
-	Password           string              `yaml:"Password"`
-	PostStartSQLFiles  []string            `yaml:"PostStartSQLFiles"`
-	PreseededDatabases []PreseededDatabase `yaml:"PreseededDatabases"`
-	SeededUsers        []SeededUser        `yaml:"SeededUsers"`
-	SkipBinlog         bool                `yaml:"SkipBinlog"`
-	Socket             string              `yaml:"Socket"`
-	User               string              `yaml:"User" validate:"nonzero"`
+	Password   string `yaml:"Password"`
+	SkipBinlog bool   `yaml:"SkipBinlog"`
+	Socket     string `yaml:"Socket"`
+	User       string `yaml:"User" validate:"nonzero"`
 }
 
 type StartManager struct {
@@ -96,16 +93,6 @@ func (c Config) Validate() error {
 
 	if err != nil {
 		errString += formatErrorString(err, "")
-	}
-
-	for i, db := range c.Db.PreseededDatabases {
-		dbErr := validator.Validate(db)
-		if dbErr != nil {
-			errString += formatErrorString(
-				dbErr,
-				fmt.Sprintf("Db.PreseededDatabases[%d].", i),
-			)
-		}
 	}
 
 	if len(errString) > 0 {

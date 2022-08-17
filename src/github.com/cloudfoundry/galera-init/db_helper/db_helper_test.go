@@ -4,51 +4,39 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DATA-DOG/go-sqlmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
-	. "github.com/onsi/gomega/gbytes"
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
-	"github.com/cloudfoundry/galera-init/db_helper/db_helperfakes"
-	"github.com/cloudfoundry/galera-init/db_helper/seeder"
-	"github.com/cloudfoundry/galera-init/db_helper/seeder/seederfakes"
 	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
 )
 
 var _ = Describe("GaleraDBHelper", func() {
 	const (
-		lastInsertId           = -1
-		rowsAffected           = 1
 		fakeSupplementalQuery1 = "some fake query"
 		fakeSupplementalQuery2 = "another fake query"
 	)
 
 	var (
-		helper         *db_helper.GaleraDBHelper
-		fakeOs         *os_helperfakes.FakeOsHelper
-		fakeSeeder     *seederfakes.FakeSeeder
-		fakeUserSeeder *db_helperfakes.FakeUserSeeder
-		testLogger     lagertest.TestLogger
-		logFile        string
-		dbConfig       *config.DBHelper
-		fakeDB         *sql.DB
-		mock           sqlmock.Sqlmock
+		helper     *db_helper.GaleraDBHelper
+		fakeOs     *os_helperfakes.FakeOsHelper
+		testLogger lagertest.TestLogger
+		logFile    string
+		dbConfig   *config.DBHelper
+		fakeDB     *sql.DB
+		mock       sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
 		var err error
 		fakeOs = new(os_helperfakes.FakeOsHelper)
-		fakeSeeder = new(seederfakes.FakeSeeder)
-		fakeUserSeeder = new(db_helperfakes.FakeUserSeeder)
 		testLogger = *lagertest.NewTestLogger("db_helper")
 
 		fakeDB, mock, err = sqlmock.New()
@@ -61,53 +49,23 @@ var _ = Describe("GaleraDBHelper", func() {
 			return nil
 		}
 
-		db_helper.BuildSeeder = func(db *sql.DB, config config.PreseededDatabase, logger lager.Logger) seeder.Seeder {
-			return fakeSeeder
-		}
-		db_helper.BuildUserSeeder = func(db *sql.DB, logger lager.Logger) db_helper.UserSeeder {
-			return fakeUserSeeder
-		}
-
 		logFile = "/log-file.log"
 
-		sqlFile1, _ := ioutil.TempFile(os.TempDir(), "fake_sql_file")
-		defer sqlFile1.Close()
-		sqlFile2, _ := ioutil.TempFile(os.TempDir(), "fake_sql_file")
-		defer sqlFile2.Close()
+		sqlFile1, _ := os.CreateTemp(os.TempDir(), "fake_sql_file")
+		defer func(sqlFile1 *os.File) {
+			_ = sqlFile1.Close()
+		}(sqlFile1)
+		sqlFile2, _ := os.CreateTemp(os.TempDir(), "fake_sql_file")
+		defer func(sqlFile2 *os.File) {
+			_ = sqlFile2.Close()
+		}(sqlFile2)
 
-		ioutil.WriteFile(sqlFile1.Name(), []byte(fakeSupplementalQuery1), 755)
-		ioutil.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)
+		Expect(os.WriteFile(sqlFile1.Name(), []byte(fakeSupplementalQuery1), 755)).To(Succeed())
+		Expect(os.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)).To(Succeed())
 
 		dbConfig = &config.DBHelper{
 			User:     "user",
 			Password: "password",
-			PreseededDatabases: []config.PreseededDatabase{
-				config.PreseededDatabase{
-					DBName:   "DB1",
-					User:     "user1",
-					Password: "password1",
-				},
-				config.PreseededDatabase{
-					DBName:   "DB2",
-					User:     "user2",
-					Password: "password2",
-				},
-			},
-			SeededUsers: []config.SeededUser{
-				config.SeededUser{
-					User:     "user1",
-					Password: "password1",
-					Host:     "host1",
-					Role:     "role1",
-				},
-				config.SeededUser{
-					User:     "user2",
-					Password: "password2",
-					Host:     "host2",
-					Role:     "role2",
-				},
-			},
-			PostStartSQLFiles: []string{sqlFile1.Name(), sqlFile2.Name()},
 		}
 	})
 
@@ -277,130 +235,6 @@ var _ = Describe("GaleraDBHelper", func() {
 			})
 		})
 
-	})
-
-	Describe("Seed", func() {
-		Context("when there are pre-seeded databases", func() {
-			Context("if the users already exist", func() {
-				BeforeEach(func() {
-					fakeSeeder.IsExistingUserReturns(true, nil)
-
-					mock.ExpectExec("FLUSH PRIVILEGES").
-						WithArgs().
-						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-				})
-
-				It("creates the specified databases if they don't exist and updates the users", func() {
-					helper.Seed()
-
-					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
-					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
-					Expect(fakeSeeder.UpdateUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(2))
-				})
-			})
-
-			Context("if the users do not exist", func() {
-				BeforeEach(func() {
-					fakeSeeder.IsExistingUserReturns(false, nil)
-
-					mock.ExpectExec("FLUSH PRIVILEGES").
-						WithArgs().
-						WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-				})
-
-				It("creates the specified databases if they don't exist and creates users", func() {
-					helper.Seed()
-
-					Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(2))
-					Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.CreateUserCallCount()).To(Equal(2))
-					Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(2))
-				})
-			})
-
-			Context("when a seeder function call returns an error", func() {
-				It("returns the error back", func() {
-					fakeSeeder.CreateDBIfNeededReturns(errors.New("Error"))
-					err := helper.Seed()
-					Expect(err).To(HaveOccurred())
-
-					fakeSeeder.IsExistingUserReturns(false, errors.New("Error"))
-					err = helper.Seed()
-					Expect(err).To(HaveOccurred())
-
-					fakeSeeder.CreateUserReturns(errors.New("Error"))
-					err = helper.Seed()
-					Expect(err).To(HaveOccurred())
-
-					fakeSeeder.GrantUserPrivilegesReturns(errors.New("Error"))
-					err = helper.Seed()
-					Expect(err).To(HaveOccurred())
-
-					fakeSeeder.UpdateUserReturns(errors.New("Error"))
-					err = helper.Seed()
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-		})
-
-		Context("when there are no seeded databases", func() {
-			BeforeEach(func() {
-				dbConfig.PreseededDatabases = []config.PreseededDatabase{}
-			})
-
-			It("does not make any queries", func() {
-				err := helper.Seed()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(testLogger.Buffer()).To(Say("No preseeded databases specified, skipping seeding."))
-				Expect(fakeSeeder.CreateDBIfNeededCallCount()).To(Equal(0))
-				Expect(fakeSeeder.IsExistingUserCallCount()).To(Equal(0))
-				Expect(fakeSeeder.CreateUserCallCount()).To(Equal(0))
-				Expect(fakeSeeder.GrantUserPrivilegesCallCount()).To(Equal(0))
-			})
-		})
-	})
-
-	Describe("SeedUsers", func() {
-		It("seeds the users", func() {
-			helper.SeedUsers()
-			Expect(fakeUserSeeder.SeedUserCallCount()).To(Equal(2))
-			call0user, call0password, call0host, call0role := fakeUserSeeder.SeedUserArgsForCall(0)
-			Expect(call0user).To(Equal("user1"))
-			Expect(call0password).To(Equal("password1"))
-			Expect(call0host).To(Equal("host1"))
-			Expect(call0role).To(Equal("role1"))
-			call1user, call1password, call1host, call1role := fakeUserSeeder.SeedUserArgsForCall(1)
-			Expect(call1user).To(Equal("user2"))
-			Expect(call1password).To(Equal("password2"))
-			Expect(call1host).To(Equal("host2"))
-			Expect(call1role).To(Equal("role2"))
-		})
-
-		Context("when a seeder function call returns an error", func() {
-			It("returns the error back", func() {
-				fakeUserSeeder.SeedUserReturns(errors.New("Error"))
-				err := helper.SeedUsers()
-				Expect(err).To(HaveOccurred())
-			})
-		})
-	})
-
-	Describe("RunPostStartSQL", func() {
-		It("runs the contents of the specified files", func() {
-			mock.ExpectExec(fakeSupplementalQuery1).WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-			mock.ExpectExec(fakeSupplementalQuery2).WillReturnResult(sqlmock.NewResult(lastInsertId, rowsAffected))
-
-			err := helper.RunPostStartSQL()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns an error when the database failes to execute a query", func() {
-			err := helper.RunPostStartSQL()
-			Expect(err).To(HaveOccurred())
-		})
 	})
 
 	Describe("FormatDSN", func() {

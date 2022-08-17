@@ -22,9 +22,8 @@ var _ = Describe("galera-init integration", func() {
 		baseCfg = config.Config{
 			LogFileLocation: "/tmp/galera-init.log",
 			Db: config.DBHelper{
-				User:               "root",
-				PreseededDatabases: nil,
-				Socket:             "/var/lib/mysql/mysql.sock",
+				User:   "root",
+				Socket: "/var/lib/mysql/mysql.sock",
 			},
 			Manager: config.StartManager{
 				GaleraInitStatusServerAddress: "0.0.0.0:" + galeraInitStatusPort.Port(),
@@ -80,7 +79,7 @@ var _ = Describe("galera-init integration", func() {
 			})).To(Succeed())
 
 			Eventually(func() (isNotRunning bool, err error) {
-				container, err := dockerClient.InspectContainer(galeraNode.ID)
+				container, err := dockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{ID: galeraNode.ID})
 				if err != nil {
 					return false, err
 				}
@@ -108,7 +107,9 @@ var _ = Describe("galera-init integration", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() (exitCode int, err error) {
-				container, err := dockerClient.InspectContainer(galeraNode.ID)
+				container, err := dockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{
+					ID: galeraNode.ID,
+				})
 				if err != nil {
 					return 0, err
 				}
@@ -146,7 +147,9 @@ var _ = Describe("galera-init integration", func() {
 			var container *docker.Container
 			Eventually(func() (bool, error) {
 				var err error
-				container, err = dockerClient.InspectContainer(galeraNode.ID)
+				container, err = dockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{
+					ID: galeraNode.ID,
+				})
 				if err != nil {
 					return true, err
 				}

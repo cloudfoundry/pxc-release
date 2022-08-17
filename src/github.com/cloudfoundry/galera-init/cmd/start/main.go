@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"code.cloudfoundry.org/lager"
+	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
