@@ -28,12 +28,16 @@ instance_groups:
       tls:
         galera: ((galera_server_certificate))
         server: ((mysql_server_certificate))
+      seeded_users:
+        smoke-tests-user:
+          role: schema-admin
+          schema: pxc_release_test_db
+          password: ((smoke_tests_db_password))
+          host: any
   - name: smoke-tests
     release: pxc
     properties:
       db_password: ((smoke_tests_db_password))
-  - name: smoke-tests-user
-    release: pxc
 
 stemcells:
 - alias: default
