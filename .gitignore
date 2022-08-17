@@ -9,6 +9,7 @@ releases/**/*.tgz
 .DS_Store
 .idea
 *.swp
+*.iml
 *~
 *#
 #*
