@@ -111,7 +111,7 @@ func formatErrorString(err error, keyPrefix string) string {
 	return errsString
 }
 
-func (c *Config) HTTPClient() *http.Client {
+func (c Config) HTTPClient() *http.Client {
 	httpClient := &http.Client{
 		Timeout: time.Duration(c.Manager.ClusterProbeTimeout) * time.Second,
 	}
@@ -133,7 +133,7 @@ func (c *Config) HTTPClient() *http.Client {
 	return httpClient
 }
 
-func (c *Config) ClusterUrls() (urls []string) {
+func (c Config) ClusterUrls() (urls []string) {
 	for _, ip := range c.Manager.ClusterIps {
 		urls = append(urls, "http://"+ip+":9200/", "https://"+ip+":9201/")
 	}
