@@ -178,6 +178,7 @@ relay_log                       = mysql-relay
 relay_log_recovery              = OFF
 source_verify_checksum          = 1
 
+[mysqld_plugin]
 <% if p('engine_config.audit_logs.enabled') %>
 plugin-load                     = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log

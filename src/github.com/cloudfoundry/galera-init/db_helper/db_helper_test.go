@@ -123,6 +123,30 @@ var _ = Describe("GaleraDBHelper", func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
+	Describe("StartMysqldInJoin", func() {
+		It("calls mysqld with the right args", func() {
+			fakeOs.RunCommandReturns("", nil)
+			helper.StartMysqldInJoin()
+
+			_, executable, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(executable).To(Equal("mysqld"))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf", "--defaults-group-suffix=_plugin"}))
+
+		})
+	})
+
+	Describe("StartMysqldInBootstrap", func() {
+		It("calls mysqld with the right args", func() {
+			fakeOs.RunCommandReturns("", nil)
+			helper.StartMysqldInBootstrap()
+
+			_, executable, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(executable).To(Equal("mysqld"))
+			Expect(args).To(Equal([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf", "--defaults-group-suffix=_plugin", "--wsrep-new-cluster"}))
+
+		})
+	})
+
 	Describe("StopMysqld", func() {
 		It("calls the mysql daemon with the stop command", func() {
 			fakeOs.RunCommandReturns("", nil)

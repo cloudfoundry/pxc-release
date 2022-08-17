@@ -129,7 +129,7 @@ var _ = Describe("CF PXC MySQL Audit Logging", func() {
 			dbConn := helpers.DbConnWithUser(includedUser, includedUserPassword, firstProxy)
 			auditLogContents := readAndWriteDataAndGetAuditLogContents(dbConn, activeBackend, auditLogPath)
 
-			Expect(string(auditLogContents)).ToNot(ContainSubstring("{\"audit_record\":{\"name\":\"Connect\""))
+			Expect(auditLogContents).ToNot(ContainSubstring("{\"audit_record\":{\"name\":\"Connect\""))
 		})
 	})
 })

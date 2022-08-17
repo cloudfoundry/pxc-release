@@ -12,7 +12,14 @@
   value: true
 
 - type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/audit_logs/audit_log_policy
+  value: QUERIES
+
+- type: replace
   path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/audit_logs/audit_log_exclude_accounts
   value:
     - excludeDBAudit1
-    - excludeDBAudit2
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/audit_logs/audit_log_exclude_accounts_csv
+  value: excludeDBAudit2

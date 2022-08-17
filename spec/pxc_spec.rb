@@ -237,6 +237,11 @@ describe 'pxc mysql job' do
             spec["engine_config"]["audit_logs"] = { "enabled" => true }
         end
 
+        it 'exists in [mysqld_plugin] group' do
+			tpl_output = template.render(spec, consumes: links)
+			expect(tpl_output).to match(/\[mysqld_plugin\]\s+/)
+		end
+
         it 'has audit log format' do
             tpl_output = template.render(spec, consumes: links)
             expect(tpl_output).to match(/audit_log_format\s+= JSON/)
@@ -259,6 +264,11 @@ describe 'pxc mysql job' do
             spec["engine_config"]["audit_logs"] = { "enabled" => true }
             spec["engine_config"]["audit_logs"]["audit_log_policy"] = "some-policy"
         end
+
+        it 'exists in [mysqld_plugin] group' do
+           tpl_output = template.render(spec, consumes: links)
+           expect(tpl_output).to match(/\[mysqld_plugin\]\s+/)
+		end
 
         it 'has audit log format' do
             tpl_output = template.render(spec, consumes: links)
