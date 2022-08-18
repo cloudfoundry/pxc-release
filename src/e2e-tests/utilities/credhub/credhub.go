@@ -73,3 +73,15 @@ func GetCredhubCertificate(partialName string) (cert CertificateCredential, err 
 
 	return result.Value, nil
 }
+
+func Regenerate(partialName string) error {
+	name, err := FindCredentialName(partialName)
+	if err != nil {
+		return err
+	}
+
+	return cmd.Run("credhub", "regenerate",
+		"--name="+name,
+		"--output-json",
+	)
+}

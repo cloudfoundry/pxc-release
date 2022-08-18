@@ -56,6 +56,26 @@ func DeleteVM(deploymentName, cid string) error {
 	)
 }
 
+// Deploy run bosh deploy with an arbitrary manifest file and arguments
+//
+//	This function uses the default working directory
+func Deploy(deploymentName, manifestPath string, options ...DeployOptionFunc) error {
+	args := []string{
+		"--non-interactive",
+		"--tty",
+		"--deployment=" + deploymentName,
+		"deploy", manifestPath,
+	}
+
+	for _, o := range options {
+		o(&args)
+	}
+
+	return cmd.Run("bosh", args...)
+}
+
+// DeployPXC deploys the top-level pxc-deployment.yml manifest from the top-level of this pxc-release repo
+// This function sets the current working directory to the top-level of this repo
 func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 	args := []string{
 		"--non-interactive",
