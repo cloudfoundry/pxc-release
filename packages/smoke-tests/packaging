@@ -4,6 +4,6 @@ set -eux
 
 source /var/vcap/packages/golang-1.18-linux/bosh/compile.env
 
-cd specs/integration/connection/
-  go test -mod=vendor -c -o "${BOSH_INSTALL_TARGET}"/bin/connection.test
+cd smoke-tests
+  go test -mod=vendor -c -trimpath -o "${BOSH_INSTALL_TARGET}"/bin/smoke-test
 cd -

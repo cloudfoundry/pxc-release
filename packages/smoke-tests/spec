@@ -3,4 +3,4 @@ name: smoke-tests
 dependencies:
   - golang-1.18-linux
 files:
-  - specs/**/*
+  - smoke-tests/**

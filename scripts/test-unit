@@ -8,8 +8,6 @@ MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # This script assumes that it lives one directory below the release directory.
 RELEASE_DIR="$( cd "${MY_DIR}/.." && pwd )"
 
-source "${RELEASE_DIR}/.envrc"
-
 echo -e "\n>>>>>>>> Testing our bash scripts fatally..."
 # TODO: port over a download logs script for pxc #157104900
 #shellcheck --shell=bash "${RELEASE_DIR}/scripts/download-logs"

@@ -1,0 +1,9 @@
+---
+- path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config/innodb_buffer_pool_size_percent?
+  type: replace
+  value: ((innodb_buffer_pool_size_percent))
+
+- path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config/binlog?/space_limit_percent
+  type: replace
+  value: ((binlog_space_percent))
+

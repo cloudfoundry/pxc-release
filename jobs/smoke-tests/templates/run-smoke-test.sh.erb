@@ -2,18 +2,28 @@
 set -eu
 
 <%
-mysql_host=nil
-if_link('database') do |db_link|
-  mysql_host = db_link.instances.first.address
-end.else_if_link('mysql') do |db_link|
-  mysql_host = db_link.instances.first.address
-end.else do
-  raise "database or mysql link is required"
+mysql_hosts=nil
+proxy_host=nil
+
+if_link('proxy') do |db_link|
+  proxy_host = db_link.address
+end
+
+if_link('mysql') do |db_link|
+  if !proxy_host
+  	proxy_host = db_link.address
+  end
+  mysql_hosts = db_link.instances.map { |instance| instance.address }
+end
+
+if proxy_host == nil or mysql_hosts == nil
+  raise "proxy or mysql link is required"
 end
 %>
 
-export MYSQL_HOST="<%= mysql_host %>"
+export PROXY_HOST="<%= proxy_host %>"
+export MYSQL_HOSTS="<%= mysql_hosts.join(" ") %>"
 export MYSQL_USERNAME="<%= p('db_username') %>"
 export MYSQL_PASSWORD="<%= p('db_password') %>"
 
-/var/vcap/packages/smoke-tests/bin/connection.test
+/var/vcap/packages/smoke-tests/bin/smoke-test

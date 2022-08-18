@@ -1,0 +1,7 @@
+---
+- path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/test-admin?
+  type: replace
+  value:
+    role: admin
+    host: any
+    password: "integration-tests"
