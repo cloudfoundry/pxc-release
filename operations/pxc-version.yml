@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /releases/name=pxc/version
+  value: ((pxc_version))

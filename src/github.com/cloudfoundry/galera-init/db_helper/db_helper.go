@@ -94,7 +94,7 @@ func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 
 func (m GaleraDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
-	cmd, err := m.startMysqldAsChildProcess( "--wsrep-new-cluster")
+	cmd, err := m.startMysqldAsChildProcess("--wsrep-new-cluster")
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
@@ -115,14 +115,14 @@ func (m GaleraDBHelper) StopMysqld() {
 }
 
 func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
-	mysqlArgs = append([]string{
-		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-		"--defaults-group-suffix=_plugin",
-	}, mysqlArgs...)
-	return m.osHelper.StartCommand(
-		m.logFileLocation,
-		"mysqld",
-		mysqlArgs...)
+	args := append(
+		[]string{
+			"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+			"--defaults-group-suffix=_plugin",
+		},
+		mysqlArgs...,
+	)
+	return m.osHelper.StartCommand(m.logFileLocation, "mysqld", args...)
 }
 
 func (m GaleraDBHelper) IsDatabaseReachable() bool {

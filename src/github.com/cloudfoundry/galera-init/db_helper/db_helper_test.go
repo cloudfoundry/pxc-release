@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -427,5 +428,76 @@ var _ = Describe("GaleraDBHelper", func() {
 				Expect(db_helper.FormatDSN(config)).To(Equal(`some-user:some-password@unix(/some/socket/path.sock)/`))
 			})
 		})
+	})
+
+	Describe("StartMysqldInBootstrap", func() {
+		It("starts mysqld with the --wsrep-new-cluster option", func() {
+			fakeOs.StartCommandStub = func(_ string, executable string, args ...string) (*exec.Cmd, error) {
+				return exec.Command(executable, args...), nil
+			}
+
+			cmd, err := helper.StartMysqldInBootstrap()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmd).ToNot(BeNil())
+
+			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+
+			logPath, executable, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(logPath).To(Equal("/log-file.log"))
+			Expect(executable).To(Equal("mysqld"))
+			Expect(args).To(Equal([]string{
+				"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+				"--defaults-group-suffix=_plugin",
+				"--wsrep-new-cluster",
+			}))
+
+		})
+
+		Context("when an error occurs", func() {
+			BeforeEach(func() {
+				fakeOs.StartCommandReturns(nil, fmt.Errorf("injected StartCommand error"))
+			})
+			It("returns an error", func() {
+				cmd, err := helper.StartMysqldInBootstrap()
+				Expect(err).To(MatchError(`injected StartCommand error`))
+				Expect(cmd).To(BeNil())
+			})
+		})
+
+	})
+
+	Describe("StartMysqldInJoin", func() {
+		It("starts mysqld", func() {
+			fakeOs.StartCommandStub = func(_ string, executable string, args ...string) (*exec.Cmd, error) {
+				return exec.Command(executable, args...), nil
+			}
+
+			cmd, err := helper.StartMysqldInJoin()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmd).ToNot(BeNil())
+
+			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+
+			logPath, executable, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(logPath).To(Equal("/log-file.log"))
+			Expect(executable).To(Equal("mysqld"))
+			Expect(args).To(Equal([]string{
+				"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+				"--defaults-group-suffix=_plugin",
+			}))
+
+		})
+
+		Context("when an error occurs", func() {
+			BeforeEach(func() {
+				fakeOs.StartCommandReturns(nil, fmt.Errorf("injected StartCommand error"))
+			})
+			It("returns an error", func() {
+				cmd, err := helper.StartMysqldInJoin()
+				Expect(err).To(MatchError(`injected StartCommand error`))
+				Expect(cmd).To(BeNil())
+			})
+		})
+
 	})
 })

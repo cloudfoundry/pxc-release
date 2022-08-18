@@ -5,7 +5,5 @@ set -o nounset
 
 RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-source "${RELEASE_DIR}/.envrc"
-
 echo -e "\n>>>>>>>> Testing Galera Init Integration..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-integration" "$@"

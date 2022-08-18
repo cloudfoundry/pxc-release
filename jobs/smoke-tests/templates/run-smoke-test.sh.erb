@@ -13,7 +13,6 @@ if_link('mysql') do |db_link|
   if !proxy_host
   	proxy_host = db_link.address
   end
-
   mysql_hosts = db_link.instances.map { |instance| instance.address }
 end
 
@@ -27,4 +26,4 @@ export MYSQL_HOSTS="<%= mysql_hosts.join(" ") %>"
 export MYSQL_USERNAME="<%= p('db_username') %>"
 export MYSQL_PASSWORD="<%= p('db_password') %>"
 
-/var/vcap/packages/smoke-tests/bin/connection.test
+/var/vcap/packages/smoke-tests/bin/smoke-test
