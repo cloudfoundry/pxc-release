@@ -12,7 +12,7 @@ import (
 )
 
 // Test that injecting additional jobs w/ a bosh wait script does the right thing
-var _ = Describe("Wait scripts", Ordered, func() {
+var _ = Describe("Wait scripts", Ordered, Label("bosh-wait-scripts"), func() {
 	var (
 		deploymentName string
 		db             *sql.DB

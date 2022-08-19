@@ -10,7 +10,7 @@ import (
 	"e2e-tests/utilities/bosh"
 )
 
-var _ = Describe("Scaling", Ordered, func() {
+var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 	var (
 		db             *sql.DB
 		deploymentName string

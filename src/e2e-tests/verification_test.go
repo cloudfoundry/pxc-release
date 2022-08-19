@@ -26,7 +26,7 @@ import (
 	"e2e-tests/utilities/credhub"
 )
 
-var _ = Describe("Feature Verification", Ordered, func() {
+var _ = Describe("Feature Verification", Ordered, Label("verification"), func() {
 	var (
 		db             *sql.DB
 		deploymentName string
@@ -69,7 +69,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
 	})
 
-	Context("MySQL Configuration Tuning (autotune)", func() {
+	Context("MySQL Configuration Tuning (autotune)", Label("autotune"), func() {
 		totalVmDiskSize := func(instance string) float64 {
 			diskSizeInBytesStr, err := bosh.RemoteCommand(deploymentName, instance, `df --output=size --block-size=1 /var/vcap/store/ | sed '1d'`)
 			Expect(err).NotTo(HaveOccurred())
@@ -124,7 +124,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		})
 	})
 
-	Context("ClusterHealthLogger", func() {
+	Context("ClusterHealthLogger", Label("cluster-health-logger"), func() {
 		It("writes metrics to the cluster health logging file", func() {
 			output, err := bosh.Logs(deploymentName, "mysql/0", "cluster-health-logger/cluster_health.log")
 			Expect(err).NotTo(HaveOccurred())
@@ -142,7 +142,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		})
 	})
 
-	Context("download-logs script", func() {
+	Context("download-logs script", Label("download-logs"), func() {
 		It("fetches SHOW ENGINE INNODB STATUS output", func() {
 			logsDir, err := os.MkdirTemp("", "download_logs_")
 			Expect(err).NotTo(HaveOccurred())
@@ -180,7 +180,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		})
 	})
 
-	Context("TLS", func() {
+	Context("TLS", Label("tls"), func() {
 		BeforeAll(func() {
 			Expect(mysql.RegisterTLSConfig("deprecated-tls11", &tls.Config{
 				MaxVersion:         tls.VersionTLS11,
@@ -218,7 +218,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		})
 	})
 
-	Context("mutual-tls: MySQL x509 authentication", func() {
+	Context("mutual-tls: MySQL x509 authentication", Label("mtls"), func() {
 		var (
 			username string
 			password string
@@ -320,7 +320,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		})
 	})
 
-	Context("Remote Admin Access", func() {
+	Context("Remote Admin Access", Label("remote-admin-access"), func() {
 		It("does not allow access to mysql from anywhere besides localhost", func() {
 			password, err := credhub.GetCredhubPassword(`/` + deploymentName + `/cf_mysql_mysql_admin_password`)
 			Expect(err).NotTo(HaveOccurred())
@@ -343,7 +343,7 @@ var _ = Describe("Feature Verification", Ordered, func() {
 		})
 	})
 
-	Context("Audit Logs", func() {
+	Context("Audit Logs", Label("audit-logs"), func() {
 		const (
 			databaseName      = "pxc_release_test_db"
 			auditLogDirectory = "/var/vcap/store/mysql_audit_logs"
