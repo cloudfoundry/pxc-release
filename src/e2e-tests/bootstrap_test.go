@@ -16,7 +16,7 @@ import (
 	"e2e-tests/utilities/credhub"
 )
 
-var _ = Describe("Bootstrapping an offline cluster", Ordered, func() {
+var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap"), func() {
 	var (
 		db                  *sql.DB
 		deploymentName      string

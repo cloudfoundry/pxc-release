@@ -10,7 +10,7 @@ import (
 	"e2e-tests/utilities/bosh"
 )
 
-var _ = Describe("Single Node", Ordered, func() {
+var _ = Describe("Single Node", Ordered, Label("single-node"), func() {
 	var (
 		db             *sql.DB
 		deploymentName string
