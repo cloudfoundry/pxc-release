@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -o errexit -o nounset -o pipefail
+
+RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+cd "${RELEASE_DIR}/src/e2e-tests"
+go run github.com/onsi/ginkgo/v2/ginkgo run "$@"
