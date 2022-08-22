@@ -68,6 +68,7 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
     %{
     #{revoke_all_privileges(user)}
 GRANT ALL PRIVILEGES ON #{ident_escaped(user['schema'])}.* TO #{user['username']}@#{user['host']};
+REVOKE LOCK TABLES ON #{ident_escaped(user['schema'])}.* FROM #{user['username']}@#{user['host']};
 CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])}
   CHARACTER SET '#{p('engine_config.character_set_server')}'
   COLLATE '#{p('engine_config.collation_server')}';

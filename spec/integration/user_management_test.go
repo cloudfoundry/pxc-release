@@ -211,15 +211,15 @@ var _ = Describe("UserManagement", Ordered, func() {
 		It("initializes the users successfully", func() {
 			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
 				"GRANT USAGE ON *.* TO `ccdb`@`%`",
-				"GRANT ALL PRIVILEGES ON `cloud\\_controller`.* TO `ccdb`@`%`",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO `ccdb`@`%`",
 			})
 			verifyUser("app-user1", dbUsers.SeededUsers["app-user1"].Password, dbUsers.SeededUsers["app-user1"].Schema, []string{
 				"GRANT USAGE ON *.* TO `app-user1`@`%`",
-				"GRANT ALL PRIVILEGES ON `app\\_user\\_db1`.* TO `app-user1`@`%`",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db1`.* TO `app-user1`@`%`",
 			})
 			verifyUser("app-user2", dbUsers.SeededUsers["app-user2"].Password, dbUsers.SeededUsers["app-user2"].Schema, []string{
 				"GRANT USAGE ON *.* TO `app-user2`@`%`",
-				"GRANT ALL PRIVILEGES ON `app\\_user\\_db2`.* TO `app-user2`@`%`",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db2`.* TO `app-user2`@`%`",
 			})
 			verifyUser("healthcheck-user", dbUsers.SeededUsers["healthcheck-user"].Password, "", []string{
 				"GRANT USAGE ON *.* TO `healthcheck-user`@`%`",

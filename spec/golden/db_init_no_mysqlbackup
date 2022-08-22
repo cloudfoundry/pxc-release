@@ -45,6 +45,7 @@ ALTER USER 'cloud_controller'@'%'
   ATTRIBUTE '{ "pxc-release-seeded-user": true }';
 REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
 GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
+REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
 CREATE SCHEMA IF NOT EXISTS `cloud_controller`
   CHARACTER SET 'utf8'
   COLLATE 'utf8_unicode_ci';
@@ -67,6 +68,7 @@ ALTER USER 'mysql-metrics'@'%'
   ATTRIBUTE '{ "pxc-release-seeded-user": true }';
 REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
 GRANT ALL PRIVILEGES ON `metrics\_db`.* TO 'mysql-metrics'@'%';
+REVOKE LOCK TABLES ON `metrics\_db`.* FROM 'mysql-metrics'@'%';
 CREATE SCHEMA IF NOT EXISTS `metrics_db`
   CHARACTER SET 'utf8'
   COLLATE 'utf8_unicode_ci';
