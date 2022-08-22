@@ -1,0 +1,84 @@
+SET @@session.sql_log_bin = off;
+
+DROP USER IF EXISTS 'root'@'localhost';
+DROP USER IF EXISTS 'roadmin'@'localhost';
+
+DROP USER IF EXISTS 'root'@'127.0.0.1';
+DROP USER IF EXISTS 'roadmin'@'127.0.0.1';
+
+DROP USER IF EXISTS 'root'@'::1';
+DROP USER IF EXISTS 'roadmin'@'::1';
+
+DROP USER IF EXISTS 'root'@'%';
+DROP USER IF EXISTS 'roadmin'@'%';
+
+CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+
+CREATE USER IF NOT EXISTS 'roadmin'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'localhost';
+
+CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+ALTER USER 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;
+
+CREATE USER IF NOT EXISTS 'roadmin'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+ALTER USER 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'127.0.0.1';
+
+CREATE USER IF NOT EXISTS 'root'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+ALTER USER 'root'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'::1' WITH GRANT OPTION;
+
+CREATE USER IF NOT EXISTS 'roadmin'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+ALTER USER 'root'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'::1';
+
+-- user: 'cloud_controller'@'%' role: schema-admin
+CREATE USER IF NOT EXISTS 'cloud_controller'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+ALTER USER 'cloud_controller'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
+GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
+CREATE SCHEMA IF NOT EXISTS `cloud_controller`
+  CHARACTER SET 'utf8'
+  COLLATE 'utf8_unicode_ci';
+
+-- user: 'galera-agent'@'localhost' role: minimal
+CREATE USER IF NOT EXISTS 'galera-agent'@'localhost'
+  IDENTIFIED WITH mysql_native_password BY 'secret-galera-agent-db-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+ALTER USER 'galera-agent'@'localhost'
+  IDENTIFIED WITH mysql_native_password BY 'secret-galera-agent-db-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+REVOKE ALL PRIVILEGES ON *.* FROM 'galera-agent'@'localhost';
+
+-- user: 'mysql-metrics'@'%' role: schema-admin
+CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+ALTER USER 'mysql-metrics'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
+GRANT ALL PRIVILEGES ON `metrics\_db`.* TO 'mysql-metrics'@'%';
+CREATE SCHEMA IF NOT EXISTS `metrics_db`
+  CHARACTER SET 'utf8'
+  COLLATE 'utf8_unicode_ci';
+
+-- user: 'special-admin-user'@'%' role: admin
+CREATE USER IF NOT EXISTS 'special-admin-user'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-seeded-admin-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+ALTER USER 'special-admin-user'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-seeded-admin-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+GRANT ALL PRIVILEGES ON *.* TO 'special-admin-user'@'%' WITH GRANT OPTION;
+GRANT PROXY ON ''@'' TO 'special-admin-user'@'%' WITH GRANT OPTION;
+
+SET @@session.sql_log_bin = on;

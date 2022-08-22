@@ -104,7 +104,8 @@ properties:
     description: 'Port the mysql server should bind to'
     default: 3306
   seeded_databases:
-    description: 'Set of databases to seed'
+    description: >
+      Set of databases to seed. DEPRECATED: Use the seeded_users property with the "schema-admin" role.
     default: {}
     example: |
       - name: db1
@@ -114,6 +115,8 @@ properties:
         username: user2
         password: pw2
   seeded_users:
+    description: >
+      Set of database users to create
     default: {}
     example: |
       seeded_users:
@@ -125,6 +128,11 @@ properties:
           password: "((mysql_monitoring_password))"
           host: any
           role: minimal
+        app-user:
+          password: "((app_user_password))"
+          host: any
+          role: schema-admin
+          schema: "app-db"
   # TLS Config
   tls.galera:
     description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'

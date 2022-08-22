@@ -1,5 +1,5 @@
-SET SESSION SQL_LOG_BIN = 0;
-<%
+SET @@session.sql_log_bin = off;
+<%-
   if p('remote_admin_access')
     hosts = ['%']
     old_hosts = %w{localhost 127.0.0.1 ::1}
@@ -8,54 +8,141 @@ SET SESSION SQL_LOG_BIN = 0;
     old_hosts = ['%']
   end
   all_hosts = hosts + old_hosts
-%>
-
-DELETE FROM mysql.user WHERE User='';
-<% if_p('previous_admin_username') do |previous_username| %>
-  <%
-    if previous_username == p('admin_username')
-      raise "admin_username must not equal previous_admin_username"
-    end
-  %>
-  <% all_hosts.each do |host| %>
+-%>
+<%- if_p('previous_admin_username') do |previous_username| -%>
+  <%- all_hosts.each do |host| -%>
 DROP USER IF EXISTS '<%= previous_username %>'@'<%= host %>';
-  <% end %>
-<% end %>
+  <%- end -%>
+<%- end -%>
 
-<% if p('admin_username') != 'root' %>
-  <% all_hosts.each do |host| %>
+<%- all_hosts.each do |host| -%>
 DROP USER IF EXISTS 'root'@'<%= host %>';
-  <% end %>
-<% end %>
-
-<% if_p('mysql_backup_password') do |password| %>
-CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
-ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED BY '<%= password %>';
-GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
-<% end %>
-
-<% hosts.each do |host| %>
-CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
-ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
-GRANT ALL PRIVILEGES ON *.* TO '<%= p('admin_username') %>'@'<%= host %>' WITH GRANT OPTION;
-
-  <% if p('roadmin_enabled') %>
-CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED BY '<%= p('roadmin_password') %>';
-ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED BY '<%= p('admin_password') %>';
-GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
-  <% end %>
-<% end %>
-
-<% old_hosts.each do |old_host| %>
-DROP USER IF EXISTS '<%= p('admin_username') %>'@'<%= old_host %>';
-DROP USER IF EXISTS 'roadmin'@'<%= old_host %>';
-<% end %>
-
-<% unless p('roadmin_enabled') %>
-  <% hosts.each do |host| %>
+  <%- if p('admin_username') != 'root' -%>
+DROP USER IF EXISTS '<%= p('admin_username') %>'@'<%= host %>';
+  <%- end -%>
 DROP USER IF EXISTS 'roadmin'@'<%= host %>';
-  <% end %>
-<% end %>
 
-FLUSH PRIVILEGES;
-SET SESSION SQL_LOG_BIN = 1;
+<%- end -%>
+<%- if_p('mysql_backup_password') do |password| -%>
+CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
+ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED WITH mysql_native_password BY '<%= password %>';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
+
+<%- end -%>
+<%- hosts.each do |host| -%>
+CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
+ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
+GRANT ALL PRIVILEGES ON *.* TO '<%= p('admin_username') %>'@'<%= host %>' WITH GRANT OPTION;
+  <%- if p('roadmin_enabled') -%>
+
+CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('roadmin_password') %>';
+ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
+GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
+  <%- end -%>
+
+<%- end -%>
+<%=
+  def create_user(user)
+    %{
+CREATE USER IF NOT EXISTS #{user['username']}@#{user['host']}
+  IDENTIFIED WITH mysql_native_password BY #{user['password']}
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+ALTER USER #{user['username']}@#{user['host']}
+  IDENTIFIED WITH mysql_native_password BY #{user['password']}
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+}.strip
+  end
+
+  def grant_admin_privs(user)
+    %{
+GRANT ALL PRIVILEGES ON *.* TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
+GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
+}.strip
+  end
+
+  def grant_schema_admin_privs(user)
+    if user['schema'].nil? || user['schema'].empty?
+      raise "user #{user['username']} with schema-admin role specified with an empty schema"
+    end
+
+    %{
+    #{revoke_all_privileges(user)}
+GRANT ALL PRIVILEGES ON #{ident_escaped(user['schema'])}.* TO #{user['username']}@#{user['host']};
+CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])}
+  CHARACTER SET '#{p('engine_config.character_set_server')}'
+  COLLATE '#{p('engine_config.collation_server')}';
+}.strip
+  end
+
+  def revoke_all_privileges(user)
+    %{
+REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
+}.strip
+  end
+
+  def user_from_cfg(username, cfg)
+    if username.nil? || username.empty?
+      raise("seeded_users property specifies an empty username")
+    end
+    if cfg['host'].nil? || cfg['host'].empty?
+      raise("seeded_users property specifies an empty allowed 'host' for username #{username}")
+    end
+    if cfg['password'].nil? || cfg['password'].empty?
+      raise("seeded_users property specifies an empty allowed 'password' for username #{username}")
+    end
+    if cfg['role'].nil? || cfg['role'].empty?
+      raise("seeded_users property specifies an empty allowed 'role' for username #{username}")
+    end
+
+    mysql_host = case cfg['host']
+                 when "localhost" then "localhost"
+                 when "loopback" then "127.0.0.1"
+                 when "any" then "%"
+                 else
+                   raise "invalid host '#{cfg['host']}' specified for username #{username}"
+                 end
+
+    {
+      "username" => escape(username),
+      "host" => escape(mysql_host),
+      "password" => escape(cfg['password']),
+      "schema" => cfg['schema'],
+      "role" => cfg["role"],
+    }
+  end
+
+  def grant_privs(user)
+    case user['role']
+    when "admin" then grant_admin_privs(user)
+    when "schema-admin" then grant_schema_admin_privs(user)
+    when "minimal" then revoke_all_privileges(user)
+    else raise "Unsupported role '#{user['role']}' for user #{user['username']}"
+    end
+  end
+
+  def emit_user(user)
+    %{-- user: #{user['username']}@#{user['host']} role: #{user['role']}
+#{create_user(user)}
+#{grant_privs(user)}
+}
+  end
+
+  def escape(value) "'#{value.gsub("'", "''")}'" end
+  def ident(value) "`#{value.gsub("`", "``")}`" end
+  def ident_escaped(value) "#{ident(value).gsub("_", "\\_").gsub("%", "\\%")}" end
+
+  # Merge seeded_databases w/ seeded_users and sort by key for easier testing
+  users = p('seeded_databases').map { |e|
+    [e["username"], {
+      "role" => "schema-admin",
+      "password" => e["password"],
+      "host" => "any",
+      "schema" => e["name"]
+    }]
+  }.to_h.merge(p('seeded_users')).sort.to_h
+
+  users.map do |username, cfg|
+    emit_user user_from_cfg(username, cfg)
+  end.join("\n")
+%>
+SET @@session.sql_log_bin = on;

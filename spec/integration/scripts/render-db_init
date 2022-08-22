@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+require 'erb'
+require 'json'
+require 'bosh/template/test'
+
+def main
+  topdir = File.join(File.dirname(__FILE__), '../../..')
+  template = Bosh::Template::Test::ReleaseDir.new(topdir)
+    .job('pxc-mysql').template('config/db_init')
+
+  spec = {
+    "admin_password" => "",
+    "remote_admin_access" => true,
+  }
+  spec.merge! JSON.parse(STDIN.read)
+  puts "-- spec => #{spec}"
+  puts template.render(spec)
+end
+
+if __FILE__ == $0
+  main
+end

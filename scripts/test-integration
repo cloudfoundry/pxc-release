@@ -7,3 +7,12 @@ RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo -e "\n>>>>>>>> Testing Galera Init Integration..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry/galera-init/bin/test-integration" "$@"
+
+echo -e "\n>>>>>>>> Testing spec/integration..."
+cd "${RELEASE_DIR}/spec/"
+bundle update --bundler && bundle install
+cd -
+
+cd "${RELEASE_DIR}/spec/integration/"
+go run github.com/onsi/ginkgo/v2/ginkgo run -v
+cd -
