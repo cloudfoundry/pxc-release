@@ -254,30 +254,62 @@ var _ = Describe("Config", func() {
 		})
 	})
 
+	type testCase struct {
+		config                Config
+		dbState               domain.DBState
+		nodeState             domain.WsrepLocalState
+		availableWhenDonor    bool
+		availableWhenReadOnly bool
+		readOnly              bool
+	}
+
 	DescribeTable("IsHealthy",
-		func(ls domain.WsrepLocalState, availableWhenDonor bool, availableWhenReadOnly bool, readOnly bool, expected bool) {
-			config := &Config{
-				AvailableWhenDonor:    availableWhenDonor,
-				AvailableWhenReadOnly: availableWhenReadOnly,
-			}
-
-			state := domain.DBState{
-				WsrepLocalState: ls,
-				ReadOnly:        readOnly,
-			}
-
-			Expect(config.IsHealthy(state)).To(Equal(expected))
+		func(tc testCase, expected bool) {
+			Expect(tc.config.IsHealthy(tc.dbState)).To(Equal(expected))
 		},
-		Entry("Joining is always false", domain.Joining, false, false, false, false),
-		Entry("Joined is always false", domain.Joined, false, false, false, false),
-		Entry("DonorDesynced when not availableWhenDonor is false ", domain.DonorDesynced, false, false, false, false),
-		Entry("DonorDesynced when availableWhenReadOnly is always true - 1", domain.DonorDesynced, true, true, false, true),
-		Entry("DonorDesynced when availableWhenReadOnly is always true - 2", domain.DonorDesynced, true, true, true, true),
-		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 1", domain.DonorDesynced, true, false, false, true),
-		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 2", domain.DonorDesynced, true, false, true, false),
-		Entry("Synced when availableWhenReadOnly is always true - 1", domain.Synced, true, true, false, true),
-		Entry("Synced when availableWhenReadOnly is always true - 2", domain.Synced, true, true, true, true),
-		Entry("Synced when not availableWhenReadOnly is !readOnly - 1", domain.Synced, true, false, false, true),
-		Entry("Synced when not availableWhenReadOnly is !readOnly - 2", domain.Synced, true, false, true, false),
+		Entry("Joining is always false", testCase{
+			config:  Config{AvailableWhenDonor: false, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.Joining, ReadOnly: false},
+		}, false),
+		Entry("Joined is always false", testCase{
+			config:  Config{AvailableWhenDonor: false, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.Joined, ReadOnly: false},
+		}, false),
+		Entry("DonorDesynced when not availableWhenDonor is false ", testCase{
+			config:  Config{AvailableWhenDonor: false, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: false},
+		}, false),
+		Entry("DonorDesynced when availableWhenReadOnly is always true - 1", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
+			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: false},
+		}, true),
+		Entry("DonorDesynced when availableWhenReadOnly is always true - 2", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
+			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: true},
+		}, true),
+		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 1", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: false},
+		}, true),
+		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 2", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: true},
+		}, false),
+		Entry("Synced when availableWhenReadOnly is always true - 1", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
+			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: false},
+		}, true),
+		Entry("Synced when availableWhenReadOnly is always true - 2", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
+			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: true},
+		}, true),
+		Entry("Synced when not availableWhenReadOnly is !readOnly - 1", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: false},
+		}, true),
+		Entry("Synced when not availableWhenReadOnly is !readOnly - 2", testCase{
+			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
+			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: true},
+		}, false),
 	)
 })
