@@ -141,5 +141,5 @@ func (c *Config) IsHealthy(state domain.DBState) bool {
 		return false
 	}
 
-	return (domain.WsrepLocalState(state.WsrepLocalState) == domain.Synced) || (domain.WsrepLocalState(state.WsrepLocalState) == domain.DonorDesynced && c.AvailableWhenDonor)
+	return (state.WsrepLocalState == domain.Synced) || (state.WsrepLocalState == domain.DonorDesynced && c.AvailableWhenDonor)
 }
