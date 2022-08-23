@@ -75,7 +75,6 @@ func main() {
 		serviceManager,
 		sequenceNumberchecker,
 		healthchecker,
-		healthchecker,
 		stateSnapshotter,
 	)
 	if err != nil {

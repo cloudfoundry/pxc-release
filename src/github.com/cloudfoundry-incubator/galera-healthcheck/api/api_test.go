@@ -29,7 +29,6 @@ var _ = Describe("Sidecar API", func() {
 	var (
 		monitClient      *apifakes.FakeMonitClient
 		sequenceNumber   *apifakes.FakeSequenceNumberChecker
-		reqhealthchecker *apifakes.FakeReqHealthChecker
 		healthchecker    *apifakes.FakeHealthChecker
 		stateSnapshotter *apifakes.FakeStateSnapshotter
 		ts               *httptest.Server
@@ -47,9 +46,6 @@ var _ = Describe("Sidecar API", func() {
 		monitClient = &apifakes.FakeMonitClient{}
 		sequenceNumber = &apifakes.FakeSequenceNumberChecker{}
 		sequenceNumber.CheckReturns(ExpectedSeqno, nil)
-
-		reqhealthchecker = &apifakes.FakeReqHealthChecker{}
-		reqhealthchecker.CheckReqReturns(ExpectedHealthCheckStatus, nil)
 
 		healthchecker = &apifakes.FakeHealthChecker{}
 		healthchecker.CheckReturns(ExpectedHealthCheckStatus, nil)
@@ -76,7 +72,6 @@ var _ = Describe("Sidecar API", func() {
 			testConfig,
 			monitClient,
 			sequenceNumber,
-			reqhealthchecker,
 			healthchecker,
 			stateSnapshotter,
 		)
@@ -233,7 +228,7 @@ var _ = Describe("Sidecar API", func() {
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-			Expect(reqhealthchecker.CheckReqCallCount()).To(Equal(1))
+			Expect(healthchecker.CheckCallCount()).To(Equal(1))
 		})
 
 		It("Calls Check on the reqHealthchecker at /galera_status", func() {
@@ -245,7 +240,7 @@ var _ = Describe("Sidecar API", func() {
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
-			Expect(reqhealthchecker.CheckReqCallCount()).To(Equal(1))
+			Expect(healthchecker.CheckCallCount()).To(Equal(1))
 		})
 
 		Describe("/api/v1/status", func() {

@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"net/http"
-
 	"code.cloudfoundry.org/lager"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 )
 
@@ -31,10 +30,6 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) *HealthChecker {
 		config: config,
 		logger: logger,
 	}
-}
-
-func (h *HealthChecker) CheckReq(req *http.Request) (string, error) {
-	return h.Check()
 }
 
 func (h *HealthChecker) Check() (string, error) {
