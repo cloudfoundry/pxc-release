@@ -3,3 +3,23 @@
   path: /instance_groups/name=proxy/jobs/name=route_registrar/consumes
   value:
     nats-tls: {from: nats-tls, deployment: cf}
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=route_registrar/properties/nats?/tls
+  value:
+    enabled: true
+    client_cert: ((nats_client_cert.certificate))
+    client_key: ((nats_client_cert.private_key))
+
+- type: replace
+  path: /variables/name=nats_client_cert?
+  value:
+    name: nats_client_cert
+    options:
+      alternative_names:
+      - nats_client
+      ca: /((bosh_director_name))/cf/nats_ca
+      common_name: nats_client
+      extended_key_usage:
+      - client_auth
+    type: certificate
