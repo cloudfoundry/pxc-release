@@ -145,7 +145,8 @@ func (r router) v1Status() http.Handler {
 			WsrepLocalState:        uint(s.WsrepLocalState),
 			WsrepLocalStateComment: string(s.WsrepLocalState.Comment()),
 			WsrepLocalIndex:        s.WsrepLocalIndex,
-			Healthy:                r.rootConfig.IsHealthy(s),
+			// TODO: Backfill tests. No tests fail regardless of what value we put here
+			Healthy: s.IsHealthy(),
 		})
 	})
 }

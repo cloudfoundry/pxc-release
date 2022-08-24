@@ -1,11 +1,14 @@
 package healthcheck_test
 
 import (
-	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
-	. "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-
 	"database/sql"
 	"errors"
+	"math/rand"
+	"strconv"
+	"time"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
+	. "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -35,78 +38,66 @@ var _ = Describe("DBStateSnapshotter", func() {
 				DB:     db,
 				Logger: logger,
 			}
+
+			rand.Seed(time.Now().UnixNano())
 		})
 
 		AfterEach(func() {
 			Expect(mock.ExpectationsWereMet()).To(Succeed())
 		})
 
-		It("queries for the 'wsrep_local_state', 'wsrep_local_index', and 'read_only' attributes in a transaction", func() {
-			mock.ExpectBegin()
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_state'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_state", 4))
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_index'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_index", 0))
-			mock.ExpectQuery("SHOW GLOBAL VARIABLES LIKE 'read_only'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("read_only", "ON"))
-			mock.ExpectCommit()
-
+		It("queries for the 'wsrep_local_state', 'wsrep_local_index', 'read_only' and 'pxc_maint_mode' attributes in a single query", func() {
+			mock.ExpectQuery(`SELECT .*`).
+				WillReturnRows(sqlmock.NewRows([]string{"wsrep_local_index", "wsrep_local_state", "read_only", "pxc_maint_mode"}).AddRow(
+					"2", "4", "1", "1",
+				))
 			state, err := snapshotter.State()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(state.WsrepLocalIndex).To(Equal(uint(0)))
-			Expect(state.WsrepLocalState).To(Equal(domain.Synced))
-			Expect(state.ReadOnly).To(BeTrue())
+			Expect(state.WsrepLocalIndex).To(Equal(uint(2)), `wsrep_local_index was unexpectedly not 2!`)
+			Expect(state.WsrepLocalState).To(Equal(domain.Synced), `wsrep_local_state was unexpectedly not "Synced"`)
+			Expect(state.ReadOnly).To(BeTrue(), `read_only was unexpectedly not true!`)
+			Expect(state.MaintenanceEnabled).To(BeTrue(), `pxc_maint_mode was unexpectedly not true!`)
 		})
 
-		It("returns an error when it can't make a transaction", func() {
-			mock.ExpectBegin().WillReturnError(errors.New("error"))
+		intToBool := func(i int) bool {
+			if i == 0 {
+				return false
+			}
+			return true
+		}
+		It("does not simply return the values expected by this test", func() {
+			for i := 0; i < 10; i++ {
+				randomIndex := rand.Intn(4)
+				randomWsrepState := rand.Intn(5)
+				randomReadOnly := rand.Intn(2)
+				randomMaint := rand.Intn(2)
+
+				mock.ExpectQuery(`SELECT .*`).
+					WillReturnRows(sqlmock.NewRows([]string{"wsrep_local_index", "wsrep_local_state", "read_only", "pxc_maint_mode"}).AddRow(
+						strconv.Itoa(randomIndex), strconv.Itoa(randomWsrepState), strconv.Itoa(randomReadOnly), strconv.Itoa(randomMaint),
+					))
+				state, err := snapshotter.State()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(state.WsrepLocalIndex).To(Equal(uint(randomIndex)),
+					`wsrep_local_index was unexpectedly not 1!`)
+				Expect(state.WsrepLocalState).To(Equal(domain.WsrepLocalState(randomWsrepState)),
+					`wsrep_local_state was unexpectedly not "DonorDesynced"`)
+				Expect(state.ReadOnly).To(Equal(intToBool(randomReadOnly)),
+					`read_only was unexpectedly not false!`)
+				Expect(state.MaintenanceEnabled).To(Equal(intToBool(randomMaint)),
+					`pxc_maint_mode was unexpectedly not true!`)
+			}
+		})
+
+		It("returns an error when it cannot query the instance state", func() {
+			mock.ExpectQuery(`SELECT .*`).WillReturnError(errors.New("error"))
 
 			_, err = snapshotter.State()
 
 			Expect(err).To(MatchError(errors.New("error")))
 		})
 
-		It("returns an error and rolls back when it can't query 'wsrep_local_state'", func() {
-			mock.ExpectBegin()
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_state'").WillReturnError(errors.New("error"))
-			mock.ExpectRollback()
-
-			_, err = snapshotter.State()
-
-			Expect(err).To(MatchError(errors.New("error")))
-		})
-
-		It("returns an error and rolls back when it can't query 'wsrep_local_index'", func() {
-			mock.ExpectBegin()
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_state'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_state", 4))
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_index'").WillReturnError(errors.New("error"))
-			mock.ExpectRollback()
-
-			_, err = snapshotter.State()
-
-			Expect(err).To(MatchError(errors.New("error")))
-		})
-
-		It("returns an error and rolls back when it can't query 'read_only'", func() {
-			mock.ExpectBegin()
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_state'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_state", 4))
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_index'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_index", 0))
-			mock.ExpectQuery("SHOW GLOBAL VARIABLES LIKE 'read_only'").WillReturnError(errors.New("error"))
-			mock.ExpectRollback()
-
-			_, err = snapshotter.State()
-
-			Expect(err).To(MatchError(errors.New("error")))
-		})
-
-		It("returns an error when it can't commit the transaction", func() {
-			mock.ExpectBegin()
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_state'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_state", 4))
-			mock.ExpectQuery("SHOW STATUS LIKE 'wsrep_local_index'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("wsrep_local_index", 0))
-			mock.ExpectQuery("SHOW GLOBAL VARIABLES LIKE 'read_only'").WillReturnRows(sqlmock.NewRows([]string{"Variable_Name", "Value"}).AddRow("read_only", "ON"))
-			mock.ExpectCommit().WillReturnError(errors.New("error"))
-
-			_, err = snapshotter.State()
-
-			Expect(err).To(MatchError(errors.New("error")))
-		})
 	})
 })

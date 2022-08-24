@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"code.cloudfoundry.org/lager"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
@@ -13,44 +14,23 @@ type DBStateSnapshotter struct {
 }
 
 func (s *DBStateSnapshotter) State() (state domain.DBState, err error) {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return domain.DBState{}, err
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			return
-		}
-
-		err = tx.Commit()
-	}()
-
-	var (
-		unused     string
-		localState domain.WsrepLocalState
-		localIndex uint
-		readOnly   string
+	err = s.DB.QueryRow(`SELECT (SELECT VARIABLE_VALUE
+        FROM performance_schema.global_status
+        WHERE VARIABLE_NAME = 'wsrep_local_index') AS wsrep_local_index,
+       (SELECT VARIABLE_VALUE
+        FROM performance_schema.global_status
+        WHERE VARIABLE_NAME = 'wsrep_local_state') AS wsrep_local_state,
+       @@global.read_only                          AS read_only,
+       @@global.pxc_maint_mode != 'DISABLED'       AS maintenance_enabled
+`).Scan(
+		&state.WsrepLocalIndex,
+		&state.WsrepLocalState,
+		&state.ReadOnly,
+		&state.MaintenanceEnabled,
 	)
 
-	err = tx.QueryRow("SHOW STATUS LIKE 'wsrep_local_state'").Scan(&unused, &localState)
-	if err != nil {
-		return
-	}
-
-	err = tx.QueryRow("SHOW STATUS LIKE 'wsrep_local_index'").Scan(&unused, &localIndex)
-	if err != nil {
-		return
-	}
-
-	err = tx.QueryRow("SHOW GLOBAL VARIABLES LIKE 'read_only'").Scan(&unused, &readOnly)
-	if err != nil {
-		return
-	}
-
-	return domain.DBState{
-		WsrepLocalIndex: localIndex,
-		WsrepLocalState: localState,
-		ReadOnly:        (readOnly == "ON"),
-	}, nil
+	s.Logger.Info("dbState", lager.Data{
+		"state": state,
+	})
+	return state, err
 }

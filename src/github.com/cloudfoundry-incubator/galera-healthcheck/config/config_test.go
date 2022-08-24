@@ -11,12 +11,10 @@ import (
 
 	"code.cloudfoundry.org/tlsconfig/certtest"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/test_helpers"
 )
 
@@ -253,63 +251,4 @@ var _ = Describe("Config", func() {
 			Expect(rootConfig.Logger).ToNot(BeNil())
 		})
 	})
-
-	type testCase struct {
-		config                Config
-		dbState               domain.DBState
-		nodeState             domain.WsrepLocalState
-		availableWhenDonor    bool
-		availableWhenReadOnly bool
-		readOnly              bool
-	}
-
-	DescribeTable("IsHealthy",
-		func(tc testCase, expected bool) {
-			Expect(tc.config.IsHealthy(tc.dbState)).To(Equal(expected))
-		},
-		Entry("Joining is always false", testCase{
-			config:  Config{AvailableWhenDonor: false, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.Joining, ReadOnly: false},
-		}, false),
-		Entry("Joined is always false", testCase{
-			config:  Config{AvailableWhenDonor: false, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.Joined, ReadOnly: false},
-		}, false),
-		Entry("DonorDesynced when not availableWhenDonor is false ", testCase{
-			config:  Config{AvailableWhenDonor: false, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: false},
-		}, false),
-		Entry("DonorDesynced when availableWhenReadOnly is always true - 1", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
-			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: false},
-		}, true),
-		Entry("DonorDesynced when availableWhenReadOnly is always true - 2", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
-			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: true},
-		}, true),
-		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 1", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: false},
-		}, true),
-		Entry("DonorDesynced when not availableWhenReadOnly is !readOnly - 2", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.DonorDesynced, ReadOnly: true},
-		}, false),
-		Entry("Synced when availableWhenReadOnly is always true - 1", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
-			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: false},
-		}, true),
-		Entry("Synced when availableWhenReadOnly is always true - 2", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: true},
-			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: true},
-		}, true),
-		Entry("Synced when not availableWhenReadOnly is !readOnly - 1", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: false},
-		}, true),
-		Entry("Synced when not availableWhenReadOnly is !readOnly - 2", testCase{
-			config:  Config{AvailableWhenDonor: true, AvailableWhenReadOnly: false},
-			dbState: domain.DBState{WsrepLocalState: domain.Synced, ReadOnly: true},
-		}, false),
-	)
 })

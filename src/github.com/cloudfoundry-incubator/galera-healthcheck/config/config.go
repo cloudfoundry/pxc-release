@@ -12,8 +12,6 @@ import (
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pkg/errors"
 	"gopkg.in/validator.v2"
-
-	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
 type Config struct {
@@ -134,12 +132,4 @@ func (c *Config) NetworkListener() (net.Listener, error) {
 	}
 
 	return tls.Listen("tcp", address, tlsConfig)
-}
-
-func (c *Config) IsHealthy(state domain.DBState) bool {
-	if state.ReadOnly && !c.AvailableWhenReadOnly {
-		return false
-	}
-
-	return (state.WsrepLocalState == domain.Synced) || (state.WsrepLocalState == domain.DonorDesynced && c.AvailableWhenDonor)
 }

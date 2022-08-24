@@ -14,8 +14,6 @@ main() {
 
   if [[ ${ENABLE_CLUSTER:-true} == "true" ]]; then
     deploy_opts+=(--ops-file=operations/use-clustered.yml)
-    deploy_opts+=(--ops-file=operations/galera-agent-tls.yml)
-    deploy_opts+=(--ops-file=operations/proxy-tls.yml)
   fi
 
   if [[ ${ENABLE_INTEGRATION:-true} == "true" ]]; then

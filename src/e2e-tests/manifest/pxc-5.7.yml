@@ -65,6 +65,10 @@ instance_groups:
   jobs:
   - name: proxy
     release: pxc
+    provides:
+      proxy:
+        as: proxy
+        shared: true
     properties:
       api_password: ((cf_mysql_proxy_api_password))
 
