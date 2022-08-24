@@ -41,9 +41,6 @@ ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
 <%- end -%>
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
-<%- if p('tls.enforce_tls_v1_2') -%>
-tls_version=TLSv1.2
-<%- end -%>
 <%- if p('tls.required') -%>
 require-secure-transport=ON
 <%- end -%>

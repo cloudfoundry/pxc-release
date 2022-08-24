@@ -141,7 +141,7 @@ properties:
     description: 'Required. TLS certificate for client-server encryption'
 
   tls.enforce_tls_v1_2:
-    description: 'If enabled, will enforce client connections to use TLSv1.2'
+    description: 'DEPRECATED (TLSv1 and TLSV1.1 connections deprecated): If enabled, will enforce client connections to use TLSv1.2'
     default: false
 
   tls.required:

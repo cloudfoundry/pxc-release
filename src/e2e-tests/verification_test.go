@@ -39,7 +39,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation(`use-clustered.yml`),
 			bosh.Operation(`test/seed-test-user.yml`),
-			bosh.Operation(`enable-enforce_tls_1_2.yml`),
 			bosh.Operation(`require-tls.yml`),
 			bosh.Operation(`test/test-audit-logging.yml`),
 			bosh.Operation(`test/use-mtls.yml`),
@@ -186,6 +185,14 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				MaxVersion:         tls.VersionTLS11,
 				InsecureSkipVerify: true,
 			})).To(Succeed())
+			Expect(mysql.RegisterTLSConfig("tls12", &tls.Config{
+				MaxVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: true,
+			})).To(Succeed())
+			Expect(mysql.RegisterTLSConfig("tls13", &tls.Config{
+				MinVersion:         tls.VersionTLS13,
+				InsecureSkipVerify: true,
+			})).To(Succeed())
 		})
 
 		It("requires a secure transport for client connections", func() {
@@ -198,13 +205,33 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).To(MatchError(`Error 3159: Connections using insecure transport are prohibited while --require_secure_transport=ON.`))
 		})
 
-		It("requires TLSv1.2 for connections", func() {
+		It("rejects TLSv11 connections", func() {
 			dsn := "test-admin:integration-tests@tcp(" + proxyHost + ":3306)/?tls=deprecated-tls11"
 			db, err := sql.Open("mysql", dsn)
 			Expect(err).NotTo(HaveOccurred())
 			defer db.Close()
 			err = db.Ping()
 			Expect(err).To(MatchError(`tls: no supported versions satisfy MinVersion and MaxVersion`))
+		})
+		It("accepts TLSv1.2 for connections", func() {
+			dsn := "test-admin:integration-tests@tcp(" + proxyHost + ":3306)/?tls=tls12"
+			db, err := sql.Open("mysql", dsn)
+			Expect(err).NotTo(HaveOccurred())
+			defer db.Close()
+			for i := 0; i < 500; i++ {
+				err = db.Ping()
+			}
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("accepts TLSv1.3 for connections", func() {
+			dsn := "test-admin:integration-tests@tcp(" + proxyHost + ":3306)/?tls=tls13"
+			db, err := sql.Open("mysql", dsn)
+			Expect(err).NotTo(HaveOccurred())
+			defer db.Close()
+			for i := 0; i < 500; i++ {
+				err = db.Ping()
+			}
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("accepts valid TLS connections", func() {
