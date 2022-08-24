@@ -218,9 +218,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			db, err := sql.Open("mysql", dsn)
 			Expect(err).NotTo(HaveOccurred())
 			defer db.Close()
-			for i := 0; i < 500; i++ {
-				err = db.Ping()
-			}
+			err = db.Ping()
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("accepts TLSv1.3 for connections", func() {
@@ -228,9 +226,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			db, err := sql.Open("mysql", dsn)
 			Expect(err).NotTo(HaveOccurred())
 			defer db.Close()
-			for i := 0; i < 500; i++ {
-				err = db.Ping()
-			}
+			err = db.Ping()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
