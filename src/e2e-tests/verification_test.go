@@ -299,11 +299,12 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			BeforeEach(func() {
 				untrustedCert, err := createUntrustedCertificate()
 				Expect(err).NotTo(HaveOccurred())
-
+				
 				Expect(mysql.RegisterTLSConfig("untrusted-tls", &tls.Config{
 					Certificates: []tls.Certificate{
 						untrustedCert,
 					},
+					MaxVersion:         tls.VersionTLS12,
 					InsecureSkipVerify: true,
 				})).To(Succeed())
 			})
