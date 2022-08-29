@@ -42,6 +42,8 @@ build_and_install() {
 
   cmake .. \
     -DBUILD_CONFIG=xtrabackup_release \
+    -DCMAKE_CXX_COMPILER=g++ \
+    -DCMAKE_C_COMPILER=gcc \
     -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
     -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private' \
     -DINSTALL_MYSQLTESTDIR= \

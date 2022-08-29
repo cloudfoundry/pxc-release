@@ -1,0 +1,34 @@
+diff --git a/percona-xtradb-cluster-galera/CMakeLists.txt b/percona-xtradb-cluster-galera/CMakeLists.txt
+index 7802a702..ff0ea369 100644
+--- a/percona-xtradb-cluster-galera/CMakeLists.txt
++++ b/percona-xtradb-cluster-galera/CMakeLists.txt
+@@ -98,6 +98,11 @@ include(cmake/maintainer_mode.cmake)
+ 
+ include(CTest)
+ enable_testing()
++
++if(DEFINED WITH_PERFSCHEMA_STORAGE_ENGINE)
++  add_definitions(-DHAVE_PSI_INTERFACE=1)
++endif()
++
+ add_subdirectory(galerautils)
+ add_subdirectory(gcomm)
+ add_subdirectory(gcache)
+diff --git a/percona-xtradb-cluster-galera/gcs/src/CMakeLists.txt b/percona-xtradb-cluster-galera/gcs/src/CMakeLists.txt
+index b81d7c82..f416c0cc 100644
+--- a/percona-xtradb-cluster-galera/gcs/src/CMakeLists.txt
++++ b/percona-xtradb-cluster-galera/gcs/src/CMakeLists.txt
+@@ -57,8 +57,12 @@ target_link_libraries(gcs gcomm gcache)
+ add_library(gcs4garb ${GCS_SOURCES})
+ 
+ target_compile_definitions(gcs4garb
+-  PRIVATE
++  PUBLIC
+   -DGCS_FOR_GARB
++  )
++
++target_compile_definitions(gcs4garb
++  PRIVATE
+   -DGALERA_LOG_H_ENABLE_CXX
+   -DGCS_USE_GCOMM
+   )

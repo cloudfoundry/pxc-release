@@ -23,8 +23,8 @@ install_build_dependencies() {
 
   tar -xf boost_1_73_0.tar.bz2
   cd boost_1_73_0/
-  ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
-  ./b2 -j "$(nproc)" install
+  ./bootstrap.sh --with-libraries=program_options,system
+  ./b2 -j "$(nproc)"
   cd -
 
   tar -xf check_*.tar.gz
@@ -59,6 +59,11 @@ apply_patches() {
 
 configure_source() {
   (
+    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
+    cmake . -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" -DBOOST_ROOT=../../boost_1_73_0
+  )
+
+  (
     cd Percona-XtraDB-Cluster-*/
     source MYSQL_VERSION
     mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
@@ -71,6 +76,8 @@ configure_source() {
     cmake .. \
       -DBUILD_CONFIG=mysql_release \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_CXX_COMPILER=g++ \
+      -DCMAKE_C_COMPILER=gcc \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
       -DCOMPILATION_COMMENT="${compilation_comment}" \
       -DENABLED_LOCAL_INFILE=off \
@@ -93,16 +100,11 @@ configure_source() {
       -DWITH_WSREP=ON \
       -DWITH_ZLIB=system
   )
-
-  (
-    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
-    cmake . -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}"
-  )
 }
 
 build_source() {
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
   make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc)
+  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
 }
 
 install_distribution() {
