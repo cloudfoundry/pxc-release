@@ -31,17 +31,26 @@ var _ = Describe("Backend", func() {
 		domain.BridgesProvider = domain.NewBridges
 	})
 
-	Describe("HealthcheckUrl", func() {
-		When("using TLS for agent communcation", func() {
-			It("has the correct protocol, backend host and health check port", func() {
-				healthcheckURL := backend.HealthcheckUrl(true)
-				Expect(healthcheckURL).To(Equal("https://1.2.3.4:9902/status"))
+	Describe("HealthcheckUrls", func() {
+		When("using TLS for agent communication", func() {
+			It("returns a pair of TLS/non-TLS URLs", func() {
+				healthcheckURLs := backend.HealthcheckUrls(true)
+				Expect(len(healthcheckURLs)).To(Equal(2))
+
+				By("constructing a TLS URL0 with the correct protocol, backend host and health check port", func() {
+					healthcheckURLs := backend.HealthcheckUrls(true)
+					Expect(healthcheckURLs[0]).To(Equal("https://1.2.3.4:9902/status"))
+				})
+				By("constructing a non-TLS URL1 with has the correct protocol, backend host and health check port", func() {
+					Expect(healthcheckURLs[1]).To(Equal("http://1.2.3.4:9200/status"))
+				})
 			})
 		})
-		When("NOT using TLS for agent communcation", func() {
-			It("has the correct protocol, backend host and health check port", func() {
-				healthcheckURL := backend.HealthcheckUrl(false)
-				Expect(healthcheckURL).To(Equal("http://1.2.3.4:9902/status"))
+		When("NOT using TLS for agent communication", func() {
+			It("returns a one-URL slice of the correct protocol, backend host and health check port", func() {
+				healthcheckURLs := backend.HealthcheckUrls(false)
+				Expect(len(healthcheckURLs)).To(Equal(1))
+				Expect(healthcheckURLs[0]).To(Equal("http://1.2.3.4:9902/status"))
 			})
 		})
 	})

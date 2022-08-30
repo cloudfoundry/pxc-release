@@ -115,11 +115,11 @@ var _ = Describe("ClusterMonitor", func() {
 				m.RLock()
 				defer m.RUnlock()
 
-				if url == backend1.HealthcheckUrl(useTLSForAgent) {
+				if url == backend1.HealthcheckUrls(useTLSForAgent)[0] {
 					return healthyResponse(backendToIndex[backend1]), nil
-				} else if url == backend2.HealthcheckUrl(useTLSForAgent) {
+				} else if url == backend2.HealthcheckUrls(useTLSForAgent)[0] {
 					return healthyResponse(backendToIndex[backend2]), nil
-				} else if url == backend3.HealthcheckUrl(useTLSForAgent) {
+				} else if url == backend3.HealthcheckUrls(useTLSForAgent)[0] {
 					return healthyResponse(backendToIndex[backend3]), nil
 				}
 
@@ -155,7 +155,7 @@ var _ = Describe("ClusterMonitor", func() {
 				m.RLock()
 				defer m.RUnlock()
 
-				if url == backend2.HealthcheckUrl(useTLSForAgent) {
+				if url == backend2.HealthcheckUrls(useTLSForAgent)[0] {
 					return unhealthyResponse(0), nil
 				} else {
 					return healthyResponse(0), nil
@@ -179,7 +179,7 @@ var _ = Describe("ClusterMonitor", func() {
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
-				if url == backend2.HealthcheckUrl(useTLSForAgent) {
+				if url == backend2.HealthcheckUrls(useTLSForAgent)[0] {
 					return nil, errors.New("some error")
 				} else {
 					return healthyResponse(0), nil
@@ -205,7 +205,7 @@ var _ = Describe("ClusterMonitor", func() {
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
 				defer m.RUnlock()
-				if url == backend2.HealthcheckUrl(useTLSForAgent) && isUnhealthy {
+				if url == backend2.HealthcheckUrls(useTLSForAgent)[0] && isUnhealthy {
 					isUnhealthy = false
 					return unhealthyResponse(0), nil
 				} else {
@@ -343,6 +343,30 @@ var _ = Describe("ClusterMonitor", func() {
 					backendStatusPort,
 				)
 				Expect(urlGetter.GetArgsForCall(0)).To(Equal(expectedURL))
+			})
+
+			When("our TLS connection is rejected by Galera Agent", func() {
+				JustBeforeEach(func() {
+					urlGetter.GetStub = func(url string) (*http.Response, error) {
+						m.RLock()
+						defer m.RUnlock()
+
+						return &http.Response{
+							Body:       ioutil.NopCloser(bytes.NewBuffer(nil)),
+							StatusCode: http.StatusTeapot,
+						}, errors.New("placeholder error")
+					}
+				})
+				It("waterfalls through to a successful non-TLS connection", func() {
+					expectedURL := fmt.Sprintf(
+						"http://%s:%d/api/v1/status",
+						backendHost,
+						9200,
+					)
+					clusterMonitor.QueryBackendHealth(backend, backendStatus)
+					Expect(urlGetter.GetCallCount()).To(Equal(2))
+					Expect(urlGetter.GetArgsForCall(1)).To(Equal(expectedURL))
+				})
 			})
 		})
 

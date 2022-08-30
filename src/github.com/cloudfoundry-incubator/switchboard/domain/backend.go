@@ -52,14 +52,15 @@ func NewBackend(
 	}
 }
 
-func (b *Backend) HealthcheckUrl(useTLS bool) string {
+func (b *Backend) HealthcheckUrls(useTLS bool) []string {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
 	if useTLS {
-		return fmt.Sprintf("https://%s:%d/%s", b.host, b.statusPort, b.statusEndpoint)
+		return []string{fmt.Sprintf("https://%s:%d/%s", b.host, b.statusPort, b.statusEndpoint),
+			fmt.Sprintf("http://%s:%d/%s", b.host, 9200, b.statusEndpoint)}
 	}
-	return fmt.Sprintf("http://%s:%d/%s", b.host, b.statusPort, b.statusEndpoint)
+	return []string{fmt.Sprintf("http://%s:%d/%s", b.host, b.statusPort, b.statusEndpoint)}
 }
 
 func (b *Backend) Bridge(clientConn net.Conn) error {

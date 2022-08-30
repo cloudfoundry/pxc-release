@@ -137,21 +137,29 @@ func ChooseActiveBackend(backendHealths map[*domain.Backend]*BackendStatus, useL
 }
 
 func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shouldLog bool) (bool, *int) {
-	url := backend.HealthcheckUrl(c.useTLSForAgent)
-	resp, err := c.client.Get(url)
+	urls := backend.HealthcheckUrls(c.useTLSForAgent)
 
 	healthy := false
-	var index *int
+	var (
+		index *int
+		url   string
+		err   error
+		resp  *http.Response
+	)
 
-	if err == nil {
-		if resp.StatusCode == http.StatusOK {
-			var v1StatusResponse api.V1StatusResponse
+	for _, url = range urls {
+		resp, err = c.client.Get(url)
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				var v1StatusResponse api.V1StatusResponse
 
-			_ = json.NewDecoder(resp.Body).Decode(&v1StatusResponse)
+				_ = json.NewDecoder(resp.Body).Decode(&v1StatusResponse)
 
-			healthy = v1StatusResponse.Healthy
-			indexVal := int(v1StatusResponse.WsrepLocalIndex)
-			index = &indexVal
+				healthy = v1StatusResponse.Healthy
+				indexVal := int(v1StatusResponse.WsrepLocalIndex)
+				index = &indexVal
+			}
+			break
 		}
 	}
 
