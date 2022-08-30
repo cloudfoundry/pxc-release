@@ -5,4 +5,3 @@ files:
 - boost/boost_1_59_0.tar.gz
 - libaio/libaio_*.orig.tar.gz
 - pxc/Percona-XtraDB-Cluster-*.tar.gz
-- patches/mysql/*

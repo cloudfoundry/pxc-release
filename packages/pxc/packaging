@@ -14,7 +14,6 @@ tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
 pxc_version=$(basename pxc/Percona-XtraDB-Cluster-*.tar.gz .tar.gz | sed 's/Percona-XtraDB-Cluster-//')
 compilation_comment="Percona XtraDB Cluster (GPL) ${pxc_version}"
 pushd Percona-XtraDB-Cluster-*/
-    patch -p1 < "../patches/mysql/opensslv3.patch"
     cmake . \
         -DBUILD_CONFIG=mysql_release \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \

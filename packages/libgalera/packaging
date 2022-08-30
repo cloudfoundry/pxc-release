@@ -15,13 +15,15 @@ popd
 
 tar -xf boost/boost_1_59_0.tar.gz
 pushd boost_1_59_0
-    ./bootstrap.sh --with-libraries=program_options,system --prefix=/usr
-    ./b2 -j "${NPROC}" install
+    ./bootstrap.sh --with-libraries=program_options,system
+    ./b2 -j "${NPROC}"
 popd
 
 tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
 pushd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera
-    patch -p2 < ../../patches/libgalera/cmake_socket_watchdog.patch
-    cmake . -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}"
-    make -j4 install
+    patch -p2 < ../../patches/libgalera/libgalera_cmake.patch
+    cmake . \
+        -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+        -DBOOST_ROOT=../../boost_1_59_0
+    make -j "${NPROC}" install
 popd
