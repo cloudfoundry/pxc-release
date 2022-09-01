@@ -16,13 +16,6 @@
     release: pxc
 
 - type: replace
-  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/cluster-health-logger
-  value:
-    password: ((cf_mysql_mysql_cluster_health_password))
-    host: localhost
-    role: minimal
-
-- type: replace
   path: /instance_groups/name=proxy?
   value:
     name: proxy
@@ -45,13 +38,6 @@
       endpoint_password: ((cf_mysql_mysql_galera_healthcheck_endpoint_password))
       db_password: ((cf_mysql_mysql_galera_healthcheck_db_password))
     release: pxc
-
-- type: replace
-  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/galera-agent
-  value:
-    password: ((cf_mysql_mysql_galera_healthcheck_db_password))
-    host: localhost
-    role: minimal
 
 - type: replace
   path: /instance_groups/name=mysql/jobs/name=gra-log-purger?

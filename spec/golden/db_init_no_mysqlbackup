@@ -36,6 +36,15 @@ CREATE USER IF NOT EXISTS 'roadmin'@'::1' IDENTIFIED WITH mysql_native_password 
 ALTER USER 'root'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
 GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'::1';
 
+-- user: 'basic-user'@'localhost' role: minimal
+CREATE USER IF NOT EXISTS 'basic-user'@'localhost'
+  IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+ALTER USER 'basic-user'@'localhost'
+  IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
+  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+REVOKE ALL PRIVILEGES ON *.* FROM 'basic-user'@'localhost';
+
 -- user: 'cloud_controller'@'%' role: schema-admin
 CREATE USER IF NOT EXISTS 'cloud_controller'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
@@ -49,15 +58,6 @@ REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
 CREATE SCHEMA IF NOT EXISTS `cloud_controller`
   CHARACTER SET 'utf8'
   COLLATE 'utf8_unicode_ci';
-
--- user: 'galera-agent'@'localhost' role: minimal
-CREATE USER IF NOT EXISTS 'galera-agent'@'localhost'
-  IDENTIFIED WITH mysql_native_password BY 'secret-galera-agent-db-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
-ALTER USER 'galera-agent'@'localhost'
-  IDENTIFIED WITH mysql_native_password BY 'secret-galera-agent-db-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
-REVOKE ALL PRIVILEGES ON *.* FROM 'galera-agent'@'localhost';
 
 -- user: 'mysql-metrics'@'%' role: schema-admin
 CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'

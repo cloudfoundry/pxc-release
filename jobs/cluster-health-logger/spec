@@ -6,8 +6,13 @@ templates:
   cluster_health_logger_config.yml.erb: config/cluster_health_logger_config.yml
 
 packages:
-- pxc-utils
 - pxc-cluster-health-logger
+
+provides:
+- name: cluster-health-logger
+  type: cluster-health-logger
+  properties:
+  - db_password
 
 consumes:
 - name: mysql

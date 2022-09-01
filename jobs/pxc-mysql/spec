@@ -38,7 +38,9 @@ consumes:
 - name: galera-agent
   type: galera-agent
   optional: true
-  # TODO: is this really optional?
+- name: cluster-health-logger
+  type: cluster-health-logger
+  optional: true
 
 provides:
 - name: mysql

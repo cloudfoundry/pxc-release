@@ -12,6 +12,7 @@ provides:
 - name: galera-agent
   type: galera-agent
   properties:
+  - db_password
   - port
   - endpoint_tls.enabled
   - endpoint_tls.ca

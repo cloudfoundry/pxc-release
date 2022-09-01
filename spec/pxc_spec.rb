@@ -334,9 +334,9 @@ describe 'pxc mysql job' do
             }
           ],
           "seeded_users" => {
-            "galera-agent" => {
+            "basic-user" => {
               "role" => "minimal",
-              "password" => "secret-galera-agent-db-pw",
+              "password" => "secret-basic-user-db-pw",
               "host" => "localhost",
             },
             "special-admin-user" => {
@@ -353,11 +353,78 @@ describe 'pxc mysql job' do
           }
         }
       }
-      let(:rendered_template) { template.render(spec) }
+      let(:links) { [] }
+      let(:rendered_template) { template.render(spec, consumes: links) }
 
 
       it 'generates a valid db_init file' do
         expect(rendered_template).to eq File.read(File.join(dir, "db_init_all_features"))
+      end
+
+      context 'when a galera-agent link is present' do
+        let(:links) {
+          [
+            Bosh::Template::Test::Link.new(
+              name: 'galera-agent',
+              properties: {"db_password" => "galera-agent-db-creds"},
+              )
+          ]
+        }
+        it 'adds a galera-agent seeded_users entry automatically' do
+          expect(rendered_template).to match(/CREATE USER IF NOT EXISTS 'galera-agent'@'localhost'/)
+        end
+      end
+
+      context 'when a galera-agent link is NOT present' do
+        let(:links) { [] }
+
+        it 'adds a galera-agent seeded_users entry automatically' do
+          expect(rendered_template).to_not match(/CREATE USER IF NOT EXISTS 'galera-agent'@'localhost'/)
+        end
+      end
+
+      context 'when a cluster-health-logger link is present' do
+        let(:links) {
+          [
+            Bosh::Template::Test::Link.new(
+              name: 'cluster-health-logger',
+              properties: {"db_password" => "cluster-health-logger-db-creds"},
+              )
+          ]
+        }
+        it 'adds a cluster-health-logger seeded_users entry automatically' do
+          expect(rendered_template).to match(/CREATE USER IF NOT EXISTS 'cluster-health-logger'@'localhost'/)
+        end
+      end
+
+      context 'when a cluster-health-logger link is NOT present' do
+        let(:links) { [] }
+
+        it 'adds a cluster-health-logger seeded_users entry automatically' do
+          expect(rendered_template).to_not match(/CREATE USER IF NOT EXISTS 'cluster-health-logger'@'localhost'/)
+        end
+      end
+
+      context 'when both galera-agent and cluster-health-logger links are present' do
+        let(:links) {
+          [
+            Bosh::Template::Test::Link.new(
+              name: 'galera-agent',
+              properties: {"db_password" => "galera-agent-db-creds"},
+              ),
+            Bosh::Template::Test::Link.new(
+              name: 'cluster-health-logger',
+              properties: {"db_password" => "cluster-health-logger-db-creds"},
+              )
+          ]
+        }
+        it 'adds a galera-agent seeded_users entry automatically' do
+          expect(rendered_template).to match(/CREATE USER IF NOT EXISTS 'galera-agent'@'localhost'/)
+        end
+
+        it 'adds a cluster-health-logger seeded_users entry automatically' do
+          expect(rendered_template).to match(/CREATE USER IF NOT EXISTS 'cluster-health-logger'@'localhost'/)
+        end
       end
 
 

@@ -142,6 +142,22 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
     }]
   }.to_h.merge(p('seeded_users')).sort.to_h
 
+  if_link('galera-agent') do |link|
+    users["galera-agent"] = {
+      "role" => "minimal",
+      "password" => link.p('db_password'),
+      "host" => "localhost",
+    }
+  end
+
+  if_link('cluster-health-logger') do |link|
+    users["cluster-health-logger"] = {
+      "role" => "minimal",
+      "password" => link.p('db_password'),
+      "host" => "localhost",
+    }
+  end
+
   users.map do |username, cfg|
     emit_user user_from_cfg(username, cfg)
   end.join("\n")

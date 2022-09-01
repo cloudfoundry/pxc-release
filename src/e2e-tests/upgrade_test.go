@@ -27,8 +27,12 @@ var _ = Describe("Upgrade", Label("upgrade"), func() {
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
 
-		By("forcing credhub to rotate the galera-agent user's database credential")
+		By("forcing credhub to rotate the galera-agent database credential")
 		Expect(credhub.Regenerate("/" + deploymentName + "/cf_mysql_mysql_galera_healthcheck_db_password")).
+			To(Succeed())
+
+		By("forcing credhub to rotate the cluster-health-logger database credential")
+		Expect(credhub.Regenerate("/" + deploymentName + "/cf_mysql_mysql_cluster_health_password")).
 			To(Succeed())
 
 		By("upgrading pxc-release based on PXC 8.0")
@@ -38,5 +42,10 @@ var _ = Describe("Upgrade", Label("upgrade"), func() {
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
+
+		By("asserting cluster-health-logger is still able to connect to its local instance")
+		output, err := bosh.Logs(deploymentName, "mysql/0", "cluster-health-logger/cluster-health-logger.stderr.log")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(output.String()).NotTo(ContainSubstring(`Access denied for user 'cluster-health-logger'`))
 	})
 })
