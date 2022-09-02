@@ -211,6 +211,11 @@ describe 'pxc mysql job' do
         }
       }}
 
+      it 'sets pxc_maint_transition_period=0 to reduce downtime during 5.7 => 8.0 upgrades' do
+          tpl_output = template.render(spec, consumes: links)
+          expect(tpl_output).to match(/pxc_maint_transition_period\s*=\s*0/)
+      end
+
       context 'when audit logs are disabled (default)' do
         it 'has no audit log format' do
             tpl_output = template.render(spec, consumes: links)

@@ -51,6 +51,7 @@ require-secure-transport=ON
 <% if p('engine_config.galera.enabled') %>
 # GALERA options:
 pxc-strict-mode                 = MASTER
+pxc_maint_transition_period     = 0
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
 wsrep_debug                     = <%= bool_to_on_off(p('engine_config.galera.wsrep_debug')) %>
