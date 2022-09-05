@@ -60,7 +60,11 @@ apply_patches() {
 configure_source() {
   (
     cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
-    cmake . -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" -DBOOST_ROOT=../../boost_1_73_0
+    cp GALERA-REVISION GALERA_GIT_REVISION
+    cmake . \
+      -DBOOST_ROOT=../../boost_1_73_0 \
+      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+      -DGALERA_REVISION="$(<GALERA-REVISION)"
   )
 
   (
