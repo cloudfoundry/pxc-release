@@ -10,8 +10,6 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DATA-DOG/go-sqlmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,20 +22,13 @@ var _ = Describe("DBStateSnapshotter", func() {
 			db          *sql.DB
 			err         error
 			mock        sqlmock.Sqlmock
-
-			logger lager.Logger
 		)
 
 		BeforeEach(func() {
 			db, mock, err = sqlmock.New()
 			Expect(err).NotTo(HaveOccurred())
 
-			logger = lagertest.NewTestLogger("snapshotter")
-
-			snapshotter = &DBStateSnapshotter{
-				DB:     db,
-				Logger: logger,
-			}
+			snapshotter = &DBStateSnapshotter{DB: db}
 
 			rand.Seed(time.Now().UnixNano())
 		})

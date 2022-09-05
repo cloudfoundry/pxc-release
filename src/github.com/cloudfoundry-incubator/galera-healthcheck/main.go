@@ -64,10 +64,7 @@ func main() {
 
 	healthchecker := healthcheck.New(db, *rootConfig, logger)
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
-	stateSnapshotter := &healthcheck.DBStateSnapshotter{
-		DB:     db,
-		Logger: logger,
-	}
+	stateSnapshotter := &healthcheck.DBStateSnapshotter{DB: db}
 
 	router, err := api.NewRouter(
 		logger,

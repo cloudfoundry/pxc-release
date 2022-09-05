@@ -3,14 +3,11 @@ package healthcheck
 import (
 	"database/sql"
 
-	"code.cloudfoundry.org/lager"
-
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
 type DBStateSnapshotter struct {
-	DB     *sql.DB
-	Logger lager.Logger
+	DB *sql.DB
 }
 
 func (s *DBStateSnapshotter) State() (state domain.DBState, err error) {
@@ -28,9 +25,5 @@ func (s *DBStateSnapshotter) State() (state domain.DBState, err error) {
 		&state.ReadOnly,
 		&state.MaintenanceEnabled,
 	)
-
-	s.Logger.Info("dbState", lager.Data{
-		"state": state,
-	})
 	return state, err
 }
