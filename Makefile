@@ -24,7 +24,7 @@ clean-bosh:  ## Cleanup BOSH dev deployments and orphaned disks
 delete-dev-pxc-deployments:  ## Delete BOSH deployments starting with "pxc-" prefix
 	bosh deployments --json \
 	| yq '.Tables[].Rows[].name|select(test("pxc-"))' \
-	| xargs -P4 -n 1 -t bosh -n delete-deployment -d
+	| xargs -P4 -n 1 -t bosh -n delete-deployment --force -d
 
 delete-orphaned-disks:  ## Delete all BOSH orphaned disks
 	bosh disks --orphaned --json \
