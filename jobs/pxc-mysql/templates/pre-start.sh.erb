@@ -140,6 +140,26 @@ function check_bpm_pid {
     /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
 }
 
+function is_pxc57_datadir {
+  [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
+}
+
+function apply_pxc57_crash_recovery {
+  local recovery_log=/var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log
+  if /var/vcap/packages/percona-xtradb-cluster-5.7/bin/mysqld --wsrep-recover --disable-log-error &> "${recovery_log}"; then
+    log "pre-start: recovered percona-xtradb-cluster 5.7 data directory prior to upgrade"
+  else
+    log "pre-start: [FAIL] unable to recover percona-xtradb-cluster 5.7 data directory prior to upgrade"
+    log "pre-start: [FAIL] see ${recovery_log} for details."
+  fi
+}
+
+if is_pxc57_datadir; then
+  apply_pxc57_crash_recovery
+else
+  log "pre-start: skipping special crash recovery. percona-xtradb-cluster 5.7 data directory not detected."
+fi
+
 if ! /var/vcap/jobs/bpm/bin/bpm start pxc-mysql -p galera-init; then
     log "pre-start: galera-init failed to initialize"
     exit 1
