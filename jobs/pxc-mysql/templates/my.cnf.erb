@@ -34,6 +34,20 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
+[mysqld-8.0]
+authentication-policy=mysql_native_password
+wsrep_applier_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
+mysqlx_socket                     = <%= "#{base_folder}/mysqlx.sock" %>
+log_replica_updates               = 1
+binlog_expire_logs_seconds        = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
+source_verify_checksum            = 1
+
+[mysqld-5.7]
+wsrep_slave_threads               = <%= p('engine_config.galera.wsrep_applier_threads') %>
+log_slave_updates                 = 1
+expire_logs_days                  = <%= p('engine_config.binlog.expire_logs_days') %>
+master_verify_checksum            = 1
+
 [mysqld]
 server-id                       = <%= p('engine_config.server_id') %>
 <%- if_p('tls.client.ca') do -%>
@@ -45,7 +59,6 @@ ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 require-secure-transport=ON
 <%- end -%>
 
-authentication-policy=mysql_native_password
 
 <% if p('engine_config.galera.enabled') %>
 # GALERA options:
@@ -63,7 +76,6 @@ wsrep_provider                  = /var/vcap/packages/pxc/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
 
-wsrep_applier_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
 
 wsrep_sst_method                = xtrabackup-v2
 pxc-encrypt-cluster-traffic     = OFF
@@ -87,7 +99,6 @@ collation_server                = <%= p('engine_config.collation_server') %>
 lower_case_table_names          = <%= p('engine_config.enable_lower_case_table_names') ? 1 : 0 %>
 user                            = vcap
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
-mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 port                            = <%= p('port') %>
 basedir                         = /var/vcap/packages/pxc
 datadir                         = /var/vcap/store/pxc-mysql
@@ -106,12 +117,7 @@ skip_name_resolve               = ON
 local_infile                    = <%= bool_to_on_off(p('engine_config.local_infile')) %>
 
 <% if p('engine_config.binlog.enabled') %>
-    <% if !p('engine_config.galera.enabled') %>
-sync_binlog                     = 1
-    <% end %>
 log_bin                         = mysql-bin
-log_replica_updates             = 1
-binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
 <% end %>
 
 <% if_p("engine_config.wait_timeout") do |timeout| %>
@@ -173,7 +179,6 @@ event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_sche
 
 relay_log                       = mysql-relay
 relay_log_recovery              = OFF
-source_verify_checksum          = 1
 
 [mysqld_plugin]
 <% if p('engine_config.audit_logs.enabled') %>
