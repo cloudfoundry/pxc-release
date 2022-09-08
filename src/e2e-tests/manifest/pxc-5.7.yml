@@ -19,7 +19,7 @@ addons:
 
 instance_groups:
 - name: mysql
-  instances: 3
+  instances: 1
   azs: [z1, z2, z3]
   networks: [{name: default}]
   vm_type: default
@@ -37,6 +37,10 @@ instance_groups:
       tls:
         galera: ((galera_server_certificate))
         server: ((mysql_server_certificate))
+      seeded_databases:
+      - name: crash_upgrade_test
+        username: test-user
+        password: integration-tests
   - name: bootstrap
     release: pxc
   - name: cluster-health-logger
@@ -57,7 +61,7 @@ instance_groups:
   - name: smoke-tests-user
     release: pxc
 - name: proxy
-  instances: 2
+  instances: 1
   azs: [z1, z2]
   networks: [{name: default}]
   vm_type: default
