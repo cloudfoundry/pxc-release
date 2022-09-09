@@ -94,9 +94,9 @@ describe 'pxc mysql job' do
     let(:spec) { {} }
 
     it 'sets the authentication-policy' do
-    	tpl_output = template.render(spec, consumes: links)
-    	expect(tpl_output).to include("authentication-policy=mysql_native_password")
-   	end
+        tpl_output = template.render(spec, consumes: links)
+        expect(tpl_output).to match(/authentication-policy\s*=\s*mysql_native_password/)
+    end
 
     context 'binlog_expire_logs_seconds' do
         it 'renders the correct binlog_expire_logs_seconds from a day value' do
@@ -167,11 +167,6 @@ describe 'pxc mysql job' do
         tpl_output = template.render(spec, consumes: links)
         expect(tpl_output).to include("gtid_mode = ON")
         expect(tpl_output).to include("enforce_gtid_consistency = ON")
-      end
-
-      it 'uses the sync binlog setting of 1 to sync to disk immediately' do
-        tpl_output = template.render(spec, consumes: links)
-        expect(tpl_output).to match(/sync_binlog[\s]*=[\s]*1/)
       end
     end
 
@@ -276,11 +271,6 @@ describe 'pxc mysql job' do
       it 'defaults Galera applier threads to 1' do
         tpl_output = template.render(spec, consumes: links)
         expect(tpl_output).to match(/wsrep_applier_threads\s+= 1/)
-      end
-
-      it 'allows mysql to default to the sync binlog setting of 0 which does not sync to disk immediately' do
-        tpl_output = template.render(spec, consumes: links)
-        expect(tpl_output).not_to include("sync_binlog")
       end
 
       context 'engine_config.galera.wsrep_applier_threads is explicitly configured' do

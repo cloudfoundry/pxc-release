@@ -1,4 +1,4 @@
-<%
+<%-
   base_folder = '/var/vcap/sys/run/pxc-mysql'
 
   instance_addresses = link('mysql').instances.map { |instance| instance.address }
@@ -26,8 +26,7 @@
         raise "Only innodb-flush-method=O_DIRECT or unset is supported!"
     end
   end
-%>
-
+-%>
 [client]
 port                            = <%= p('port') %>
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
@@ -35,18 +34,18 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
 [mysqld-8.0]
-authentication-policy=mysql_native_password
-wsrep_applier_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
-mysqlx_socket                     = <%= "#{base_folder}/mysqlx.sock" %>
-log_replica_updates               = 1
-binlog_expire_logs_seconds        = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
-source_verify_checksum            = 1
+authentication-policy           = mysql_native_password
+wsrep_applier_threads           = <%= p('engine_config.galera.wsrep_applier_threads') %>
+mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
+log_replica_updates             = ON
+binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
+source_verify_checksum          = ON
 
 [mysqld-5.7]
-wsrep_slave_threads               = <%= p('engine_config.galera.wsrep_applier_threads') %>
-log_slave_updates                 = 1
-expire_logs_days                  = <%= p('engine_config.binlog.expire_logs_days') %>
-master_verify_checksum            = 1
+wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
+log_slave_updates               = ON
+expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
+master_verify_checksum          = ON
 
 [mysqld]
 server-id                       = <%= p('engine_config.server_id') %>
@@ -59,8 +58,7 @@ ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 require-secure-transport=ON
 <%- end -%>
 
-
-<% if p('engine_config.galera.enabled') %>
+<%- if p('engine_config.galera.enabled') -%>
 # GALERA options:
 pxc-strict-mode                 = MASTER
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
@@ -75,21 +73,16 @@ wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/pxc/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
-
-
 wsrep_sst_method                = xtrabackup-v2
 pxc-encrypt-cluster-traffic     = OFF
-<% else %>
+<%- else -%>
 gtid_mode = ON
 enforce_gtid_consistency = ON
-  <% if_p('engine_config.read_write_permissions') do |prop| %>
-    <% if prop == "super_read_only" %>
-super-read-only = ON
-    <% elsif prop == 'read_only' %>
-read-only = ON
-    <% end %>
-  <% end %>
-<% end %>
+<%- case p('engine_config.read_write_permissions') -%>
+<% when 'super_read_only' %>super-read-only = ON
+<% when 'read_only' %>read-only = ON
+<%- end -%>
+<%- end -%>
 
 # Regular MYSQL options:
 character_set_server            = <%= p('engine_config.character_set_server') %>
@@ -110,24 +103,22 @@ skip_external_locking           = TRUE
 secure_file_priv                = /var/vcap/data/pxc-mysql/files
 table_definition_cache          = <%= p('engine_config.table_definition_cache') %>
 table_open_cache                = <%= p('engine_config.table_open_cache') %>
-
 max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
 skip_name_resolve               = ON
-
 local_infile                    = <%= bool_to_on_off(p('engine_config.local_infile')) %>
 
-<% if p('engine_config.binlog.enabled') %>
+<%- if p('engine_config.binlog.enabled') -%>
 log_bin                         = mysql-bin
-<% end %>
+<%- end -%>
+relay_log                       = mysql-relay
+relay_log_recovery              = OFF
 
-<% if_p("engine_config.wait_timeout") do |timeout| %>
+<%- if_p("engine_config.wait_timeout") do |timeout| -%>
 wait-timeout = <%= timeout %>
 <% end %>
-
 <% if_p("engine_config.innodb_ft_min_token_size") do |token_size| %>
 innodb_ft_min_token_size = <%= token_size %>
 <% end %>
-
 # Required for user to create triggers when binlog is enabled
 log_bin_trust_function_creators = 1
 
@@ -140,10 +131,6 @@ log_queries_not_using_indexes   = <%= bool_to_on_off(p('engine_config.log_querie
 # User statistics
 userstat                        = <%= bool_to_on_off(p('engine_config.userstat')) %>
 
-innodb_file_per_table           = ON
-innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>MB
-innodb_strict_mode              = <%= bool_to_on_off(p('engine_config.innodb_strict_mode')) %>
-
 max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
 tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
 
@@ -151,37 +138,32 @@ tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
 binlog_format                   = ROW
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2
-innodb_doublewrite              = 1
-
+<%-# Due to auto-tuning of innodb_buffer_pool configs, we only re-configure them here if the operator has an explicit value -%>
+<%- if_p('engine_config.innodb_buffer_pool_instances') do |innodb_buffer_pool_instances| -%>
+innodb_buffer_pool_instances    = <%= innodb_buffer_pool_instances %>
+<%- end -%>
+<%- if_p('engine_config.innodb_buffer_pool_size') do |innodb_buffer_pool_size| -%>
+innodb_buffer_pool_size         = <%= innodb_buffer_pool_size %>
+<%- end -%>
+innodb_doublewrite              = ON
+innodb_file_per_table           = ON
+innodb_flush_log_at_trx_commit  = <%= p('engine_config.innodb_flush_log_at_trx_commit') %>
+innodb_flush_method             = <%= p('engine_config.innodb_flush_method') %>
+innodb_lock_wait_timeout        = <%= p('engine_config.innodb_lock_wait_timeout') %>
+innodb_log_buffer_size          = <%= p('engine_config.innodb_log_buffer_size') %>
+innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>MB
 # These are required to make the quota enforcer work
 innodb_stats_on_metadata        = ON
 innodb_stats_persistent         = OFF
-
-innodb_flush_log_at_trx_commit  = <%= p('engine_config.innodb_flush_log_at_trx_commit') %>
-
-
-innodb_lock_wait_timeout        = <%= p('engine_config.innodb_lock_wait_timeout') %>
-<%# Due to auto-tuning of innodb_buffer_pool configs, we only re-configure them here if the operator has an explicit value %>
-<% if_p('engine_config.innodb_buffer_pool_size') do |innodb_buffer_pool_size| %>
-innodb_buffer_pool_size         = <%= innodb_buffer_pool_size %>
-<% end %>
-<% if_p('engine_config.innodb_buffer_pool_instances') do |innodb_buffer_pool_instances| %>
-innodb_buffer_pool_instances    = <%= innodb_buffer_pool_instances %>
-<% end %>
-innodb_flush_method             = <%= p('engine_config.innodb_flush_method') %>
-
-innodb_log_buffer_size          = <%= p('engine_config.innodb_log_buffer_size') %>
+innodb_strict_mode              = <%= bool_to_on_off(p('engine_config.innodb_strict_mode')) %>
 
 max_connections                 = <%= p('engine_config.max_connections') %>
 
 # Event Scheduler
 event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
 
-relay_log                       = mysql-relay
-relay_log_recovery              = OFF
-
 [mysqld_plugin]
-<% if p('engine_config.audit_logs.enabled') %>
+<%- if p('engine_config.audit_logs.enabled') -%>
 plugin-load                     = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
 audit_log_format                = JSON
@@ -189,7 +171,7 @@ audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
 audit_log_rotations             = 1
 audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
 audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
-<% end %>
+<%- end -%>
 
 [sst]
 encrypt=4
