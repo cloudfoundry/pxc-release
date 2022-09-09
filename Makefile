@@ -8,6 +8,7 @@ show-labels-for-e2e-tests:  ## Print valid labels for filtering e2e-tests
 	@cd src/e2e-tests && $(GINKGO) labels
 
 e2e-tests:  ## Run e2e-tests; Optionally specify LABEL=query to filter tests
+	bosh update-resurrection off
 	./scripts/create-and-upload-dev-release
 	./scripts/test-e2e $(GINKGO_OPTS) $(if $(LABEL),--label-filter=$(LABEL))
 
