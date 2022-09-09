@@ -1,5 +1,5 @@
 ---
-name: pxc
+name: percona-xtradb-cluster-8.0
 
 dependencies:
 - percona-xtrabackup-2.4

@@ -70,7 +70,7 @@ wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size'
 wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
-wsrep_provider                  = /var/vcap/packages/pxc/lib/libgalera_smm.so
+wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2
@@ -93,7 +93,6 @@ lower_case_table_names          = <%= p('engine_config.enable_lower_case_table_n
 user                            = vcap
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
 port                            = <%= p('port') %>
-basedir                         = /var/vcap/packages/pxc
 datadir                         = /var/vcap/store/pxc-mysql
 tmpdir                          = /var/vcap/data/pxc-mysql/tmp
 pid-file                        = /var/vcap/store/pxc-mysql/mysql.pid

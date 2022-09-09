@@ -88,9 +88,9 @@ configure_source() {
       -DINSTALL_MYSQLTESTDIR= \
       -DINSTALL_SECURE_FILE_PRIVDIR=NULL \
       -DINSTALL_STATIC_LIBRARIES=OFF \
-      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/xmysqlx.sock \
+      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqlx.sock \
       -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql \
-      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysql.sock \
+      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqld.sock \
       -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config \
       -DWITH_AUTHENTICATION_LDAP=OFF \
       -DWITH_AUTHENTICATION_FIDO=OFF \

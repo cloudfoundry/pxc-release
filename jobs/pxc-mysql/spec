@@ -29,7 +29,7 @@ packages:
 - auto-tune-mysql
 - galera-init
 - percona-xtradb-cluster-5.7
-- pxc
+- percona-xtradb-cluster-8.0
 - pxc-utils
 
 consumes:

@@ -15,7 +15,7 @@ processes:
     pre_start: /var/vcap/jobs/pxc-mysql/bin/cleanup-socket
   env:
     # Add Percona XtraDB Cluster 8.0 binaries to path
-    PATH: /usr/bin:/bin:/var/vcap/packages/pxc/bin/
+    PATH: /usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-8.0/bin/
   limits:
     open_files: 1048576
   persistent_disk: true
