@@ -175,35 +175,4 @@ if ! check_bpm_pid; then
 fi
 
 log "pre-start: galera-init started successfully"
-
-if [ -d "/var/vcap/store/mysql" -a ! -f "/var/vcap/store/migrated-successfully" ]; then
-  node_count=<%= link('mysql').instances.length %>
-  if [ ${node_count} -ne 1 ]; then
-    err "You must scale to 1 node before migrating to pxc"
-    exit 1
-  fi
-
-  function ensure_cf_mysql_dirs_exist() {
-    mkdir -p /var/vcap/data/mysql/files
-    chmod 0750 /var/vcap/data/mysql/files
-    chown vcap:vcap /var/vcap/data/mysql/files
-
-    mkdir -p /var/vcap/sys/log/mysql
-    chown vcap:vcap /var/vcap/sys/log/mysql
-
-    mkdir -p /var/vcap/data/mysql/tmp
-    chown vcap:vcap /var/vcap/data/mysql/tmp
-  }
-
-  ensure_cf_mysql_dirs_exist
-
-  MYSQL_USERNAME="<%= p('admin_username') %>" MYSQL_PASSWORD="<%= p('admin_password') %>" /var/vcap/packages/migrate-to-pxc/bin/migrate-to-pxc
-
-  #Prevent cf-mysql-release from starting again with an empty DB
-  mv /var/vcap/store/mysql /var/vcap/store/mysql-migration-backup
-  mkdir /var/vcap/store/mysql
-  chmod 000 /var/vcap/store/mysql
-
-  echo "DO NOT DELETE THIS FILE; YOU WILL LOSE DATA" > /var/vcap/store/migrated-successfully
-fi
 <% end %>

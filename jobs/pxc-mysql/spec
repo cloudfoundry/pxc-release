@@ -28,7 +28,6 @@ templates:
 packages:
 - auto-tune-mysql
 - galera-init
-- migrate-to-pxc
 - percona-xtradb-cluster-5.7
 - pxc
 - pxc-utils

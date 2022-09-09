@@ -1,8 +1,0 @@
----
-name: migrate-to-pxc
-dependencies:
-  - golang-1.18-linux
-files:
-  - migrate-to-pxc/**
-excluded_files:
-  - "**/*_test.go"
