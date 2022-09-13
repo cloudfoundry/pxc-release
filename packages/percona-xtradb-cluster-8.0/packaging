@@ -55,9 +55,7 @@ run() {
 apply_patches() {
   cd Percona-XtraDB-Cluster-*/
   run patch -p1 -i ../patches/libgalera/libgalera_cmake.patch
-  run patch -p1 -i ../patches/pxc/disable_group_replication.patch
   run patch -p1 -i ../patches/pxc/disable_ldap_auth.patch
-  run patch -p1 -i ../patches/pxc/opensslv3.patch
   cd -
 }
 
@@ -106,6 +104,7 @@ configure_source() {
       -DWITH_ICU=system \
       -DWITH_READLINE=system \
       -DWITH_ROUTER=OFF \
+      -DWITH_GROUP_REPLICATION=OFF \
       -DWITH_SSL=system \
       -DWITH_UNIT_TESTS=OFF \
       -DWITH_WSREP=ON \
