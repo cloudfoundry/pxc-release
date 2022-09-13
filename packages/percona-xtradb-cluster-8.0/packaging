@@ -6,7 +6,7 @@ set -o pipefail
 
 main() {
   bundle_xtrabackup_dependencies
-  install_runtime_dependencies
+  install_socat
   install_build_dependencies
   unpack_source
   apply_patches
@@ -21,20 +21,20 @@ install_build_dependencies() {
   make install
   cd -
 
-  tar -xf boost_1_73_0.tar.bz2
-  cd boost_1_73_0/
+  tar -xf boost_*.tar.bz2
+  cd boost_*/
   ./bootstrap.sh --with-libraries=program_options,system
   ./b2 -j "$(nproc)"
   cd -
 
   tar -xf check_*.tar.gz
   cd check-*/
-  ./configure --prefix=/usr
+  CFLAGS="-Wno-format-extra-args" ./configure --prefix=/usr
   make -j $(nproc) install
   cd -
 }
 
-install_runtime_dependencies() {
+install_socat() {
   tar -xf socat-*.tar.gz
   cd socat-*/
   ./configure "--prefix=${BOSH_INSTALL_TARGET}"
@@ -47,22 +47,29 @@ unpack_source() {
   tar -xf Percona-XtraDB-Cluster-*.tar.gz
 }
 
+run() {
+  >&2 echo "\$ $*"
+  "$@"
+}
+
 apply_patches() {
   cd Percona-XtraDB-Cluster-*/
-  find ../patches/pxc/ ../patches/libgalera/ \
-    -type f \
-    -name "*.patch" \
-    -print0 \
-    | xargs -0 -n1 -t patch -p1 -i
+  run patch -p1 -i ../patches/libgalera/libgalera_cmake.patch
+  run patch -p1 -i ../patches/pxc/disable_group_replication.patch
+  run patch -p1 -i ../patches/pxc/disable_ldap_auth.patch
+  run patch -p1 -i ../patches/pxc/opensslv3.patch
   cd -
 }
 
 configure_source() {
+  local boost_dir
+  boost_dir=$(readlink -f boost_*/)
+
   (
     cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
     cp GALERA-REVISION GALERA_GIT_REVISION
     cmake . \
-      -DBOOST_ROOT=../../boost_1_73_0 \
+      -DBOOST_ROOT="${boost_dir}" \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
       -DGALERA_REVISION="$(<GALERA-REVISION)"
   )
@@ -84,7 +91,7 @@ configure_source() {
       -DCMAKE_C_COMPILER=gcc \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
       -DCOMPILATION_COMMENT="${compilation_comment}" \
-      -DENABLED_LOCAL_INFILE=off \
+      -DENABLED_LOCAL_INFILE=OFF \
       -DINSTALL_MYSQLTESTDIR= \
       -DINSTALL_SECURE_FILE_PRIVDIR=NULL \
       -DINSTALL_STATIC_LIBRARIES=OFF \
@@ -95,10 +102,10 @@ configure_source() {
       -DWITH_AUTHENTICATION_LDAP=OFF \
       -DWITH_AUTHENTICATION_FIDO=OFF \
       -DWITH_AUTHENTICATION_KERBEROS=OFF \
-      -DWITH_BOOST=../../boost_1_73_0/ \
+      -DWITH_BOOST="${boost_dir}" \
       -DWITH_ICU=system \
       -DWITH_READLINE=system \
-      -DWITH_ROUTER=off \
+      -DWITH_ROUTER=OFF \
       -DWITH_SSL=system \
       -DWITH_UNIT_TESTS=OFF \
       -DWITH_WSREP=ON \
