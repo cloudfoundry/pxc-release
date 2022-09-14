@@ -196,10 +196,10 @@ properties:
   # Mysql Character Set Defaults
   engine_config.character_set_server:
     description: 'Default character set. Note that while the MySQL default is latin1, we default to utf8.'
-    default: utf8
+    default: utf8mb4
   engine_config.collation_server:
     description: 'Default collation. Use SHOW COLLATION to view the valid collations for your character set.'
-    default: utf8_unicode_ci
+    default: use_default
 
 
   # Binlog Config

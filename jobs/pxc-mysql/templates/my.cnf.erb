@@ -34,6 +34,11 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
 [mysqld-8.0]
+character_set_server            = <%= p('engine_config.character_set_server') %>
+<%- if p('engine_config.collation_server') != 'use_default' -%>
+collation_server                = <%= p('engine_config.collation_server') %>
+<%- end -%>
+
 authentication-policy           = mysql_native_password
 wsrep_applier_threads           = <%= p('engine_config.galera.wsrep_applier_threads') %>
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
@@ -85,10 +90,6 @@ enforce_gtid_consistency = ON
 <%- end -%>
 
 # Regular MYSQL options:
-character_set_server            = <%= p('engine_config.character_set_server') %>
-<%- if p('engine_config.collation_server') != 'use_default' -%>
-collation_server                = <%= p('engine_config.collation_server') %>
-<%- end -%>
 lower_case_table_names          = <%= p('engine_config.enable_lower_case_table_names') ? 1 : 0 %>
 user                            = vcap
 socket                          = <%= "#{base_folder}/mysqld.sock" %>

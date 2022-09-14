@@ -60,6 +60,14 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 }.strip
   end
 
+  def collation_server
+    if p('engine_config.collation_server') != 'use_default'
+      " COLLATE '#{p('engine_config.collation_server')}'"
+    else
+      ""
+    end
+  end
+
   def grant_schema_admin_privs(user)
     if user['schema'].nil? || user['schema'].empty?
       raise "user #{user['username']} with schema-admin role specified with an empty schema"
@@ -70,8 +78,7 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 GRANT ALL PRIVILEGES ON #{ident_escaped(user['schema'])}.* TO #{user['username']}@#{user['host']};
 REVOKE LOCK TABLES ON #{ident_escaped(user['schema'])}.* FROM #{user['username']}@#{user['host']};
 CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])}
-  CHARACTER SET '#{p('engine_config.character_set_server')}'
-  COLLATE '#{p('engine_config.collation_server')}';
+  CHARACTER SET '#{p('engine_config.character_set_server')}'#{collation_server()};
 }.strip
   end
 
