@@ -508,4 +508,16 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			})
 		})
 	})
+
+	Context("MySQL Configuration", Label("configuration"), func() {
+		It("Sets the default character set and collation server for MySQL 8", func() {
+			var characterSetServer string
+			Expect(db.QueryRow(`SELECT @@GLOBAL.character_set_server`).Scan(&characterSetServer)).To(Succeed())
+			Expect(characterSetServer).To(Equal("utf8mb4"))
+
+			var collationServer string
+			Expect(db.QueryRow(`SELECT @@GLOBAL.collation_server`).Scan(&collationServer)).To(Succeed())
+			Expect(collationServer).To(Equal("utf8mb4_0900_ai_ci"))
+		})
+	})
 })
