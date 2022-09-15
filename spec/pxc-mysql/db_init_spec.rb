@@ -3,31 +3,57 @@ require 'json'
 require 'yaml'
 require 'bosh/template/test'
 
-
 describe 'db_init template' do
   let(:release) { Bosh::Template::Test::ReleaseDir.new(File.join(File.dirname(__FILE__), '../..')) }
   let(:job) { release.job('pxc-mysql') }
   let(:template) { job.template('config/db_init') }
-  let(:spec) { {} }
+  let(:spec) { { "admin_password" => "secret-admin-pw" } }
   let(:dir) { File.join(File.dirname(__FILE__), "golden")}
 
-  it 'requires an admin_password' do
-    expect { template.render(spec) }.to raise_error(Bosh::Template::UnknownProperty, "Can't find property '[\"admin_password\"]'")
+  context 'when an admin_password was not provided' do
+    let(:spec) {}
+    it 'fails' do
+      expect { template.render(spec) }.to raise_error(Bosh::Template::UnknownProperty, "Can't find property '[\"admin_password\"]'")
+    end
   end
 
+  context 'when roadmin_enabled is specified' do
+    before(:each) { spec["roadmin_enabled"] = true }
+    context 'when roadmin_password was not provided' do
+      it 'fails' do
+        expect { template.render(spec) }.to raise_error(Bosh::Template::UnknownProperty, "Can't find property '[\"roadmin_password\"]'")
+      end
+    end
 
-  context 'when admin_password is configured correctly' do
+    context 'when roadmin_password was specified' do
+      before(:each) { spec["roadmin_password"] = "secret-roadmin-pw" }
+
+      def roadmin_user_for_host(host)
+        <<~SQL
+        CREATE USER IF NOT EXISTS 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+        ALTER USER 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+        GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'#{host}';
+        SQL
+      end
+
+      it 'renders SQL to create an roadmin user for all localhost access types' do
+        expect(template.render(spec)).to include(roadmin_user_for_host("localhost"))
+        expect(template.render(spec)).to include(roadmin_user_for_host("127.0.0.1"))
+        expect(template.render(spec)).to include(roadmin_user_for_host("::1"))
+      end
+    end
+  end
+
+  context 'specifying users via various spec properties' do
     let(:spec) {
       {
         "admin_password" => "secret-admin-pw",
-        "roadmin_enabled" => true,
-        "roadmin_password" => "secret-roadmin-pw",
         "mysql_backup_password" => "secret-backup-pw",
         "seeded_databases" => [
           {
             "name" => "metrics_db",
             "username" => "mysql-metrics",
-            "password" => "ignored-password-overriden-by-seeded-users-entry"
+            "password" => "ignored-password-overridden-by-seeded-users-entry"
           },
           {
             "name" => "cloud_controller",
@@ -58,7 +84,6 @@ describe 'db_init template' do
     let(:links) { [] }
     let(:rendered_template) { template.render(spec, consumes: links) }
 
-
     it 'generates a valid db_init file' do
       expect(rendered_template).to eq File.read(File.join(dir, "db_init_all_features"))
     end
@@ -68,8 +93,8 @@ describe 'db_init template' do
         [
           Bosh::Template::Test::Link.new(
             name: 'galera-agent',
-            properties: {"db_password" => "galera-agent-db-creds"},
-            )
+            properties: { "db_password" => "galera-agent-db-creds" },
+          )
         ]
       }
       it 'adds a galera-agent seeded_users entry automatically' do
@@ -90,8 +115,8 @@ describe 'db_init template' do
         [
           Bosh::Template::Test::Link.new(
             name: 'cluster-health-logger',
-            properties: {"db_password" => "cluster-health-logger-db-creds"},
-            )
+            properties: { "db_password" => "cluster-health-logger-db-creds" },
+          )
         ]
       }
       it 'adds a cluster-health-logger seeded_users entry automatically' do
@@ -112,12 +137,12 @@ describe 'db_init template' do
         [
           Bosh::Template::Test::Link.new(
             name: 'galera-agent',
-            properties: {"db_password" => "galera-agent-db-creds"},
-            ),
+            properties: { "db_password" => "galera-agent-db-creds" },
+          ),
           Bosh::Template::Test::Link.new(
             name: 'cluster-health-logger',
-            properties: {"db_password" => "cluster-health-logger-db-creds"},
-            )
+            properties: { "db_password" => "cluster-health-logger-db-creds" },
+          )
         ]
       }
       it 'adds a galera-agent seeded_users entry automatically' do
@@ -126,27 +151,6 @@ describe 'db_init template' do
 
       it 'adds a cluster-health-logger seeded_users entry automatically' do
         expect(rendered_template).to match(/CREATE USER IF NOT EXISTS 'cluster-health-logger'@'localhost'/)
-      end
-    end
-
-
-    context 'when roadmin_password is not specified' do
-      before(:each) do
-        spec.delete("roadmin_password")
-      end
-
-      it 'fails fast because roadmin_password is required when read-only admin is enabled' do
-        expect { template.render(spec) }.to raise_error(Bosh::Template::UnknownProperty, "Can't find property '[\"roadmin_password\"]'")
-      end
-    end
-
-    context 'when the read-only admin feature is not enabled' do
-      before(:each) do
-        spec["roadmin_enabled"] = false
-      end
-
-      it 'does not initialize the roadmin user' do
-        expect(rendered_template).to eq File.read(File.join(dir, "db_init_no_roadmin"))
       end
     end
 
@@ -162,7 +166,7 @@ describe 'db_init template' do
 
     context 'when seeded_users specifies an empty username' do
       before(:each) do
-        spec["seeded_users"][""] = { "host" => "any", "password" => "foo", "role" => "minimal"}
+        spec["seeded_users"][""] = { "host" => "any", "password" => "foo", "role" => "minimal" }
       end
 
       it 'fails' do
@@ -172,7 +176,7 @@ describe 'db_init template' do
 
     context 'when seeded_users specifies an empty password' do
       before(:each) do
-        spec["seeded_users"]["invalid-user"] = { "host" => "any", "password" => "", "role" => "minimal"}
+        spec["seeded_users"]["invalid-user"] = { "host" => "any", "password" => "", "role" => "minimal" }
       end
 
       it 'fails' do
@@ -182,7 +186,7 @@ describe 'db_init template' do
 
     context 'when seeded_users fails to specify a password' do
       before(:each) do
-        spec["seeded_users"]["invalid-user"] = { "host" => "any", "role" => "minimal"}
+        spec["seeded_users"]["invalid-user"] = { "host" => "any", "role" => "minimal" }
       end
 
       it 'fails' do
@@ -192,7 +196,7 @@ describe 'db_init template' do
 
     context 'when seeded_users fails to specify a role' do
       before(:each) do
-        spec["seeded_users"]["invalid-user"] = { "host" => "any", "password" => "secret"}
+        spec["seeded_users"]["invalid-user"] = { "host" => "any", "password" => "secret" }
       end
 
       it 'fails' do
@@ -202,7 +206,7 @@ describe 'db_init template' do
 
     context 'when seeded_users specifies an unsupported host' do
       before(:each) do
-        spec["seeded_users"]["invalid-user"] = { "host" => "unsupported-value", "password" => "secret", "role" => "minimal"}
+        spec["seeded_users"]["invalid-user"] = { "host" => "unsupported-value", "password" => "secret", "role" => "minimal" }
       end
 
       it 'fails' do
@@ -212,7 +216,7 @@ describe 'db_init template' do
 
     context 'when seeded_users specifies an invalid-role' do
       before(:each) do
-        spec["seeded_users"]["invalid-user"] = { "host" => "any", "password" => "secret", "role" => "unsupported-role"}
+        spec["seeded_users"]["invalid-user"] = { "host" => "any", "password" => "secret", "role" => "unsupported-role" }
       end
 
       it 'fails' do
@@ -222,7 +226,7 @@ describe 'db_init template' do
 
     context 'when seeded_users specifies a schema-admin role without a schema' do
       before(:each) do
-        spec["seeded_users"]["invalid-schema-admin-user"] = { "host" => "any", "password" => "secret", "role" => "schema-admin"}
+        spec["seeded_users"]["invalid-schema-admin-user"] = { "host" => "any", "password" => "secret", "role" => "schema-admin" }
       end
 
       it 'fails' do
@@ -230,5 +234,4 @@ describe 'db_init template' do
       end
     end
   end
-
 end
