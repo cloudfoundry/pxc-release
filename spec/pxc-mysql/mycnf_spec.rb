@@ -31,6 +31,26 @@ describe 'my.cnf template' do
     expect(rendered_template).to match(/authentication-policy\s*=\s*mysql_native_password/)
   end
 
+  context 'when no explicit collation is set' do
+    it 'uses the default mysql collation and does not configure a collation in the my.cnf' do
+      expect(rendered_template).to_not match(/collation[-_]server/)
+    end
+  end
+
+  context 'when an explicit collation is set' do
+    let(:spec) { { "engine_config" => { "character_set_server" => "armscii8", "collation_server" => "armscii8_general_ci" } } }
+    it 'configures that collation' do
+      expect(rendered_template).to match(/collation_server\s+=\s+armscii8_general_ci/)
+    end
+
+    # pxc-5.7 does not understand all the collations in PXC 8.0
+    # since we use pxc-5.7 for crash recovery and would like to generally read _other_ options pxc-8.0 specific changes
+    # are in the [mysqld-8.0] config section
+    it 'supports pxc-5.7 still reading this config by putting charset/collation options in the [mysqld-8.0] section' do
+      expect(rendered_template).to match(/\[mysqld-8\.0\]\ncharacter_set_server\s+=\s+armscii8\ncollation_server\s+=\s+armscii8_general_ci/m)
+    end
+  end
+
   context 'binlog_expire_logs_seconds' do
     it 'renders the correct binlog_expire_logs_seconds from a day value' do
       expect(rendered_template).to match("binlog_expire_logs_seconds.*=.*604800")
