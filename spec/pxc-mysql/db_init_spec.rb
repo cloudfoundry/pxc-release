@@ -8,12 +8,52 @@ describe 'db_init template' do
   let(:job) { release.job('pxc-mysql') }
   let(:template) { job.template('config/db_init') }
   let(:spec) { { "admin_password" => "secret-admin-pw" } }
-  let(:dir) { File.join(File.dirname(__FILE__), "golden")}
+  let(:dir) { File.join(File.dirname(__FILE__), "golden") }
 
   context 'when an admin_password was not provided' do
     let(:spec) {}
     it 'fails' do
       expect { template.render(spec) }.to raise_error(Bosh::Template::UnknownProperty, "Can't find property '[\"admin_password\"]'")
+    end
+  end
+
+  context 'when creating a database via a user entry' do
+    before(:each) { spec["seeded_databases"] = [{ "name" => "metrics_db", "username" => "metrics-user", "password" => "metrics_password" }] }
+    context 'when the the default collation is used' do
+      it 'creates a database by specifying only the character set' do
+        create_db_statement = <<~SQL
+          CREATE SCHEMA IF NOT EXISTS `metrics_db`
+            CHARACTER SET 'utf8mb4';
+        SQL
+
+        expect(template.render(spec)).to include(create_db_statement)
+      end
+    end
+
+    context 'when the spec is configured explicitly with the collation name "use_default"' do
+      it 'creates a database by specifying only the character set' do
+        create_db_statement = <<~SQL
+          CREATE SCHEMA IF NOT EXISTS `metrics_db`
+            CHARACTER SET 'utf8mb4';
+        SQL
+
+        expect(template.render(spec)).to include(create_db_statement)
+      end
+    end
+
+    context 'when a unique charset / collation is specified' do
+      before(:each) do
+        spec["engine_config"] = { "character_set_server" => "latin7", "collation_server" => "latin7_estonian_cs" }
+      end
+
+      it 'creates a database by specifying only the character set' do
+        create_db_statement = <<~SQL
+          CREATE SCHEMA IF NOT EXISTS `metrics_db`
+            CHARACTER SET 'latin7' COLLATE 'latin7_estonian_cs';
+        SQL
+
+        expect(template.render(spec)).to include(create_db_statement)
+      end
     end
   end
 
@@ -30,9 +70,9 @@ describe 'db_init template' do
 
       def roadmin_user_for_host(host)
         <<~SQL
-        CREATE USER IF NOT EXISTS 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
-        ALTER USER 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
-        GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'#{host}';
+          CREATE USER IF NOT EXISTS 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+          ALTER USER 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+          GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'#{host}';
         SQL
       end
 
