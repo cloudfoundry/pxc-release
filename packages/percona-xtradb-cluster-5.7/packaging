@@ -45,9 +45,7 @@ configure_source() {
   (
     cd Percona-XtraDB-Cluster-*/
     source MYSQL_VERSION
-    mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
-    wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep/src/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep.cmake" | cut -d '"' -f2)"
-    compilation_comment="Percona XtraDB Cluster (GPL) ${mysql_version}, WSREP version ${wsrep_version}"
+    compilation_comment="Percona XtraDB Cluster (GPL) ${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
 
     mkdir bld && cd bld
     cmake .. \
