@@ -26,7 +26,6 @@ echo -e "\n>>>>>>>> Testing Bootstrapper..."
 echo -e "\n>>>>>>>> Testing Cluster Health Logger..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/bin/test" "$@"
 
-pushd ${RELEASE_DIR}/spec
+pushd ${RELEASE_DIR}
 bundle install
-bundle exec rspec ./
-popd
+bundle exec rspec ./spec
