@@ -1,7 +1,7 @@
 ---
 name: auto-tune-mysql
 dependencies:
-  - golang-1.18-linux
+  - golang-1.19-linux
 files:
   - generate-auto-tune-mysql/**
 excluded_files:
