@@ -1,0 +1,13 @@
+---
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_databases?/name=sbtest?
+  value:
+    name: sbtest
+    username: sbtest
+    password: ((sysbench_db_password))
+
+- type: replace
+  path: /variables/name=sysbench_db_password?
+  value:
+    name: sysbench_db_password
+    type: password
