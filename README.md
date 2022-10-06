@@ -39,7 +39,7 @@ For more details see the [proxy documentation](/docs/proxy.md).
 ## Deploying
 <a name='deploying-with-cf-deployment'></a>
 ### Deploying CF with pxc-release (using the clustered topology)
-Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `use-pxc.yml` ops file.
+Use the [cf-deployment manifests](https://github.com/cloudfoundry/cf-deployment) with the `scale-database-cluster.yml` ops file.
 
 <a name='deploying-clustered></a>
 ### Deploying pxc-release clustered
