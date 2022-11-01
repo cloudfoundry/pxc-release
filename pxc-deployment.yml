@@ -75,5 +75,6 @@ variables:
   options:
     ca: pxc_server_ca
     common_name: mysql_server_certificate
+    alternative_names: ["localhost"]
 - name: smoke_tests_db_password
   type: password
