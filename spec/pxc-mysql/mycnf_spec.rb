@@ -56,6 +56,13 @@ describe 'my.cnf template' do
       expect(rendered_template).to match("binlog_expire_logs_seconds.*=.*604800")
     end
   end
+
+  context 'global properties are as expected ' do
+    it 'sets max-connections' do
+      expect(rendered_template).to match(/max_connections[\s]*=[\s]*5000/)
+    end
+  end
+
   context 'tls.required is enabled ' do
     before do
       spec["tls"] = { "required" => true }
