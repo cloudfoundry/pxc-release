@@ -251,7 +251,7 @@ properties:
     default: 256M
   engine_config.max_connections:
     description: 'Maximum total number of database connections for the node'
-    default: 1500
+    default: 5000
   engine_config.max_heap_table_size:
     description: 'The maximum size (in rows) to which user-created MEMORY tables are permitted to grow'
     default: 16777216
