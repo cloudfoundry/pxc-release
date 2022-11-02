@@ -56,7 +56,6 @@ provides:
   properties:
   - mysql_backup_username
   - mysql_backup_password
-  - mysql_socket
 
 properties:
 
