@@ -24,9 +24,9 @@ DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 
 <%- end -%>
 <%- if_p('mysql_backup_password') do |password| -%>
-CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
-ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED WITH mysql_native_password BY '<%= password %>';
-GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
+CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'127.0.0.1';
+ALTER USER '<%= p('mysql_backup_username') %>'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY '<%= password %>';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'127.0.0.1';
 
 <%- end -%>
 <%- hosts.each do |host| -%>
