@@ -17,6 +17,7 @@ processes:
     # Add xtrabackup, pxc binaries, and socat to PATH
     PATH: /usr/bin:/bin:/var/vcap/packages/percona-xtrabackup/bin:/var/vcap/packages/pxc/bin:/var/vcap/packages/socat/bin
   limits:
+    processes: 5200
     open_files: 1048576
   persistent_disk: true
   ephemeral_disk: true
