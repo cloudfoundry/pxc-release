@@ -12,9 +12,9 @@ DROP USER IF EXISTS 'roadmin'@'::1';
 DROP USER IF EXISTS 'root'@'%';
 DROP USER IF EXISTS 'roadmin'@'%';
 
-CREATE USER IF NOT EXISTS 'mysql-backup'@'localhost';
-ALTER USER 'mysql-backup'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-backup-pw';
-GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to 'mysql-backup'@'localhost';
+CREATE USER IF NOT EXISTS 'mysql-backup'@'127.0.0.1';
+ALTER USER 'mysql-backup'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-backup-pw';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, PROCESS ON *.* to 'mysql-backup'@'127.0.0.1';
 
 CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
