@@ -17,7 +17,7 @@ processes:
     # Add Percona XtraDB Cluster 8.0 binaries to path
     PATH: /usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-8.0/bin/
   limits:
-    processes: 5200
+    processes: <%= [p('engine_config.max_connections')*2+200,5000].max %>
     open_files: 1048576
   persistent_disk: true
   ephemeral_disk: true
