@@ -30,6 +30,7 @@ packages:
 - galera-init
 - percona-xtradb-cluster-5.7
 - percona-xtradb-cluster-8.0
+- percona-xtrabackup-8.0
 - pxc-utils
 
 consumes:
