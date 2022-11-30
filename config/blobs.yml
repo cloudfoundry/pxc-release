@@ -34,7 +34,7 @@ percona-xtrabackup-8.0.29-22.tar.gz:
   size: 332851436
   object_id: 82cb600b-8f99-4668-73c0-8523f19aebb9
   sha: sha256:7c3bdfaf0b02ec4c09b3cdb41b2a7f18f79dce9c5d396ada36fbc2557562ff55
-socat-1.7.4.3.tar.gz:
-  size: 655520
-  object_id: 1eb3f0ca-cc7a-4872-4b7a-7a1b9bfa4b34
-  sha: sha256:d697245144731423ddbbceacabbd29447089ea223e9a439b28f9ff90d0dd216e
+socat-1.7.4.4.tar.gz:
+  size: 662968
+  object_id: beda2a1f-82fe-4370-47c9-080352292869
+  sha: sha256:0f8f4b9d5c60b8c53d17b60d79ababc4a0f51b3bb6d2bd3ae8a6a4b9d68f195e
