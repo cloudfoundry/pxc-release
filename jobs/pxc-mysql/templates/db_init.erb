@@ -30,7 +30,6 @@ GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, BACKUP_ADMIN, PROCESS ON *.* to '
 GRANT SELECT on performance_schema.keyring_component_status to '<%= p('mysql_backup_username') %>'@'localhost';
 GRANT SELECT ON performance_schema.log_status TO '<%= p('mysql_backup_username') %>'@'localhost';
 
-
 <%- end -%>
 <%- hosts.each do |host| -%>
 CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
