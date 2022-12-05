@@ -33,19 +33,19 @@ GRANT ALL PRIVILEGES ON *.* TO 'root'@'::1' WITH GRANT OPTION;
 -- user: 'basic-user'@'localhost' role: minimal
 CREATE USER IF NOT EXISTS 'basic-user'@'localhost'
   IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'basic-user'@'localhost'
   IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'basic-user'@'localhost';
 
 -- user: 'cloud_controller'@'%' role: schema-admin
 CREATE USER IF NOT EXISTS 'cloud_controller'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'cloud_controller'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
 GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
 REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
@@ -55,10 +55,10 @@ CREATE SCHEMA IF NOT EXISTS `cloud_controller`
 -- user: 'mysql-metrics'@'%' role: schema-admin
 CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'mysql-metrics'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
 GRANT ALL PRIVILEGES ON `metrics\_db`.* TO 'mysql-metrics'@'%';
 REVOKE LOCK TABLES ON `metrics\_db`.* FROM 'mysql-metrics'@'%';
@@ -68,10 +68,10 @@ CREATE SCHEMA IF NOT EXISTS `metrics_db`
 -- user: 'special-admin-user'@'%' role: admin
 CREATE USER IF NOT EXISTS 'special-admin-user'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-seeded-admin-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'special-admin-user'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-seeded-admin-pw'
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 GRANT ALL PRIVILEGES ON *.* TO 'special-admin-user'@'%' WITH GRANT OPTION;
 GRANT PROXY ON ''@'' TO 'special-admin-user'@'%' WITH GRANT OPTION;
 

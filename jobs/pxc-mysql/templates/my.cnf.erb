@@ -45,14 +45,14 @@ wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/
 <%- end -%>
 
 [mysqld-5.7]
+<%- if p('engine_config.galera.enabled') -%>
+wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
+wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
+wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/lib/libgalera_smm.so
+<%- end -%>
 log_slave_updates               = ON
 expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
 master_verify_checksum          = ON
-<%- if p('engine_config.galera.enabled') -%>
-wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
-wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/lib/libgalera_smm.so
-wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
-<%- end -%>
 
 symbolic-links                  = OFF
 
