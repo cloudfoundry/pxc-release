@@ -10,7 +10,7 @@ red=$(tput setaf 1)
 <% if_link('galera-agent') do |galera_agent| %>
 
 wsrep_recover() {
-  /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf --wsrep-recover --disable-log-error 2>&1
+  /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysqld --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf --wsrep-recover --disable-log-error 2>&1
 }
 
 report_sequence_number() {

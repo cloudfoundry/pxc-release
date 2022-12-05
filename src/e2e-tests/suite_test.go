@@ -20,11 +20,17 @@ func TestE2E(t *testing.T) {
 }
 
 var (
-	proxyDialer proxy.DialContextFunc
+	proxyDialer          proxy.DialContextFunc
+	expectedMysqlVersion string
 )
 
 var _ = BeforeSuite(func() {
 	var missingEnvs []string
+	expectedMysqlVersion = "8.0"
+	if envMysqlVersion := os.Getenv("MYSQL_VERSION"); envMysqlVersion != "" {
+		expectedMysqlVersion = envMysqlVersion
+	}
+
 	for _, v := range []string{
 		"BOSH_ENVIRONMENT",
 		"BOSH_CA_CERT",

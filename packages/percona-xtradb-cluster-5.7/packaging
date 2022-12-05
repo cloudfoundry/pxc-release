@@ -21,6 +21,15 @@ install_build_dependencies() {
   cd -
 }
 
+install_socat() {
+  tar -xf socat-*.tar.gz
+  cd socat-*/
+  ./configure "--prefix=${BOSH_INSTALL_TARGET}"
+  make -j "$(nproc)"
+  make -j "$(nproc)" install
+  cd -
+}
+
 unpack_source() {
   tar -xf Percona-XtraDB-Cluster-*.tar.gz
 }
@@ -91,6 +100,7 @@ install_distribution() {
 
 main() {
     install_build_dependencies
+    install_socat
     unpack_source
     apply_patches
     configure_source

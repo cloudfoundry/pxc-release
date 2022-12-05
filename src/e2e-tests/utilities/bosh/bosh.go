@@ -94,6 +94,12 @@ func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 		)
 	}
 
+	if mysqlVersion := os.Getenv("MYSQL_VERSION"); mysqlVersion == "5.7" {
+		args = append(args,
+			"--ops-file=operations/with-pxc-57.yml",
+		)
+	}
+
 	for _, o := range options {
 		o(&args)
 	}

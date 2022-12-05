@@ -34,25 +34,33 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
 [mysqld-8.0]
-character_set_server            = <%= p('engine_config.character_set_server') %>
-<%- if p('engine_config.collation_server') != 'use_default' -%>
-collation_server                = <%= p('engine_config.collation_server') %>
-<%- end -%>
-
 authentication-policy           = mysql_native_password
-wsrep_applier_threads           = <%= p('engine_config.galera.wsrep_applier_threads') %>
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 log_replica_updates             = ON
 binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
 source_verify_checksum          = ON
+<%- if p('engine_config.galera.enabled') -%>
+wsrep_applier_threads           = <%= p('engine_config.galera.wsrep_applier_threads') %>
+wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
+<%- end -%>
 
 [mysqld-5.7]
-wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
 log_slave_updates               = ON
 expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
 master_verify_checksum          = ON
+<%- if p('engine_config.galera.enabled') -%>
+wsrep_slave_threads             = <%= p('engine_config.galera.wsrep_applier_threads') %>
+wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/lib/libgalera_smm.so
+wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
+<%- end -%>
+
+symbolic-links                  = OFF
 
 [mysqld]
+character_set_server            = <%= p('engine_config.character_set_server') %>
+<%- if p('engine_config.collation_server') != 'use_default' -%>
+collation_server                = <%= p('engine_config.collation_server') %>
+<%- end -%>
 server-id                       = <%= p('engine_config.server_id') %>
 <%- if_p('tls.client.ca') do -%>
 ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
@@ -60,12 +68,13 @@ ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 <%- if p('tls.required') -%>
-require-secure-transport=ON
+require-secure-transport        = ON
 <%- end -%>
 
 <%- if p('engine_config.galera.enabled') -%>
 # GALERA options:
 pxc-strict-mode                 = MASTER
+pxc_maint_transition_period     = 0
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
 wsrep_load_data_splitting       = ON
@@ -75,7 +84,6 @@ wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size'
 wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
-wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2

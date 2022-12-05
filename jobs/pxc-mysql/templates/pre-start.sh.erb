@@ -75,7 +75,7 @@ chown -R vcap:vcap ${LOG_DIR}
 # add mysql to path
 if [[ ! -f /usr/local/bin/mysql ]]; then
   log "Adding mysql to path"
-  ln -sf /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysql /usr/local/bin
+  ln -sf /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql /usr/local/bin
 fi
 
 
@@ -126,9 +126,9 @@ if rmdir "${datadir}" 2> /dev/null; then
 fi
 
 if [ ! -d "${datadir}" ]; then
-  log "pre-start setup script: making ${datadir} and running /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld"
+  log "pre-start setup script: making ${datadir} and running /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysqld"
   mkdir -p ${datadir}
-  /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld \
+  /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysqld \
          --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf \
          --initialize
 fi

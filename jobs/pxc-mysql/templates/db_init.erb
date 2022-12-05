@@ -48,10 +48,10 @@ GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
     %{
 CREATE USER IF NOT EXISTS #{user['username']}@#{user['host']}
   IDENTIFIED WITH mysql_native_password BY #{user['password']}
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER #{user['username']}@#{user['host']}
   IDENTIFIED WITH mysql_native_password BY #{user['password']}
-  ATTRIBUTE '{ "pxc-release-seeded-user": true }';
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 }.strip
   end
 

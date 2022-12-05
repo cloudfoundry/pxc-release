@@ -30,6 +30,7 @@ packages:
 - galera-init
 - percona-xtradb-cluster-5.7
 - percona-xtradb-cluster-8.0
+- percona-xtrabackup-2.4
 - percona-xtrabackup-8.0
 - pxc-utils
 
@@ -49,6 +50,7 @@ provides:
   properties:
   - port
   - pxc_enabled
+  - mysql_version
 - name: internal-mysql-database
   type: internal-database
 - name: mysql-backup-user-creds
@@ -322,3 +324,7 @@ properties:
       This format is different for different logs. We do not recommend using this flag unless you have scripts that
       expect a particular timestamp format.
     default: "rfc3339"
+
+  mysql_version:
+    description: "Version of MySQL to use.  One of '5.7' or '8.0'"
+    default: "8.0"

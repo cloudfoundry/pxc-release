@@ -2,6 +2,7 @@ package e2e_tests
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -10,7 +11,7 @@ import (
 	"e2e-tests/utilities/bosh"
 )
 
-var _ = Describe("Single Node", Ordered, Label("single-node"), func() {
+var _ = Describe(fmt.Sprintf("Single Node for PXC version %s", expectedMysqlVersion), Ordered, Label("single-node"), func() {
 	var (
 		db             *sql.DB
 		deploymentName string
@@ -45,10 +46,10 @@ var _ = Describe("Single Node", Ordered, Label("single-node"), func() {
 		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
 	})
 
-	It("runs Percona XtraDB Cluster v8.0.x", func() {
+	It("runs expected Percona XtraDB Cluster version", func() {
 		var mysqlVersion string
 		Expect(db.QueryRow(`SELECT @@global.version`).Scan(&mysqlVersion)).To(Succeed())
-		Expect(mysqlVersion).To(HavePrefix("8.0."))
+		Expect(mysqlVersion).To(HavePrefix(expectedMysqlVersion))
 	})
 
 	It("has an empty GTID transaction history on startup", func() {
