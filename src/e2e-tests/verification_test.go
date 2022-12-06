@@ -521,7 +521,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 		It("Sets the default collation to the MySQL Server default for utf8mb4", func() {
 			var mysqlDefaultCollationForUTF8MB4 string
-			Expect(db.QueryRow(`SELECT COLLATION_NAME FROM COLLATIONS WHERE IS_DEFAULT = 'Yes' AND CHARACTER_SET_NAME = 'utf8mb4';`).
+			Expect(db.QueryRow(`SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE IS_DEFAULT = 'Yes' AND CHARACTER_SET_NAME = 'utf8mb4';`).
 				Scan(&mysqlDefaultCollationForUTF8MB4)).To(Succeed())
 
 			var collationServer string
