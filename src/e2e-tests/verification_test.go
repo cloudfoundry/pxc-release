@@ -38,6 +38,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation(`use-clustered.yml`),
+			bosh.Operation(`enable-mysql-backup-user.yml`),
 			bosh.Operation(`test/seed-test-user.yml`),
 			bosh.Operation(`require-tls.yml`),
 			bosh.Operation(`test/test-audit-logging.yml`),
@@ -527,6 +528,19 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			var collationServer string
 			Expect(db.QueryRow(`SELECT @@global.collation_server`).Scan(&collationServer)).To(Succeed())
 			Expect(collationServer).To(Equal(mysqlDefaultCollationForUTF8MB4))
+		})
+
+		It("configures a mysql-backup user", func() {
+			rows, err := db.Query(`SHOW GRANTS FOR 'mysql-backup'@'localhost'`)
+			Expect(err).NotTo(HaveOccurred())
+			var grants []string
+			for rows.Next() {
+				var grant string
+				Expect(rows.Scan(&grant)).To(Succeed())
+				grants = append(grants, grant)
+			}
+			Expect(rows.Err()).ToNot(HaveOccurred())
+			Expect(grants).ToNot(BeEmpty())
 		})
 	})
 })
