@@ -302,7 +302,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			BeforeEach(func() {
 				untrustedCert, err := createUntrustedCertificate()
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				Expect(mysql.RegisterTLSConfig("untrusted-tls", &tls.Config{
 					Certificates: []tls.Certificate{
 						untrustedCert,
@@ -513,14 +513,20 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	})
 
 	Context("MySQL Configuration", Label("configuration"), func() {
-		It("Sets the default character set and collation server for MySQL 8", func() {
+		It("Sets the default character set to utf8mb4 ", func() {
 			var characterSetServer string
-			Expect(db.QueryRow(`SELECT @@GLOBAL.character_set_server`).Scan(&characterSetServer)).To(Succeed())
+			Expect(db.QueryRow(`SELECT @@global.character_set_server`).Scan(&characterSetServer)).To(Succeed())
 			Expect(characterSetServer).To(Equal("utf8mb4"))
+		})
+
+		It("Sets the default collation to the MySQL Server default for utf8mb4", func() {
+			var mysqlDefaultCollationForUTF8MB4 string
+			Expect(db.QueryRow(`SELECT COLLATION_NAME FROM COLLATIONS WHERE IS_DEFAULT = 'Yes' AND CHARACTER_SET_NAME = 'utf8mb4';`).
+				Scan(&mysqlDefaultCollationForUTF8MB4)).To(Succeed())
 
 			var collationServer string
-			Expect(db.QueryRow(`SELECT @@GLOBAL.collation_server`).Scan(&collationServer)).To(Succeed())
-			Expect(collationServer).To(Equal("utf8mb4_0900_ai_ci"))
+			Expect(db.QueryRow(`SELECT @@global.collation_server`).Scan(&collationServer)).To(Succeed())
+			Expect(collationServer).To(Equal(mysqlDefaultCollationForUTF8MB4))
 		})
 	})
 })
