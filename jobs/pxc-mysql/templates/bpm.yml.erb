@@ -3,6 +3,17 @@ if !['rfc3339', 'unix-epoch'].include?(p('logging.format.timestamp'))
   raise "'#{p('logging.format.timestamp')}' is not a valid timestamp format for the property 'logging.format.timestamp'." +
         " Valid options are: 'rfc3339' and 'unix-epoch'."
 end
+
+path = [
+  "/usr/bin",
+  "/bin",
+  "/var/vcap/packages/percona-xtradb-cluster-#{p('mysql_version')}/bin",
+]
+
+if p('mysql_version') == '5.7'
+  path << '/var/vcap/packages/percona-xtrabackup-2.4/bin'
+end
+
 -%>
 ---
 processes:
@@ -14,7 +25,7 @@ processes:
   hooks:
     pre_start: /var/vcap/jobs/pxc-mysql/bin/cleanup-socket
   env:
-    PATH: /usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin:/var/vcap/packages/percona-xtrabackup-2.4/bin
+    PATH: <%= path.join(":") %>
   limits:
     processes: <%= [p('engine_config.max_connections')*2+200,5000].max %>
     open_files: 1048576
