@@ -18,14 +18,14 @@ var _ = Describe("Smoke Test Database Connectivity", func() {
 			mysqlUser     = os.Getenv("MYSQL_USERNAME")
 			mysqlPassword = os.Getenv("MYSQL_PASSWORD")
 		)
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?tls=preferred",
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?tls=preferred&wsrep_sync_wait=1",
 			mysqlUser, mysqlPassword, host)
 		return sql.Open("mysql", dsn)
 	}
 
 	testConnection := func(db *sql.DB) (string, error) {
 		var data string
-		err := db.QueryRow("SELECT /*+ SET_VAR(wsrep_sync_wait=1) */  * FROM pxc_release_test_db.connection_test_table").
+		err := db.QueryRow("SELECT * FROM pxc_release_test_db.connection_test_table").
 			Scan(&data)
 		return data, err
 	}
