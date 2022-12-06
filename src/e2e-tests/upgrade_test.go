@@ -59,10 +59,11 @@ var _ = Describe("Upgrade", Label("upgrade"), func() {
 		Expect(credhub.Regenerate("/" + deploymentName + "/cf_mysql_mysql_cluster_health_password")).
 			To(Succeed())
 
-		By("upgrading pxc-release based on PXC 8.0")
+		By("upgrading pxc-release based on PXC 8.0 and using a collation-server not compatible with 5.7")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
 			bosh.Operation("dev-release.yml"),
+			bosh.Operation("test/collation-server.yml"),
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
