@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
 )
 
 func TestUserManagement(t *testing.T) {
@@ -32,25 +31,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	volumeID = uuid.New().String()
-
-	Expect(pool.Client.CreateVolume(docker.CreateVolumeOptions{
-		Name: volumeID,
-	}))
-
-	initializeMySQLVolume()
 })
 
-var _ = AfterSuite(func() {
-	Expect(pool.Client.RemoveVolumeWithOptions(docker.RemoveVolumeOptions{
-		Name:  volumeID,
-		Force: true,
-	})).To(Succeed())
-})
-
-func startMySQL(mysqlOptions []string, extraMounts []string) (*dockertest.Resource, error) {
+func startMySQL(tag string, mysqlOptions []string, extraMounts []string) (*dockertest.Resource, error) {
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "percona/percona-xtradb-cluster",
-		Tag:        "8.0",
+		Tag:        tag,
 		Cmd: append([]string{
 			"--pxc-maint-transition-period=0",
 			"--log-error-verbosity=3",
@@ -68,12 +54,9 @@ func startMySQL(mysqlOptions []string, extraMounts []string) (*dockertest.Resour
 		resource.Close()
 		return nil, err
 	}
-	return resource, pool.Retry(db.Ping)
-}
+	defer func(db *sql.DB) {
+		_ = db.Close()
+	}(db)
 
-// initializeMySQLVolume starts and stops the mysql container with a default volume to perform the initialization
-func initializeMySQLVolume() {
-	resource, err := startMySQL(nil, nil)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(resource.Close()).To(Succeed())
+	return resource, pool.Retry(db.Ping)
 }

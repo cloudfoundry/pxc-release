@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
 type UserRole struct {
@@ -28,19 +29,23 @@ type SeededDatabaseEntry struct {
 	Username string `json:"username"`
 }
 
-type UserSpec struct {
-	SeededUsers     map[string]UserRole   `json:"seeded_users"`
-	SeededDatabases []SeededDatabaseEntry `json:"seeded_databases"`
+type MySQLJobSpec struct {
+	MySQLVersion        string                `json:"mysql_version,omitempty"`
+	MySQLBackupPassword string                `json:"mysql_backup_password,omitempty"`
+	SeededUsers         map[string]UserRole   `json:"seeded_users"`
+	SeededDatabases     []SeededDatabaseEntry `json:"seeded_databases"`
 }
 
 var _ = Describe("UserManagement", Ordered, func() {
 	var (
-		dbUsers  UserSpec
-		resource *dockertest.Resource
+		dbUsers         MySQLJobSpec
+		resource        *dockertest.Resource
+		mysqlVersionTag string
 	)
 
 	BeforeEach(func() {
-		dbUsers = UserSpec{}
+		mysqlVersionTag = "8.0"
+		dbUsers = MySQLJobSpec{}
 	})
 
 	JustBeforeEach(func() {
@@ -59,7 +64,13 @@ var _ = Describe("UserManagement", Ordered, func() {
 		GinkgoWriter.Println("$ ./scripts/render-db_init")
 		Expect(cmd.Run()).To(Succeed())
 
+		// Initialize the data volume first, so our db_init does not interfere with percona's entrypoint bootstrapping
+		resource, err = startMySQL(mysqlVersionTag, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resource.Close()).To(Succeed())
+
 		resource, err = startMySQL(
+			mysqlVersionTag,
 			[]string{"--init-file=/db_init"},
 			[]string{f.Name() + ":/db_init"},
 		)
@@ -71,6 +82,10 @@ var _ = Describe("UserManagement", Ordered, func() {
 			return
 		}
 		Expect(pool.Purge(resource)).To(Succeed())
+		Expect(pool.Client.RemoveVolumeWithOptions(docker.RemoveVolumeOptions{
+			Name:  volumeID,
+			Force: true,
+		})).To(Succeed())
 	})
 
 	showGrants := func(db *sql.DB, username, host string) (grants []string) {
@@ -91,6 +106,13 @@ var _ = Describe("UserManagement", Ordered, func() {
 			username, password, resource.GetPort("3306/tcp"), schema))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(showGrants(db, username, "%")).To(ConsistOf(expectedGrants))
+	}
+
+	verifyGrantsForLocalUser := func(username, password string, expectedGrants []string) {
+		dsn := fmt.Sprintf("root@(localhost:%s)/?interpolateParams=true", resource.GetPort("3306/tcp"))
+		db, err := sql.Open("mysql", dsn)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(showGrants(db, username, "localhost")).To(ConsistOf(expectedGrants))
 	}
 
 	queryAvailablePrivileges := func(db *sql.DB) (privileges []string, err error) {
@@ -140,20 +162,40 @@ var _ = Describe("UserManagement", Ordered, func() {
 		return grantedPrivs, rows.Err()
 	}
 
+	verifyLocalUser := func(username, password string) {
+		var out bytes.Buffer
+		cmd := exec.Command("docker",
+			"exec", resource.Container.ID,
+			"mysql",
+			"--user="+username,
+			"--password="+password,
+			"--batch", "--silent",
+			"--execute=SELECT 1",
+		)
+		cmd.Stdout = &out
+		Expect(cmd.Run()).To(Succeed(), `Expected to be able to log in with credentials for user %q, but this failed`, username)
+	}
+
 	verifyLocalAdminUser := func(username, password string) {
 		db, err := sql.Open("mysql", fmt.Sprintf("root@(localhost:%s)/mysql?interpolateParams=true",
 			resource.GetPort("3306/tcp")))
 		Expect(err).NotTo(HaveOccurred())
 
-		expectedPrivileges, err := queryAvailablePrivileges(db)
-		Expect(err).NotTo(HaveOccurred())
+		var expectedPrivileges []string
+		if mysqlVersionTag == "5.7" {
+			expectedPrivileges = []string{"GRANT OPTION", "ALL PRIVILEGES", "PROXY", "USAGE"}
+		} else {
+			// MySQL 8.0 always enumerates specific privileges and does not emit "ALL PRIVILEGES"
+			expectedPrivileges, err = queryAvailablePrivileges(db)
+			Expect(err).NotTo(HaveOccurred())
+		}
 
 		grantedPrivileges, err := queryGrantedPrivileges(db, username)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(grantedPrivileges).To(ConsistOf(expectedPrivileges))
 
-		// Validate the admin user can actually login. I.e. we set credentials correctly
+		// Validate the admin user can actually log in. I.e. we set credentials correctly
 		cmd := exec.Command("docker",
 			"exec", resource.Container.ID,
 			"mysql",
@@ -165,9 +207,10 @@ var _ = Describe("UserManagement", Ordered, func() {
 		Expect(cmd.Run()).To(Succeed())
 	}
 
-	When("a seeded_users property is provided", func() {
+	When("the mysql job is configured with user properties", func() {
 		BeforeEach(func() {
-			dbUsers = UserSpec{
+			dbUsers = MySQLJobSpec{
+				MySQLBackupPassword: uuid.NewString(),
 				SeededDatabases: []SeededDatabaseEntry{
 					{
 						Schema:   "cloud_controller",
@@ -226,6 +269,86 @@ var _ = Describe("UserManagement", Ordered, func() {
 			})
 
 			verifyLocalAdminUser("admin-user", dbUsers.SeededUsers["admin-user"].Password)
+
+			verifyLocalUser("mysql-backup", dbUsers.MySQLBackupPassword)
+			verifyGrantsForLocalUser("mysql-backup", dbUsers.MySQLBackupPassword, []string{
+				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT ON *.* TO `mysql-backup`@`localhost`",
+				"GRANT BACKUP_ADMIN ON *.* TO `mysql-backup`@`localhost`",
+				"GRANT SELECT ON `performance_schema`.`keyring_component_status` TO `mysql-backup`@`localhost`",
+				"GRANT SELECT ON `performance_schema`.`log_status` TO `mysql-backup`@`localhost`",
+			})
+		})
+	})
+
+	When("the mysql job is configured with user properties AND mysql_version=5.7", func() {
+		BeforeEach(func() {
+			mysqlVersionTag = "5.7"
+			dbUsers = MySQLJobSpec{
+				MySQLVersion:        "5.7",
+				MySQLBackupPassword: uuid.NewString(),
+				SeededDatabases: []SeededDatabaseEntry{
+					{
+						Schema:   "cloud_controller",
+						Username: "ccdb",
+						Password: uuid.New().String(),
+					},
+					// SeededUsers take precedence over SeededDatabases so this entry should be ignored
+					{
+						Schema:   "ignored",
+						Username: "app-user1",
+						Password: "ignored",
+					},
+				},
+				SeededUsers: map[string]UserRole{
+					"app-user1": {
+						Role:     "schema-admin",
+						Password: uuid.New().String(),
+						Schema:   "app_user_db1",
+						Host:     "any",
+					},
+					"app-user2": {
+						Role:     "schema-admin",
+						Password: uuid.New().String(),
+						Schema:   "app_user_db2",
+						Host:     "any",
+					},
+					"healthcheck-user": {
+						Role:     "minimal",
+						Password: uuid.New().String(),
+						Host:     "any",
+					},
+					"admin-user": {
+						Role:     "admin",
+						Password: uuid.New().String(),
+						Host:     "localhost",
+					},
+				},
+			}
+		})
+
+		It("initializes the users successfully", func() {
+			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
+				"GRANT USAGE ON *.* TO 'ccdb'@'%'",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO 'ccdb'@'%'",
+			})
+			verifyUser("app-user1", dbUsers.SeededUsers["app-user1"].Password, dbUsers.SeededUsers["app-user1"].Schema, []string{
+				"GRANT USAGE ON *.* TO 'app-user1'@'%'",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db1`.* TO 'app-user1'@'%'",
+			})
+			verifyUser("app-user2", dbUsers.SeededUsers["app-user2"].Password, dbUsers.SeededUsers["app-user2"].Schema, []string{
+				"GRANT USAGE ON *.* TO 'app-user2'@'%'",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db2`.* TO 'app-user2'@'%'",
+			})
+			verifyUser("healthcheck-user", dbUsers.SeededUsers["healthcheck-user"].Password, "", []string{
+				"GRANT USAGE ON *.* TO 'healthcheck-user'@'%'",
+			})
+
+			verifyLocalAdminUser("admin-user", dbUsers.SeededUsers["admin-user"].Password)
+
+			verifyLocalUser("mysql-backup", dbUsers.MySQLBackupPassword)
+			verifyGrantsForLocalUser("mysql-backup", dbUsers.MySQLBackupPassword, []string{
+				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT ON *.* TO 'mysql-backup'@'localhost'",
+			})
 		})
 	})
 })
