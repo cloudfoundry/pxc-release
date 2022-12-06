@@ -222,6 +222,9 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("accepts TLSv1.3 for connections", func() {
+			if expectedMysqlVersion == "5.7" {
+				Skip("Skipping TLSv1.3 assertion because MySQL 5.7 does not support TLSv1.3.")
+			}
 			dsn := "test-admin:integration-tests@tcp(" + proxyHost + ":3306)/?tls=tls13"
 			db, err := sql.Open("mysql", dsn)
 			Expect(err).NotTo(HaveOccurred())
