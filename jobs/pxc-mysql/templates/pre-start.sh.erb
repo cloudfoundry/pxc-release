@@ -140,13 +140,14 @@ function check_bpm_pid {
     /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
 }
 
+# TODO will this get run every time we start a 5.7 DB now?
 function is_pxc57_datadir {
   [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
 }
 
 function apply_pxc57_crash_recovery {
   local recovery_log=/var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log
-  if /var/vcap/packages/percona-xtradb-cluster-5.7/bin/mysqld --wsrep-recover --disable-log-error &> "${recovery_log}"; then
+  if /var/vcap/packages/percona-xtradb-cluster-5.7/bin/mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci --wsrep-recover --disable-log-error &> "${recovery_log}"; then
     log "pre-start: recovered percona-xtradb-cluster 5.7 data directory prior to upgrade"
   else
     log "pre-start: [FAIL] unable to recover percona-xtradb-cluster 5.7 data directory prior to upgrade"
