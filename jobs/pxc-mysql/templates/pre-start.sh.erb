@@ -140,7 +140,7 @@ function check_bpm_pid {
     /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
 }
 
-# TODO will this get run every time we start a 5.7 DB now?
+<%- if p('mysql_version') == "8.0" -%>
 function is_pxc57_datadir {
   [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
 }
@@ -160,6 +160,7 @@ if is_pxc57_datadir; then
 else
   log "pre-start: skipping special crash recovery. percona-xtradb-cluster 5.7 data directory not detected."
 fi
+<%- end -%>
 
 if ! /var/vcap/jobs/bpm/bin/bpm start pxc-mysql -p galera-init; then
     log "pre-start: galera-init failed to initialize"
