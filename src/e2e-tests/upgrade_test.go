@@ -2,6 +2,7 @@ package e2e_tests
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -12,7 +13,7 @@ import (
 )
 
 var _ = Describe("Upgrade", Label("upgrade"), func() {
-	It("can upgrade from pxc-release 5.7 to pxc 8.0", func() {
+	It(fmt.Sprintf("can upgrade from pxc-release 5.7 to pxc %s", expectedMysqlVersion), func() {
 		deploymentName := "pxc-upgrade-" + uuid.New().String()
 
 		DeferCleanup(func() {
@@ -59,21 +60,30 @@ var _ = Describe("Upgrade", Label("upgrade"), func() {
 		Expect(credhub.Regenerate("/" + deploymentName + "/cf_mysql_mysql_cluster_health_password")).
 			To(Succeed())
 
-		By("upgrading pxc-release based on PXC 8.0 and using a collation-server not compatible with 5.7")
-		Expect(bosh.DeployPXC(deploymentName,
-			bosh.Operation("use-clustered.yml"),
-			bosh.Operation("dev-release.yml"),
-			bosh.Operation("test/collation-server.yml"),
-		)).To(Succeed())
+		By(fmt.Sprintf("upgrading single instance 5.7 to clustered PXC %s", expectedMysqlVersion))
+		By("Using a collation-server not compatible with 5.7")
+		if expectedMysqlVersion == "8.0" {
+			By("Using a collation-server not compatible with 5.7")
+			Expect(bosh.DeployPXC(deploymentName,
+				bosh.Operation("use-clustered.yml"),
+				bosh.Operation("dev-release.yml"),
+				bosh.Operation("test/collation-server.yml"),
+			)).To(Succeed())
+		} else {
+			Expect(bosh.DeployPXC(deploymentName,
+				bosh.Operation("use-clustered.yml"),
+				bosh.Operation("dev-release.yml"),
+			)).To(Succeed())
+		}
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
-
-		By("asserting pxc-5.7 actually went through crash recovery", func() {
-			output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-57-recovery.log")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(output.String()).To(ContainSubstring(`InnoDB: Starting crash recovery.`))
-		})
-
+		if expectedMysqlVersion == "8.0" {
+			By("asserting pxc-5.7 actually went through crash recovery", func() {
+				output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-57-recovery.log")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output.String()).To(ContainSubstring(`InnoDB: Starting crash recovery.`))
+			})
+		}
 		By("asserting cluster-health-logger is still able to connect to its local instance", func() {
 			output, err := bosh.Logs(deploymentName, "mysql/0", "cluster-health-logger/cluster-health-logger.stderr.log")
 			Expect(err).NotTo(HaveOccurred())
