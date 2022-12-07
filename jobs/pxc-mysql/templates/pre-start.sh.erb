@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
+
 <% if p('pxc_enabled') == true %>
 set -e
 set -o pipefail
+
+<%-
+  unless %w[5.7 8.0].include? p('mysql_version')
+    raise "Unsupported value '#{p('mysql_version')}' for 'mysql_version' property. Choose from '8.0' or '5.7'"
+  end
+-%>
 
 ## NOTE: This script MUST ALWAYS run as root user.
 
