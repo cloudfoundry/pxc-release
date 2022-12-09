@@ -8,9 +8,15 @@ main() {
   local deployment_name=${PXC_DEPLOYMENT_NAME:-pxc}
   local -a deploy_opts=(
     --ops-file=operations/deployment-name.yml
-    --ops-file=operations/dev-release.yml
     --var=deployment_name="${deployment_name}"
   )
+
+  if [[ -z "${PXC_RELEASE-}" ]]; then
+    deploy_opts+=(--ops-file=operations/dev-release.yml)
+  else
+    deploy_opts+=(--ops-file=operations/pxc-version.yml)
+    deploy_opts+=(--var=pxc_version=${PXC_RELEASE})
+  fi
 
   if [[ ${ENABLE_CLUSTER:-true} == "true" ]]; then
     deploy_opts+=(--ops-file=operations/use-clustered.yml)
