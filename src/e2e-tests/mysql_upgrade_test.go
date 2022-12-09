@@ -31,7 +31,6 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		By("deploying the current pxc-release with mysql_version='5.7'")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
-			bosh.Operation("minimal-mode.yml"),
 			bosh.Operation(`mysql-version.yml`),
 			bosh.Operation("test/seed-test-user.yml"),
 			bosh.Var("mysql_version", "5.7"),
@@ -80,7 +79,6 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		By("Using a collation-server not compatible with 5.7")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
-			bosh.Operation("minimal-mode.yml"),
 			bosh.Operation("test/collation-server.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())

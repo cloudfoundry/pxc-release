@@ -65,13 +65,13 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 		if expectedMysqlVersion == "8.0" {
 			By("Using a collation-server not compatible with 5.7")
 			Expect(bosh.DeployPXC(deploymentName,
-				bosh.Operation("minimal-mode.yml"),
+				bosh.Operation("use-clustered.yml"),
 				bosh.Operation("dev-release.yml"),
 				bosh.Operation("test/collation-server.yml"),
 			)).To(Succeed())
 		} else {
 			Expect(bosh.DeployPXC(deploymentName,
-				bosh.Operation("minimal-mode.yml"),
+				bosh.Operation("use-clustered.yml"),
 				bosh.Operation("dev-release.yml"),
 			)).To(Succeed())
 		}
