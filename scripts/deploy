@@ -11,11 +11,13 @@ main() {
     --var=deployment_name="${deployment_name}"
   )
 
-  if [[ -z "${PXC_RELEASE-}" ]]; then
-    deploy_opts+=(--ops-file=operations/dev-release.yml)
+  if [[ -n ${PXC_DEPLOY_VERSION:-} ]]; then
+    deploy_opts+=(
+      --ops-file=operations/pxc-version.yml
+      --var=pxc_version="${PXC_DEPLOY_VERSION}"
+    )
   else
-    deploy_opts+=(--ops-file=operations/pxc-version.yml)
-    deploy_opts+=(--var=pxc_version=${PXC_RELEASE})
+    deploy_opts+=(--ops-file=operations/dev-release.yml)
   fi
 
   if [[ -n ${MYSQL_VERSION:-} ]]; then
