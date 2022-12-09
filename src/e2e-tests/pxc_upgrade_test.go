@@ -12,7 +12,7 @@ import (
 	"e2e-tests/utilities/credhub"
 )
 
-var _ = Describe("Upgrade", Label("upgrade"), func() {
+var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 	It(fmt.Sprintf("can upgrade from pxc-release 5.7 to pxc %s", expectedMysqlVersion), func() {
 		deploymentName := "pxc-upgrade-" + uuid.New().String()
 
@@ -65,13 +65,13 @@ var _ = Describe("Upgrade", Label("upgrade"), func() {
 		if expectedMysqlVersion == "8.0" {
 			By("Using a collation-server not compatible with 5.7")
 			Expect(bosh.DeployPXC(deploymentName,
-				bosh.Operation("use-clustered.yml"),
+				bosh.Operation("minimal-mode.yml"),
 				bosh.Operation("dev-release.yml"),
 				bosh.Operation("test/collation-server.yml"),
 			)).To(Succeed())
 		} else {
 			Expect(bosh.DeployPXC(deploymentName,
-				bosh.Operation("use-clustered.yml"),
+				bosh.Operation("minimal-mode.yml"),
 				bosh.Operation("dev-release.yml"),
 			)).To(Succeed())
 		}

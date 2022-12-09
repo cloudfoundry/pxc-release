@@ -79,9 +79,9 @@ func Deploy(deploymentName, manifestPath string, options ...DeployOptionFunc) er
 func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 	args := []string{
 		"--non-interactive",
-		"--tty",
 		"--deployment=" + deploymentName,
 		"deploy",
+		"--no-redact",
 		"pxc-deployment.yml",
 		"--ops-file=operations/deployment-name.yml",
 		"--var=deployment_name=" + deploymentName,
@@ -94,9 +94,10 @@ func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 		)
 	}
 
-	if mysqlVersion := os.Getenv("MYSQL_VERSION"); mysqlVersion == "5.7" {
+	if v := os.Getenv("MYSQL_VERSION"); v != "" {
 		args = append(args,
-			"--ops-file=operations/with-pxc-57.yml",
+			"--ops-file=operations/mysql-version.yml",
+			fmt.Sprintf("--var=mysql_version=%q", v),
 		)
 	}
 
@@ -120,7 +121,7 @@ func Var(key, value string) DeployOptionFunc {
 	// This function assumes that bosh deploy is run with a cwd of the top of this repo.
 	// All standard ops-files will be relative to ./operations/
 	return func(args *[]string) {
-		*args = append(*args, "--var="+key+"="+value)
+		*args = append(*args, fmt.Sprintf("--var=%s=%q", key, value))
 	}
 }
 
