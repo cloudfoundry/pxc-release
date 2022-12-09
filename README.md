@@ -2,8 +2,11 @@
 
 Percona Xtradb Cluster release
 
-pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster).
-This release is intended as a drop-in replacement for [cf-mysql-release](https://github.com/cloudfoundry/cf-mysql-release).
+pxc-release is a BOSH release of MySQL Galera that can be used as a backing store for Cloudfoundry. The Galera Cluster
+Provider is [Percona Xtradb Cluster](https://www.percona.com/software/mysql-database/percona-xtradb-cluster).
+
+This bosh release deploys Percona XtraDB Cluster 8.0 by default, but may be configured to deploy legacy Percona XtraDB
+Cluster 5.7.
 
 <a name='deploying'></a>
 # Deploying
@@ -59,6 +62,28 @@ To deploy a standalone deployment, use the [pxc-deployment.yml manifest](pxc-dep
 bosh -d <deployment> deploy pxc-deployment.yml
 ```
 
+### Deploying pxc-release with Percona XtraDB Cluster 5.7 support
+
+Percona XtraDB Cluster 5.7 will be [end-of-life as of October
+2023](https://www.percona.com/services/policies/percona-software-support-lifecycle#lifecycle). You are encouraged to
+upgrade to Percona XtraDB Cluster 8.0 as soon as possible.
+
+For backwards compatibility, this release can still deploy Percona XtraDB Cluster 5.7 instances by setting the
+`mysql_version` property of the `pxc-mysql` job to "5.7".
+
+```bash
+bosh -d <deployment> deploy pxc-deployment.yml -o operations/mysql-version.yml -v mysql-version=5.7
+```
+
+Upgrades from a deployment using "mysql_version=5.7" to a deployment using "mysql_version=8.0" is supported.  You are
+encourage to validate application compatibility and backing up your existing Percona XtraDB Cluster 5.7 data before
+undertaking a major database upgrade.
+
+**Important** Percona XtraDB Cluster 8.0 does not support in-place downgrades to Percona XtraDB Cluster 5.7.  If you
+attempt such a downtime, the deployment will fail on the first note with an error in the MySQL error log.
+
+
+
 <a name='contribution-guide'></a>
 # Contribution Guide
 
@@ -81,7 +106,7 @@ Follow these steps to make a contribution to any of our open source repositories
 ## General Workflow
 
 1. Fork the repository
-1. Check out `master` of pxc-release
+1. Check out the `pxc-8.0` branch of pxc-release
 1. Create a feature branch (`git checkout -b <my_new_branch>`)
 1. Make changes on your branch
 1. Deploy your changes using pxc as the database for cf-deployment to your dev environment and run [CF Acceptance Tests (CATS)](https://github.com/cloudfoundry/cf-acceptance-tests/)
