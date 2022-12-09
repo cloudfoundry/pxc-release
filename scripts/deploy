@@ -18,6 +18,13 @@ main() {
     deploy_opts+=(--var=pxc_version=${PXC_RELEASE})
   fi
 
+  if [[ -n ${MYSQL_VERSION:-} ]]; then
+    deploy_opts+=(
+      --ops-file=operations/mysql-version.yml
+      --var=mysql_version="'${MYSQL_VERSION}'"
+    )
+  fi
+
   if [[ ${ENABLE_CLUSTER:-true} == "true" ]]; then
     deploy_opts+=(--ops-file=operations/use-clustered.yml)
   fi
