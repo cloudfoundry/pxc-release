@@ -202,7 +202,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			defer db.Close()
 
 			err = db.Ping()
-			Expect(err).To(MatchError(`Error 3159: Connections using insecure transport are prohibited while --require_secure_transport=ON.`))
+			Expect(err).To(MatchError(ContainSubstring(`Connections using insecure transport are prohibited while --require_secure_transport=ON.`)))
 		})
 
 		It("rejects TLSv11 connections", func() {
