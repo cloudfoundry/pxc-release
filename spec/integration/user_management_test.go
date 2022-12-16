@@ -215,7 +215,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 					{
 						Schema:   "cloud_controller",
 						Username: "ccdb",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 					},
 					// SeededUsers take precedence over SeededDatabases so this entry should be ignored
 					{
@@ -227,24 +227,24 @@ var _ = Describe("UserManagement", Ordered, func() {
 				SeededUsers: map[string]UserRole{
 					"app-user1": {
 						Role:     "schema-admin",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 						Schema:   "app_user_db1",
 						Host:     "any",
 					},
 					"app-user2": {
-						Role:     "schema-admin",
-						Password: uuid.New().String(),
-						Schema:   "app_user_db2",
-						Host:     "any",
+						Role:               "schema-admin",
+						Password:           uuid.NewString(),
+						Schema:             "app_user_db2",
+						Host:               "any",
 					},
 					"healthcheck-user": {
 						Role:     "minimal",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 						Host:     "any",
 					},
 					"admin-user": {
 						Role:     "admin",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 						Host:     "localhost",
 					},
 				},
@@ -290,7 +290,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 					{
 						Schema:   "cloud_controller",
 						Username: "ccdb",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 					},
 					// SeededUsers take precedence over SeededDatabases so this entry should be ignored
 					{
@@ -302,24 +302,24 @@ var _ = Describe("UserManagement", Ordered, func() {
 				SeededUsers: map[string]UserRole{
 					"app-user1": {
 						Role:     "schema-admin",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 						Schema:   "app_user_db1",
 						Host:     "any",
 					},
 					"app-user2": {
-						Role:     "schema-admin",
-						Password: uuid.New().String(),
-						Schema:   "app_user_db2",
-						Host:     "any",
+						Role:               "schema-admin",
+						Password:           uuid.NewString(),
+						Schema:             "app_user_db2",
+						Host:               "any",
 					},
 					"healthcheck-user": {
 						Role:     "minimal",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 						Host:     "any",
 					},
 					"admin-user": {
 						Role:     "admin",
-						Password: uuid.New().String(),
+						Password: uuid.NewString(),
 						Host:     "localhost",
 					},
 				},
