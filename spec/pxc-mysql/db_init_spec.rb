@@ -117,6 +117,7 @@ describe 'db_init template' do
             "password" => "secret-mysql-metrics-db-pw",
             "host" => "any",
             "schema" => "metrics_db",
+            "max_user_connections" => 3,
           },
         }
       }

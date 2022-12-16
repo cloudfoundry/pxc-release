@@ -17,10 +17,11 @@ import (
 )
 
 type UserRole struct {
-	Password string `json:"password"`
-	Role     string `json:"role"`
-	Schema   string `json:"schema,omitempty"`
-	Host     string `json:"host"`
+	Password           string `json:"password"`
+	Role               string `json:"role"`
+	Schema             string `json:"schema,omitempty"`
+	Host               string `json:"host"`
+	MaxUserConnections int    `json:"max_user_connections,omitempty"`
 }
 
 type SeededDatabaseEntry struct {
@@ -176,6 +177,20 @@ var _ = Describe("UserManagement", Ordered, func() {
 		Expect(cmd.Run()).To(Succeed(), `Expected to be able to log in with credentials for user %q, but this failed`, username)
 	}
 
+	verifyMaxUserConnections := func(username, host string, expectedValue int) {
+		db, err := sql.Open("mysql", fmt.Sprintf("root@(localhost:%s)/mysql?interpolateParams=true",
+			resource.GetPort("3306/tcp")))
+		Expect(err).NotTo(HaveOccurred())
+		defer db.Close()
+
+		var actualMaxUserConnections int
+		const query = `SELECT max_user_connections FROM mysql.user WHERE User = ? AND Host = ?`
+		ExpectWithOffset(1, db.QueryRow(query, username, host).
+			Scan(&actualMaxUserConnections)).To(Succeed(), `Failed to query max_user_connections for user %s@%s`, username, host)
+
+		ExpectWithOffset(1, actualMaxUserConnections).To(Equal(expectedValue), `Expected max_user_connections = %d for user %s@%s`, expectedValue, username, host)
+	}
+
 	verifyLocalAdminUser := func(username, password string) {
 		db, err := sql.Open("mysql", fmt.Sprintf("root@(localhost:%s)/mysql?interpolateParams=true",
 			resource.GetPort("3306/tcp")))
@@ -236,6 +251,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 						Password:           uuid.NewString(),
 						Schema:             "app_user_db2",
 						Host:               "any",
+						MaxUserConnections: 42,
 					},
 					"healthcheck-user": {
 						Role:     "minimal",
@@ -256,17 +272,24 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT USAGE ON *.* TO `ccdb`@`%`",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO `ccdb`@`%`",
 			})
+			verifyMaxUserConnections("ccdb", "%", 0)
+
 			verifyUser("app-user1", dbUsers.SeededUsers["app-user1"].Password, dbUsers.SeededUsers["app-user1"].Schema, []string{
 				"GRANT USAGE ON *.* TO `app-user1`@`%`",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db1`.* TO `app-user1`@`%`",
 			})
+			verifyMaxUserConnections("app-user1", "%", 0)
+
 			verifyUser("app-user2", dbUsers.SeededUsers["app-user2"].Password, dbUsers.SeededUsers["app-user2"].Schema, []string{
 				"GRANT USAGE ON *.* TO `app-user2`@`%`",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db2`.* TO `app-user2`@`%`",
 			})
+			verifyMaxUserConnections("app-user2", "%", 42)
+
 			verifyUser("healthcheck-user", dbUsers.SeededUsers["healthcheck-user"].Password, "", []string{
 				"GRANT USAGE ON *.* TO `healthcheck-user`@`%`",
 			})
+			verifyMaxUserConnections("healthcheck-user", "%", 0)
 
 			verifyLocalAdminUser("admin-user", dbUsers.SeededUsers["admin-user"].Password)
 
@@ -277,6 +300,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT SELECT ON `performance_schema`.`keyring_component_status` TO `mysql-backup`@`localhost`",
 				"GRANT SELECT ON `performance_schema`.`log_status` TO `mysql-backup`@`localhost`",
 			})
+			verifyMaxUserConnections("mysql-backup", "localhost", 0)
 		})
 	})
 
@@ -311,6 +335,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 						Password:           uuid.NewString(),
 						Schema:             "app_user_db2",
 						Host:               "any",
+						MaxUserConnections: 42,
 					},
 					"healthcheck-user": {
 						Role:     "minimal",
@@ -331,17 +356,24 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT USAGE ON *.* TO 'ccdb'@'%'",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO 'ccdb'@'%'",
 			})
+			verifyMaxUserConnections("ccdb", "%", 0)
+
 			verifyUser("app-user1", dbUsers.SeededUsers["app-user1"].Password, dbUsers.SeededUsers["app-user1"].Schema, []string{
 				"GRANT USAGE ON *.* TO 'app-user1'@'%'",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db1`.* TO 'app-user1'@'%'",
 			})
+			verifyMaxUserConnections("app-user1", "%", 0)
+
 			verifyUser("app-user2", dbUsers.SeededUsers["app-user2"].Password, dbUsers.SeededUsers["app-user2"].Schema, []string{
 				"GRANT USAGE ON *.* TO 'app-user2'@'%'",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db2`.* TO 'app-user2'@'%'",
 			})
+			verifyMaxUserConnections("app-user2", "%", 42)
+
 			verifyUser("healthcheck-user", dbUsers.SeededUsers["healthcheck-user"].Password, "", []string{
 				"GRANT USAGE ON *.* TO 'healthcheck-user'@'%'",
 			})
+			verifyMaxUserConnections("healthcheck-user", "%", 0)
 
 			verifyLocalAdminUser("admin-user", dbUsers.SeededUsers["admin-user"].Password)
 
@@ -349,6 +381,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 			verifyGrantsForLocalUser("mysql-backup", dbUsers.MySQLBackupPassword, []string{
 				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT ON *.* TO 'mysql-backup'@'localhost'",
 			})
+			verifyMaxUserConnections("mysql-backup", "localhost", 0)
 		})
 	})
 })

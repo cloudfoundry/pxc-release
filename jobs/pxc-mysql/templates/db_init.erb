@@ -47,13 +47,17 @@ GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
 <%- end -%>
 <%=
   def create_user(user)
+    max_user_clause = ''
+    if user['max_user_connections']
+      max_user_clause = "WITH MAX_USER_CONNECTIONS #{user['max_user_connections']}"
+    end
     %{
 CREATE USER IF NOT EXISTS #{user['username']}@#{user['host']}
   IDENTIFIED WITH mysql_native_password BY #{user['password']}
-  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+  #{max_user_clause}/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER #{user['username']}@#{user['host']}
   IDENTIFIED WITH mysql_native_password BY #{user['password']}
-  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+  #{max_user_clause}/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 }.strip
   end
 
@@ -78,7 +82,7 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
     end
 
     %{
-    #{revoke_all_privileges(user)}
+#{revoke_all_privileges(user)}
 GRANT ALL PRIVILEGES ON #{ident_escaped(user['schema'])}.* TO #{user['username']}@#{user['host']};
 REVOKE LOCK TABLES ON #{ident_escaped(user['schema'])}.* FROM #{user['username']}@#{user['host']};
 CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])}
@@ -120,7 +124,8 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
       "password" => escape(cfg['password']),
       "schema" => cfg['schema'],
       "role" => cfg["role"],
-    }
+      "max_user_connections" => cfg["max_user_connections"],
+    }.compact
   end
 
   def grant_privs(user)
