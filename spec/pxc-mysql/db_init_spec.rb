@@ -22,8 +22,7 @@ describe 'db_init template' do
     context 'when the the default collation is used' do
       it 'creates a database by specifying only the character set' do
         create_db_statement = <<~SQL
-          CREATE SCHEMA IF NOT EXISTS `metrics_db`
-            CHARACTER SET 'utf8mb4';
+          CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'utf8mb4';
         SQL
 
         expect(template.render(spec)).to include(create_db_statement)
@@ -33,8 +32,7 @@ describe 'db_init template' do
     context 'when the spec is configured explicitly with the collation name "use_default"' do
       it 'creates a database by specifying only the character set' do
         create_db_statement = <<~SQL
-          CREATE SCHEMA IF NOT EXISTS `metrics_db`
-            CHARACTER SET 'utf8mb4';
+          CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'utf8mb4';
         SQL
 
         expect(template.render(spec)).to include(create_db_statement)
@@ -48,8 +46,7 @@ describe 'db_init template' do
 
       it 'creates a database by specifying only the character set' do
         create_db_statement = <<~SQL
-          CREATE SCHEMA IF NOT EXISTS `metrics_db`
-            CHARACTER SET 'latin7' COLLATE 'latin7_estonian_cs';
+          CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'latin7' COLLATE 'latin7_estonian_cs';
         SQL
 
         expect(template.render(spec)).to include(create_db_statement)
@@ -113,7 +110,7 @@ describe 'db_init template' do
             "host" => "any",
           },
           "mysql-metrics" => {
-            "role" => "schema-admin",
+            "role" => "mysql-metrics",
             "password" => "secret-mysql-metrics-db-pw",
             "host" => "any",
             "schema" => "metrics_db",

@@ -263,11 +263,23 @@ var _ = Describe("UserManagement", Ordered, func() {
 						Password: uuid.NewString(),
 						Host:     "localhost",
 					},
+					"mysql-metrics": {
+						Role:               "mysql-metrics",
+						Password:           uuid.NewString(),
+						Host:               "any",
+						Schema:             "metrics_db",
+						MaxUserConnections: 3,
+					},
 				},
 			}
 		})
 
 		It("initializes the users successfully", func() {
+			verifyUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, dbUsers.SeededUsers["mysql-metrics"].Schema, []string{
+				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO `mysql-metrics`@`%`",
+			})
+			verifyMaxUserConnections("mysql-metrics", "%", 3)
+
 			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
 				"GRANT USAGE ON *.* TO `ccdb`@`%`",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO `ccdb`@`%`",
@@ -347,11 +359,29 @@ var _ = Describe("UserManagement", Ordered, func() {
 						Password: uuid.NewString(),
 						Host:     "localhost",
 					},
+					"mysql-metrics": {
+						Role:               "mysql-metrics",
+						Password:           uuid.NewString(),
+						Host:               "any",
+						Schema:             "metrics_db",
+						MaxUserConnections: 3,
+					},
+					"mysql-metrics-no-schema": {
+						Role:               "mysql-metrics",
+						Password:           uuid.NewString(),
+						Host:               "any",
+						MaxUserConnections: 3,
+					},
 				},
 			}
 		})
 
 		It("initializes the users successfully", func() {
+			verifyUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, dbUsers.SeededUsers["mysql-metrics"].Schema, []string{
+				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'mysql-metrics'@'%'",
+			})
+			verifyMaxUserConnections("mysql-metrics", "%", 3)
+
 			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
 				"GRANT USAGE ON *.* TO 'ccdb'@'%'",
 				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO 'ccdb'@'%'",

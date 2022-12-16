@@ -49,21 +49,18 @@ ALTER USER 'cloud_controller'@'%'
 REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
 GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
 REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
-CREATE SCHEMA IF NOT EXISTS `cloud_controller`
-  CHARACTER SET 'utf8mb4';
+CREATE SCHEMA IF NOT EXISTS `cloud_controller` CHARACTER SET 'utf8mb4';
 
--- user: 'mysql-metrics'@'%' role: schema-admin
+-- user: 'mysql-metrics'@'%' role: mysql-metrics
 CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
-  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+  WITH MAX_USER_CONNECTIONS 3/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'mysql-metrics'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
-  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+  WITH MAX_USER_CONNECTIONS 3/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
-GRANT ALL PRIVILEGES ON `metrics\_db`.* TO 'mysql-metrics'@'%';
-REVOKE LOCK TABLES ON `metrics\_db`.* FROM 'mysql-metrics'@'%';
-CREATE SCHEMA IF NOT EXISTS `metrics_db`
-  CHARACTER SET 'utf8mb4';
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysql-metrics'@'%';
+CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'utf8mb4';
 
 -- user: 'special-admin-user'@'%' role: admin
 CREATE USER IF NOT EXISTS 'special-admin-user'@'%'

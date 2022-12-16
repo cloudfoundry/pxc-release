@@ -76,6 +76,16 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
     end
   end
 
+  def create_schema_if_specified(user)
+    if user['schema'].nil? || user['schema'].empty?
+        return ""
+    end
+    charset = p('engine_config.character_set_server')
+    %{
+CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])} CHARACTER SET '#{charset}'#{collation_server};
+}.strip
+
+  end
   def grant_schema_admin_privs(user)
     if user['schema'].nil? || user['schema'].empty?
       raise "user #{user['username']} with schema-admin role specified with an empty schema"
@@ -85,8 +95,15 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 #{revoke_all_privileges(user)}
 GRANT ALL PRIVILEGES ON #{ident_escaped(user['schema'])}.* TO #{user['username']}@#{user['host']};
 REVOKE LOCK TABLES ON #{ident_escaped(user['schema'])}.* FROM #{user['username']}@#{user['host']};
-CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])}
-  CHARACTER SET '#{p('engine_config.character_set_server')}'#{collation_server()};
+#{create_schema_if_specified(user)}
+}.strip
+  end
+
+  def grant_mysql_metrics_privs(user)
+    %{
+#{revoke_all_privileges(user)}
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO #{user['username']}@#{user['host']};
+#{create_schema_if_specified(user)}
 }.strip
   end
 
@@ -132,6 +149,7 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
     case user['role']
     when "admin" then grant_admin_privs(user)
     when "schema-admin" then grant_schema_admin_privs(user)
+    when "mysql-metrics" then grant_mysql_metrics_privs(user)
     when "minimal" then revoke_all_privileges(user)
     else raise "Unsupported role '#{user['role']}' for user #{user['username']}"
     end
