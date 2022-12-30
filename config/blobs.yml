@@ -14,10 +14,10 @@ libev/libev-4.33.tar.gz:
   size: 569527
   object_id: 0ea3b0f6-7b83-4fe5-7ff8-966bcc56ab73
   sha: sha256:507eb7b8d1015fbec5b935f34ebed15bf346bed04a11ab82b8eee848c4205aea
-pxc/Percona-XtraDB-Cluster-5.7.39-31.61.tar.gz:
-  size: 87275358
-  object_id: 9f63a409-7940-4426-5a39-f46bbab1caf4
-  sha: sha256:309d09ee0e53d919e1b2bb049f780407b192ed1c81fc9456df235485c224fc67
+pxc/Percona-XtraDB-Cluster-5.7.40-31.63.tar.gz:
+  size: 87272177
+  object_id: f70e8ae1-8867-44d3-5d0e-b5927e8d7fbb
+  sha: sha256:b989462d47f8bec81b807a1beb6feccedbe56fba577c892d1cceb51857e695d8
 socat/socat-1.7.4.4.tar.gz:
   size: 662968
   object_id: cb399cd1-9dc2-4207-44ba-f055a4c3eada
