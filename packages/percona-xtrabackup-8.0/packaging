@@ -6,7 +6,6 @@ set -o nounset
 main() {
   install_build_dependencies
   unpack_source
-  apply_patches
   build_and_install
 }
 
@@ -23,17 +22,30 @@ install_build_dependencies() {
   ./configure --prefix="${BOSH_INSTALL_TARGET}" --libdir="${BOSH_INSTALL_TARGET}/lib/private" --disable-static
   make -j $(nproc) install-exec DESTDIR="${BOSH_INSTALL_TARGET}"
   cd -
+
+  tar -xf procps_*.tar.xz
+  cd procps-*/
+  local discard_dir=$(mktemp -d)
+  ./configure \
+    --disable-pidof \
+    --disable-kill \
+    --disable-static \
+    --disable-modern-top \
+    --disable-numa \
+    --without-ncurses \
+    --bindir=${discard_dir} \
+    --sbindir=${discard_dir} \
+    --libdir="${BOSH_INSTALL_TARGET}/lib/private" \
+    --prefix="${BOSH_INSTALL_TARGET}" \
+    --datarootdir=${discard_dir} \
+    --datadir=${discard_dir}
+  make -j "$(nproc)" install
+  cd -
 }
 
 unpack_source() {
   tar -xf boost_*.tar.bz2
   tar -xf percona-xtrabackup-*.tar.gz
-}
-
-apply_patches() {
-  cd percona-xtrabackup-*/
-  patch -p1 < ../patches/xtrabackup/opensslv3_8.0.patch
-  cd -
 }
 
 build_and_install() {
@@ -43,8 +55,13 @@ build_and_install() {
   local boost_dir
   boost_dir=$(readlink -f ../../boost_*/)
 
+  export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib/private"
+  export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+  export LDFLAGS="-Wl,-rpath,${BOSH_INSTALL_TARGET}/lib"
+
   cmake .. \
     -DBUILD_CONFIG=xtrabackup_release \
+    -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_COMPILER=g++ \
     -DCMAKE_C_COMPILER=gcc \
     -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
@@ -52,7 +69,8 @@ build_and_install() {
     -DINSTALL_MYSQLTESTDIR= \
     -DWITH_BOOST="${boost_dir}" \
     -DWITH_MAN_PAGES=OFF \
-    -DWITH_SSL=system
+    -DWITH_SSL=system \
+    -DWITH_VERSION_CHECK=OFF
 
   make -j $(nproc)
   make -j $(nproc) install/strip

@@ -6,7 +6,6 @@ set -o nounset
 main() {
   install_build_dependencies
   unpack_source
-  apply_patches
   build_and_install
 }
 
@@ -28,12 +27,6 @@ install_build_dependencies() {
 unpack_source() {
   tar -xf boost_1_59_0.tar.bz2
   tar -xf percona-xtrabackup-*.tar.gz
-}
-
-apply_patches() {
-  cd percona-xtrabackup-*/
-  patch -p1 < ../patches/xtrabackup/opensslv3_2.4.patch
-  cd -
 }
 
 build_and_install() {

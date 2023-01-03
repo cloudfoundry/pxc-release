@@ -54,8 +54,7 @@ run() {
 
 apply_patches() {
   cd Percona-XtraDB-Cluster-*/
-  run patch -p1 -i ../patches/libgalera/libgalera_cmake.patch
-  run patch -p1 -i ../patches/pxc/disable_ldap_auth.patch
+  run patch -p1 -i ../patches/libgalera_pxc80_cmake.patch
   cd -
 }
 
@@ -100,6 +99,7 @@ configure_source() {
       -DWITH_AUTHENTICATION_LDAP=OFF \
       -DWITH_AUTHENTICATION_FIDO=OFF \
       -DWITH_AUTHENTICATION_KERBEROS=OFF \
+      -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF \
       -DWITH_BOOST="${boost_dir}" \
       -DWITH_ICU=system \
       -DWITH_READLINE=system \
@@ -108,7 +108,7 @@ configure_source() {
       -DWITH_SSL=system \
       -DWITH_UNIT_TESTS=OFF \
       -DWITH_WSREP=ON \
-      -DWITH_ZLIB=system
+      -DWITH_ZLIB=bundled
   )
 }
 

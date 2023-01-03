@@ -5,7 +5,7 @@ dependencies: []
 
 files:
 - boost_1_77_0.tar.bz2
-- patches/xtrabackup/opensslv3_8.0.patch
 - percona-xtrabackup-8.0*.tar.gz
 - libev-*.tar.gz
 - libaio_*.tar.xz
+- procps_*.orig.tar.xz
