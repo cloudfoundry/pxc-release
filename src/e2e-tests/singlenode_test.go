@@ -66,8 +66,8 @@ var _ = Describe(fmt.Sprintf("Single Node for PXC version %s", expectedMysqlVers
 		Expect(queryResultString).ToNot(BeEmpty())
 	})
 	It("does not go through crash recovery", func() {
-		output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-57-recovery.log")
-		Expect(output.String()).To(ContainSubstring(`cannot open '/var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log' for reading: No such file or directory`))
+		output, err := bosh.RemoteCommand(deploymentName, "mysql/0", "stat /var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log")
+		Expect(output).To(ContainSubstring(`stat: cannot statx '/var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log': No such file or directory`))
 		Expect(err).To(HaveOccurred())
 	})
 })
