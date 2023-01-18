@@ -57,6 +57,7 @@ var _ = BeforeSuite(func() {
 		[]string{
 			"GOOS=linux",
 			"GOARCH=amd64",
+			"CGO_ENABLED=0",
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())
