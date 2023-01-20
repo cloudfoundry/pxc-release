@@ -84,7 +84,7 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		)).To(Succeed())
 
 		Eventually(db.Ping).Should(Succeed())
-		By("asserting the deployed MySQL version was 5.7", func() {
+		By("asserting the deployed MySQL version was 8.0", func() {
 			var mysqlVersion string
 			Expect(db.QueryRow(`SELECT @@global.version`).Scan(&mysqlVersion)).To(Succeed())
 			Expect(mysqlVersion).To(HavePrefix("8.0."))
