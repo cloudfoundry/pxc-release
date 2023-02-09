@@ -13,14 +13,12 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/opencontainers/runc v1.0.2 // indirect
+	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0
 )
 
