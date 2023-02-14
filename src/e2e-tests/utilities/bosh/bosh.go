@@ -31,7 +31,7 @@ func CloudCheck(deploymentName string) error {
 		"--non-interactive",
 		"--tty",
 		"cloud-check",
-		"--resolution=recreate_vm",
+		"--auto",
 	)
 }
 

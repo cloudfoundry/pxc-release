@@ -114,7 +114,7 @@ var _ = Describe("Failover", Ordered, Label("failover"), func() {
 					_ = db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_cluster\_size'`).
 						Scan(&unused, &clusterSize)
 					return clusterSize
-				}).Should(Equal("3"))
+				}, "10m", "1s").Should(Equal("3"))
 			})
 
 			It("observes the cluster still retains the expected data", func() {
