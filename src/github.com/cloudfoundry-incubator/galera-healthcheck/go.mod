@@ -18,9 +18,8 @@ require (
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1
 	github.com/tedsuo/rata v1.0.0
-	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
-	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+	golang.org/x/text v0.3.8 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0
