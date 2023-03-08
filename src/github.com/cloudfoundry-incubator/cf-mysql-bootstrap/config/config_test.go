@@ -6,7 +6,7 @@ import (
 	. "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
