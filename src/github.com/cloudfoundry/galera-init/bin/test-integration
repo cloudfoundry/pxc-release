@@ -17,4 +17,4 @@ echo "Vetting packages for potential issues..."
 go vet ./...
 
 echo "Testing packages..."
-go run github.com/onsi/ginkgo/ginkgo -r -race -failOnPending -randomizeAllSpecs -p "$@" integration_test
+go run github.com/onsi/ginkgo/v2/ginkgo -r -p --race --fail-on-pending --randomize-all "$@" integration_test

@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"

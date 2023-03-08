@@ -14,7 +14,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 

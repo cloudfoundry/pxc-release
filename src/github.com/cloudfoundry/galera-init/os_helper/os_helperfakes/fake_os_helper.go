@@ -114,15 +114,16 @@ func (fake *FakeOsHelper) FileExists(arg1 string) bool {
 	fake.fileExistsArgsForCall = append(fake.fileExistsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FileExistsStub
+	fakeReturns := fake.fileExistsReturns
 	fake.recordInvocation("FileExists", []interface{}{arg1})
 	fake.fileExistsMutex.Unlock()
-	if fake.FileExistsStub != nil {
-		return fake.FileExistsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.fileExistsReturns
 	return fakeReturns.result1
 }
 
@@ -175,15 +176,16 @@ func (fake *FakeOsHelper) KillCommand(arg1 *exec.Cmd, arg2 os.Signal) error {
 		arg1 *exec.Cmd
 		arg2 os.Signal
 	}{arg1, arg2})
+	stub := fake.KillCommandStub
+	fakeReturns := fake.killCommandReturns
 	fake.recordInvocation("KillCommand", []interface{}{arg1, arg2})
 	fake.killCommandMutex.Unlock()
-	if fake.KillCommandStub != nil {
-		return fake.KillCommandStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.killCommandReturns
 	return fakeReturns.result1
 }
 
@@ -235,15 +237,16 @@ func (fake *FakeOsHelper) ReadFile(arg1 string) (string, error) {
 	fake.readFileArgsForCall = append(fake.readFileArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ReadFileStub
+	fakeReturns := fake.readFileReturns
 	fake.recordInvocation("ReadFile", []interface{}{arg1})
 	fake.readFileMutex.Unlock()
-	if fake.ReadFileStub != nil {
-		return fake.ReadFileStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.readFileReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -299,15 +302,16 @@ func (fake *FakeOsHelper) RunCommand(arg1 string, arg2 ...string) (string, error
 		arg1 string
 		arg2 []string
 	}{arg1, arg2})
+	stub := fake.RunCommandStub
+	fakeReturns := fake.runCommandReturns
 	fake.recordInvocation("RunCommand", []interface{}{arg1, arg2})
 	fake.runCommandMutex.Unlock()
-	if fake.RunCommandStub != nil {
-		return fake.RunCommandStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runCommandReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -361,9 +365,10 @@ func (fake *FakeOsHelper) Sleep(arg1 time.Duration) {
 	fake.sleepArgsForCall = append(fake.sleepArgsForCall, struct {
 		arg1 time.Duration
 	}{arg1})
+	stub := fake.SleepStub
 	fake.recordInvocation("Sleep", []interface{}{arg1})
 	fake.sleepMutex.Unlock()
-	if fake.SleepStub != nil {
+	if stub != nil {
 		fake.SleepStub(arg1)
 	}
 }
@@ -395,15 +400,16 @@ func (fake *FakeOsHelper) StartCommand(arg1 string, arg2 string, arg3 ...string)
 		arg2 string
 		arg3 []string
 	}{arg1, arg2, arg3})
+	stub := fake.StartCommandStub
+	fakeReturns := fake.startCommandReturns
 	fake.recordInvocation("StartCommand", []interface{}{arg1, arg2, arg3})
 	fake.startCommandMutex.Unlock()
-	if fake.StartCommandStub != nil {
-		return fake.StartCommandStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startCommandReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -458,15 +464,16 @@ func (fake *FakeOsHelper) WaitForCommand(arg1 *exec.Cmd) chan error {
 	fake.waitForCommandArgsForCall = append(fake.waitForCommandArgsForCall, struct {
 		arg1 *exec.Cmd
 	}{arg1})
+	stub := fake.WaitForCommandStub
+	fakeReturns := fake.waitForCommandReturns
 	fake.recordInvocation("WaitForCommand", []interface{}{arg1})
 	fake.waitForCommandMutex.Unlock()
-	if fake.WaitForCommandStub != nil {
-		return fake.WaitForCommandStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.waitForCommandReturns
 	return fakeReturns.result1
 }
 
@@ -519,15 +526,16 @@ func (fake *FakeOsHelper) WriteStringToFile(arg1 string, arg2 string) error {
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.WriteStringToFileStub
+	fakeReturns := fake.writeStringToFileReturns
 	fake.recordInvocation("WriteStringToFile", []interface{}{arg1, arg2})
 	fake.writeStringToFileMutex.Unlock()
-	if fake.WriteStringToFileStub != nil {
-		return fake.WriteStringToFileStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.writeStringToFileReturns
 	return fakeReturns.result1
 }
 

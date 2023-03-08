@@ -43,15 +43,16 @@ func (fake *FakeStarter) GetMysqlCmd() *exec.Cmd {
 	ret, specificReturn := fake.getMysqlCmdReturnsOnCall[len(fake.getMysqlCmdArgsForCall)]
 	fake.getMysqlCmdArgsForCall = append(fake.getMysqlCmdArgsForCall, struct {
 	}{})
+	stub := fake.GetMysqlCmdStub
+	fakeReturns := fake.getMysqlCmdReturns
 	fake.recordInvocation("GetMysqlCmd", []interface{}{})
 	fake.getMysqlCmdMutex.Unlock()
-	if fake.GetMysqlCmdStub != nil {
-		return fake.GetMysqlCmdStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getMysqlCmdReturns
 	return fakeReturns.result1
 }
 
@@ -96,15 +97,16 @@ func (fake *FakeStarter) StartNodeFromState(arg1 string) (string, <-chan error, 
 	fake.startNodeFromStateArgsForCall = append(fake.startNodeFromStateArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.StartNodeFromStateStub
+	fakeReturns := fake.startNodeFromStateReturns
 	fake.recordInvocation("StartNodeFromState", []interface{}{arg1})
 	fake.startNodeFromStateMutex.Unlock()
-	if fake.StartNodeFromStateStub != nil {
-		return fake.StartNodeFromStateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.startNodeFromStateReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

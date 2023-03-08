@@ -27,15 +27,16 @@ func (fake *FakeClusterHealthChecker) HealthyCluster() bool {
 	ret, specificReturn := fake.healthyClusterReturnsOnCall[len(fake.healthyClusterArgsForCall)]
 	fake.healthyClusterArgsForCall = append(fake.healthyClusterArgsForCall, struct {
 	}{})
+	stub := fake.HealthyClusterStub
+	fakeReturns := fake.healthyClusterReturns
 	fake.recordInvocation("HealthyCluster", []interface{}{})
 	fake.healthyClusterMutex.Unlock()
-	if fake.HealthyClusterStub != nil {
-		return fake.HealthyClusterStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.healthyClusterReturns
 	return fakeReturns.result1
 }
 
