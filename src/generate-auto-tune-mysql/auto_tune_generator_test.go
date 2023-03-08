@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	. "github.com/cloudfoundry/generate-auto-tune-mysql"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
