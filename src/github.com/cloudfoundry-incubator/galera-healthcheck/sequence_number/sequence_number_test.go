@@ -6,12 +6,12 @@ import (
 	"errors"
 
 	"github.com/erikstmartin/go-testdb"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"net/http"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"

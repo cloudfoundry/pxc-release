@@ -8,10 +8,10 @@ import (
 
 	testdb "github.com/erikstmartin/go-testdb"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
