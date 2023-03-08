@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 
@@ -19,7 +19,7 @@ var _ = Describe("Bridge Runner", func() {
 	It("shuts down gracefully when signalled", func() {
 		timeout := 100 * time.Millisecond
 
-		proxyPort := 10000 + GinkgoParallelNode()
+		proxyPort := 10000 + GinkgoParallelProcess()
 		logger := lagertest.NewTestLogger("ProxyRunner test")
 
 		proxyRunner := bridge.NewRunner("127.0.0.1:"+strconv.Itoa(proxyPort), timeout, logger)

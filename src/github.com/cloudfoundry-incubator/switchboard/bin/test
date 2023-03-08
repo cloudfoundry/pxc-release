@@ -15,13 +15,11 @@ echo "Testing packages..."
 
 GINKGO_FLAGS=(
   -r
-  -failOnPending
-  -randomizeAllSpecs
-  -slowSpecThreshold=20
-  -race
-  -keepGoing
+  --fail-on-pending
+  --randomize-all
+  --race
+  --keep-going
   -p
 )
 
-# shellcheck disable=SC2086
-go run github.com/onsi/ginkgo/ginkgo "${GINKGO_FLAGS[@]}" "$@"
+go run github.com/onsi/ginkgo/v2/ginkgo "${GINKGO_FLAGS[@]}" "$@"

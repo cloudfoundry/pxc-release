@@ -3,9 +3,9 @@ package domain_test
 import (
 	"net"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"
@@ -103,8 +103,7 @@ var _ = Describe("Backend", func() {
 			domain.Dialer = net.Dial
 		})
 
-		It("dials the backend address", func(done Done) {
-			defer close(done)
+		It("dials the backend address", func() {
 			defer close(disconnectChan)
 
 			go func() {
@@ -116,10 +115,9 @@ var _ = Describe("Backend", func() {
 
 			Eventually(dialedProtocol).Should(Equal("tcp"))
 			Eventually(dialedAddress).Should(Equal("1.2.3.4:3306"))
-		}, 5)
+		})
 
-		It("asynchronously creates and connects to a bridge", func(done Done) {
-			defer close(done)
+		It("asynchronously creates and connects to a bridge", func() {
 			defer close(disconnectChan)
 
 			go func() {
@@ -135,12 +133,10 @@ var _ = Describe("Backend", func() {
 			Expect(actualBackendConn).To(Equal(backendConn))
 
 			Expect(bridge.ConnectCallCount()).To(Equal(1))
-		}, 5)
+		})
 
 		Context("when the bridge is disconnected", func() {
-			It("removes the bridge", func(done Done) {
-				defer close(done)
-
+			It("removes the bridge", func() {
 				go func() {
 					err := backend.Bridge(clientConn)
 					Expect(err).NotTo(HaveOccurred())
@@ -154,7 +150,7 @@ var _ = Describe("Backend", func() {
 
 				Eventually(bridges.RemoveCallCount).Should(Equal(1))
 				Expect(bridges.RemoveArgsForCall(0)).To(Equal(bridge))
-			}, 5)
+			})
 		})
 	})
 })

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"

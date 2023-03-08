@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 
@@ -32,7 +32,7 @@ var _ = Describe("HTTPRunner", func() {
 
 	BeforeEach(func() {
 		handler = new(stubHandler)
-		port := 10000 + GinkgoParallelNode()
+		port := 10000 + GinkgoParallelProcess()
 		address := "127.0.0.1:" + strconv.Itoa(port)
 
 		runnerURL = "http://" + address
@@ -93,7 +93,7 @@ var _ = Describe("HTTPRunnerWithTLS", func() {
 		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: clientTlsCfg}}
 
 		handler = new(stubHandler)
-		port := 10000 + GinkgoParallelNode()
+		port := 10000 + GinkgoParallelProcess()
 		address := "127.0.0.1:" + strconv.Itoa(port)
 
 		runnerURL = "https://" + address

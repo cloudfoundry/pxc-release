@@ -9,7 +9,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/switchboard/runner/health"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 )
@@ -24,7 +24,7 @@ var _ = Describe("HealthRunner", func() {
 
 	BeforeEach(func() {
 
-		healthPort = 10000 + GinkgoParallelNode()
+		healthPort = 10000 + GinkgoParallelProcess()
 
 		healthRunner = health.NewRunner("127.0.0.1:" + strconv.Itoa(healthPort))
 		healthProcess = ifrit.Invoke(healthRunner)
