@@ -5,7 +5,7 @@ import (
 
 	bootstrapperPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager/fakes"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

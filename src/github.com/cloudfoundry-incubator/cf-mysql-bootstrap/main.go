@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	bootstrapperPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"

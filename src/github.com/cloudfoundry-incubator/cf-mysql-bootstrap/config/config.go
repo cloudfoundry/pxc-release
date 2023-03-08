@@ -3,8 +3,8 @@ package config
 import (
 	"flag"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 )
