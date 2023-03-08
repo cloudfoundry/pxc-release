@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/os_helper"

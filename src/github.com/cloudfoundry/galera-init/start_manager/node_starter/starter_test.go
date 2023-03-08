@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/galera-init/config"
@@ -13,7 +13,7 @@ import (
 	"github.com/cloudfoundry/galera-init/os_helper/os_helperfakes"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

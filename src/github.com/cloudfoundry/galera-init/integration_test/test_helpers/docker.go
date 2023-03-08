@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 )
 
 type ExecResult struct {

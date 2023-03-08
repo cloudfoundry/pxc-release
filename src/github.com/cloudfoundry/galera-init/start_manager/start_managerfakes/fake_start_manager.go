@@ -34,15 +34,16 @@ func (fake *FakeStartManager) Execute(arg1 context.Context) error {
 	fake.executeArgsForCall = append(fake.executeArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.ExecuteStub
+	fakeReturns := fake.executeReturns
 	fake.recordInvocation("Execute", []interface{}{arg1})
 	fake.executeMutex.Unlock()
-	if fake.ExecuteStub != nil {
-		return fake.ExecuteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.executeReturns
 	return fakeReturns.result1
 }
 
@@ -92,9 +93,10 @@ func (fake *FakeStartManager) Shutdown() {
 	fake.shutdownMutex.Lock()
 	fake.shutdownArgsForCall = append(fake.shutdownArgsForCall, struct {
 	}{})
+	stub := fake.ShutdownStub
 	fake.recordInvocation("Shutdown", []interface{}{})
 	fake.shutdownMutex.Unlock()
-	if fake.ShutdownStub != nil {
+	if stub != nil {
 		fake.ShutdownStub()
 	}
 }

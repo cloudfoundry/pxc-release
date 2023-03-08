@@ -66,15 +66,16 @@ func (fake *FakeDBHelper) IsDatabaseReachable() bool {
 	ret, specificReturn := fake.isDatabaseReachableReturnsOnCall[len(fake.isDatabaseReachableArgsForCall)]
 	fake.isDatabaseReachableArgsForCall = append(fake.isDatabaseReachableArgsForCall, struct {
 	}{})
+	stub := fake.IsDatabaseReachableStub
+	fakeReturns := fake.isDatabaseReachableReturns
 	fake.recordInvocation("IsDatabaseReachable", []interface{}{})
 	fake.isDatabaseReachableMutex.Unlock()
-	if fake.IsDatabaseReachableStub != nil {
-		return fake.IsDatabaseReachableStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isDatabaseReachableReturns
 	return fakeReturns.result1
 }
 
@@ -118,15 +119,16 @@ func (fake *FakeDBHelper) IsProcessRunning() bool {
 	ret, specificReturn := fake.isProcessRunningReturnsOnCall[len(fake.isProcessRunningArgsForCall)]
 	fake.isProcessRunningArgsForCall = append(fake.isProcessRunningArgsForCall, struct {
 	}{})
+	stub := fake.IsProcessRunningStub
+	fakeReturns := fake.isProcessRunningReturns
 	fake.recordInvocation("IsProcessRunning", []interface{}{})
 	fake.isProcessRunningMutex.Unlock()
-	if fake.IsProcessRunningStub != nil {
-		return fake.IsProcessRunningStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isProcessRunningReturns
 	return fakeReturns.result1
 }
 
@@ -170,15 +172,16 @@ func (fake *FakeDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	ret, specificReturn := fake.startMysqldInBootstrapReturnsOnCall[len(fake.startMysqldInBootstrapArgsForCall)]
 	fake.startMysqldInBootstrapArgsForCall = append(fake.startMysqldInBootstrapArgsForCall, struct {
 	}{})
+	stub := fake.StartMysqldInBootstrapStub
+	fakeReturns := fake.startMysqldInBootstrapReturns
 	fake.recordInvocation("StartMysqldInBootstrap", []interface{}{})
 	fake.startMysqldInBootstrapMutex.Unlock()
-	if fake.StartMysqldInBootstrapStub != nil {
-		return fake.StartMysqldInBootstrapStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startMysqldInBootstrapReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -225,15 +228,16 @@ func (fake *FakeDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	ret, specificReturn := fake.startMysqldInJoinReturnsOnCall[len(fake.startMysqldInJoinArgsForCall)]
 	fake.startMysqldInJoinArgsForCall = append(fake.startMysqldInJoinArgsForCall, struct {
 	}{})
+	stub := fake.StartMysqldInJoinStub
+	fakeReturns := fake.startMysqldInJoinReturns
 	fake.recordInvocation("StartMysqldInJoin", []interface{}{})
 	fake.startMysqldInJoinMutex.Unlock()
-	if fake.StartMysqldInJoinStub != nil {
-		return fake.StartMysqldInJoinStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startMysqldInJoinReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -279,9 +283,10 @@ func (fake *FakeDBHelper) StopMysqld() {
 	fake.stopMysqldMutex.Lock()
 	fake.stopMysqldArgsForCall = append(fake.stopMysqldArgsForCall, struct {
 	}{})
+	stub := fake.StopMysqldStub
 	fake.recordInvocation("StopMysqld", []interface{}{})
 	fake.stopMysqldMutex.Unlock()
-	if fake.StopMysqldStub != nil {
+	if stub != nil {
 		fake.StopMysqldStub()
 	}
 }
