@@ -11,7 +11,7 @@ import (
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
