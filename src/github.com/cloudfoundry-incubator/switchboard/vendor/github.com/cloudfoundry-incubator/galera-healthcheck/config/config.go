@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"net"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/tlsconfig"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pkg/errors"
 	"gopkg.in/validator.v2"
-
-	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
 type Config struct {
@@ -134,12 +132,4 @@ func (c *Config) NetworkListener() (net.Listener, error) {
 	}
 
 	return tls.Listen("tcp", address, tlsConfig)
-}
-
-func (c *Config) IsHealthy(state domain.DBState) bool {
-	if state.ReadOnly && !c.AvailableWhenReadOnly {
-		return false
-	}
-
-	return (domain.WsrepLocalState(state.WsrepLocalState) == domain.Synced) || (domain.WsrepLocalState(state.WsrepLocalState) == domain.DonorDesynced && c.AvailableWhenDonor)
 }

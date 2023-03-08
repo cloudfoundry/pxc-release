@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/tedsuo/rata"
 
@@ -13,11 +13,6 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
-
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ReqHealthChecker
-type ReqHealthChecker interface {
-	CheckReq(*http.Request) (string, error)
-}
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . HealthChecker
 type HealthChecker interface {
@@ -50,7 +45,6 @@ type router struct {
 	rootConfig            *config.Config
 	monitClient           MonitClient
 	sequenceNumberChecker SequenceNumberChecker
-	reqHealthChecker      ReqHealthChecker
 	healthchecker         HealthChecker
 	stateSnapshotter      StateSnapshotter
 }
@@ -60,7 +54,6 @@ func NewRouter(
 	rootConfig *config.Config,
 	monitClient MonitClient,
 	sequenceNumberChecker SequenceNumberChecker,
-	reqHealthChecker ReqHealthChecker,
 	healthchecker HealthChecker,
 	stateSnapshotter StateSnapshotter,
 ) (http.Handler, error) {
@@ -69,7 +62,6 @@ func NewRouter(
 		rootConfig:            rootConfig,
 		monitClient:           monitClient,
 		sequenceNumberChecker: sequenceNumberChecker,
-		reqHealthChecker:      reqHealthChecker,
 		healthchecker:         healthchecker,
 		stateSnapshotter:      stateSnapshotter,
 	}
@@ -98,8 +90,8 @@ func NewRouter(
 		"start_mysql_join":        r.getSecureHandler(r.monitClient.StartServiceJoin),
 		"start_mysql_single_node": r.getSecureHandler(r.monitClient.StartServiceSingleNode),
 		"sequence_number":         r.getSecureHandler(r.sequenceNumberChecker.Check),
-		"galera_status":           r.getInsecureHandler(r.reqHealthChecker.CheckReq),
-		"root":                    r.getInsecureHandler(r.reqHealthChecker.CheckReq),
+		"galera_status":           r.getInsecureHandler(func(req *http.Request) (string, error) { return r.healthchecker.Check() }),
+		"root":                    r.getInsecureHandler(func(req *http.Request) (string, error) { return r.healthchecker.Check() }),
 		"health":                  r.getInsecureHandler(func(req *http.Request) (string, error) { return "", nil }),
 	}
 
@@ -153,7 +145,8 @@ func (r router) v1Status() http.Handler {
 			WsrepLocalState:        uint(s.WsrepLocalState),
 			WsrepLocalStateComment: string(s.WsrepLocalState.Comment()),
 			WsrepLocalIndex:        s.WsrepLocalIndex,
-			Healthy:                r.rootConfig.IsHealthy(s),
+			// TODO: Backfill tests. No tests fail regardless of what value we put here
+			Healthy: s.IsHealthy(),
 		})
 	})
 }

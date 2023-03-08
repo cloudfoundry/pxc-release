@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 )
 

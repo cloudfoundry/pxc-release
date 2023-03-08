@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type PanicRecovery struct {

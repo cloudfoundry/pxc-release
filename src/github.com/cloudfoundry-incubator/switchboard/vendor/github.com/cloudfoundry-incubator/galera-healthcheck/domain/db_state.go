@@ -1,6 +1,9 @@
 package domain
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type WsrepLocalState uint
 type WsrepLocalStateComment string
@@ -18,9 +21,27 @@ const (
 )
 
 type DBState struct {
-	WsrepLocalIndex uint
-	WsrepLocalState WsrepLocalState
-	ReadOnly        bool
+	WsrepLocalIndex    uint            `json:"wsrep_local_index"`
+	WsrepLocalState    WsrepLocalState `json:"wsrep_local_state"`
+	ReadOnly           bool            `json:"read_only"`
+	MaintenanceEnabled bool            `json:"maintenance_enabled"`
+}
+
+const InvalidIndex = math.MaxUint64
+
+func (s DBState) IsHealthy() bool {
+	switch {
+	case s.WsrepLocalIndex == InvalidIndex:
+		return false
+	case s.ReadOnly:
+		return false
+	case s.MaintenanceEnabled:
+		return false
+	case s.WsrepLocalState == Synced, s.WsrepLocalState == DonorDesynced:
+		return true
+	default:
+		return false
+	}
 }
 
 func (w WsrepLocalState) Comment() WsrepLocalStateComment {

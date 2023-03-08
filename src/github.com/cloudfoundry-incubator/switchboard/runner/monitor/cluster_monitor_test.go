@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
@@ -131,7 +131,7 @@ var _ = Describe("ClusterMonitor", func() {
 			close(stopMonitoringChan)
 		})
 
-		It("notices when each backend stays healthy", func(done Done) {
+		It("notices when each backend stays healthy", func() {
 			backend1.SetUnhealthy()
 			backend2.SetUnhealthy()
 			backend3.SetUnhealthy()
@@ -145,11 +145,9 @@ var _ = Describe("ClusterMonitor", func() {
 			Eventually(backend1.Healthy).Should(BeTrue())
 			Eventually(backend2.Healthy).Should(BeTrue())
 			Eventually(backend3.Healthy).Should(BeTrue())
+		})
 
-			close(done)
-		}, 5)
-
-		It("notices when a healthy backend becomes unhealthy", func(done Done) {
+		It("notices when a healthy backend becomes unhealthy", func() {
 			useTLSForAgent := useTLSForAgent
 			urlGetter.GetStub = func(url string) (*http.Response, error) {
 				m.RLock()
@@ -171,8 +169,7 @@ var _ = Describe("ClusterMonitor", func() {
 			Eventually(backend2.Healthy).Should(BeFalse())
 			Consistently(backend1.Healthy).Should(BeTrue())
 			Consistently(backend3.Healthy).Should(BeTrue())
-			close(done)
-		}, 5)
+		})
 
 		It("notices when a healthy backend becomes unresponsive", func() {
 			useTLSForAgent := useTLSForAgent

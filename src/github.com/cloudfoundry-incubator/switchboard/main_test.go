@@ -16,11 +16,11 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	"github.com/tedsuo/ifrit/ginkgomon_v2"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
 
@@ -177,7 +177,7 @@ var _ = Describe("Switchboard", func() {
 		}
 
 		logLevel := "debug"
-		switchboardRunner := ginkgomon.New(ginkgomon.Config{
+		switchboardRunner := ginkgomon_v2.New(ginkgomon_v2.Config{
 			Command: exec.Command(
 				switchboardBinPath,
 				fmt.Sprintf("-config=%s", string(runnableRootConfig)),
@@ -290,23 +290,23 @@ var _ = Describe("Switchboard", func() {
 
 		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: testClientTLSConfig}}
 
-		proxyPort = uint(10000 + GinkgoParallelNode())
-		proxyInactiveNodePort = uint(10600 + GinkgoParallelNode())
-		switchboardAPIPort = uint(10100 + GinkgoParallelNode())
-		switchboardAPIAggregatorPort = uint(10800 + GinkgoParallelNode())
-		switchboardHealthPort = uint(6160 + GinkgoParallelNode())
+		proxyPort = uint(10000 + GinkgoParallelProcess())
+		proxyInactiveNodePort = uint(10600 + GinkgoParallelProcess())
+		switchboardAPIPort = uint(10100 + GinkgoParallelProcess())
+		switchboardAPIAggregatorPort = uint(10800 + GinkgoParallelProcess())
+		switchboardHealthPort = uint(6160 + GinkgoParallelProcess())
 		backend1 := config.Backend{
 			Host:           "localhost",
-			Port:           uint(10200 + GinkgoParallelNode()),
-			StatusPort:     uint(10300 + GinkgoParallelNode()),
+			Port:           uint(10200 + GinkgoParallelProcess()),
+			StatusPort:     uint(10300 + GinkgoParallelProcess()),
 			StatusEndpoint: "api/v1/status",
 			Name:           "backend-0",
 		}
 
 		backend2 := config.Backend{
 			Host:           "localhost",
-			Port:           uint(10400 + GinkgoParallelNode()),
-			StatusPort:     uint(10500 + GinkgoParallelNode()),
+			Port:           uint(10400 + GinkgoParallelProcess()),
+			StatusPort:     uint(10500 + GinkgoParallelProcess()),
 			StatusEndpoint: "api/v1/status",
 			Name:           "backend-1",
 		}
@@ -353,7 +353,7 @@ var _ = Describe("Switchboard", func() {
 			})
 
 			AfterEach(func() {
-				ginkgomon.Interrupt(process, 10*time.Second)
+				ginkgomon_v2.Interrupt(process, 10*time.Second)
 			})
 
 			When("switchboard starts successfully without TLS", func() {
@@ -391,7 +391,7 @@ var _ = Describe("Switchboard", func() {
 			})
 
 			AfterEach(func() {
-				ginkgomon.Interrupt(process, 10*time.Second)
+				ginkgomon_v2.Interrupt(process, 10*time.Second)
 			})
 
 			When("switchboard starts successfully without TLS", func() {
@@ -435,7 +435,7 @@ var _ = Describe("Switchboard", func() {
 		})
 
 		AfterEach(func() {
-			ginkgomon.Interrupt(process, 10*time.Second)
+			ginkgomon_v2.Interrupt(process, 10*time.Second)
 		})
 
 		When("switchboard starts successfully with TLS", func() {
