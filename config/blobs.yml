@@ -30,10 +30,10 @@ percona-xtrabackup-2.4.27.tar.gz:
   size: 62521070
   object_id: 9cbca57d-0e12-4d6f-784c-534c302562e5
   sha: sha256:1b92dba25749834ae3b79ddc37859659970996e2962d2f3b752470da4f4f69db
-percona-xtrabackup-8.0.30-23.tar.gz:
-  size: 338259133
-  object_id: 9699b14f-d311-453f-51f4-163aebfc5570
-  sha: sha256:9b1bfb1cce2860627aebed53d62e86b55e657869c91b715f626c20759b7341eb
+percona-xtrabackup-8.0.32-25.tar.gz:
+  size: 441789944
+  object_id: e6d52c8a-fba1-48cc-6696-a784da544991
+  sha: sha256:55660353174cf501781f131f4f94b0872ba2d808f91df2ebe4b27d54089d81ee
 procps_3.3.17.orig.tar.xz:
   size: 1008428
   object_id: 49ca152b-47d2-4737-5f55-154159b7ed7d
