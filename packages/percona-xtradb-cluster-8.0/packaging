@@ -9,7 +9,6 @@ main() {
   install_socat
   install_build_dependencies
   unpack_source
-  apply_patches
   configure_source
   build_source
   install_distribution
@@ -50,12 +49,6 @@ unpack_source() {
 run() {
   >&2 echo "\$ $*"
   "$@"
-}
-
-apply_patches() {
-  cd Percona-XtraDB-Cluster-*/
-  run patch -p1 -i ../patches/libgalera_pxc80_cmake.patch
-  cd -
 }
 
 configure_source() {
