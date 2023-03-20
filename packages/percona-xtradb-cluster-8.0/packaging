@@ -5,13 +5,9 @@ set -o nounset
 set -o pipefail
 
 main() {
-  bundle_xtrabackup_dependencies
-  install_socat
   install_build_dependencies
-  unpack_source
-  configure_source
-  build_source
-  install_distribution
+  install_runtime_dependencies
+  build
 }
 
 install_build_dependencies() {
@@ -23,17 +19,26 @@ install_build_dependencies() {
   tar -xf boost_*.tar.bz2
   cd boost_*/
   ./bootstrap.sh --with-libraries=program_options,system
-  ./b2 -j "$(nproc)"
+  ./b2 -j "$(nproc)" link=static
   cd -
 
   tar -xf check_*.tar.gz
   cd check-*/
   CFLAGS="-Wno-format-extra-args" ./configure --prefix=/usr
-  make -j $(nproc) install
+  make -j "$(nproc)" install
   cd -
 }
 
-install_socat() {
+install_runtime_dependencies() {
+  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-2.4"
+  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-8.0"
+
+  local version
+  for version in 2.4 8.0;do
+  tar -C /var/vcap/packages/percona-xtrabackup-"${version}" -c . \
+    | tar -C "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}/" -x
+  done
+
   tar -xf socat-*.tar.gz
   cd socat-*/
   ./configure "--prefix=${BOSH_INSTALL_TARGET}"
@@ -42,28 +47,11 @@ install_socat() {
   cd -
 }
 
-unpack_source() {
+build() {
   tar -xf Percona-XtraDB-Cluster-*.tar.gz
-}
 
-run() {
-  >&2 echo "\$ $*"
-  "$@"
-}
-
-configure_source() {
   local boost_dir
   boost_dir=$(readlink -f boost_*/)
-
-  (
-    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
-    cp GALERA-REVISION GALERA_GIT_REVISION
-    cmake . \
-      -DBOOST_ROOT="${boost_dir}" \
-      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-      -DWITH_COREDUMPER=OFF \
-      -DGALERA_REVISION="$(<GALERA-REVISION)"
-  )
 
   (
     cd Percona-XtraDB-Cluster-*/
@@ -103,30 +91,25 @@ configure_source() {
       -DWITH_UNIT_TESTS=OFF \
       -DWITH_WSREP=ON \
       -DWITH_ZLIB=bundled
+
+      make -j "$(nproc)" install/strip
   )
-}
 
-build_source() {
-  make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc)
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
-}
+  (
+    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
+    cp GALERA-REVISION GALERA_GIT_REVISION
+    cmake . \
+      -DBOOST_ROOT="${boost_dir}" \
+      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+      -DGALERA_REVISION="$(<GALERA-REVISION)"
 
-install_distribution() {
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc) install/strip
-  make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc) install/strip
+    make -j "$(nproc)" install/strip \
+      CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include" \
+      LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+  )
+
   mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
   rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
-}
-
-bundle_xtrabackup_dependencies() {
-  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-2.4"
-  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-8.0"
-
-  local version
-  for version in 2.4 8.0;do
-  tar -C /var/vcap/packages/percona-xtrabackup-"${version}" -c . \
-    | tar -C "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}/" -x
-  done
 }
 
 main
