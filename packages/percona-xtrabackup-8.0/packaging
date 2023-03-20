@@ -20,7 +20,7 @@ install_build_dependencies() {
   ./configure --prefix=/usr/local --disable-static
   make -j $(nproc) install
   ./configure --prefix="${BOSH_INSTALL_TARGET}" --libdir="${BOSH_INSTALL_TARGET}/lib/private" --disable-static
-  make -j $(nproc) install-exec DESTDIR="${BOSH_INSTALL_TARGET}"
+  make -j $(nproc) install-exec
   cd -
 
   tar -xf procps_*.tar.xz
@@ -57,7 +57,6 @@ build_and_install() {
 
   export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib/private"
   export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
-  export LDFLAGS="-Wl,-rpath,${BOSH_INSTALL_TARGET}/lib"
 
   cmake .. \
     -DBUILD_CONFIG=xtrabackup_release \

@@ -20,7 +20,7 @@ install_build_dependencies() {
   ./configure --prefix=/usr/local --disable-static
   make -j $(nproc) install
   ./configure --prefix="${BOSH_INSTALL_TARGET}" --libdir="${BOSH_INSTALL_TARGET}/lib/private" --disable-static
-  make -j $(nproc) install-exec DESTDIR="${BOSH_INSTALL_TARGET}"
+  make -j $(nproc) install-exec
   cd -
 }
 
