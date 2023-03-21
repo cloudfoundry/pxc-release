@@ -14,8 +14,9 @@ make -j "${NPROC}" -C libaio-*/ install
 tar -xf libev/libev-*.tar.gz
 pushd libev-*/
   ./configure --prefix=/usr --disable-static
-  make -j "${NPROC}"
   make -j "${NPROC}" install
+  ./configure --prefix="${BOSH_INSTALL_TARGET}" --libdir="${BOSH_INSTALL_TARGET}/lib/private" --disable-static
+  make -j $(nproc) install-exec
 popd
 
 ## percona-xtrabackup
@@ -25,6 +26,7 @@ pushd percona-xtrabackup-*/
         -DBUILD_CONFIG=xtrabackup_release \
         -DCMAKE_INSTALL_PREFIX=${BOSH_INSTALL_TARGET} \
         -DWITH_BOOST=../boost_1_59_0/ \
+        -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private' \
         -DINSTALL_MYSQLTESTDIR= \
         -DWITH_MAN_PAGES=OFF
     make -j "${NPROC}"
