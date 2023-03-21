@@ -10,7 +10,7 @@ echo -e "\nFormatting packages..."
 go fmt ./...
 
 echo -e "\nTesting packages..."
-go run github.com/onsi/ginkgo/ginkgo -p -r -race -failOnPending -randomizeAllSpecs -skipPackage=integration "$@"
+go run github.com/onsi/ginkgo/v2/ginkgo -p -r --race --fail-on-pending --randomize-all --skip-package=integration "$@"
 let "result+=$?"
 
 echo -e "\nExit Code: $result"
