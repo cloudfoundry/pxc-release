@@ -28,7 +28,7 @@ var GetShutDownTimeout = func() int {
 	return ShutDownTimeout
 }
 
-var skipCAVerification = false  // Only unit tests should set this to True.
+var skipCAVerification = false // Only unit tests should set this to True.
 
 type NodeManager interface {
 	VerifyClusterIsUnhealthy() (bool, error)
@@ -48,8 +48,8 @@ type nodeManager struct {
 
 func New(rootConfig *config.Config, clock clock.Clock) NodeManager {
 	return &nodeManager{
-		rootConfig:         rootConfig,
-		clock:              clock,
+		rootConfig: rootConfig,
+		clock:      clock,
 	}
 }
 
@@ -312,8 +312,8 @@ func (nm *nodeManager) sendRequest(endpoint string, method string) (string, erro
 
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs:    certPool,
-				ServerName: nm.rootConfig.BackendTLS.ServerName,
+				RootCAs:            certPool,
+				ServerName:         nm.rootConfig.BackendTLS.ServerName,
 				InsecureSkipVerify: nm.rootConfig.BackendTLS.InsecureSkipVerify,
 			},
 		}
