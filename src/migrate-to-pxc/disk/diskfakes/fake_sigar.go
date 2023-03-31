@@ -32,15 +32,16 @@ func (fake *FakeSigar) GetFileSystemUsage(arg1 string) (sigar.FileSystemUsage, e
 	fake.getFileSystemUsageArgsForCall = append(fake.getFileSystemUsageArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetFileSystemUsageStub
+	fakeReturns := fake.getFileSystemUsageReturns
 	fake.recordInvocation("GetFileSystemUsage", []interface{}{arg1})
 	fake.getFileSystemUsageMutex.Unlock()
-	if fake.GetFileSystemUsageStub != nil {
-		return fake.GetFileSystemUsageStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getFileSystemUsageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
