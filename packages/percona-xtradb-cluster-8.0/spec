@@ -1,9 +1,7 @@
 ---
 name: percona-xtradb-cluster-8.0
 
-dependencies:
-- percona-xtrabackup-2.4
-- percona-xtrabackup-8.0
+dependencies: []
 
 files:
 - Percona-XtraDB-Cluster-8.0*.tar.gz
