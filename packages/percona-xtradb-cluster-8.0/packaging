@@ -30,13 +30,11 @@ install_build_dependencies() {
 }
 
 install_runtime_dependencies() {
-  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-2.4"
-  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-8.0"
+  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra"
 
   local version
-  for version in 2.4 8.0;do
-  tar -C /var/vcap/packages/percona-xtrabackup-"${version}" -c . \
-    | tar -C "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}/" -x
+  for version in 2.4 8.0; do
+    ln -sf "/var/vcap/packages/percona-xtrabackup-${version}" "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}"
   done
 
   tar -xf socat-*.tar.gz
@@ -60,7 +58,7 @@ build() {
     wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
     compilation_comment="Percona XtraDB Cluster (GPL) ${mysql_version}, WSREP version ${wsrep_version}"
 
-    echo "${mysql_version}" > "${BOSH_INSTALL_TARGET}/VERSION"
+    echo "${mysql_version}" >"${BOSH_INSTALL_TARGET}/VERSION"
 
     mkdir bld && cd bld
     cmake .. \
@@ -92,7 +90,7 @@ build() {
       -DWITH_WSREP=ON \
       -DWITH_ZLIB=bundled
 
-      make -j "$(nproc)" install/strip
+    make -j "$(nproc)" install/strip
   )
 
   (
