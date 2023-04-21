@@ -1,8 +1,4 @@
 <%=
-  cluster_ips = link('mysql').instances.map { |instance| instance.address }
-  galera_agent_port = link('galera-agent').p('port')
-  mysql_port = link('mysql').p('port')
-
   proxy_uris = []
   if_p('api_uri') do |api_uri|
     proxy_uris = link('proxy').instances.map do |instance|
@@ -10,13 +6,13 @@
     end
   end
 
-  backends = cluster_ips.map.with_index do |ip, n|
+  backends = link('mysql').instances.map do |instance|
     {
-      Host: ip,
-      Port: mysql_port,
-      StatusPort: galera_agent_port,
+      Host: instance.address,
+      Port: link('mysql').p('port'),
+      StatusPort: link('galera-agent').p('port'),
       StatusEndpoint: 'api/v1/status',
-      Name: "backend-#{n}"
+      Name: "#{instance.name}/#{instance.id}",
     }
   end
 
