@@ -6,26 +6,32 @@ require 'bosh/template/test'
 describe 'proxy.yml.erb configuration template' do
   let(:release) { Bosh::Template::Test::ReleaseDir.new(File.join(File.dirname(__FILE__), '../..')) }
   let(:job) { release.job('proxy') }
-  let(:links) { [
+
+  let(:proxy_link) {
     Bosh::Template::Test::Link.new(
       name: 'proxy',
       instances: [
         Bosh::Template::Test::LinkInstance.new(index: 0, address: 'proxy0-address'),
         Bosh::Template::Test::LinkInstance.new(index: 1, address: 'proxy1-address'),
       ],
-    ),
+    )
+  }
 
+  let(:mysql_link) {
     Bosh::Template::Test::Link.new(
       name: 'mysql',
       instances: [
-        Bosh::Template::Test::LinkInstance.new(id: "mysql0-uuid", address: 'mysql0-address'),
-        Bosh::Template::Test::LinkInstance.new(id: "mysql1-uuid", address: 'mysql1-address'),
-        Bosh::Template::Test::LinkInstance.new(id: "mysql2-uuid", address: 'mysql2-address'),
+        Bosh::Template::Test::LinkInstance.new(name: "mysql", id: "mysql0-uuid", address: 'mysql0-address'),
+        Bosh::Template::Test::LinkInstance.new(name: "mysql", id: "mysql1-uuid", address: 'mysql1-address'),
+        Bosh::Template::Test::LinkInstance.new(name: "mysql", id: "mysql2-uuid", address: 'mysql2-address'),
       ],
       properties: {
         "port" => 6033,
       }
-    ),
+    )
+  }
+
+  let(:galera_agent_link) {
     Bosh::Template::Test::Link.new(
       name: 'galera-agent',
       properties: {
@@ -37,8 +43,12 @@ describe 'proxy.yml.erb configuration template' do
         }
       }
     )
-  ] }
+  }
+
+  let(:links) { [proxy_link, mysql_link, galera_agent_link] }
+
   let(:template) { job.template('config/proxy.yml') }
+
   let(:spec) {
     {
       "api_password" => "random-switchboard-password",
@@ -71,9 +81,9 @@ describe 'proxy.yml.erb configuration template' do
         "Port" => 3306,
         "HealthcheckTimeoutMillis" => 12345,
         "Backends" => [
-          { "Host" => "mysql0-address", "Name" => "backend-0", "Port" => 6033, "StatusEndpoint" => "api/v1/status", "StatusPort" => "9201" },
-          { "Host" => "mysql1-address", "Name" => "backend-1", "Port" => 6033, "StatusEndpoint" => "api/v1/status", "StatusPort" => "9201" },
-          { "Host" => "mysql2-address", "Name" => "backend-2", "Port" => 6033, "StatusEndpoint" => "api/v1/status", "StatusPort" => "9201" },
+          { "Host" => "mysql0-address", "Name" => "mysql/mysql0-uuid", "Port" => 6033, "StatusEndpoint" => "api/v1/status", "StatusPort" => "9201" },
+          { "Host" => "mysql1-address", "Name" => "mysql/mysql1-uuid", "Port" => 6033, "StatusEndpoint" => "api/v1/status", "StatusPort" => "9201" },
+          { "Host" => "mysql2-address", "Name" => "mysql/mysql2-uuid", "Port" => 6033, "StatusEndpoint" => "api/v1/status", "StatusPort" => "9201" },
         ],
       },
       "HealthPort" => 1936,
@@ -87,12 +97,42 @@ describe 'proxy.yml.erb configuration template' do
     expect(parsed_config).to eq(expected_config)
   end
 
-  context 'when galera-agent disables tls' do
-    before(:each) do
-      links.select { |l| l.name == "galera-agent" }[0].properties["endpoint_tls"] = {
-        "enabled" => false
-      }
+  context 'when the mysql link is for database instance group' do
+    let(:mysql_link) {
+      Bosh::Template::Test::Link.new(
+        name: 'mysql',
+        instances: [
+          Bosh::Template::Test::LinkInstance.new(name: "database", id: "mysql0-uuid", address: 'mysql0-address'),
+          Bosh::Template::Test::LinkInstance.new(name: "database", id: "mysql1-uuid", address: 'mysql1-address'),
+          Bosh::Template::Test::LinkInstance.new(name: "database", id: "mysql2-uuid", address: 'mysql2-address'),
+        ],
+        properties: {
+          "port" => 6033,
+        }
+      )
+    }
+
+    it 'names the backends based on the instance group' do
+      expect(parsed_config["Proxy"]["Backends"]).to match([
+        include("Name" => "database/mysql0-uuid"),
+        include("Name" => "database/mysql1-uuid"),
+        include("Name" => "database/mysql2-uuid"),
+      ])
     end
+  end
+
+  context 'when galera-agent disables tls' do
+    let(:galera_agent_link) {
+      Bosh::Template::Test::Link.new(
+        name: 'galera-agent',
+        properties: {
+          "port" => "9200",
+          "endpoint_tls" => {
+            "enabled" => false,
+          }
+        }
+      )
+    }
 
     it 'does not configure GaleraAgentTLS' do
       expect(parsed_config).to_not include("GaleraAgentTLS")
