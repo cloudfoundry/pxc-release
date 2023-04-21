@@ -78,7 +78,6 @@ describe 'proxy.yml.erb configuration template' do
       },
       "HealthPort" => 1936,
       "StaticDir" => '/var/vcap/packages/proxy/static',
-      "PidFile" => "/var/vcap/sys/run/proxy/proxy.pid",
       "GaleraAgentTLS" => {
         "Enabled" => true,
         "CA" => "PEM Cert",

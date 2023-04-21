@@ -36,7 +36,6 @@
     },
     HealthPort: p('health_port'),
     StaticDir: '/var/vcap/packages/proxy/static',
-    PidFile: '/var/vcap/sys/run/proxy/proxy.pid'
   }
 
   if link('galera-agent').p('endpoint_tls.enabled')
@@ -47,14 +46,12 @@
     }
   end
 
-  if_p('api_tls') do |endpoint_tls|
-  	if p('api_tls.enabled')
-		config[:API][:TLS] = {
-			Enabled: true,
-			Certificate: p('api_tls.certificate'),
-			PrivateKey: p('api_tls.private_key'),
-		}
-	end
+  if p('api_tls.enabled', false)
+    config[:API][:TLS] = {
+      Enabled: true,
+      Certificate: p('api_tls.certificate'),
+      PrivateKey: p('api_tls.private_key'),
+    }
   end
 
   if_p('inactive_mysql_port') do |inactive_mysql_port|
