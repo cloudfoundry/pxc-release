@@ -2,7 +2,7 @@
 
 set -eux
 
-source /var/vcap/packages/golang-1.20-linux/bosh/compile.env
+source /var/vcap/packages/golang-1-linux/bosh/compile.env
 export GOBIN="${BOSH_INSTALL_TARGET}/bin"
 
 cd migrate-to-pxc
