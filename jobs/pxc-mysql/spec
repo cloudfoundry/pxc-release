@@ -309,7 +309,6 @@ properties:
     default: 1073741824
   engine_config.galera.wsrep_applier_threads:
       description: 'Defines the number of threads to use when applying replicated write-sets.'
-      default: 1
 
   logging.format.timestamp:
     description: |

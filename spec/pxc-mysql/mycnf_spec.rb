@@ -207,8 +207,12 @@ describe 'my.cnf template' do
       expect(rendered_template).not_to include("enforce_gtid_consistency = ON")
     end
 
-    it 'defaults Galera applier threads to 1' do
-      expect(rendered_template).to match(/wsrep_applier_threads\s+= 1/)
+    it 'defaults to no wsrep_applier_threads for mysql 8.0' do
+      expect(rendered_template).not_to include("wsrep_applier_threads")
+    end
+
+    it 'defaults to no wsrep_slave_threads for mysql 5.7' do
+      expect(rendered_template).not_to include("wsrep_slave_threads")
     end
 
     context 'engine_config.galera.wsrep_applier_threads is explicitly configured' do
@@ -225,6 +229,10 @@ describe 'my.cnf template' do
 
       it 'configures wsrep_applier_threads to that value' do
         expect(rendered_template).to match(/wsrep_applier_threads\s+= 32/)
+      end
+
+      it 'configures wsrep_slave_threads to that value' do
+        expect(rendered_template).to match(/wsrep_slave_threads\s+= 32/)
       end
     end
 
