@@ -15,6 +15,7 @@ type GenerateValues struct {
 	TotalDiskinKB          uint64
 	TargetPercentageofMem  float64
 	TargetPercentageofDisk float64
+	NumCPUs                int
 }
 
 func Generate(values GenerateValues, writer io.Writer) error {
@@ -34,6 +35,12 @@ func Generate(values GenerateValues, writer io.Writer) error {
 
 		params = append(params, fmt.Sprintf("max_binlog_size = %d", uint64(maxBinlogSize)))
 	}
+
+	params = append(params, fmt.Sprintf("[mysqld-8.0]"))
+	params = append(params, fmt.Sprintf("wsrep_applier_threads = %d", values.NumCPUs))
+
+	params = append(params, fmt.Sprintf("[mysqld-5.7]"))
+	params = append(params, fmt.Sprintf("wsrep_slave_threads = %d", values.NumCPUs))
 
 	config := "\n[mysqld]\n" + strings.Join(params, "\n") + "\n"
 	_, err := writer.Write([]byte(config))
