@@ -47,7 +47,7 @@ describe 'my.cnf template' do
     # since we use pxc-5.7 for crash recovery and would like to generally read _other_ options pxc-8.0 specific changes
     # are in the [mysqld-8.0] config section
     it 'supports pxc-5.7 still reading this config by putting charset/collation options in the [mysqld] section' do
-      expect(rendered_template).to match(/\[mysqld]\ncharacter_set_server\s+=\s+armscii8\ncollation_server\s+=\s+armscii8_general_ci/m)
+      expect(rendered_template).to match(/\[mysqld\]\ncharacter_set_server\s+=\s+armscii8\ncollation_server\s+=\s+armscii8_general_ci/m)
     end
   end
 
@@ -134,7 +134,7 @@ describe 'my.cnf template' do
     } }
 
     it 'sets wsrep_sst_auth for 5.7' do
-      expect(rendered_template).to match(/\[mysqld-5.7]\nwsrep_sst_auth/m)
+      expect(rendered_template).to match(/\[mysqld-5\.7\]\nwsrep_sst_auth/m)
     end
 
     context 'when audit logs are disabled (default)' do
