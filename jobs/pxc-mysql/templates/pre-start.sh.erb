@@ -162,10 +162,22 @@ function apply_pxc57_crash_recovery {
   fi
 }
 
+# Workaround for https://bugs.mysql.com/110702
+# This applies an extra restart of the local instance to perform an early upgrade before the main mysql server startup.
+function apply_mysql_bug_110702_workaround {
+  if /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld --wsrep-recover; then # wsrep-recover for isolated single-node upgrade
+    log "pre-start: applied initial upgrade to workaround https://bugs.mysql.com/110702"
+  else
+    local mysql_err_log_path=${LOG_DIR}/mysql.err.log
+    log "pre-start: failed to apply initial upgrade. See ${mysql_err_log_path} for details.  Proceeding with normal startup."
+  fi
+}
+
 if is_pxc57_datadir; then
   apply_pxc57_crash_recovery
+  apply_mysql_bug_110702_workaround
 else
-  log "pre-start: skipping special crash recovery. percona-xtradb-cluster 5.7 data directory not detected."
+  log "pre-start: skipping special percona-xtradb-cluster 5.7 upgrade logic. percona-xtradb-cluster 5.7 data directory not detected."
 fi
 <%- end -%>
 

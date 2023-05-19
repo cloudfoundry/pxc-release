@@ -30,6 +30,26 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
 
+		By("writing data to the 5.7 instance", func() {
+			proxyIPs, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("proxy"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(proxyIPs).ToNot(BeEmpty())
+
+			db, err := sql.Open("mysql", "test-user:integration-tests@tcp("+proxyIPs[0]+")/?tls=skip-verify")
+			Expect(err).NotTo(HaveOccurred())
+			defer db.Close()
+
+			queries := []string{
+				`CREATE TABLE upgrade_data.parent (id integer PRIMARY KEY AUTO_INCREMENT, guid varchar(255) NOT NULL)`,
+				`CREATE TABLE upgrade_data.child (id integer PRIMARY KEY AUTO_INCREMENT, parent_id integer NOT NULL, CONSTRAINT parent_fk FOREIGN KEY (parent_id) REFERENCES parent(id))`,
+				`INSERT INTO upgrade_data.parent VALUES (1, 'ad8cb703-5eb7-4f31-93fa-1f0035e7cab4'), (4, '71229556-0671-4289-9f19-2285590aefbc')`,
+			}
+
+			for _, q := range queries {
+				Expect(db.Exec(q)).Error().NotTo(HaveOccurred())
+			}
+		})
+
 		By("intentionally crashing the first node", func() {
 			proxyIPs, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("proxy"))
 			Expect(err).NotTo(HaveOccurred())
@@ -39,10 +59,10 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 			Expect(err).NotTo(HaveOccurred())
 			defer db.Close()
 
-			Expect(db.Exec(`CREATE TABLE IF NOT EXISTS crash_upgrade_test.t1 (id int primary key auto_increment, data varchar(40))`)).Error().NotTo(HaveOccurred())
+			Expect(db.Exec(`CREATE TABLE IF NOT EXISTS upgrade_data.t1 (id int primary key auto_increment, data varchar(40))`)).Error().NotTo(HaveOccurred())
 
 			Consistently(func() error {
-				_, err := db.Exec(`INSERT INTO crash_upgrade_test.t1 (data) VALUES (SHA1(RAND()))`)
+				_, err := db.Exec(`INSERT INTO upgrade_data.t1 (data) VALUES (SHA1(RAND()))`)
 				return err
 			}, "15s").Should(Succeed())
 
@@ -88,6 +108,55 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 			output, err := bosh.Logs(deploymentName, "mysql/0", "cluster-health-logger/cluster-health-logger.stderr.log")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output.String()).NotTo(ContainSubstring(`Access denied for user 'cluster-health-logger'`))
+		})
+
+		By("applying a schema change after the upgrade", func() {
+			proxyIPs, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("proxy"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(proxyIPs).ToNot(BeEmpty())
+
+			db, err := sql.Open("mysql", "test-user:integration-tests@tcp("+proxyIPs[0]+")/?tls=skip-verify")
+			Expect(err).NotTo(HaveOccurred())
+			defer db.Close()
+
+			Expect(db.Exec(`ALTER TABLE upgrade_data.parent ADD COLUMN c1 bigint NOT NULL DEFAULT -1`)).Error().NotTo(HaveOccurred())
+
+		})
+
+		By("asserting the data has not been corrupted", func() {
+			mysqlIPs, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mysqlIPs).ToNot(BeEmpty())
+
+			verifyData := func(host string) {
+				GinkgoHelper()
+
+				db, err := sql.Open("mysql", "test-user:integration-tests@tcp("+host+")/?tls=skip-verify")
+				Expect(err).NotTo(HaveOccurred())
+				defer db.Close()
+
+				var nodeName string
+				Expect(db.QueryRow(`SELECT @@global.wsrep_node_name`).Scan(&nodeName)).To(Succeed())
+
+				var values []string
+				query := `SELECT guid FROM upgrade_data.parent FORCE INDEX (PRIMARY)`
+				rows, err := db.Query(query)
+				Expect(err).NotTo(HaveOccurred())
+				defer rows.Close()
+				for rows.Next() {
+					var guid string
+					Expect(rows.Scan(&guid)).To(Succeed())
+					values = append(values, guid)
+				}
+				Expect(rows.Err()).To(BeNil())
+				Expect(values).
+					To(ConsistOf(`ad8cb703-5eb7-4f31-93fa-1f0035e7cab4`, `71229556-0671-4289-9f19-2285590aefbc`),
+						`Expected data to match on instance %q, but it did not`, nodeName)
+			}
+
+			for _, host := range mysqlIPs {
+				verifyData(host)
+			}
 		})
 	})
 })
