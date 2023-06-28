@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,8 @@ func (h OsHelperImpl) StartCommand(logFileName string, executable string, args .
 	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
+	parentPID := os.Getpid()
+	cmd.Env = append(os.Environ(), "MYSQLD_PARENT_PID="+strconv.Itoa(parentPID))
 
 	return cmd, errors.Wrapf(cmd.Start(), "error starting %q", executable)
 }

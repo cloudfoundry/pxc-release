@@ -184,6 +184,7 @@ audit_log_rotations             = 1
 audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
 audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
 <%- end -%>
+plugin-load-add=mysql_clone.so
 
 [sst]
 encrypt=4
