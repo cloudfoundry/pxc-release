@@ -3,6 +3,7 @@ package e2e_tests
 import (
 	"database/sql"
 
+	"e2e-tests/utilities/cmd"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -123,5 +124,33 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 
 	It("still can access the data through the proxy ip", func() {
 		verifyData(db)
+	})
+
+	It("rejects scaling down when there is an unhealthy cluster member", func() {
+		Expect(bosh.RemoteCommand(deploymentName, "mysql/2",
+			"sudo monit unmonitor galera-init && sudo /var/vcap/jobs/bpm/bin/bpm stop pxc-mysql -p galera-init")).
+			Error().NotTo(HaveOccurred())
+
+		Expect(bosh.DeployPXC(deploymentName,
+			bosh.Operation("use-clustered.yml"),
+			bosh.Operation("test/seed-test-user.yml"),
+			bosh.Operation("minimal-mode.yml"),
+		)).ToNot(Succeed())
+	})
+
+	It("still allows deleting an unhealthy cluster", func() {
+		// Disable normal galera-agent drain to reliably detect failures, by forcing the mysql drain script to run completely
+		Expect(bosh.RemoteCommand(deploymentName, "mysql/2",
+			"sudo rm -f /var/vcap/jobs/galera-agent/bin/drain")).
+			Error().NotTo(HaveOccurred())
+
+		// Skip delete-deployment --force option, as the "force" option ignores drain failures
+		// This better emulates many workflows like on-demand-service-broker that fail on drain failures
+		Expect(cmd.Run(
+			"bosh",
+			"--deployment="+deploymentName,
+			"--non-interactive",
+			"delete-deployment",
+		)).To(Succeed())
 	})
 })

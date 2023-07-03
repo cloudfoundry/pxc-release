@@ -11,7 +11,7 @@ templates:
 
   db_init.erb: config/db_init
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
-  drain.sh.erb: bin/drain
+  pre-stop.erb: bin/pre-stop
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-init-config.yml.erb: config/galera-init-config.yml
