@@ -63,6 +63,7 @@ build() {
     mkdir bld && cd bld
     cmake .. \
       -DBUILD_CONFIG=mysql_release \
+      -DBOOST_ROOT="${boost_dir}" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_C_COMPILER=gcc \
@@ -91,19 +92,6 @@ build() {
       -DWITH_ZLIB=bundled
 
     make -j "$(nproc)" install/strip
-  )
-
-  (
-    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
-    cp GALERA-REVISION GALERA_GIT_REVISION
-    cmake . \
-      -DBOOST_ROOT="${boost_dir}" \
-      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-      -DGALERA_REVISION="$(<GALERA-REVISION)"
-
-    make -j "$(nproc)" install/strip \
-      CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include" \
-      LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
   )
 
   mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
