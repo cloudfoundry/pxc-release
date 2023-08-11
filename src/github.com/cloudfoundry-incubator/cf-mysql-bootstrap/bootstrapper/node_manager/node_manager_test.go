@@ -2,19 +2,20 @@ package node_manager_test
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	clockPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock/fakes"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/fakes"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/test_helpers"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -44,7 +45,7 @@ var _ = Describe("Bootstrap", func() {
 			StartMysqlInBootstrapMode: "start_mysql_bootstrap",
 		}
 
-		rootConfig.Logger = lagertest.NewTestLogger("nodeManager test")
+		rootConfig.Logger = slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 
 		endpointHandlers = []*test_helpers.EndpointHandler{}
 		for i := 0; i < ServerCount; i++ {
@@ -402,7 +403,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "stopped"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusOK)
@@ -418,13 +419,12 @@ var _ = Describe("Bootstrap", func() {
 		})
 
 		Context("when the shutdown request fails", func() {
-			const pendingCallCount = 3
 			BeforeEach(func() {
 				fakeHandler := &fakes.FakeHandler{}
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
 					responseText = "pending"
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusInternalServerError)
@@ -449,7 +449,7 @@ var _ = Describe("Bootstrap", func() {
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
 					responseText = "pending"
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusOK)
@@ -536,7 +536,7 @@ var _ = Describe("Bootstrap", func() {
 							responseText = "stopped"
 						}
 						currCallCount++
-						fmt.Fprintf(w, responseText)
+						_, _ = fmt.Fprintf(w, responseText)
 					}
 					endpointHandlers[i].StubEndpoint("/mysql_status", fakeHandler)
 				}
@@ -689,7 +689,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "running"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
@@ -721,7 +721,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "failing"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
@@ -774,7 +774,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "running"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
@@ -809,7 +809,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "failing"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = fmt.Fprintf(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
@@ -861,7 +861,7 @@ var _ = Describe("TLS connectivity", func() {
 			CA:                 "unavailableInTest",
 			InsecureSkipVerify: true, // req'd for TLS to mock httptest nodes
 		}
-		rootConfig.Logger = lagertest.NewTestLogger("nodeManager test")
+		rootConfig.Logger = slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 
 		endpointHandlers = []*test_helpers.EndpointHandler{}
 		for i := 0; i < ServerCount; i++ {

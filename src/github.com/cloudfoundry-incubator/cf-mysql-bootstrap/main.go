@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
-	"code.cloudfoundry.org/lager/v3"
 	bootstrapperPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
@@ -34,15 +32,12 @@ func main() {
 	} else if rootConfig.RepairMode == "rejoin-unsafe" {
 		actionTaken, err = bootstrapper.RejoinUnsafe()
 	} else {
-		logger.Error("Invalid repair mode:", errors.New(fmt.Sprintf("%s", rootConfig.RepairMode)))
-		fmt.Printf("Invalid repair mode: %s", rootConfig.RepairMode)
+		logger.Error("Invalid repair mode:", "repairMode", rootConfig.RepairMode)
 		os.Exit(1)
 	}
 
 	if err != nil {
-		logger.Error("Failed to repair cluster", err, lager.Data{
-			"config": rootConfig,
-		})
+		logger.Error("Failed to repair cluster", "error", err)
 		printHumanReadableErr(err, rootConfig.RepairMode)
 		os.Exit(1)
 	}
@@ -53,14 +48,13 @@ func main() {
 	}
 
 	logger.Info("Successfully repaired cluster")
-	fmt.Println("Successfully repaired cluster")
 }
 
 func printHumanReadableErr(err error, mode string) {
 	var docsLink string
 
 	if mode == "bootstrap" {
-		docsLink = "https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/bootstrapping.md"
+		docsLink = "https://docs.vmware.com/en/VMware-SQL-with-MySQL-for-Tanzu-Application-Service/3.0/mysql-for-tas/bootstrapping.html"
 	} else {
 		docsLink = "https://github.com/cloudfoundry/cf-mysql-release/blob/master/docs/cluster-behavior.md#forcing-a-node-to-rejoin-the-cluster-unsafe-procedure"
 	}

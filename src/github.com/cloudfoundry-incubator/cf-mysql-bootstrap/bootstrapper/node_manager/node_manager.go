@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 )
@@ -79,7 +78,7 @@ func (nm *nodeManager) VerifyClusterIsUnhealthy() (bool, error) {
 
 	if syncedNodes == allNodes {
 		err := fmt.Errorf("All nodes are synced, %s not required.", nm.rootConfig.RepairMode)
-		nm.rootConfig.Logger.Error("Action not required", err)
+		nm.rootConfig.Logger.Error("Action not required", "error", err)
 		return false, nil
 	}
 
@@ -92,10 +91,10 @@ func (nm *nodeManager) determineNodeCount() (int, int) {
 
 	for _, url := range nm.rootConfig.HealthcheckURLs {
 		responseBody, err := nm.sendGetRequest(url)
-		nm.rootConfig.Logger.Info("Received response from node", lager.Data{
-			"url":          url,
-			"responseBody": responseBody,
-		})
+		nm.rootConfig.Logger.Info("Received response from node",
+			"url", url,
+			"responseBody", responseBody,
+		)
 		if err == nil {
 			syncedNodes++
 		} else if strings.Contains(responseBody, "arbitrator") {
@@ -110,13 +109,13 @@ func (nm *nodeManager) validateNodeCountForRepairMode(syncedNodes, allNodes int,
 	if repairMode == "rejoin-unsafe" {
 		if syncedNodes < (allNodes - 1) {
 			err := errors.New("More than one node is unhealthy, cannot execute rejoin-unsafe.")
-			nm.rootConfig.Logger.Error("Action cannot be performed", err)
+			nm.rootConfig.Logger.Error("Action cannot be performed", "action", repairMode, "reason", err)
 			return err
 		}
 	} else {
 		if syncedNodes > 0 && syncedNodes != allNodes {
 			err := errors.New("Cluster healthy but one or more nodes are failing. Bootstrap not required.")
-			nm.rootConfig.Logger.Error("Bootstrap not required", err)
+			nm.rootConfig.Logger.Error("Bootstrap not required", "reason", err)
 			return err
 		}
 	}
@@ -183,9 +182,10 @@ func (nm *nodeManager) GetSequenceNumbers() (map[string]int, error) {
 				return nil, fmt.Errorf("Failed to get valid sequence number from %s with %s", getSeqNumberUrl, err.Error())
 			}
 
-			nm.rootConfig.Logger.Info(fmt.Sprintf("Retrieved sequence number of %d from %s", sequenceNumber, getSeqNumberUrl), lager.Data{
-				"url": getSeqNumberUrl,
-			})
+			nm.rootConfig.Logger.Info("Retrieved Galera sequence number",
+				"sequence_number", sequenceNumber,
+				"url", getSeqNumberUrl,
+			)
 
 			sequenceNumberMap[url] = sequenceNumber
 		}
@@ -212,16 +212,16 @@ func (nm *nodeManager) startNodeWithURL(baseURL string, startEndpoint string) er
 	for {
 		responseBody, err := nm.sendGetRequest(statusUrl)
 		if err != nil {
-			nm.rootConfig.Logger.Info("Sending status request failed", lager.Data{
-				"endpoint":     statusUrl,
-				"responseBody": responseBody,
-			})
+			nm.rootConfig.Logger.Info("Sending status request failed",
+				"endpoint", statusUrl,
+				"responseBody", responseBody,
+			)
 			return err
 		}
-		nm.rootConfig.Logger.Info("Received response from status endpoint", lager.Data{
-			"endpoint":     statusUrl,
-			"responseBody": responseBody,
-		})
+		nm.rootConfig.Logger.Info("Received response from status endpoint",
+			"endpoint", statusUrl,
+			"responseBody", responseBody,
+		)
 		if responseBody == "running" {
 			break
 		} else if responseBody == "failing" {
@@ -239,16 +239,16 @@ func (nm *nodeManager) pollUntilResponse(endpoint string, expectedResponse strin
 	for i := 0; i < maxIterations; i++ {
 		responseBody, err := nm.sendGetRequest(endpoint)
 		if err != nil {
-			nm.rootConfig.Logger.Info("Sending status request failed", lager.Data{
-				"endpoint":     endpoint,
-				"responseBody": responseBody,
-			})
+			nm.rootConfig.Logger.Info("Sending status request failed",
+				"endpoint", endpoint,
+				"responseBody", responseBody,
+			)
 			return err
 		}
-		nm.rootConfig.Logger.Info("Received response from status endpoint", lager.Data{
-			"endpoint":     endpoint,
-			"responseBody": responseBody,
-		})
+		nm.rootConfig.Logger.Info("Received response from status endpoint",
+			"endpoint", endpoint,
+			"responseBody", responseBody,
+		)
 
 		if responseBody == expectedResponse {
 			sawResponse = true
@@ -259,7 +259,9 @@ func (nm *nodeManager) pollUntilResponse(endpoint string, expectedResponse strin
 	if sawResponse == false {
 		return fmt.Errorf("Timed out waiting for %s from mysql after %d seconds", expectedResponse, GetShutDownTimeout())
 	} else {
-		nm.rootConfig.Logger.Info(fmt.Sprintf("Successfully received %s response from mysql", expectedResponse), lager.Data{"url": endpoint})
+		nm.rootConfig.Logger.Info("Successfully received response from mysql",
+			"expected_response", expectedResponse, "url", endpoint,
+		)
 		return nil
 	}
 }
@@ -334,7 +336,7 @@ func (nm *nodeManager) sendRequest(endpoint string, method string) (string, erro
 		return responseBody, fmt.Errorf("Non 200 response from %s: %s", endpoint, responseBody)
 	}
 
-	nm.rootConfig.Logger.Info(fmt.Sprintf("Successfully sent %s request to URL", endpoint))
+	nm.rootConfig.Logger.Info("Successfully sent request to URL", "url", endpoint)
 
 	return responseBody, nil
 }

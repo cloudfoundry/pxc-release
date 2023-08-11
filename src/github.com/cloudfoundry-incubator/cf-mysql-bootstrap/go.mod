@@ -3,7 +3,6 @@ module github.com/cloudfoundry-incubator/cf-mysql-bootstrap
 go 1.20
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.0.2
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
@@ -18,13 +17,14 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20230912144702-c363fe2c2ed8 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

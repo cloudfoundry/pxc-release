@@ -2,15 +2,15 @@ package config
 
 import (
 	"flag"
+	"log/slog"
+	"os"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 )
 
 type Config struct {
-	Logger                    lager.Logger
+	Logger                    *slog.Logger
 	HealthcheckURLs           []string   `yaml:"HealthcheckURLs" validate:"nonzero"`
 	BackendTLS                BackendTLS `yaml:"BackendTLS"`
 	Username                  string     `yaml:"Username" validate:"nonzero"`
@@ -49,15 +49,13 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	lagerflags.AddFlags(flags)
-
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(defaultConfig())
 	flags.Parse(configurationOptions)
 
 	err := serviceConfig.Read(&rootConfig)
 
-	rootConfig.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
+	rootConfig.Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	return &rootConfig, err
 }
 
