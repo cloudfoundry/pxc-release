@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/DATA-DOG/go-sqlmock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,7 +27,7 @@ var _ = Describe("GaleraDBHelper", func() {
 	var (
 		helper     *db_helper.GaleraDBHelper
 		fakeOs     *os_helperfakes.FakeOsHelper
-		testLogger lagertest.TestLogger
+		testLogger *slog.Logger
 		logFile    string
 		dbConfig   *config.DBHelper
 		fakeDB     *sql.DB
@@ -37,7 +37,7 @@ var _ = Describe("GaleraDBHelper", func() {
 	BeforeEach(func() {
 		var err error
 		fakeOs = new(os_helperfakes.FakeOsHelper)
-		testLogger = *lagertest.NewTestLogger("db_helper")
+		testLogger = slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 
 		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
@@ -85,7 +85,8 @@ var _ = Describe("GaleraDBHelper", func() {
 	Describe("StartMysqldInJoin", func() {
 		It("calls mysqld with the right args", func() {
 			fakeOs.RunCommandReturns("", nil)
-			helper.StartMysqldInJoin()
+			_, err := helper.StartMysqldInJoin()
+			Expect(err).NotTo(HaveOccurred())
 
 			_, executable, args := fakeOs.StartCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqld"))
@@ -97,7 +98,8 @@ var _ = Describe("GaleraDBHelper", func() {
 	Describe("StartMysqldInBootstrap", func() {
 		It("calls mysqld with the right args", func() {
 			fakeOs.RunCommandReturns("", nil)
-			helper.StartMysqldInBootstrap()
+			_, err := helper.StartMysqldInBootstrap()
+			Expect(err).NotTo(HaveOccurred())
 
 			_, executable, args := fakeOs.StartCommandArgsForCall(0)
 			Expect(executable).To(Equal("mysqld"))

@@ -2,12 +2,10 @@ package start_manager
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"os/exec"
 	"strings"
 	"syscall"
-
-	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
@@ -32,7 +30,7 @@ type startManager struct {
 	config                 config.StartManager
 	dbHelper               db_helper.DBHelper
 	startCaller            node_starter.Starter
-	logger                 lager.Logger
+	logger                 *slog.Logger
 	healthChecker          cluster_health_checker.ClusterHealthChecker
 	mysqlCmd               *exec.Cmd
 	mysqldPid              int
@@ -44,7 +42,7 @@ func New(
 	config config.StartManager,
 	dbHelper db_helper.DBHelper,
 	startCaller node_starter.Starter,
-	logger lager.Logger,
+	logger *slog.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
 	galeraInitStatusServer ServiceStatus,
 ) StartManager {
@@ -69,10 +67,10 @@ func (m *startManager) Execute(ctx context.Context) error {
 		m.Shutdown()
 	}
 
-	m.logger.Info("determining-bootstrap-procedure", lager.Data{
-		"ClusterIps":    m.config.ClusterIps,
-		"BootstrapNode": m.config.BootstrapNode,
-	})
+	m.logger.Info("determining-bootstrap-procedure",
+		"ClusterIps", m.config.ClusterIps,
+		"BootstrapNode", m.config.BootstrapNode,
+	)
 
 	currentState, err := m.getCurrentNodeState()
 	if err != nil {
@@ -100,9 +98,7 @@ func (m *startManager) Execute(ctx context.Context) error {
 
 	select {
 	case err := <-mysqldChan:
-		m.logger.Info("mysqld-exited", lager.Data{
-			"error": err,
-		})
+		m.logger.Info("mysqld-exited", "error", err)
 		return err
 	case <-ctx.Done():
 		m.logger.Info("shutdown-detected")
@@ -117,9 +113,7 @@ func (m *startManager) Execute(ctx context.Context) error {
 
 		err = <-mysqldChan
 
-		m.logger.Info("mysqld-shutdown-complete", lager.Data{
-			"error": err,
-		})
+		m.logger.Info("mysqld-shutdown-complete", "error", err)
 
 		return err
 	}
@@ -143,7 +137,7 @@ func (m *startManager) getCurrentNodeState() (string, error) {
 	// If we are not a first time deploy we must already have a state file
 	state, err := m.readStateFromFile()
 	if err != nil {
-		m.logger.Info("state file could not be read", lager.Data{"err": err.Error()})
+		m.logger.Error("state file could not be read", "err", err)
 		return "", err
 	}
 
@@ -161,7 +155,7 @@ func (m *startManager) readStateFromFile() (string, error) {
 		return "", err
 	}
 	state = strings.TrimSpace(state)
-	m.logger.Info(fmt.Sprintf("state file exists and contains: '%s'", state))
+	m.logger.Info("found state file", "path", m.config.StateFileLocation, "state", state)
 	return state, nil
 }
 
@@ -175,6 +169,6 @@ func (m *startManager) Shutdown() {
 }
 
 func (m *startManager) writeStringToFile(contents string) error {
-	m.logger.Info(fmt.Sprintf("updating file with contents: '%s'", contents))
+	m.logger.Info("updating state file", "path", m.config.StateFileLocation, "state", contents)
 	return m.osHelper.WriteStringToFile(m.config.StateFileLocation, contents)
 }

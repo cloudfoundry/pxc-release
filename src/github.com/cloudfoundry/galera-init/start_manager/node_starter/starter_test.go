@@ -2,10 +2,9 @@ package node_starter_test
 
 import (
 	"errors"
+	"log/slog"
 	"os"
 	"os/exec"
-
-	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
 	"github.com/cloudfoundry/galera-init/config"
@@ -20,16 +19,18 @@ import (
 var _ = Describe("Starter", func() {
 	var starter node_starter.Starter
 
-	var testLogger *lagertest.TestLogger
-	var fakeOs *os_helperfakes.FakeOsHelper
-	var fakeClusterHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
-	var fakeDBHelper *db_helperfakes.FakeDBHelper
-	var fakeCommandBootstrapStr string
-	var fakeCommandBootstrap *exec.Cmd
-	var fakeCommandJoinStr string
-	var fakeCommandJoin *exec.Cmd
-	var errorChan chan error
-	var grastateFile *os.File
+	var (
+		testLogger               *slog.Logger
+		fakeOs                   *os_helperfakes.FakeOsHelper
+		fakeClusterHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
+		fakeDBHelper             *db_helperfakes.FakeDBHelper
+		fakeCommandBootstrapStr  string
+		fakeCommandBootstrap     *exec.Cmd
+		fakeCommandJoinStr       string
+		fakeCommandJoin          *exec.Cmd
+		errorChan                chan error
+		grastateFile             *os.File
+	)
 
 	ensureBootstrap := func() {
 		Expect(fakeDBHelper.StartMysqldInBootstrapCallCount()).To(Equal(1))
@@ -45,7 +46,7 @@ var _ = Describe("Starter", func() {
 	}
 
 	BeforeEach(func() {
-		testLogger = lagertest.NewTestLogger("start_manager")
+		testLogger = slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 		fakeOs = new(os_helperfakes.FakeOsHelper)
 		errorChan = make(chan error, 1)
 		fakeOs.WaitForCommandReturns(errorChan)

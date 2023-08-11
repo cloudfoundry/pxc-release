@@ -3,9 +3,9 @@ package db_helper
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
+	"os"
 	"os/exec"
-
-	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/os_helper"
@@ -23,7 +23,7 @@ type DBHelper interface {
 type GaleraDBHelper struct {
 	osHelper        os_helper.OsHelper
 	logFileLocation string
-	logger          lager.Logger
+	logger          *slog.Logger
 	config          *config.DBHelper
 }
 
@@ -31,7 +31,7 @@ func NewDBHelper(
 	osHelper os_helper.OsHelper,
 	config *config.DBHelper,
 	logFileLocation string,
-	logger lager.Logger) *GaleraDBHelper {
+	logger *slog.Logger) *GaleraDBHelper {
 	return &GaleraDBHelper{
 		osHelper:        osHelper,
 		config:          config,
@@ -74,7 +74,7 @@ func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	cmd, err := m.startMysqldAsChildProcess()
 
 	if err != nil {
-		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
+		m.logger.Info("Error starting mysqld", "error", err)
 		return nil, err
 	}
 	return cmd, nil
@@ -85,7 +85,7 @@ func (m GaleraDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	cmd, err := m.startMysqldAsChildProcess("--wsrep-new-cluster")
 
 	if err != nil {
-		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
+		m.logger.Info("Error starting node with 'bootstrap'", "error", err)
 		return nil, err
 	}
 	return cmd, nil
@@ -98,7 +98,8 @@ func (m GaleraDBHelper) StopMysqld() {
 		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf",
 		"shutdown")
 	if err != nil {
-		m.logger.Fatal("Error stopping mysqld", err)
+		m.logger.Error("Error stopping mysqld", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -114,11 +115,11 @@ func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cm
 }
 
 func (m GaleraDBHelper) IsDatabaseReachable() bool {
-	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
+	m.logger.Info("Determining if database is reachable")
 
 	db, err := OpenDBConnection(m.config)
 	if err != nil {
-		m.logger.Info("database not reachable", lager.Data{"err": err.Error()})
+		m.logger.Info("database not reachable", "err", err)
 		return false
 	}
 	defer CloseDBConnection(db)
@@ -131,24 +132,24 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	err = db.QueryRow(`SHOW GLOBAL VARIABLES LIKE 'wsrep\_provider'`).Scan(&unused, &value)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+			m.logger.Info("Database is reachable, Galera is off")
 			return true
 		}
-		m.logger.Debug(fmt.Sprintf("Could not connect to database, received: %v", err))
+		m.logger.Debug("Could not connect to database", "error", err)
 		return false
 	}
 
 	if value == "none" {
-		m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+		m.logger.Info("Database is reachable, Galera is off")
 		return true
 	}
 
 	err = db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value)
 	if err != nil {
-		m.logger.Debug(fmt.Sprintf("Galera state not Synced, received: %v", err))
+		m.logger.Debug("Error querying galera state", "error", err)
 		return false
 	}
 
-	m.logger.Info(fmt.Sprintf("Galera Database state is %s", value))
+	m.logger.Info("Galera staet is 'Synced'", "state", value)
 	return value == "Synced"
 }

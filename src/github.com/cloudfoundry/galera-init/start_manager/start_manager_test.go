@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -25,17 +25,18 @@ import (
 
 var _ = Describe("StartManager", func() {
 
-	var mgr StartManager
-
-	var testLogger *lagertest.TestLogger
-	var fakeOs *os_helperfakes.FakeOsHelper
-	var fakeDBHelper *db_helperfakes.FakeDBHelper
-	var fakeStarter *node_starterfakes.FakeStarter
-	var fakeHealthChecker *cluster_health_checkerfakes.FakeClusterHealthChecker
-	var startNodeReturn string
-	var startNodeReturnError error
-	var mysqldErrChan chan error
-	var fakeserviceStatusServer *start_managerfakes.FakeServiceStatus
+	var (
+		mgr                     StartManager
+		testLogger              *slog.Logger
+		fakeOs                  *os_helperfakes.FakeOsHelper
+		fakeDBHelper            *db_helperfakes.FakeDBHelper
+		fakeStarter             *node_starterfakes.FakeStarter
+		fakeHealthChecker       *cluster_health_checkerfakes.FakeClusterHealthChecker
+		startNodeReturn         string
+		startNodeReturnError    error
+		mysqldErrChan           chan error
+		fakeserviceStatusServer *start_managerfakes.FakeServiceStatus
+	)
 
 	const stateFileLocation = "/stateFileLocation"
 
@@ -84,7 +85,7 @@ var _ = Describe("StartManager", func() {
 	}
 
 	BeforeEach(func() {
-		testLogger = lagertest.NewTestLogger("start_manager")
+		testLogger = slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 		fakeOs = new(os_helperfakes.FakeOsHelper)
 		fakeStarter = new(node_starterfakes.FakeStarter)
 		fakeDBHelper = new(db_helperfakes.FakeDBHelper)

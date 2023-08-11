@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
 
-	"code.cloudfoundry.org/lager/v3"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
@@ -21,37 +21,34 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	cfg, err := config.NewConfig(os.Args)
 	if err != nil {
-		cfg.Logger.Fatal("Error creating config", err)
-		return
+		logger.Error("Error reading config", "error", err)
+		os.Exit(1)
 	}
 
 	err = cfg.Validate()
 	if err != nil {
-		cfg.Logger.Fatal("Error validating config", err)
-		return
+		logger.Error("Error validating config", "error", err)
+		os.Exit(1)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	setupSignals(cancel, cfg.Logger)
+	setupSignals(cancel, logger)
 
-	startManager, err := managerSetup(cfg)
+	startManager, err := managerSetup(cfg, logger)
 	if err != nil {
-		cfg.Logger.Info("manage-setup-failure", lager.Data{
-			"error": err.Error(),
-		})
+		logger.Info("Error initializing", "error", err)
 		os.Exit(1)
 	}
 
-	cfg.Logger.Info("starting")
+	logger.Info("starting")
 
 	if err := startManager.Execute(ctx); err != nil {
-		cfg.Logger.Info("abnormal-termination", lager.Data{
-			"error": err.Error(),
-		})
+		logger.Info("abnormal-termination", "error", err)
 		if e, ok := err.(*exec.ExitError); ok {
 			if ws := e.Sys().(syscall.WaitStatus); ws.Signaled() {
 				os.Exit(int(ws.Signal()))
@@ -62,22 +59,22 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	cfg.Logger.Info("exited")
+	logger.Info("exited")
 }
 
-func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
+func managerSetup(cfg *config.Config, logger *slog.Logger) (start_manager.StartManager, error) {
 	OsHelper := os_helper.NewImpl()
 
 	DBHelper := db_helper.NewDBHelper(
 		OsHelper,
 		&cfg.Db,
 		cfg.LogFileLocation,
-		cfg.Logger,
+		logger,
 	)
 
 	ClusterHealthChecker := cluster_health_checker.NewClusterHealthChecker(
 		cfg.ClusterUrls(),
-		cfg.Logger,
+		logger,
 		cfg.HTTPClient(),
 	)
 
@@ -85,7 +82,7 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 		DBHelper,
 		OsHelper,
 		cfg.Manager,
-		cfg.Logger,
+		logger,
 		ClusterHealthChecker,
 	)
 
@@ -101,7 +98,7 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 		cfg.Manager,
 		DBHelper,
 		NodeStarter,
-		cfg.Logger,
+		logger,
 		ClusterHealthChecker,
 		galeraInitStatusServer,
 	)
@@ -109,16 +106,14 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 	return NodeStartManager, nil
 }
 
-func setupSignals(shutdownMySQL func(), log lager.Logger) {
+func setupSignals(shutdownMySQL func(), log *slog.Logger) {
 	sigCh := make(chan os.Signal, 1)
 
 	signal.Notify(sigCh, syscall.SIGTERM)
 
 	go func() {
 		for sig := range sigCh {
-			log.Info("sigterm-received", lager.Data{
-				"signal": sig,
-			})
+			log.Info("sigterm-received", "signal", sig)
 			shutdownMySQL()
 			log.Info("initiating-shutdown")
 		}

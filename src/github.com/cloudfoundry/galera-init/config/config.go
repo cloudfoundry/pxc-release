@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 )
@@ -20,7 +18,6 @@ type Config struct {
 	Db              DBHelper     `yaml:"Db"`
 	Manager         StartManager `yaml:"Manager"`
 	BackendTLS      BackendTLS   `yaml:"BackendTLS"`
-	Logger          lager.Logger
 }
 
 type DBHelper struct {
@@ -67,8 +64,6 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	lagerflags.AddFlags(flags)
-
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(Config{
 		Db: DBHelper{
@@ -81,8 +76,6 @@ func NewConfig(osArgs []string) (*Config, error) {
 	flags.Parse(configurationOptions)
 
 	err := serviceConfig.Read(&c)
-
-	c.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
 
 	return &c, err
 }
