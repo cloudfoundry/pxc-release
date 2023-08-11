@@ -4,14 +4,13 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"log/slog"
+	"net/http"
 
 	"github.com/erikstmartin/go-testdb"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"net/http"
-
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
@@ -28,13 +27,13 @@ var _ = Describe("GaleraSequenceChecker", func() {
 		sequenceChecker *sequence_number.SequenceNumberChecker
 		mysqldCmd       *fakes.FakeMysqldCmd
 		rootConfig      config.Config
-		logger          *lagertest.TestLogger
+		logger          *slog.Logger
 		db              *sql.DB
 	)
 
 	BeforeEach(func() {
 		rootConfig = config.Config{}
-		logger = lagertest.NewTestLogger("sequence_number test")
+		logger = slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 		db, _ = sql.Open("testdb", "")
 
 		mysqldCmd = &fakes.FakeMysqldCmd{}

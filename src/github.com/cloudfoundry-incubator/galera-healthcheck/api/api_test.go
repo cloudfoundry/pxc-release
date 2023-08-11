@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -53,7 +53,7 @@ var _ = Describe("Sidecar API", func() {
 		stateSnapshotter = new(apifakes.FakeStateSnapshotter)
 		stateSnapshotter.StateReturns(ExpectedStateSnapshot, nil)
 
-		testLogger := lagertest.NewTestLogger("mysql_cmd")
+		testLogger := slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 
 		testConfig := &config.Config{
 			SidecarEndpoint: config.SidecarEndpointConfig{
@@ -149,7 +149,7 @@ var _ = Describe("Sidecar API", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			responseBody, err := ioutil.ReadAll(resp.Body)
+			responseBody, err := io.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedSeqno))
 			Expect(sequenceNumber.CheckCallCount()).To(Equal(1))
@@ -213,7 +213,7 @@ var _ = Describe("Sidecar API", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-			responseBody, err := ioutil.ReadAll(resp.Body)
+			responseBody, err := io.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).ToNot(ContainSubstring(ExpectedSeqno))
 			Expect(sequenceNumber.CheckCallCount()).To(Equal(0))
@@ -225,7 +225,7 @@ var _ = Describe("Sidecar API", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			responseBody, err := ioutil.ReadAll(resp.Body)
+			responseBody, err := io.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
 			Expect(healthchecker.CheckCallCount()).To(Equal(1))
@@ -237,7 +237,7 @@ var _ = Describe("Sidecar API", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			responseBody, err := ioutil.ReadAll(resp.Body)
+			responseBody, err := io.ReadAll(resp.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(responseBody).To(ContainSubstring(ExpectedHealthCheckStatus))
 			Expect(healthchecker.CheckCallCount()).To(Equal(1))
@@ -280,7 +280,7 @@ var _ = Describe("Sidecar API", func() {
 						WsrepLocalStateComment string `json:"wsrep_local_state_comment"`
 					}
 
-					json.NewDecoder(resp.Body).Decode(&state)
+					Expect(json.NewDecoder(resp.Body).Decode(&state)).To(Succeed())
 
 					Expect(state.WsrepLocalIndex).To(Equal(returnedState.WsrepLocalIndex))
 					Expect(state.WsrepLocalState).To(Equal(uint(returnedState.WsrepLocalState)))

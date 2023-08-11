@@ -3,9 +3,8 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
-
-	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/tedsuo/rata"
 
@@ -41,7 +40,7 @@ type SequenceNumberChecker interface {
 type RunFunc func(req *http.Request) (string, error)
 
 type router struct {
-	logger                lager.Logger
+	logger                *slog.Logger
 	rootConfig            *config.Config
 	monitClient           MonitClient
 	sequenceNumberChecker SequenceNumberChecker
@@ -50,7 +49,7 @@ type router struct {
 }
 
 func NewRouter(
-	logger lager.Logger,
+	logger *slog.Logger,
 	rootConfig *config.Config,
 	monitClient MonitClient,
 	sequenceNumberChecker SequenceNumberChecker,

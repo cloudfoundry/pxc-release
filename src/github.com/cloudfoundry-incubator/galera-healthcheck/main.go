@@ -3,12 +3,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
@@ -23,11 +23,12 @@ import (
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
 
-	logger := rootConfig.Logger
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	err = rootConfig.Validate()
 	if err != nil {
-		logger.Fatal("Failed to validate config", err)
+		logger.Error("Failed to validate config", "error", err)
+		os.Exit(1)
 	}
 
 	db, err := sql.Open("mysql",
@@ -37,15 +38,17 @@ func main() {
 			rootConfig.DB.Socket))
 
 	if err != nil {
-		logger.Fatal("db-initialize", err, lager.Data{
-			"dbSocket": rootConfig.DB.Socket,
-			"dbUser":   rootConfig.DB.User,
-		})
+		logger.Error("failed to initialize database connection pool",
+			"error", err,
+			"dbSocket", rootConfig.DB.Socket,
+			"dbUser", rootConfig.DB.User,
+		)
+		os.Exit(1)
 	} else {
-		logger.Info("db-initialize", lager.Data{
-			"dbSocket": rootConfig.DB.Socket,
-			"dbUser":   rootConfig.DB.User,
-		})
+		logger.Info("initialized database connection pool",
+			"dbSocket", rootConfig.DB.Socket,
+			"dbUser", rootConfig.DB.User,
+		)
 	}
 
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
@@ -62,7 +65,7 @@ func main() {
 		Logger:            logger,
 	}
 
-	healthchecker := healthcheck.New(db, *rootConfig, logger)
+	healthchecker := healthcheck.New(db, *rootConfig)
 	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
 	stateSnapshotter := &healthcheck.DBStateSnapshotter{DB: db}
 
@@ -75,24 +78,23 @@ func main() {
 		stateSnapshotter,
 	)
 	if err != nil {
-		logger.Fatal("Failed to create router", err)
+		logger.Error("Failed to initialize router", "error", err)
+		os.Exit(1)
 	}
 
 	address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
 	listener, err := rootConfig.NetworkListener()
 	if err != nil {
-		logger.Fatal("tcp-listen", err, lager.Data{
-			"address": address,
-		})
+		logger.Error("failed to listen on configured address", "address", address, "error", err)
+		os.Exit(1)
 	}
 
 	url := fmt.Sprintf("https://%s/", address)
-	logger.Info("Serving healthcheck endpoint", lager.Data{
-		"url": url,
-	})
+	logger.Info("Serving healthcheck endpoint", "url", url)
 
 	if err := http.Serve(listener, router); err != nil {
-		logger.Fatal("http-server", err)
+		logger.Error("galera-agent http server exited", "error", err)
 	}
+
 	logger.Info("graceful-exit")
 }

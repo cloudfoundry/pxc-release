@@ -1,11 +1,11 @@
 package node_manager
 
 import (
-	"io/ioutil"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/pkg/errors"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
@@ -23,7 +23,7 @@ type NodeManager struct {
 	StateFilePath     string
 	MonitClient       MonitClient
 	GaleraInitAddress string
-	Logger            lager.Logger
+	Logger            *slog.Logger
 }
 
 func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
@@ -31,7 +31,7 @@ func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
 		return "", errors.New("bootstrapping arbitrator not allowed")
 	}
 
-	if err := ioutil.WriteFile(m.StateFilePath, []byte("NEEDS_BOOTSTRAP"), 0777); err != nil {
+	if err := os.WriteFile(m.StateFilePath, []byte("NEEDS_BOOTSTRAP"), 0777); err != nil {
 		return "", errors.Wrap(err, "failed to initialize state file")
 	}
 
@@ -47,7 +47,7 @@ func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
 }
 
 func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
-	if err := ioutil.WriteFile(m.StateFilePath, []byte("CLUSTERED"), 0777); err != nil {
+	if err := os.WriteFile(m.StateFilePath, []byte("CLUSTERED"), 0777); err != nil {
 		return "", errors.Wrap(err, "failed to initialize state file")
 	}
 
@@ -63,7 +63,7 @@ func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
 }
 
 func (m *NodeManager) StartServiceSingleNode(_ *http.Request) (string, error) {
-	if err := ioutil.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
+	if err := os.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
 		return "", errors.Wrap(err, "failed to initialize state file")
 	}
 
@@ -104,10 +104,7 @@ func (m *NodeManager) waitForGaleraInit() error {
 				return errors.Errorf("error fetching status for service %q", m.ServiceName)
 			}
 
-			m.Logger.Info("check-monit-state", lager.Data{
-				"service": m.ServiceName,
-				"state":   status,
-			})
+			m.Logger.Info("check-monit-state", "service", m.ServiceName, "state", status)
 
 			if status != monit_client.ServiceRunning {
 				return errors.New("job failed during startup")
@@ -120,9 +117,7 @@ func (m *NodeManager) waitForGaleraInit() error {
 				continue
 			}
 
-			m.Logger.Info("check-galera-init", lager.Data{
-				"status": res.Status,
-			})
+			m.Logger.Info("check-galera-init", "status", res.Status)
 
 			if res.StatusCode != http.StatusOK {
 				return errors.Errorf("unexpected response from node: %v", res.Status)

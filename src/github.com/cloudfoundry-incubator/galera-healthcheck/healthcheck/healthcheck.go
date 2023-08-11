@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.cloudfoundry.org/lager/v3"
-
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 )
 
@@ -21,14 +19,12 @@ const (
 type HealthChecker struct {
 	db     *sql.DB
 	config config.Config
-	logger lager.Logger
 }
 
-func New(db *sql.DB, config config.Config, logger lager.Logger) *HealthChecker {
+func New(db *sql.DB, config config.Config) *HealthChecker {
 	return &HealthChecker{
 		db:     db,
 		config: config,
-		logger: logger,
 	}
 }
 

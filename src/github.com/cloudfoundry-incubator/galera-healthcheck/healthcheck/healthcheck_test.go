@@ -1,18 +1,16 @@
 package healthcheck_test
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
-	"database/sql"
-
-	testdb "github.com/erikstmartin/go-testdb"
-
-	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
+	"github.com/erikstmartin/go-testdb"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
 )
 
 var _ = Describe("GaleraHealthChecker", func() {
@@ -172,8 +170,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 						},
 					}
 
-					logger := lagertest.NewTestLogger("healthcheck test")
-					healthchecker := healthcheck.New(db, config, logger)
+					healthchecker := healthcheck.New(db, config)
 
 					_, err := healthchecker.Check()
 					Expect(err).To(MatchError("test error"))
@@ -200,8 +197,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 						},
 					}
 
-					logger := lagertest.NewTestLogger("healthcheck test")
-					healthchecker := healthcheck.New(db, config, logger)
+					healthchecker := healthcheck.New(db, config)
 
 					_, err := healthchecker.Check()
 					Expect(err).To(MatchError("another test error"))
@@ -225,8 +221,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					err := fmt.Errorf("connection refused")
 					testdb.StubQueryError("SHOW STATUS LIKE 'wsrep_local_state'", err)
 
-					logger := lagertest.NewTestLogger("healthcheck test")
-					healthchecker = healthcheck.New(db, config, logger)
+					healthchecker = healthcheck.New(db, config)
 				})
 
 				It("returns false and a warning message", func() {
@@ -265,12 +260,12 @@ type healthcheckTestHelperConfig struct {
 func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, error) {
 	db, _ := sql.Open("testdb", "")
 
-	sql := "SHOW STATUS LIKE 'wsrep_local_state'"
+	query := "SHOW STATUS LIKE 'wsrep_local_state'"
 	columns := []string{"Variable_name", "Value"}
 	result := fmt.Sprintf("wsrep_local_state,%d", testConfig.wsrepStatus)
-	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
+	testdb.StubQuery(query, testdb.RowsFromCSVString(columns, result))
 
-	sql = "SHOW GLOBAL VARIABLES LIKE 'read_only'"
+	query = "SHOW GLOBAL VARIABLES LIKE 'read_only'"
 	columns = []string{"Variable_name", "Value"}
 	var readOnlyText string
 	if testConfig.readOnly {
@@ -279,16 +274,13 @@ func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, erro
 		readOnlyText = "OFF"
 	}
 	result = fmt.Sprintf("read_only,%s", readOnlyText)
-	testdb.StubQuery(sql, testdb.RowsFromCSVString(columns, result))
+	testdb.StubQuery(query, testdb.RowsFromCSVString(columns, result))
 
-	config := config.Config{
+	cfg := config.Config{
 		AvailableWhenDonor:    testConfig.availableWhenDonor,
 		AvailableWhenReadOnly: testConfig.availableWhenReadOnly,
 		Monit:                 testConfig.monit,
 	}
 
-	logger := lagertest.NewTestLogger("healthcheck test")
-	healthchecker := healthcheck.New(db, config, logger)
-
-	return healthchecker.Check()
+	return healthcheck.New(db, cfg).Check()
 }

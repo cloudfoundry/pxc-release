@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 )
 
@@ -18,11 +18,11 @@ type MysqldCmd interface {
 }
 
 type mysqldCmd struct {
-	logger       lager.Logger
+	logger       *slog.Logger
 	mysqldconfig config.Config
 }
 
-func NewMysqldCmd(logger lager.Logger, mysqldconfig config.Config) MysqldCmd {
+func NewMysqldCmd(logger *slog.Logger, mysqldconfig config.Config) MysqldCmd {
 	return &mysqldCmd{
 		logger:       logger,
 		mysqldconfig: mysqldconfig,
@@ -55,13 +55,14 @@ func (m *mysqldCmd) RecoverSeqno() (string, error) {
 	}
 
 	if cmdErr != nil {
-		m.logger.Error("Error running mysqld recovery", cmdErr, lager.Data{
-			"stdout": stdout,
-			"stderr": stderr,
-		})
+		m.logger.Error("Error running mysqld recovery",
+			"error", cmdErr,
+			"stdout", string(stdout),
+			"stderr", string(stderr),
+		)
 		return "", cmdErr
 	} else {
-		m.logger.Debug(string(stdout))
+		m.logger.Debug("mysqld --wsrep-recover output", "stdout", string(stdout))
 	}
 
 	seqNoRegex := `WSREP. Recovered position:.*:(-?\d+)`
@@ -71,7 +72,7 @@ func (m *mysqldCmd) RecoverSeqno() (string, error) {
 	if len(sequenceNumberLogLine) < 2 {
 		// First match is the whole string, second match is the seq no
 		err := errors.New(fmt.Sprintf("Couldn't find regex: %s Log Line: %s", seqNoRegex, sequenceNumberLogLine))
-		m.logger.Error("Failed to parse seqno from logs", err)
+		m.logger.Error("Failed to parse seqno from logs", "error", err)
 		return "", err
 	}
 

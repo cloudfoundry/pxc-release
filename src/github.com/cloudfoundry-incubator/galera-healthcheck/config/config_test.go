@@ -75,7 +75,6 @@ var _ = Describe("Config", func() {
 					PrivateKey:  privateKey,
 				},
 			},
-			Logger: nil,
 		}
 
 		BeforeEach(func() {
@@ -245,10 +244,6 @@ var _ = Describe("Config", func() {
 		It("returns an error if SidecarEndpoint.Password is blank", func() {
 			err := test_helpers.IsRequiredField(rootConfig, "SidecarEndpoint.Password")
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns a valid logger", func() {
-			Expect(rootConfig.Logger).ToNot(BeNil())
 		})
 	})
 })

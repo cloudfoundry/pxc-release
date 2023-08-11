@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/tlsconfig"
 	"github.com/pivotal-cf-experimental/service-config"
 	"github.com/pkg/errors"
@@ -24,7 +22,6 @@ type Config struct {
 	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
 	MyCnfPath             string                `yaml:"MyCnfPath" validate:"nonzero"`
 	SidecarEndpoint       SidecarEndpointConfig `yaml:"SidecarEndpoint" validate:"nonzero"`
-	Logger                lager.Logger          `yaml:"-"`
 }
 
 type DBConfig struct {
@@ -77,16 +74,15 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	lagerflags.AddFlags(flags)
-
 	serviceConfig.AddFlags(flags)
 	serviceConfig.AddDefaults(defaultConfig())
 	flags.Parse(configurationOptions)
 
-	rootConfig.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
+	if err := serviceConfig.Read(&rootConfig); err != nil {
+		return nil, err
+	}
 
-	err := serviceConfig.Read(&rootConfig)
-	return &rootConfig, err
+	return &rootConfig, nil
 }
 
 func (c Config) Validate() error {

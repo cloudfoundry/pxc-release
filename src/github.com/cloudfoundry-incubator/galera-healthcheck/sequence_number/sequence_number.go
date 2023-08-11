@@ -4,12 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
+	"log/slog"
+	"net/http"
 	"strconv"
 
-	"net/http"
-
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 )
@@ -17,14 +15,14 @@ import (
 type SequenceNumberChecker struct {
 	db        *sql.DB
 	config    config.Config
-	logger    lager.Logger
+	logger    *slog.Logger
 	mysqldCmd mysqld_cmd.MysqldCmd
 }
 
 func New(db *sql.DB,
 	mysqldCmd mysqld_cmd.MysqldCmd,
 	config config.Config,
-	logger lager.Logger,
+	logger *slog.Logger,
 ) *SequenceNumberChecker {
 	return &SequenceNumberChecker{
 		db:        db,

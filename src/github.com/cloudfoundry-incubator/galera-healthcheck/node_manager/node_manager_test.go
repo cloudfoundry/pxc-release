@@ -2,12 +2,11 @@ package node_manager_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -26,7 +25,7 @@ var _ = Describe("NodeManager", func() {
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = ioutil.TempDir(os.TempDir(), "tmp")
+		tempDir, err = os.MkdirTemp(os.TempDir(), "tmp")
 		Expect(err).NotTo(HaveOccurred())
 
 		fakeMonit = &node_managerfakes.FakeMonitClient{}
@@ -35,12 +34,12 @@ var _ = Describe("NodeManager", func() {
 			ServiceName:   "galera-init",
 			MonitClient:   fakeMonit,
 			StateFilePath: filepath.Join(tempDir, "state.txt"),
-			Logger:        lagertest.NewTestLogger("monit_client"),
+			Logger:        slog.New(slog.NewJSONHandler(GinkgoWriter, nil)),
 		}
 	})
 
 	AfterEach(func() {
-		os.RemoveAll(tempDir)
+		Expect(os.RemoveAll(tempDir)).To(Succeed())
 	})
 
 	Context("StartServiceBootstrap", func() {
@@ -149,7 +148,7 @@ var _ = Describe("NodeManager", func() {
 				It("returns success", func() {
 					msg, err := mgr.StartServiceBootstrap(nil)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(ioutil.ReadFile(mgr.StateFilePath)).To(Equal([]byte("NEEDS_BOOTSTRAP")))
+					Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("NEEDS_BOOTSTRAP")))
 					Expect(msg).To(Equal(`cluster bootstrap successful`))
 				})
 			})
@@ -262,7 +261,7 @@ var _ = Describe("NodeManager", func() {
 				It("returns success", func() {
 					msg, err := mgr.StartServiceJoin(nil)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(ioutil.ReadFile(mgr.StateFilePath)).To(Equal([]byte("CLUSTERED")))
+					Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("CLUSTERED")))
 					Expect(msg).To(Equal(`join cluster successful`))
 				})
 			})
@@ -375,7 +374,7 @@ var _ = Describe("NodeManager", func() {
 				It("returns success", func() {
 					msg, err := mgr.StartServiceSingleNode(nil)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(ioutil.ReadFile(mgr.StateFilePath)).To(Equal([]byte("SINGLE_NODE")))
+					Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("SINGLE_NODE")))
 					Expect(msg).To(Equal(`single node start successful`))
 				})
 			})
