@@ -5,7 +5,7 @@ go 1.20
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/fsouza/go-dockerclient v1.9.7
+	github.com/fsouza/go-dockerclient v1.9.8
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.3.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2
@@ -37,7 +37,7 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
-	github.com/opencontainers/runc v1.1.8 // indirect
+	github.com/opencontainers/runc v1.1.9 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect

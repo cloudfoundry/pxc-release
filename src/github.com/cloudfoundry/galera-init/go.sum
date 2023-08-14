@@ -25,8 +25,8 @@ github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMo
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
-github.com/fsouza/go-dockerclient v1.9.7 h1:FlIrT71E62zwKgRvCvWGdxRD+a/pIy+miY/n3MXgfuw=
-github.com/fsouza/go-dockerclient v1.9.7/go.mod h1:vx9C32kE2D15yDSOMCDaAEIARZpDQDFBHeqL3MgQy/U=
+github.com/fsouza/go-dockerclient v1.9.8 h1:UdfyV4/w8VthS2VS0muJqUSPL/e6XSj49jqPnbuUOWA=
+github.com/fsouza/go-dockerclient v1.9.8/go.mod h1:74lNReDQxrOaogajs51IvZgkDME4qe9yPJAUEUTJtHw=
 github.com/go-logr/logr v1.2.4 h1:g01GSCwiDw2xSZfjJ2/T9M+S6pFdcNtFYsp+Y43HYDQ=
 github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=
 github.com/go-sql-driver/mysql v1.7.1/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
@@ -89,8 +89,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0-rc4 h1:oOxKUJWnFC4YGHCCMNql1x4YaDfYBTS5Y4x/Cgeo1E0=
 github.com/opencontainers/image-spec v1.1.0-rc4/go.mod h1:X4pATf0uXsnn3g5aiGIsVnJBR4mxhKzfwmvK/B2NTm8=
-github.com/opencontainers/runc v1.1.8 h1:zICRlc+C1XzivLc3nzE+cbJV4LIi8tib6YG0MqC6OqA=
-github.com/opencontainers/runc v1.1.8/go.mod h1:CbUumNnWCuTGFukNXahoo/RFBZvDAgRh/smNYNOhA50=
+github.com/opencontainers/runc v1.1.9 h1:XR0VIHTGce5eWPkaPesqTBrhW2yAcaraWfsEalNwQLM=
+github.com/opencontainers/runc v1.1.9/go.mod h1:CbUumNnWCuTGFukNXahoo/RFBZvDAgRh/smNYNOhA50=
 github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada h1:E7mEfdwY6BDQwNoUdHD5074b9XysrdfOa56rajUB7zw=
 github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada/go.mod h1:nE/4g0m8vCfN5dSR9yXvndJhuLPOMHUY1YrQ7yTYGto=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
