@@ -3,11 +3,11 @@ module github.com/cloudfoundry/migrate-to-pxc
 go 1.20
 
 require (
-	github.com/cloudfoundry/gosigar v1.3.20
+	github.com/cloudfoundry/gosigar v1.3.21
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.27.8
+	github.com/onsi/gomega v1.27.10
 )
 
 require (
