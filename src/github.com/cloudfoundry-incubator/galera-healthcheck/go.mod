@@ -9,7 +9,7 @@ require (
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
-	github.com/onsi/ginkgo/v2 v2.11.0
+	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1

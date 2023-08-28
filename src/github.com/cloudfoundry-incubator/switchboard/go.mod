@@ -7,7 +7,7 @@ require (
 	code.cloudfoundry.org/tlsconfig v0.0.0-20230612153104-23c0622de227
 	github.com/cloudfoundry-incubator/galera-healthcheck v0.0.0-20220901215914-d591811a0fba
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
-	github.com/onsi/ginkgo/v2 v2.11.0
+	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
