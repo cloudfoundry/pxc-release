@@ -101,6 +101,18 @@ var _ = Describe("UserManagement", Ordered, func() {
 		return grants
 	}
 
+	showSchemas := func(db *sql.DB, username, host string) (schemas []string) {
+		rows, err := db.Query(`SHOW SCHEMAS`)
+		Expect(err).NotTo(HaveOccurred())
+		for rows.Next() {
+			var s string
+			Expect(rows.Scan(&s)).To(Succeed())
+			schemas = append(schemas, s)
+		}
+
+		return schemas
+	}
+
 	// verifyUser proves that a given username:password credential can connect to a given schema and has the expected permissions
 	verifyUser := func(username, password, schema string, expectedGrants []string) {
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:%s)/%s?interpolateParams=true",
@@ -114,7 +126,18 @@ var _ = Describe("UserManagement", Ordered, func() {
 		dsn := fmt.Sprintf("root@(localhost:%s)/?interpolateParams=true", resource.GetPort("3306/tcp"))
 		db, err := sql.Open("mysql", dsn)
 		Expect(err).NotTo(HaveOccurred())
+		defer db.Close()
+
 		Expect(showGrants(db, username, "localhost")).To(ConsistOf(expectedGrants))
+	}
+
+	verifySchemasForLocalUser := func(username, password string, expectedSchemas []string) {
+		dsn := fmt.Sprintf("root@(localhost:%s)/?interpolateParams=true", resource.GetPort("3306/tcp"))
+		db, err := sql.Open("mysql", dsn)
+		defer db.Close() // TODO: check other helpers for Close() calls.
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(showSchemas(db, username, "localhost")).To(ContainElements(expectedSchemas))
 	}
 
 	queryAvailablePrivileges := func(db *sql.DB) (privileges []string, err error) {
@@ -281,6 +304,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO `mysql-metrics`@`%`",
 			})
 			verifyMaxUserConnections("mysql-metrics", "%", 3)
+			verifySchemasForLocalUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, []string{"metrics_db"})
 
 			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
 				"GRANT USAGE ON *.* TO `ccdb`@`%`",
@@ -383,6 +407,12 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'mysql-metrics'@'%'",
 			})
 			verifyMaxUserConnections("mysql-metrics", "%", 3)
+			verifySchemasForLocalUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, []string{"metrics_db"})
+
+			verifyUser("mysql-metrics-no-schema", dbUsers.SeededUsers["mysql-metrics-no-schema"].Password, dbUsers.SeededUsers["mysql-metrics-no-schema"].Schema, []string{
+				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'mysql-metrics-no-schema'@'%'",
+			})
+			verifyMaxUserConnections("mysql-metrics-no-schema", "%", 3)
 
 			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
 				"GRANT USAGE ON *.* TO 'ccdb'@'%'",
