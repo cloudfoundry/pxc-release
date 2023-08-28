@@ -116,6 +116,12 @@ describe 'db_init template' do
             "schema" => "metrics_db",
             "max_user_connections" => 3,
           },
+          "multi-schema-admin-user" => {
+            "role" => "multi-schema-admin",
+            "password" => "secret-multi-schema-admin-db-pw",
+            "host" => "any",
+            "schema" => "multi_schemas_%",
+          },
         }
       }
     }
@@ -276,6 +282,16 @@ describe 'db_init template' do
 
       it 'fails' do
         expect { template.render(spec) }.to raise_error(RuntimeError, "user 'invalid-schema-admin-user' with schema-admin role specified with an empty schema")
+      end
+    end
+
+    context 'when seeded_users specifies a multi-schema-admin role without a schema' do
+      before(:each) do
+        spec["seeded_users"]["invalid-schema-admin-user"] = { "host" => "any", "password" => "secret", "role" => "multi-schema-admin" }
+      end
+
+      it 'fails' do
+        expect { template.render(spec) }.to raise_error(RuntimeError, "user 'invalid-schema-admin-user' with multi-schema-admin role specified with an empty schema")
       end
     end
   end

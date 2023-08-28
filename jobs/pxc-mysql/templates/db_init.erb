@@ -99,6 +99,18 @@ REVOKE LOCK TABLES ON #{ident_escaped(user['schema'])}.* FROM #{user['username']
 }.strip
   end
 
+  def grant_multi_schema_admin_privs(user)
+    if user['schema'].nil? || user['schema'].empty?
+      raise "user #{user['username']} with multi-schema-admin role specified with an empty schema"
+    end
+
+    %{
+#{revoke_all_privileges(user)}
+GRANT ALL PRIVILEGES ON #{ident(user['schema'])}.* TO #{user['username']}@#{user['host']};
+REVOKE LOCK TABLES ON #{ident(user['schema'])}.* FROM #{user['username']}@#{user['host']};
+}.strip
+  end
+
   def grant_mysql_metrics_privs(user)
     %{
 #{revoke_all_privileges(user)}
@@ -151,6 +163,7 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
     when "schema-admin" then grant_schema_admin_privs(user)
     when "mysql-metrics" then grant_mysql_metrics_privs(user)
     when "minimal" then revoke_all_privileges(user)
+    when "multi-schema-admin" then grant_multi_schema_admin_privs(user)
     else raise "Unsupported role '#{user['role']}' for user #{user['username']}"
     end
   end

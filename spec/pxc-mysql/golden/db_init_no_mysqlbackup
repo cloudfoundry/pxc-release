@@ -45,6 +45,17 @@ GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
 REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
 CREATE SCHEMA IF NOT EXISTS `cloud_controller` CHARACTER SET 'utf8mb4';
 
+-- user: 'multi-schema-admin-user'@'%' role: multi-schema-admin
+CREATE USER IF NOT EXISTS 'multi-schema-admin-user'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-multi-schema-admin-db-pw'
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+ALTER USER 'multi-schema-admin-user'@'%'
+  IDENTIFIED WITH mysql_native_password BY 'secret-multi-schema-admin-db-pw'
+  /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+REVOKE ALL PRIVILEGES ON *.* FROM 'multi-schema-admin-user'@'%';
+GRANT ALL PRIVILEGES ON `multi_schemas_%`.* TO 'multi-schema-admin-user'@'%';
+REVOKE LOCK TABLES ON `multi_schemas_%`.* FROM 'multi-schema-admin-user'@'%';
+
 -- user: 'mysql-metrics'@'%' role: mysql-metrics
 CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
