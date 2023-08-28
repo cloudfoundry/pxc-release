@@ -247,6 +247,14 @@ var _ = Describe("UserManagement", Ordered, func() {
 		Expect(cmd.Run()).To(Succeed())
 	}
 
+	verifyUserFunc := func(username, password string, cb func(db *sql.DB)) {
+		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:%s)/?interpolateParams=true",
+			username, password, resource.GetPort("3306/tcp")))
+		Expect(err).NotTo(HaveOccurred())
+		defer db.Close()
+		cb(db)
+	}
+
 	When("the mysql job is configured with user properties", func() {
 		BeforeEach(func() {
 			dbUsers = MySQLJobSpec{
@@ -295,11 +303,44 @@ var _ = Describe("UserManagement", Ordered, func() {
 						Schema:             "metrics_db",
 						MaxUserConnections: 3,
 					},
+					"multi-db-user": {
+						Role:     "multi-schema-admin",
+						Password: uuid.NewString(),
+						Host:     "any",
+						Schema:   `some\_db\_prefix\_%`,
+					},
 				},
 			}
 		})
 
 		It("initializes the users successfully", func() {
+			verifyUser("multi-db-user", dbUsers.SeededUsers["multi-db-user"].Password, "", []string{
+				"GRANT USAGE ON *.* TO `multi-db-user`@`%`",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `some\\_db\\_prefix\\_%`.* TO `multi-db-user`@`%`",
+			})
+
+			verifyUserFunc("root", "", func(db *sql.DB) {
+				var schemaCount int
+				err := db.QueryRow(`SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'some\_db\_prefix\_%'`).Scan(&schemaCount)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(schemaCount).To(Equal(0), `Expected the schema pattern for a multi-schema-admin role to NOT be created, but it was!`)
+			})
+
+			verifyUserFunc("multi-db-user", dbUsers.SeededUsers["multi-db-user"].Password, func(db *sql.DB) {
+				var schemaCount int
+				err := db.QueryRow(`SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE 'some\_db\_prefix\_%'`).Scan(&schemaCount)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(schemaCount).To(BeZero())
+
+				Expect(db.Exec(`CREATE DATABASE some_db_prefix_a`)).Error().ShouldNot(HaveOccurred())
+				Expect(db.Exec(`CREATE DATABASE some_db_prefix_special`)).Error().ShouldNot(HaveOccurred())
+				Expect(db.Exec(`CREATE DATABASE mysql`)).Error().Should(MatchError(ContainSubstring(`Access denied`)))
+
+				err = db.QueryRow(`SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE 'some\_db\_prefix\_%'`).Scan(&schemaCount)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(schemaCount).To(Equal(2))
+			})
+
 			verifyUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, dbUsers.SeededUsers["mysql-metrics"].Schema, []string{
 				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO `mysql-metrics`@`%`",
 			})
@@ -398,11 +439,22 @@ var _ = Describe("UserManagement", Ordered, func() {
 						Host:               "any",
 						MaxUserConnections: 3,
 					},
+					"multi-db-user": {
+						Role:     "multi-schema-admin",
+						Password: uuid.NewString(),
+						Host:     "any",
+						Schema:   `some\_db\_prefix\_%`,
+					},
 				},
 			}
 		})
 
 		It("initializes the users successfully", func() {
+			verifyUser("multi-db-user", dbUsers.SeededUsers["multi-db-user"].Password, "", []string{
+				"GRANT USAGE ON *.* TO 'multi-db-user'@'%'",
+				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `some\\_db\\_prefix\\_%`.* TO 'multi-db-user'@'%'",
+			})
+
 			verifyUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, dbUsers.SeededUsers["mysql-metrics"].Schema, []string{
 				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'mysql-metrics'@'%'",
 			})
