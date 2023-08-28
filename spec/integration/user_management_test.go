@@ -106,6 +106,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:%s)/%s?interpolateParams=true",
 			username, password, resource.GetPort("3306/tcp"), schema))
 		Expect(err).NotTo(HaveOccurred())
+		defer db.Close()
 		Expect(showGrants(db, username, "%")).To(ConsistOf(expectedGrants))
 	}
 
@@ -195,6 +196,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 		db, err := sql.Open("mysql", fmt.Sprintf("root@(localhost:%s)/mysql?interpolateParams=true",
 			resource.GetPort("3306/tcp")))
 		Expect(err).NotTo(HaveOccurred())
+		defer db.Close()
 
 		var expectedPrivileges []string
 		if mysqlVersionTag == "5.7" {
