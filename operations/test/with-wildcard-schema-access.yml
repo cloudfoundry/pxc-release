@@ -1,0 +1,8 @@
+---
+- path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/test-multi-schema-user?
+  type: replace
+  value:
+    role: multi-schema-admin
+    host: any
+    password: "secret-multi-schema-admin-credential"
+    schema: multi\_%

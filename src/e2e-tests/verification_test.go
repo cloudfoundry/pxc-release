@@ -44,6 +44,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/test-audit-logging.yml`),
 			bosh.Operation(`test/use-mtls.yml`),
 			bosh.Operation(`test/tune-mysql-config.yml`),
+			bosh.Operation(`test/with-wildcard-schema-access.yml`),
 			bosh.Var(`innodb_buffer_pool_size_percent`, `14`),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
@@ -541,6 +542,44 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			}
 			Expect(rows.Err()).ToNot(HaveOccurred())
 			Expect(grants).ToNot(BeEmpty())
+		})
+
+		It("configures a user with access to a set of schemas based on a pattern from the seeded_users configuration", func() {
+			db, err := sql.Open("mysql", "test-multi-schema-user:secret-multi-schema-admin-credential@tcp("+proxyHost+")/?tls=skip-verify&interpolateParams=true")
+			Expect(err).NotTo(HaveOccurred())
+			defer db.Close()
+			db.SetMaxIdleConns(0)
+			db.SetMaxOpenConns(1)
+
+			Expect(db.Exec(`SELECT * FROM mysql.user`)).Error().To(MatchError(ContainSubstring(`SELECT command denied to user`)),
+				`Expected a multi-schema-admin user to NOT have access to sensitive mysql system tables, but successfully read mysql.user!`)
+
+			Expect(db.Exec(`CREATE DATABASE multi_db1`)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.Exec(`CREATE TABLE multi_db1.t1 (id int primary key auto_increment, data varchar(36))`)).
+				Error().NotTo(HaveOccurred())
+
+			Expect(db.Exec(`CREATE DATABASE multi_db2`)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.Exec(`CREATE TABLE multi_db2.t1 (id int primary key auto_increment, data varchar(36))`)).
+				Error().NotTo(HaveOccurred())
+
+			var (
+				userValue   string
+				storedValue string
+			)
+			userValue = uuid.NewString()
+			Expect(db.Exec(`INSERT INTO multi_db1.t1 (data) VALUES (?)`, userValue)).
+				Error().NotTo(HaveOccurred())
+
+			Expect(db.QueryRow(`SELECT data FROM multi_db1.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
+			Expect(storedValue).To(Equal(userValue))
+
+			userValue = uuid.NewString()
+			Expect(db.Exec(`INSERT INTO multi_db2.t1 (data) VALUES (?)`, userValue)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.QueryRow(`SELECT data FROM multi_db2.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
+			Expect(storedValue).To(Equal(userValue))
 		})
 	})
 })
