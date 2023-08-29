@@ -138,6 +138,12 @@ properties:
           host: any
           role: schema-admin
           schema: "app-db"
+        app-user-with-wildcard-db-access:
+          password: "((wildcard_app_user_password))"
+          host: any
+          role: multi-schema-admin
+          schema: "some\_db\_prefix\_%"
+
   # TLS Config
   tls.galera:
     description: 'Required if engine_config.galera.enabled is true. TLS certificate for galera cluster encryption'
