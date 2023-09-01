@@ -237,7 +237,7 @@ var _ = Describe("GaleraDBHelper", func() {
 
 	Describe("IsDatabaseReachable", func() {
 		galeraReadyQuery := `SHOW GLOBAL STATUS LIKE 'wsrep\\_local\\_state\\_comment'`
-		wsrepProviderQuery := `SHOW GLOBAL VARIABLES LIKE 'wsrep\\_provider'`
+		wsrepProviderQuery := `SELECT @@global.wsrep_provider`
 
 		Describe("when the ready check fails", func() {
 			BeforeEach(func() {
@@ -254,8 +254,8 @@ var _ = Describe("GaleraDBHelper", func() {
 		Describe("when galera is enabled", func() {
 			BeforeEach(func() {
 				mock.ExpectQuery(wsrepProviderQuery).
-					WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
-						AddRow("wsrep_provider", "something other than none"))
+					WillReturnRows(sqlmock.NewRows([]string{"Value"}).
+						AddRow("something other than none"))
 			})
 
 			Describe("when the galera check returns Synced", func() {
@@ -297,8 +297,8 @@ var _ = Describe("GaleraDBHelper", func() {
 
 			It("returns true", func() {
 				mock.ExpectQuery(wsrepProviderQuery).
-					WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
-						AddRow("wsrep_provider", "none"))
+					WillReturnRows(sqlmock.NewRows([]string{"Value"}).
+						AddRow("none"))
 				Expect(helper.IsDatabaseReachable()).To(BeTrue())
 			})
 		})
