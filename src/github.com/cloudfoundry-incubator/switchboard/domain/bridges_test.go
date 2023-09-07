@@ -1,14 +1,14 @@
 package domain_test
 
 import (
+	"log/slog"
 	"net"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry-incubator/switchboard/domain"
+	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 )
 
 var _ = Describe("Bridges", func() {
@@ -18,7 +18,7 @@ var _ = Describe("Bridges", func() {
 	var bridge3 domain.Bridge
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("Bridges Test")
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 		bridges = domain.NewBridges(logger)
 	})
 
@@ -101,7 +101,7 @@ var _ = Describe("Bridges", func() {
 
 	Describe("RemoveAndCloseAll", func() {
 		BeforeEach(func() {
-			domain.BridgeProvider = func(_, _ net.Conn, logger lager.Logger) domain.Bridge {
+			domain.BridgeProvider = func(_, _ net.Conn, logger *slog.Logger) domain.Bridge {
 				return new(domainfakes.FakeBridge)
 			}
 		})

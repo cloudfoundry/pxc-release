@@ -1,13 +1,14 @@
 package domain
 
 import (
-	"code.cloudfoundry.org/lager/v3"
+	"log/slog"
+
 	"github.com/cloudfoundry-incubator/switchboard/config"
 )
 
 var BackendProvider = NewBackend
 
-func NewBackends(backendConfigs []config.Backend, logger lager.Logger) (backends []*Backend) {
+func NewBackends(backendConfigs []config.Backend, logger *slog.Logger) (backends []*Backend) {
 	for _, bc := range backendConfigs {
 		backends = append(backends, BackendProvider(
 			bc.Name,

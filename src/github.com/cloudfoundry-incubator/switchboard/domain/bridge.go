@@ -3,9 +3,8 @@ package domain
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
-
-	"code.cloudfoundry.org/lager/v3"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Bridge
@@ -17,10 +16,10 @@ type Bridge interface {
 type bridge struct {
 	done            chan struct{}
 	client, backend net.Conn
-	logger          lager.Logger
+	logger          *slog.Logger
 }
 
-func NewBridge(client, backend net.Conn, logger lager.Logger) Bridge {
+func NewBridge(client, backend net.Conn, logger *slog.Logger) Bridge {
 	return &bridge{
 		done:    make(chan struct{}),
 		client:  client,

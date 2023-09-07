@@ -2,21 +2,21 @@ package api_test
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/cloudfoundry-incubator/switchboard/api"
-	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+
+	"github.com/cloudfoundry-incubator/switchboard/api"
+	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
 )
 
 var _ = Describe("ClusterEndpoint", func() {
 	var (
 		fakeCluster *apifakes.FakeClusterManager
-		testLogger  *lagertest.TestLogger
 
 		handler http.HandlerFunc
 
@@ -26,9 +26,8 @@ var _ = Describe("ClusterEndpoint", func() {
 	BeforeEach(func() {
 		fakeCluster = new(apifakes.FakeClusterManager)
 
-		testLogger = lagertest.NewTestLogger("Switchboard API test")
-
-		handler = api.ClusterEndpoint(fakeCluster, testLogger)
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		handler = api.ClusterEndpoint(fakeCluster, logger)
 
 		server = ghttp.NewServer()
 		server.AppendHandlers(handler)

@@ -1,21 +1,22 @@
 package monitor_test
 
 import (
+	"log/slog"
 	"os"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
-	"github.com/cloudfoundry-incubator/switchboard/runner/monitor/monitorfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
+
+	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
+	"github.com/cloudfoundry-incubator/switchboard/runner/monitor/monitorfakes"
 )
 
 var _ = Describe("Monitor Runner", func() {
 	It("shuts down gracefully when signalled", func() {
 		m := new(monitorfakes.FakeMonitor)
 
-		logger := lagertest.NewTestLogger("Monitor Runner test")
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 		monitorRunner := monitor.NewRunner(m, logger)
 		monitorProcess := ifrit.Invoke(monitorRunner)
 

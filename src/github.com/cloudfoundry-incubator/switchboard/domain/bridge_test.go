@@ -3,13 +3,14 @@ package domain_test
 import (
 	"errors"
 	"io"
+	"log/slog"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/cloudfoundry-incubator/switchboard/domain"
-	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+
+	"github.com/cloudfoundry-incubator/switchboard/domain"
+	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 )
 
 var _ = Describe("Bridge", func() {
@@ -17,11 +18,12 @@ var _ = Describe("Bridge", func() {
 		var (
 			bridge          domain.Bridge
 			client, backend *domainfakes.FakeConn
-			logger          lager.Logger
+			logger          *slog.Logger
 		)
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("Bridge test")
+			logBuffer := gbytes.NewBuffer()
+			logger = slog.New(slog.NewJSONHandler(logBuffer, nil))
 			backend = new(domainfakes.FakeConn)
 			client = new(domainfakes.FakeConn)
 

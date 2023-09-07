@@ -2,12 +2,12 @@ package bridge_test
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -20,8 +20,7 @@ var _ = Describe("Bridge Runner", func() {
 		timeout := 100 * time.Millisecond
 
 		proxyPort := 10000 + GinkgoParallelProcess()
-		logger := lagertest.NewTestLogger("ProxyRunner test")
-
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 		proxyRunner := bridge.NewRunner("127.0.0.1:"+strconv.Itoa(proxyPort), timeout, logger)
 		proxyProcess := ifrit.Invoke(proxyRunner)
 

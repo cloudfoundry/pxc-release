@@ -3,7 +3,6 @@ module github.com/cloudfoundry-incubator/switchboard
 go 1.20
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.0.2
 	code.cloudfoundry.org/tlsconfig v0.0.0-20230612153104-23c0622de227
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/onsi/ginkgo/v2 v2.12.0
@@ -22,7 +21,6 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20230912144702-c363fe2c2ed8 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
-	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
 	go.step.sm/crypto v0.35.0 // indirect

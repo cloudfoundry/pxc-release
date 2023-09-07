@@ -1,19 +1,18 @@
 package api_test
 
 import (
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"log/slog"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("BackendsIndex", func() {
 	var (
-		logger lager.Logger
-
 		fakeClusterManager *apifakes.FakeClusterManager
 		clusterAsJSON      *api.ClusterJSON
 
@@ -26,7 +25,7 @@ var _ = Describe("BackendsIndex", func() {
 	BeforeEach(func() {
 		fakeClusterManager = &apifakes.FakeClusterManager{}
 
-		logger = lagertest.NewTestLogger("BackendsIndex test")
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, nil))
 
 		backend0 = domain.NewBackend(
 			"backend-0",

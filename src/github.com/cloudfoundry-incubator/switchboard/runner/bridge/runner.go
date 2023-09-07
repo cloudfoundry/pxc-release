@@ -2,17 +2,16 @@ package bridge
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"time"
-
-	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
 type Runner struct {
-	logger             lager.Logger
+	logger             *slog.Logger
 	address            string
 	TrafficEnabledChan chan bool
 	ActiveBackendChan  chan *domain.Backend
@@ -22,7 +21,7 @@ type Runner struct {
 func NewRunner(
 	address string,
 	timeout time.Duration,
-	logger lager.Logger,
+	logger *slog.Logger,
 ) Runner {
 	backendChan := make(chan *domain.Backend)
 	trafficEnabledChan := make(chan bool)
@@ -74,9 +73,9 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 				activeBackend = a
 				if a != nil {
-					r.logger.Info("Done severing connections, new active backend:", lager.Data{"backend": a.AsJSON()})
+					r.logger.Info(" Done severing connections, new active backend", "backend", a)
 				} else {
-					r.logger.Info("Done severing connections, new active backend:", lager.Data{"backend": nil})
+					r.logger.Info("Done severing connections, new active backend", "backend", nil)
 				}
 
 			case clientConn := <-c:
@@ -88,19 +87,19 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 				go func(clientConn net.Conn, activeBackend *domain.Backend) {
 					if activeBackend == nil {
 						clientConn.Close()
-						r.logger.Error("No active backend", err)
+						r.logger.Error("No active backend", "error", err)
 						return
 					}
 
-					err := activeBackend.Bridge(clientConn)
+					err = activeBackend.Bridge(clientConn)
 					if err != nil {
 						clientConn.Close()
-						r.logger.Error("Error routing to backend", err)
+						r.logger.Error("Error routing to backend", "error", err)
 					}
 				}(clientConn, activeBackend)
-			case err := <-e:
+			case err = <-e:
 				if err != nil {
-					r.logger.Error("Error accepting client connection", err)
+					r.logger.Error("Error accepting client connection", "error", err)
 					continue
 				}
 			}
@@ -110,7 +109,7 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
 	signal := <-signals
-	r.logger.Info("Received signal", lager.Data{"signal": signal})
+	r.logger.Info("Received signal", "signal", signal.String())
 
 	time.Sleep(r.timeout)
 

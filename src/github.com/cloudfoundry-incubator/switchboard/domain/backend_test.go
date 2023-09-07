@@ -1,30 +1,42 @@
 package domain_test
 
 import (
+	"log/slog"
 	"net"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 	"github.com/cloudfoundry-incubator/switchboard/domain/domainfakes"
 )
 
 var _ = Describe("Backend", func() {
-	var backend *domain.Backend
-	var bridges *domainfakes.FakeBridges
+	var (
+		backend   *domain.Backend
+		bridges   *domainfakes.FakeBridges
+		logBuffer *gbytes.Buffer
+	)
 
 	BeforeEach(func() {
 		bridges = new(domainfakes.FakeBridges)
 
-		domain.BridgesProvider = func(lager.Logger) domain.Bridges {
+		domain.BridgesProvider = func(_ *slog.Logger) domain.Bridges {
 			return bridges
 		}
 
-		logger := lagertest.NewTestLogger("Backend test")
-		backend = domain.NewBackend("backend-0", "1.2.3.4", 3306, 9902, "status", logger)
+		logBuffer = gbytes.NewBuffer()
+		logger := slog.New(slog.NewJSONHandler(logBuffer, nil))
+
+		backend = domain.NewBackend(
+			"backend-0",
+			"1.2.3.4",
+			3306,
+			9902,
+			"status",
+			logger,
+		)
 	})
 
 	AfterEach(func() {

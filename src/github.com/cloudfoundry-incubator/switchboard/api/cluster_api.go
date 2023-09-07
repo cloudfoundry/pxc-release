@@ -1,16 +1,16 @@
 package api
 
 import (
+	"log/slog"
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
 type ClusterAPI struct {
 	mutex               sync.RWMutex
-	logger              lager.Logger
+	logger              *slog.Logger
 	message             string
 	lastUpdated         time.Time
 	trafficEnabled      bool
@@ -19,8 +19,7 @@ type ClusterAPI struct {
 	activeBackend       *BackendJSON
 }
 
-func NewClusterAPI(
-	logger lager.Logger) *ClusterAPI {
+func NewClusterAPI(logger *slog.Logger) *ClusterAPI {
 	activeBackendChan := make(chan *domain.Backend)
 	return &ClusterAPI{
 		logger:            logger,
@@ -39,7 +38,7 @@ func (c *ClusterAPI) ListenForActiveBackend() {
 
 		if b == nil {
 			c.activeBackend = nil
-			c.logger.Info("Done updating Cluster Api, new active backend:", lager.Data{"backend": nil})
+			c.logger.Info("Done updating Cluster Api, new active backend.", "backend", nil)
 		} else {
 			j := b.AsJSON()
 			c.activeBackend = &BackendJSON{
@@ -47,7 +46,7 @@ func (c *ClusterAPI) ListenForActiveBackend() {
 				Port: j.Port,
 				Name: j.Name,
 			}
-			c.logger.Info("Done updating Cluster Api, new active backend:", lager.Data{"backend": j})
+			c.logger.Info("Done updating Cluster Api, new active backend", "backend", b)
 		}
 		c.mutex.Unlock()
 	}
@@ -69,7 +68,7 @@ func (c *ClusterAPI) EnableTraffic(message string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	c.logger.Info("Enabling traffic for cluster", lager.Data{"message": message})
+	c.logger.Info("Enabling traffic for cluster", "message", message)
 
 	c.message = message
 	c.lastUpdated = time.Now()
@@ -84,7 +83,7 @@ func (c *ClusterAPI) DisableTraffic(message string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	c.logger.Info("Disabling traffic for cluster", lager.Data{"message": message})
+	c.logger.Info("Disabling traffic for cluster", "message", message)
 
 	c.message = message
 	c.lastUpdated = time.Now()

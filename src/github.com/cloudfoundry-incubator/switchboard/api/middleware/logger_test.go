@@ -1,27 +1,31 @@
 package middleware_test
 
 import (
+	"log/slog"
 	"net/http"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"github.com/onsi/gomega/gbytes"
+
 	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry-incubator/switchboard/api/middleware"
 	"github.com/cloudfoundry-incubator/switchboard/api/middleware/fakes"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Logger", func() {
 
-	var dummyRequest *http.Request
-	var err error
-
-	var fakeResponseWriter http.ResponseWriter
-	var fakeHandler *fakes.FakeHandler
-	var logger *lagertest.TestLogger
-	var routePrefix string
+	var (
+		dummyRequest       *http.Request
+		err                error
+		fakeResponseWriter http.ResponseWriter
+		fakeHandler        *fakes.FakeHandler
+		logger             *slog.Logger
+		logBuffer          *gbytes.Buffer
+		routePrefix        string
+	)
 
 	const fakePassword = "fakePassword"
 
@@ -34,8 +38,8 @@ var _ = Describe("Logger", func() {
 		fakeResponseWriter = new(apifakes.FakeResponseWriter)
 		fakeHandler = new(fakes.FakeHandler)
 
-		logger = lagertest.NewTestLogger("backup-download-test")
-		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
+		logBuffer = gbytes.NewBuffer()
+		logger = slog.New(slog.NewJSONHandler(logBuffer, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	})
 
 	It("should log requests that are prefixed with routePrefix", func() {
@@ -44,9 +48,8 @@ var _ = Describe("Logger", func() {
 
 		loggerHandler.ServeHTTP(fakeResponseWriter, dummyRequest)
 
-		logContents := logger.Buffer().Contents()
-		Expect(logContents).To(ContainSubstring("request"))
-		Expect(logContents).To(ContainSubstring("response"))
+		Expect(logBuffer).To(gbytes.Say("request"))
+		Expect(logBuffer).To(gbytes.Say("response"))
 	})
 
 	It("should not log credentials", func() {
@@ -55,8 +58,7 @@ var _ = Describe("Logger", func() {
 
 		loggerHandler.ServeHTTP(fakeResponseWriter, dummyRequest)
 
-		logContents := logger.Buffer().Contents()
-		Expect(logContents).ToNot(ContainSubstring(fakePassword))
+		Expect(logBuffer).ToNot(gbytes.Say(fakePassword))
 	})
 
 	It("should call next handler", func() {

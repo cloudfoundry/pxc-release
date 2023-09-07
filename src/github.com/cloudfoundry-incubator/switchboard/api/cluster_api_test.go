@@ -1,20 +1,19 @@
 package api_test
 
 import (
+	"log/slog"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
 var _ = Describe("ClusterAPI", func() {
 	var (
-		logger              lager.Logger
+		logger              *slog.Logger
 		cluster             *api.ClusterAPI
 		trafficEnabledChan1 chan bool
 		trafficEnabledChan2 chan bool
@@ -26,7 +25,7 @@ var _ = Describe("ClusterAPI", func() {
 	})
 
 	JustBeforeEach(func() {
-		logger = lagertest.NewTestLogger("Cluster test")
+		logger = slog.New(slog.NewJSONHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
 		cluster = api.NewClusterAPI(
 			logger,
 		)

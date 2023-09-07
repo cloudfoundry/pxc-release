@@ -1,16 +1,17 @@
 package api_test
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o apifakes/fake_response_writer.go net/http.ResponseWriter
@@ -24,10 +25,10 @@ var _ = Describe("Handler", func() {
 	)
 
 	JustBeforeEach(func() {
-		backends := []*domain.Backend{}
+		var backends []*domain.Backend
 
 		cluster = new(apifakes.FakeClusterManager)
-		logger := lagertest.NewTestLogger("Handler Test")
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 		staticDir := ""
 		handler = api.NewHandler(

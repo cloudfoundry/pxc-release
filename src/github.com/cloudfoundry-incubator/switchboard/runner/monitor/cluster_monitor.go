@@ -2,13 +2,12 @@ package monitor
 
 import (
 	"encoding/json"
-	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
@@ -23,17 +22,25 @@ type BackendStatus struct {
 	Counters *DecisionCounters
 }
 
+func (b *BackendStatus) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Int("index", b.Index),
+		slog.Bool("healthy", b.Healthy),
+		slog.Any("counters", b.Counters),
+	)
+}
+
 type ClusterMonitor struct {
 	client             UrlGetter
 	backends           []*domain.Backend
-	logger             lager.Logger
+	logger             *slog.Logger
 	healthcheckTimeout time.Duration
 	backendSubscribers []chan<- *domain.Backend
 	useLowestIndex     bool
 	useTLSForAgent     bool
 }
 
-func NewClusterMonitor(client UrlGetter, useTLSForAgent bool, backends []*domain.Backend, healthcheckTimeout time.Duration, logger lager.Logger, useLowestIndex bool) *ClusterMonitor {
+func NewClusterMonitor(client UrlGetter, useTLSForAgent bool, backends []*domain.Backend, healthcheckTimeout time.Duration, logger *slog.Logger, useLowestIndex bool) *ClusterMonitor {
 	return &ClusterMonitor{
 		client:             client,
 		backends:           backends,
@@ -76,7 +83,7 @@ func (c *ClusterMonitor) Monitor(stopChan <-chan interface{}) {
 
 				if newActiveBackend != activeBackend {
 					if newActiveBackend != nil {
-						c.logger.Info("New active backend", lager.Data{"backend": newActiveBackend.AsJSON()})
+						c.logger.Info("New active backend", "backend", newActiveBackend)
 					}
 
 					activeBackend = newActiveBackend
@@ -168,30 +175,24 @@ func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shou
 		if !healthy && err == nil {
 			c.logger.Error(
 				"Healthcheck failed on backend",
-				fmt.Errorf("Backend reported as unhealthy"),
-				lager.Data{
-					"backend":  backend.AsJSON(),
-					"endpoint": url,
-					"resp":     fmt.Sprintf("%#v", resp),
-				},
+				"error", "Backend reported as unhealthy",
+				"backend", backend,
+				"endpoint", url,
+				slog.Group("response", "status", resp.Status),
 			)
 		}
 
 		if err != nil {
 			c.logger.Error(
-				"Healthcheck failed on backend",
-				fmt.Errorf("Error during healthcheck http get"),
-				lager.Data{
-					"backend":  backend.AsJSON(),
-					"endpoint": url,
-					"resp":     fmt.Sprintf("%#v", resp),
-					"err":      err.Error(),
-				},
+				"Error requesting healthcheck for backend",
+				"error", err,
+				"backend", backend,
+				"endpoint", url,
 			)
 		}
 
 		if healthy {
-			c.logger.Debug("Healthcheck succeeded", lager.Data{"endpoint": url})
+			c.logger.Debug("Healthcheck succeeded", "endpoint", url)
 		}
 	}
 
@@ -199,9 +200,12 @@ func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shou
 }
 
 func (c *ClusterMonitor) QueryBackendHealth(backend *domain.Backend, healthMonitor *BackendStatus) {
-	c.logger.Debug("Querying Backend", lager.Data{"backend": backend.AsJSON(), "healthMonitor": healthMonitor})
-	healthMonitor.Counters.IncrementCount("dial")
+	c.logger.Debug("Querying Backend",
+		"backend", backend,
+		"healthMonitor", healthMonitor,
+	)
 	shouldLog := healthMonitor.Counters.Should("log")
+	healthMonitor.Counters.IncrementCount("dial")
 
 	healthy, index := c.determineStateFromBackend(backend, shouldLog)
 
@@ -210,12 +214,18 @@ func (c *ClusterMonitor) QueryBackendHealth(backend *domain.Backend, healthMonit
 	}
 
 	if healthy {
-		c.logger.Debug("Querying Backend: healthy", lager.Data{"backend": backend.AsJSON(), "healthMonitor": healthMonitor})
+		c.logger.Debug("Querying Backend: healthy",
+			"backend", backend,
+			"healthMonitor", healthMonitor,
+		)
 		backend.SetHealthy()
 		healthMonitor.Healthy = true
 		healthMonitor.Counters.ResetCount("consecutiveUnhealthyChecks")
 	} else {
-		c.logger.Debug("Querying Backend: unhealthy", lager.Data{"backend": backend.AsJSON(), "healthMonitor": healthMonitor})
+		c.logger.Debug("Querying Backend: unhealthy",
+			"backend", backend,
+			"healthMonitor", healthMonitor,
+		)
 		backend.SetUnhealthy()
 		healthMonitor.Healthy = false
 		healthMonitor.Counters.IncrementCount("consecutiveUnhealthyChecks")

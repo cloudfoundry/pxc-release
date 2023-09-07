@@ -6,11 +6,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/tlsconfig"
 	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
@@ -23,7 +22,7 @@ type Config struct {
 	StaticDir      string         `yaml:"StaticDir" validate:"nonzero"`
 	HealthPort     uint           `yaml:"HealthPort" validate:"nonzero"`
 	GaleraAgentTLS GaleraAgentTLS `yaml:"GaleraAgentTLS"`
-	Logger         lager.Logger   `yaml:"-"`
+	LogLevel       slog.Level     `yaml:"-"`
 }
 
 type GaleraAgentTLS struct {
@@ -81,15 +80,19 @@ func NewConfig(osArgs []string) (*Config, error) {
 	serviceConfig := service_config.New()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
-	lagerflags.AddFlags(flags)
+	flags.TextVar(
+		&rootConfig.LogLevel,
+		"logLevel",
+		slog.LevelInfo,
+		"log level: debug, info, warn, or error",
+	)
 
 	serviceConfig.AddFlags(flags)
-	flags.Parse(configurationOptions)
+	if err := flags.Parse(configurationOptions); err != nil {
+		return &rootConfig, err
+	}
 
 	err := serviceConfig.Read(&rootConfig)
-
-	rootConfig.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
-
 	return &rootConfig, err
 }
 

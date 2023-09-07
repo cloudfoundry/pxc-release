@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
@@ -25,7 +24,7 @@ const eventuallyTimeout = 3 * time.Second
 var _ = Describe("ClusterMonitor", func() {
 	var (
 		backends                     []*domain.Backend
-		logger                       *lagertest.TestLogger
+		logger                       *slog.Logger
 		clusterMonitor               *monitor.ClusterMonitor
 		backend1, backend2, backend3 *domain.Backend
 		subscriberA                  chan *domain.Backend
@@ -41,7 +40,7 @@ var _ = Describe("ClusterMonitor", func() {
 		urlGetter = new(monitorfakes.FakeUrlGetter)
 		clusterMonitor = nil
 
-		logger = lagertest.NewTestLogger("ClusterMonitor test")
+		logger = slog.New(slog.NewJSONHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 		SetDefaultEventuallyTimeout(eventuallyTimeout)
 
@@ -349,7 +348,7 @@ var _ = Describe("ClusterMonitor", func() {
 						defer m.RUnlock()
 
 						return &http.Response{
-							Body:       ioutil.NopCloser(bytes.NewBuffer(nil)),
+							Body:       io.NopCloser(bytes.NewBuffer(nil)),
 							StatusCode: http.StatusTeapot,
 						}, errors.New("placeholder error")
 					}
@@ -393,7 +392,7 @@ var _ = Describe("ClusterMonitor", func() {
 					defer m.RUnlock()
 
 					return &http.Response{
-						Body:       ioutil.NopCloser(bytes.NewBuffer(nil)),
+						Body:       io.NopCloser(bytes.NewBuffer(nil)),
 						StatusCode: http.StatusTeapot,
 					}, nil
 				}
@@ -548,7 +547,7 @@ func healthyResponse(index int) *http.Response {
 	healthyResponseBodyTemplate := `{"wsrep_local_state":4,"wsrep_local_state_comment":"Synced","wsrep_local_index":%d,"healthy":true}`
 
 	return &http.Response{
-		Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(healthyResponseBodyTemplate, index)))),
+		Body:       io.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(healthyResponseBodyTemplate, index)))),
 		StatusCode: http.StatusOK,
 	}
 }
@@ -557,7 +556,8 @@ func unhealthyResponse(index int) *http.Response {
 	unhealthyResponseBodyTemplate := `{"wsrep_local_state":2,"wsrep_local_state_comment":"Joiner","wsrep_local_index":%d,"healthy":false}`
 
 	return &http.Response{
-		Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(unhealthyResponseBodyTemplate, index)))),
+		Body:       io.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(unhealthyResponseBodyTemplate, index)))),
 		StatusCode: http.StatusOK,
+		Status:     "200 OK",
 	}
 }

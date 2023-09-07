@@ -1,9 +1,9 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/cloudfoundry-incubator/switchboard/api/middleware"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
@@ -12,7 +12,7 @@ import (
 func NewHandler(
 	clusterManager ClusterManager,
 	backends []*domain.Backend,
-	logger lager.Logger,
+	logger *slog.Logger,
 	apiConfig config.API,
 	staticDir string,
 ) http.Handler {

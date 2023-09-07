@@ -2,10 +2,9 @@ package domain
 
 import (
 	"errors"
+	"log/slog"
 	"net"
 	"sync"
-
-	"code.cloudfoundry.org/lager/v3"
 )
 
 var BridgeProvider = NewBridge
@@ -22,10 +21,10 @@ type Bridges interface {
 type concurrentBridges struct {
 	mutex   sync.RWMutex
 	bridges []Bridge
-	logger  lager.Logger
+	logger  *slog.Logger
 }
 
-func NewBridges(logger lager.Logger) Bridges {
+func NewBridges(logger *slog.Logger) Bridges {
 	return &concurrentBridges{
 		logger: logger,
 	}

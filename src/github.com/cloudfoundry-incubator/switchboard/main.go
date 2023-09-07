@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-
-	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -23,33 +22,38 @@ import (
 
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
-
-	logger := rootConfig.Logger
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: rootConfig.LogLevel}))
+	if err != nil {
+		logger.Error("Error reading config", "error", err, "config", rootConfig)
+		os.Exit(1)
+	}
 
 	err = rootConfig.Validate()
 	if err != nil {
-		logger.Fatal("Error validating config:", err, lager.Data{"config": rootConfig})
+		logger.Error("Error validating config", "error", err, "config", rootConfig)
+		os.Exit(1)
 	}
 
 	if _, err := os.Stat(rootConfig.StaticDir); os.IsNotExist(err) {
-		logger.Fatal(fmt.Sprintf("staticDir: %s does not exist", rootConfig.StaticDir), nil)
+		logger.Error("dashboard static directory does not exist", "path", rootConfig.StaticDir)
 	}
 
 	serverTLSConfig, err := rootConfig.ServerTLSConfig()
 	if err != nil {
-		logger.Fatal("load-tls-config", err)
+		logger.Error("Initializing TLS config failed", "error", err)
+		os.Exit(1)
 	}
 
 	backends := domain.NewBackends(rootConfig.Proxy.Backends, logger)
 
 	client := rootConfig.HTTPClient()
 
-	activeNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.GaleraAgentTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("active-monitor"), true)
+	activeNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.GaleraAgentTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.With("component", "active-monitor"), true)
 
 	activeNodeBridgeRunner := bridge.NewRunner(
 		fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.Proxy.Port),
 		rootConfig.Proxy.ShutdownDelay(),
-		logger.Session("active-bridge-runner"),
+		logger.With("task", "active-bridge-runner"),
 	)
 	clusterStateManager := api.NewClusterAPI(logger)
 
@@ -104,12 +108,12 @@ func main() {
 	}
 
 	if rootConfig.Proxy.InactiveMysqlPort != 0 {
-		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.GaleraAgentTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.Session("inactive-monitor"), false)
+		inactiveNodeClusterMonitor := monitor.NewClusterMonitor(client, rootConfig.GaleraAgentTLS.Enabled, backends, rootConfig.Proxy.HealthcheckTimeout(), logger.With("component", "inactive-monitor"), false)
 
 		inactiveNodeBridgeRunner := bridge.NewRunner(
 			fmt.Sprintf("%s:%d", rootConfig.BindAddress, rootConfig.Proxy.InactiveMysqlPort),
 			0,
-			logger.Session("inactive-bridge-runner"),
+			logger.With("component", "inactive-bridger-runner"),
 		)
 
 		inactiveNodeClusterMonitor.RegisterBackendSubscriber(inactiveNodeBridgeRunner.ActiveBackendChan)
@@ -130,10 +134,11 @@ func main() {
 	group := grouper.NewOrdered(os.Interrupt, members)
 	process := ifrit.Invoke(sigmon.New(group))
 
-	logger.Info("Proxy started", lager.Data{"proxyConfig": rootConfig.Proxy})
+	logger.Info("Proxy started", "proxyConfig", rootConfig.Proxy)
 
 	err = <-process.Wait()
 	if err != nil {
-		logger.Fatal("Switchboard exited unexpectedly", err, lager.Data{"proxyConfig": rootConfig.Proxy})
+		logger.Error("Switchboard exited unexpectedly", "error", err, "proxyConfig", rootConfig.Proxy)
+		os.Exit(1)
 	}
 }

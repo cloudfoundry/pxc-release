@@ -2,19 +2,18 @@ package middleware
 
 import (
 	"io/ioutil"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
-
-	"code.cloudfoundry.org/lager/v3"
 )
 
 type Logger struct {
-	logger      lager.Logger
+	logger      *slog.Logger
 	routePrefix string
 }
 
-func NewLogger(logger lager.Logger, routePrefix string) Middleware {
+func NewLogger(logger *slog.Logger, routePrefix string) Middleware {
 	return Logger{
 		logger:      logger,
 		routePrefix: routePrefix,
@@ -39,7 +38,7 @@ func (l Logger) Wrap(next http.Handler) http.Handler {
 			if reqCopy.Body != nil {
 				bodyBytes, err := ioutil.ReadAll(reqCopy.Body)
 				if err != nil {
-					l.logger.Error("Could not read response body", err)
+					l.logger.Error("Could not read response body", "error", err)
 					reqBody = ""
 				} else {
 					reqBody = string(bodyBytes)
@@ -60,10 +59,10 @@ func (l Logger) Wrap(next http.Handler) http.Handler {
 				"StatusCode": loggingResponseWriter.statusCode,
 			}
 
-			l.logger.Debug("", lager.Data{
-				"request":  requestData,
-				"response": responseData,
-			})
+			l.logger.Debug("middleware.Logger",
+				"request", requestData,
+				"response", responseData,
+			)
 		}
 	})
 }

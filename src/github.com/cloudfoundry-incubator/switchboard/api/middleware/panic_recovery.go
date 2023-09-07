@@ -1,16 +1,15 @@
 package middleware
 
 import (
+	"log/slog"
 	"net/http"
-
-	"code.cloudfoundry.org/lager/v3"
 )
 
 type PanicRecovery struct {
-	logger lager.Logger
+	logger *slog.Logger
 }
 
-func NewPanicRecovery(logger lager.Logger) Middleware {
+func NewPanicRecovery(logger *slog.Logger) Middleware {
 	return &PanicRecovery{logger}
 }
 
@@ -19,9 +18,9 @@ func (p PanicRecovery) Wrap(next http.Handler) http.Handler {
 		defer func() {
 			if panicInfo := recover(); panicInfo != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
-				p.logger.Error("Panic while serving request", nil, lager.Data{
-					"panicInfo": panicInfo,
-				})
+				p.logger.Error("Panic while serving request",
+					"panicInfo", panicInfo,
+				)
 			}
 		}()
 		next.ServeHTTP(rw, req)

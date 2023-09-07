@@ -1,17 +1,18 @@
 package apiaggregator_test
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/switchboard/api"
 	"github.com/cloudfoundry-incubator/switchboard/api/apifakes"
 	"github.com/cloudfoundry-incubator/switchboard/apiaggregator"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Handler", func() {
@@ -22,7 +23,7 @@ var _ = Describe("Handler", func() {
 	)
 
 	JustBeforeEach(func() {
-		logger := lagertest.NewTestLogger("Handler Test")
+		logger := slog.New(slog.NewJSONHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 		handler = apiaggregator.NewHandler(
 			logger,

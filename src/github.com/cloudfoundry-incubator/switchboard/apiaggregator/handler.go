@@ -1,21 +1,19 @@
 package apiaggregator
 
 import (
-	"net/http"
-
-	"html/template"
-
-	"code.cloudfoundry.org/lager/v3"
-	"github.com/cloudfoundry-incubator/switchboard/api/middleware"
-	"github.com/cloudfoundry-incubator/switchboard/config"
-
 	"bytes"
 	"fmt"
+	"html/template"
+	"log/slog"
+	"net/http"
 	"os"
+
+	"github.com/cloudfoundry-incubator/switchboard/api/middleware"
+	"github.com/cloudfoundry-incubator/switchboard/config"
 )
 
 func NewHandler(
-	logger lager.Logger,
+	logger *slog.Logger,
 	apiConfig config.API,
 ) http.Handler {
 	mux := http.NewServeMux()

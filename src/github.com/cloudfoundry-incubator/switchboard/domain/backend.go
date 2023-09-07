@@ -3,10 +3,9 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"sync"
-
-	"code.cloudfoundry.org/lager/v3"
 )
 
 var BridgesProvider = NewBridges
@@ -18,7 +17,7 @@ type Backend struct {
 	port           uint
 	statusPort     uint
 	statusEndpoint string
-	logger         lager.Logger
+	logger         *slog.Logger
 	bridges        Bridges
 	name           string
 	healthy        bool
@@ -39,7 +38,7 @@ func NewBackend(
 	port uint,
 	statusPort uint,
 	statusEndpoint string,
-	logger lager.Logger) *Backend {
+	logger *slog.Logger) *Backend {
 
 	return &Backend{
 		name:           name,
@@ -79,13 +78,13 @@ func (b *Backend) Bridge(clientConn net.Conn) error {
 }
 
 func (b *Backend) SeverConnections() {
-	b.logger.Info(fmt.Sprintf("Severing all connections to %s at %s:%d", b.name, b.host, b.port))
+	b.logger.Info("Severing all connections to backend", "backend", b)
 	b.bridges.RemoveAndCloseAll()
 }
 
 func (b *Backend) SetHealthy() {
 	if !b.Healthy() {
-		b.logger.Info("Previously unhealthy backend became healthy.", lager.Data{"backend": b.AsJSON()})
+		b.logger.Info("Previously unhealthy backend became healthy", "backend", b)
 	}
 
 	b.mutex.Lock()
@@ -95,7 +94,7 @@ func (b *Backend) SetHealthy() {
 
 func (b *Backend) SetUnhealthy() {
 	if b.Healthy() {
-		b.logger.Info("Previously healthy backend became unhealthy.", lager.Data{"backend": b.AsJSON()})
+		b.logger.Info("Previously healthy backend became unhealthy.", "backend", b)
 	}
 
 	b.mutex.Lock()
@@ -121,4 +120,15 @@ func (b *Backend) AsJSON() BackendJSON {
 		Healthy:             b.healthy,
 		CurrentSessionCount: b.bridges.Size(),
 	}
+}
+
+func (b *Backend) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("name", b.name),
+		slog.Bool("healthy", b.healthy),
+		slog.String("host", b.host),
+		slog.Uint64("port", uint64(b.port)),
+		slog.Uint64("status_port", uint64(b.statusPort)),
+		slog.Uint64("currentSessionCount", uint64(b.bridges.Size())),
+	)
 }

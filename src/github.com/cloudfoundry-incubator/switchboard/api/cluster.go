@@ -2,11 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
-
-	"code.cloudfoundry.org/lager/v3"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 .  ClusterManager
@@ -16,7 +15,7 @@ type ClusterManager interface {
 	DisableTraffic(string)
 }
 
-var ClusterEndpoint = func(clusterManager ClusterManager, logger lager.Logger) http.HandlerFunc {
+var ClusterEndpoint = func(clusterManager ClusterManager, logger *slog.Logger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case "GET":
@@ -51,7 +50,7 @@ func handleUpdate(
 	w http.ResponseWriter,
 	req *http.Request,
 	cluster ClusterManager,
-	logger lager.Logger,
+	logger *slog.Logger,
 ) {
 	logger.Debug("API /cluster update")
 
@@ -61,15 +60,14 @@ func handleUpdate(
 		return
 	}
 
-	dumpBody := true
-	b, err := httputil.DumpRequest(req, dumpBody)
+	b, err := httputil.DumpRequest(req, true)
 	if err != nil {
 		http.Error(w, "Failed to dump http body", http.StatusInternalServerError)
 		return
 	}
 
-	logger.Debug("API /cluster req", lager.Data{"dump": string(b)})
-	logger.Debug("API /cluster req form", lager.Data{"form": req.Form})
+	logger.Debug("API /cluster req", "dump", string(b))
+	logger.Debug("API /cluster req form", "form", req.Form)
 
 	enabledStr := req.Form.Get("trafficEnabled")
 	enabled, err := strconv.ParseBool(enabledStr)
