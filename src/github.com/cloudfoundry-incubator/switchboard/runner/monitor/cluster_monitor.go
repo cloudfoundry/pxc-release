@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
-
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
@@ -151,7 +149,10 @@ func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shou
 		resp, err = c.client.Get(url)
 		if err == nil {
 			if resp.StatusCode == http.StatusOK {
-				var v1StatusResponse api.V1StatusResponse
+				var v1StatusResponse struct {
+					WsrepLocalIndex uint `json:"wsrep_local_index"`
+					Healthy         bool `json:"healthy"`
+				}
 
 				_ = json.NewDecoder(resp.Body).Decode(&v1StatusResponse)
 
