@@ -147,6 +147,9 @@ function check_bpm_pid {
     /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
 }
 
+<%- if p('mysql_version') == "5.7" -%>
+/var/vcap/jobs/pxc-mysql/bin/mysql57_upgrade
+<%- end -%>
 <%- if p('mysql_version') == "8.0" -%>
 function is_pxc57_datadir {
   [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
