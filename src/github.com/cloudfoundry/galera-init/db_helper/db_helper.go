@@ -3,8 +3,9 @@ package db_helper
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
+	"regexp"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/pkg/errors"
@@ -104,10 +105,50 @@ func (m GaleraDBHelper) StartMysqldForUpgrade() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+var seqNoRegex = regexp.MustCompile(`WSREP. Recovered position: (.*:-?\d+)`)
+
+func (m GaleraDBHelper) wsrepRecoverStartPosition() (uuidSeqno string, found bool) {
+	output, err := m.osHelper.RunCommand("mysqld",
+		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+		"--wsrep-recover",
+		"--disable-log-error",
+	)
+	if err != nil {
+		return "", false
+	}
+
+	matches := seqNoRegex.FindStringSubmatch(output)
+
+	// Two matches here mean the regex found the pattern.
+	// The first match is the entire string: "WSREP: Recovered position: $UUID:$SEQNO"
+	// The second match will be the capturing group from the above regex: "$UUID:$SEQNO"
+	if len(matches) != 2 {
+		return "", false
+	}
+
+	uuidSeqno = matches[1]
+
+	// This "zero" starting position is the default, if no state could be recovered from transaction logs
+	// When the null starting position is found, this means incremental state transfer will not proceed, so no sense
+	// setting the wsrep start position.
+	const wsrepStartPositionZero = "00000000-0000-0000-0000-000000000000:-1"
+
+	if uuidSeqno == wsrepStartPositionZero {
+		return "", false
+	}
+
+	return uuidSeqno, true
+}
+
 func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
-	cmd, err := m.startMysqldAsChildProcess("--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf")
 
+	var mysqldArgs []string
+	if uuidSeqno, found := m.wsrepRecoverStartPosition(); found {
+		mysqldArgs = append(mysqldArgs, "--wsrep-start-position="+uuidSeqno)
+	}
+
+	cmd, err := m.startMysqldAsChildProcess(mysqldArgs...)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
 		return nil, err
@@ -117,7 +158,7 @@ func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 
 func (m GaleraDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysql with 'bootstrap'.")
-	cmd, err := m.startMysqldAsChildProcess("--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf", "--wsrep-new-cluster")
+	cmd, err := m.startMysqldAsChildProcess("--wsrep-new-cluster")
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
@@ -137,11 +178,12 @@ func (m GaleraDBHelper) StopMysqld() {
 	}
 }
 
-func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
+func (m GaleraDBHelper) startMysqldAsChildProcess(args ...string) (*exec.Cmd, error) {
 	return m.osHelper.StartCommand(
 		m.logFileLocation,
 		"mysqld",
-		mysqlArgs...)
+		append([]string{"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf"}, args...)...,
+	)
 }
 
 func (m GaleraDBHelper) Upgrade() (output string, err error) {
@@ -159,7 +201,7 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 		m.logger.Info("database not reachable", lager.Data{"err": err})
 		return false
 	}
-	defer CloseDBConnection(db)
+	defer func() { _ = CloseDBConnection(db) }()
 
 	var (
 		unused string
@@ -167,8 +209,8 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	)
 
 	if err = db.QueryRow(`SELECT @@global.wsrep_provider`).Scan(&value); err != nil {
-		if err == sql.ErrNoRows {
-			m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+		if errors.Is(err, sql.ErrNoRows) {
+			m.logger.Info("Database is reachable, Galera is off")
 			return true
 		}
 		m.logger.Debug(fmt.Sprintf("Could not connect to database, received: %v", err))
@@ -176,7 +218,7 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	}
 
 	if value == "none" {
-		m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+		m.logger.Info("Database is reachable, Galera is off")
 		return true
 	}
 
@@ -291,7 +333,7 @@ func (m GaleraDBHelper) RunPostStartSQL() error {
 	defer CloseDBConnection(db)
 
 	for _, file := range m.config.PostStartSQLFiles {
-		sqlString, err := ioutil.ReadFile(file)
+		sqlString, err := os.ReadFile(file)
 		if err != nil {
 			m.logger.Error("error reading PostStartSQL file", err, lager.Data{
 				"filePath": file,
