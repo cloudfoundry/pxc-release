@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net"
 	"os"
 	"os/exec"
@@ -68,9 +69,14 @@ func main() {
 func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 	OsHelper := os_helper.NewImpl()
 
+	dsn := db_helper.FormatDSN(cfg.Db)
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
 	DBHelper := db_helper.NewDBHelper(
 		OsHelper,
-		&cfg.Db,
+		db,
 		cfg.LogFileLocation,
 		cfg.Logger,
 	)

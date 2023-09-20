@@ -29,7 +29,6 @@ var _ = Describe("GaleraDBHelper", func() {
 		fakeOs     *os_helperfakes.FakeOsHelper
 		testLogger lagertest.TestLogger
 		logFile    string
-		dbConfig   *config.DBHelper
 		fakeDB     *sql.DB
 		mock       sqlmock.Sqlmock
 	)
@@ -41,13 +40,6 @@ var _ = Describe("GaleraDBHelper", func() {
 
 		fakeDB, mock, err = sqlmock.New()
 		Expect(err).ToNot(HaveOccurred())
-		db_helper.OpenDBConnection = func(*config.DBHelper) (*sql.DB, error) {
-			return fakeDB, nil
-		}
-		db_helper.CloseDBConnection = func(*sql.DB) error {
-			// fakeDB is closed in AfterEach to allow assertions against mock expectations
-			return nil
-		}
 
 		logFile = "/log-file.log"
 
@@ -62,17 +54,12 @@ var _ = Describe("GaleraDBHelper", func() {
 
 		Expect(os.WriteFile(sqlFile1.Name(), []byte(fakeSupplementalQuery1), 755)).To(Succeed())
 		Expect(os.WriteFile(sqlFile2.Name(), []byte(fakeSupplementalQuery2), 755)).To(Succeed())
-
-		dbConfig = &config.DBHelper{
-			User:     "user",
-			Password: "password",
-		}
 	})
 
 	JustBeforeEach(func() {
 		helper = db_helper.NewDBHelper(
 			fakeOs,
-			dbConfig,
+			fakeDB,
 			logFile,
 			testLogger,
 		)
@@ -375,19 +362,6 @@ var _ = Describe("GaleraDBHelper", func() {
 				Expect(helper.IsDatabaseReachable()).To(BeTrue())
 			})
 		})
-
-		Describe("when db connection can't be opened", func() {
-			BeforeEach(func() {
-				db_helper.OpenDBConnection = func(*config.DBHelper) (*sql.DB, error) {
-					return nil, fmt.Errorf("whoops")
-				}
-			})
-
-			It("returns false", func() {
-				Expect(helper.IsDatabaseReachable()).To(BeFalse())
-			})
-		})
-
 	})
 
 	Describe("FormatDSN", func() {

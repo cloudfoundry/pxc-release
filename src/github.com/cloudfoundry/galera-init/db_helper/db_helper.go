@@ -26,17 +26,17 @@ type GaleraDBHelper struct {
 	osHelper        os_helper.OsHelper
 	logFileLocation string
 	logger          lager.Logger
-	config          *config.DBHelper
+	db              *sql.DB
 }
 
 func NewDBHelper(
 	osHelper os_helper.OsHelper,
-	config *config.DBHelper,
+	db *sql.DB,
 	logFileLocation string,
 	logger lager.Logger) *GaleraDBHelper {
 	return &GaleraDBHelper{
 		osHelper:        osHelper,
-		config:          config,
+		db:              db,
 		logFileLocation: logFileLocation,
 		logger:          logger,
 	}
@@ -48,19 +48,6 @@ func FormatDSN(config config.DBHelper) string {
 		skipBinLog = "?sql_log_bin=off"
 	}
 	return fmt.Sprintf("%s:%s@unix(%s)/%s", config.User, config.Password, config.Socket, skipBinLog)
-}
-
-// Overridable methods to allow mocking DB connections in tests
-var OpenDBConnection = func(config *config.DBHelper) (*sql.DB, error) {
-	db, err := sql.Open("mysql", FormatDSN(*config))
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-var CloseDBConnection = func(db *sql.DB) error {
-	return db.Close()
 }
 
 func (m GaleraDBHelper) IsProcessRunning() bool {
@@ -157,20 +144,12 @@ func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cm
 
 func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
-
-	db, err := OpenDBConnection(m.config)
-	if err != nil {
-		m.logger.Info("database not reachable", lager.Data{"err": err.Error()})
-		return false
-	}
-	defer func() { _ = CloseDBConnection(db) }()
-
 	var (
 		unused string
 		value  string
 	)
 
-	if err = db.QueryRow(`SELECT @@global.wsrep_provider`).Scan(&value); err != nil {
+	if err := m.db.QueryRow(`SELECT @@global.wsrep_provider`).Scan(&value); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			m.logger.Info("Database is reachable, Galera is off")
 			return true
@@ -184,7 +163,7 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 		return true
 	}
 
-	if err = db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value); err != nil {
+	if err := m.db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value); err != nil {
 		m.logger.Debug(fmt.Sprintf("Galera state not Synced, received: %v", err))
 		return false
 	}
