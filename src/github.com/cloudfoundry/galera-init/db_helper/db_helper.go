@@ -2,8 +2,10 @@ package db_helper
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os/exec"
+	"regexp"
 
 	"code.cloudfoundry.org/lager/v3"
 
@@ -69,10 +71,50 @@ func (m GaleraDBHelper) IsProcessRunning() bool {
 	return err == nil
 }
 
+var seqNoRegex = regexp.MustCompile(`WSREP. Recovered position: (.*:-?\d+)`)
+
+func (m GaleraDBHelper) wsrepRecoverStartPosition() (uuidSeqno string, found bool) {
+	output, err := m.osHelper.RunCommand("mysqld",
+		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+		"--wsrep-recover",
+		"--disable-log-error",
+	)
+	if err != nil {
+		return "", false
+	}
+
+	matches := seqNoRegex.FindStringSubmatch(output)
+
+	// Two matches here mean the regex found the pattern.
+	// The first match is the entire string: "WSREP: Recovered position: $UUID:$SEQNO"
+	// The second match will be the capturing group from the above regex: "$UUID:$SEQNO"
+	if len(matches) != 2 {
+		return "", false
+	}
+
+	uuidSeqno = matches[1]
+
+	// This "zero" starting position is the default, if no state could be recovered from transaction logs
+	// When the null starting position is found, this means incremental state transfer will not proceed, so no sense
+	// setting the wsrep start position.
+	const wsrepStartPositionZero = "00000000-0000-0000-0000-000000000000:-1"
+
+	if uuidSeqno == wsrepStartPositionZero {
+		return "", false
+	}
+
+	return uuidSeqno, true
+}
+
 func (m GaleraDBHelper) StartMysqldInJoin() (*exec.Cmd, error) {
 	m.logger.Info("Starting mysqld with 'join'.")
-	cmd, err := m.startMysqldAsChildProcess()
 
+	var mysqldArgs []string
+	if uuidSeqno, found := m.wsrepRecoverStartPosition(); found {
+		mysqldArgs = append(mysqldArgs, "--wsrep-start-position="+uuidSeqno)
+	}
+
+	cmd, err := m.startMysqldAsChildProcess(mysqldArgs...)
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
 		return nil, err
@@ -121,17 +163,16 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 		m.logger.Info("database not reachable", lager.Data{"err": err.Error()})
 		return false
 	}
-	defer CloseDBConnection(db)
+	defer func() { _ = CloseDBConnection(db) }()
 
 	var (
 		unused string
 		value  string
 	)
 
-	err = db.QueryRow(`SHOW GLOBAL VARIABLES LIKE 'wsrep\_provider'`).Scan(&unused, &value)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+	if err = db.QueryRow(`SELECT @@global.wsrep_provider`).Scan(&value); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			m.logger.Info("Database is reachable, Galera is off")
 			return true
 		}
 		m.logger.Debug(fmt.Sprintf("Could not connect to database, received: %v", err))
@@ -139,12 +180,11 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	}
 
 	if value == "none" {
-		m.logger.Info(fmt.Sprintf("Database is reachable, Galera is off"))
+		m.logger.Info("Database is reachable, Galera is off")
 		return true
 	}
 
-	err = db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value)
-	if err != nil {
+	if err = db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value); err != nil {
 		m.logger.Debug(fmt.Sprintf("Galera state not Synced, received: %v", err))
 		return false
 	}
