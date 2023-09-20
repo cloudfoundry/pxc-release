@@ -1,13 +1,14 @@
 package os_helper_test
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	. "github.com/cloudfoundry/galera-init/os_helper"
+	"github.com/google/uuid"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -22,6 +23,24 @@ var _ = Describe("OsHelper", func() {
 		helper = NewImpl()
 	})
 
+	Describe("RunCommand", func() {
+		It("Runs a command", func() {
+			output, err := helper.RunCommand("echo", "-n", "some data")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(output).To(Equal("some data"))
+		})
+
+		When("running the command fails", func() {
+			It("returns an error and still returns the output", func() {
+				output, err := helper.RunCommand("bash", "-c", "echo >&2 -n some data && false")
+				Expect(err).To(HaveOccurred())
+
+				Expect(output).To(Equal("some data"))
+			})
+		})
+	})
+
 	Describe("StartCommand", func() {
 		var (
 			tempDir     string
@@ -30,7 +49,7 @@ var _ = Describe("OsHelper", func() {
 
 		BeforeEach(func() {
 			var err error
-			tempDir, err = ioutil.TempDir(os.TempDir(), "start_command_")
+			tempDir, err = os.MkdirTemp("", "start_command_")
 			Expect(err).NotTo(HaveOccurred())
 
 			logFilePath = filepath.Join(tempDir, "command.log")
@@ -47,7 +66,7 @@ var _ = Describe("OsHelper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd.Wait()).To(Succeed())
 
-			contents, err := ioutil.ReadFile(logFilePath)
+			contents, err := os.ReadFile(logFilePath)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(contents)).To(Equal("some argument"))
@@ -89,12 +108,11 @@ var _ = Describe("OsHelper", func() {
 	})
 
 	Describe("WaitForCommand", func() {
-
 		Context("When command is bad", func() {
 			It("Sends an error to a channel when the process exits", func() {
 				h := OsHelperImpl{}
 				cmd := exec.Command("non-existent-command")
-				cmd.Start()
+				Expect(cmd.Start()).Error().To(HaveOccurred())
 				ch := h.WaitForCommand(cmd)
 				err := <-ch
 				Expect(err).NotTo(BeNil())
@@ -105,7 +123,7 @@ var _ = Describe("OsHelper", func() {
 			It("Sends nil to a channel when the process exits", func() {
 				h := OsHelperImpl{}
 				cmd := exec.Command("ls")
-				cmd.Start()
+				Expect(cmd.Start()).Error().NotTo(HaveOccurred())
 				ch := h.WaitForCommand(cmd)
 				err := <-ch
 				Expect(err).To(BeNil())
@@ -113,6 +131,93 @@ var _ = Describe("OsHelper", func() {
 		})
 	})
 
+	Describe("FileExists", func() {
+		When("a file exists", func() {
+			var tempDir string
+
+			BeforeEach(func() {
+				var err error
+				tempDir, err = os.MkdirTemp("", "start_command_")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(os.WriteFile(tempDir+"/foo", nil, 0644)).Error().NotTo(HaveOccurred())
+			})
+
+			It("returns true", func() {
+				Expect(helper.FileExists(tempDir + "/foo")).To(BeTrue())
+			})
+		})
+		When("a file does not exist", func() {
+			BeforeEach(func() {
+			})
+
+			It("returns true", func() {
+				Expect(helper.FileExists("/tmp/" + uuid.NewString())).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("ReadFile", func() {
+		var tempDir string
+
+		BeforeEach(func() {
+			var err error
+			tempDir, err = os.MkdirTemp("", "start_command_")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(os.WriteFile(tempDir+"/foo", []byte("some fancy data: \U0001f37f"), 0644)).Error().NotTo(HaveOccurred())
+		})
+
+		It("reads the contents of a file and returns the string content", func() {
+			content, err := helper.ReadFile(tempDir + "/foo")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(content).To(Equal("some fancy data: 🍿"))
+			Expect(content).To(BeAssignableToTypeOf(string("")))
+		})
+
+		When("reading a file fails", func() {
+			It("returns an error", func() {
+				_, err := helper.ReadFile("/tmp/" + uuid.NewString())
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("WriteStringToFile", func() {
+		var tempDir string
+
+		BeforeEach(func() {
+			var err error
+			tempDir, err = os.MkdirTemp("", "start_command_")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("writes a string to a file", func() {
+			err := helper.WriteStringToFile(tempDir+"/foo", "some fancy string")
+			Expect(err).NotTo(HaveOccurred())
+
+			contents, err := os.ReadFile(tempDir + "/foo")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(contents)).To(Equal("some fancy string"))
+		})
+
+		When("writing to a file fails", func() {
+			It("returns an error", func() {
+				err := helper.WriteStringToFile(tempDir+"/invalid-directory/"+uuid.NewString(), "anything")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Sleep", func() {
+		It("sleeps for the specified duration", func() {
+			now := time.Now()
+			helper.Sleep(time.Second)
+
+			// Expect approximately one second +- some noise
+			// Picked "noise" as 250ms, which should be sufficient to avoid excessive flakes in CI
+			Expect(time.Since(now)).To(BeNumerically("~", time.Second, 250*time.Millisecond))
+		})
+	})
 	Describe("KillCommand", func() {
 		var helper OsHelperImpl
 

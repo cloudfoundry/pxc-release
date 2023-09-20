@@ -1,7 +1,7 @@
 package os_helper
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
 	"os/exec"
 	"time"
@@ -64,7 +64,7 @@ func (h OsHelperImpl) FileExists(filename string) bool {
 
 // Read the whole file, panic on err
 func (h OsHelperImpl) ReadFile(filename string) (string, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +73,7 @@ func (h OsHelperImpl) ReadFile(filename string) (string, error) {
 
 // Overwrite the contents, creating if necessary. Panic on err
 func (h OsHelperImpl) WriteStringToFile(filename string, contents string) error {
-	err := ioutil.WriteFile(filename, []byte(contents), 0644)
+	err := os.WriteFile(filename, []byte(contents), 0644)
 	return err
 }
 
@@ -86,6 +86,9 @@ func (h OsHelperImpl) KillCommand(cmd *exec.Cmd, signal os.Signal) error {
 		return errors.New("process-was-not-started")
 	}
 
-	err := cmd.Process.Signal(signal)
-	return errors.Wrap(err, `unable-to-kill-process`)
+	if err := cmd.Process.Signal(signal); err != nil {
+		return fmt.Errorf("unable-to-kill-process: %w", err)
+	}
+
+	return nil
 }

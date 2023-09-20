@@ -318,7 +318,7 @@ var _ = Describe("GaleraDBHelper", func() {
 						AddRow("something other than none"))
 			})
 
-			Describe("when the galera check returns Synced", func() {
+			Describe("when the galera node state check returns Synced", func() {
 				BeforeEach(func() {
 
 					mock.ExpectQuery(galeraReadyQuery).
@@ -331,7 +331,7 @@ var _ = Describe("GaleraDBHelper", func() {
 				})
 			})
 
-			Describe("when the galera check returns other than Synced", func() {
+			Describe("when the galera node state check returns other than Synced", func() {
 				BeforeEach(func() {
 					mock.ExpectQuery(galeraReadyQuery).
 						WillReturnRows(sqlmock.NewRows([]string{"Variable_name", "Value"}).
@@ -340,6 +340,21 @@ var _ = Describe("GaleraDBHelper", func() {
 
 				It("returns false", func() {
 					Expect(helper.IsDatabaseReachable()).To(BeFalse())
+				})
+			})
+
+			Describe("when the galera node state check returns an error", func() {
+				It("returns false", func() {
+					mock.ExpectQuery(galeraReadyQuery).
+						WillReturnError(errors.New("some db error reading wsrep_local_state_comment"))
+
+					Expect(helper.IsDatabaseReachable()).To(BeFalse())
+
+					Expect(testLogger.LogMessages()).To(
+						ContainElement(
+							ContainSubstring(`Galera state not Synced, received: some db error reading wsrep_local_state_comment`),
+						),
+					)
 				})
 			})
 		})
