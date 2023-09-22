@@ -35,15 +35,16 @@ func (fake *FakeUserSeeder) SeedUser(arg1 string, arg2 string, arg3 string, arg4
 		arg3 string
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.SeedUserStub
+	fakeReturns := fake.seedUserReturns
 	fake.recordInvocation("SeedUser", []interface{}{arg1, arg2, arg3, arg4})
 	fake.seedUserMutex.Unlock()
-	if fake.SeedUserStub != nil {
-		return fake.SeedUserStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.seedUserReturns
 	return fakeReturns.result1
 }
 

@@ -69,15 +69,16 @@ func (fake *FakeSeeder) CreateDBIfNeeded() error {
 	ret, specificReturn := fake.createDBIfNeededReturnsOnCall[len(fake.createDBIfNeededArgsForCall)]
 	fake.createDBIfNeededArgsForCall = append(fake.createDBIfNeededArgsForCall, struct {
 	}{})
+	stub := fake.CreateDBIfNeededStub
+	fakeReturns := fake.createDBIfNeededReturns
 	fake.recordInvocation("CreateDBIfNeeded", []interface{}{})
 	fake.createDBIfNeededMutex.Unlock()
-	if fake.CreateDBIfNeededStub != nil {
-		return fake.CreateDBIfNeededStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createDBIfNeededReturns
 	return fakeReturns.result1
 }
 
@@ -121,15 +122,16 @@ func (fake *FakeSeeder) CreateUser() error {
 	ret, specificReturn := fake.createUserReturnsOnCall[len(fake.createUserArgsForCall)]
 	fake.createUserArgsForCall = append(fake.createUserArgsForCall, struct {
 	}{})
+	stub := fake.CreateUserStub
+	fakeReturns := fake.createUserReturns
 	fake.recordInvocation("CreateUser", []interface{}{})
 	fake.createUserMutex.Unlock()
-	if fake.CreateUserStub != nil {
-		return fake.CreateUserStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createUserReturns
 	return fakeReturns.result1
 }
 
@@ -173,15 +175,16 @@ func (fake *FakeSeeder) GrantUserPrivileges() error {
 	ret, specificReturn := fake.grantUserPrivilegesReturnsOnCall[len(fake.grantUserPrivilegesArgsForCall)]
 	fake.grantUserPrivilegesArgsForCall = append(fake.grantUserPrivilegesArgsForCall, struct {
 	}{})
+	stub := fake.GrantUserPrivilegesStub
+	fakeReturns := fake.grantUserPrivilegesReturns
 	fake.recordInvocation("GrantUserPrivileges", []interface{}{})
 	fake.grantUserPrivilegesMutex.Unlock()
-	if fake.GrantUserPrivilegesStub != nil {
-		return fake.GrantUserPrivilegesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.grantUserPrivilegesReturns
 	return fakeReturns.result1
 }
 
@@ -225,15 +228,16 @@ func (fake *FakeSeeder) IsExistingUser() (bool, error) {
 	ret, specificReturn := fake.isExistingUserReturnsOnCall[len(fake.isExistingUserArgsForCall)]
 	fake.isExistingUserArgsForCall = append(fake.isExistingUserArgsForCall, struct {
 	}{})
+	stub := fake.IsExistingUserStub
+	fakeReturns := fake.isExistingUserReturns
 	fake.recordInvocation("IsExistingUser", []interface{}{})
 	fake.isExistingUserMutex.Unlock()
-	if fake.IsExistingUserStub != nil {
-		return fake.IsExistingUserStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.isExistingUserReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -280,15 +284,16 @@ func (fake *FakeSeeder) UpdateUser() error {
 	ret, specificReturn := fake.updateUserReturnsOnCall[len(fake.updateUserArgsForCall)]
 	fake.updateUserArgsForCall = append(fake.updateUserArgsForCall, struct {
 	}{})
+	stub := fake.UpdateUserStub
+	fakeReturns := fake.updateUserReturns
 	fake.recordInvocation("UpdateUser", []interface{}{})
 	fake.updateUserMutex.Unlock()
-	if fake.UpdateUserStub != nil {
-		return fake.UpdateUserStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateUserReturns
 	return fakeReturns.result1
 }
 

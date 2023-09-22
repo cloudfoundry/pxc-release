@@ -39,15 +39,16 @@ func (fake *FakeUpgrader) NeedsUpgrade() (bool, error) {
 	ret, specificReturn := fake.needsUpgradeReturnsOnCall[len(fake.needsUpgradeArgsForCall)]
 	fake.needsUpgradeArgsForCall = append(fake.needsUpgradeArgsForCall, struct {
 	}{})
+	stub := fake.NeedsUpgradeStub
+	fakeReturns := fake.needsUpgradeReturns
 	fake.recordInvocation("NeedsUpgrade", []interface{}{})
 	fake.needsUpgradeMutex.Unlock()
-	if fake.NeedsUpgradeStub != nil {
-		return fake.NeedsUpgradeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.needsUpgradeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -94,15 +95,16 @@ func (fake *FakeUpgrader) Upgrade() error {
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
 	}{})
+	stub := fake.UpgradeStub
+	fakeReturns := fake.upgradeReturns
 	fake.recordInvocation("Upgrade", []interface{}{})
 	fake.upgradeMutex.Unlock()
-	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.upgradeReturns
 	return fakeReturns.result1
 }
 
