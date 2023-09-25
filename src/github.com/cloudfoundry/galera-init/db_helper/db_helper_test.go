@@ -124,35 +124,37 @@ var _ = Describe("GaleraDBHelper", func() {
 		})
 
 		When("the node was previously part of the cluster", func() {
-			BeforeEach(func() {
-				sampleContent, err := os.ReadFile("example_mysqld_wsrep_recover_output.txt")
-				Expect(err).NotTo(HaveOccurred())
-				fakeOs.RunCommandReturns(string(sampleContent), nil)
-			})
+			DescribeTable("starts mysql to join an existing cluster with the expected start position",
+				func(exampleOutputFile string, expectedWsrepStartPosition string) {
+					sampleContent, err := os.ReadFile(exampleOutputFile)
+					Expect(err).NotTo(HaveOccurred())
+					fakeOs.RunCommandReturns(string(sampleContent), nil)
 
-			It("starts mysql to join an existing cluster with the expected start position", func() {
-				_, err := helper.StartMysqldInJoin()
-				Expect(err).NotTo(HaveOccurred())
+					_, err = helper.StartMysqldInJoin()
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
-				mysqldPath, args := fakeOs.RunCommandArgsForCall(0)
-				Expect(mysqldPath).To(Equal("mysqld"))
-				Expect(args).To(Equal([]string{
-					"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-					"--wsrep-recover",
-					"--disable-log-error",
-				}))
+					Expect(fakeOs.RunCommandCallCount()).To(Equal(1))
+					mysqldPath, args := fakeOs.RunCommandArgsForCall(0)
+					Expect(mysqldPath).To(Equal("mysqld"))
+					Expect(args).To(Equal([]string{
+						"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+						"--wsrep-recover",
+						"--disable-log-error",
+					}))
 
-				Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
-				logFile, executable, args := fakeOs.StartCommandArgsForCall(0)
-				Expect(logFile).ToNot(BeEmpty())
-				Expect(executable).To(Equal("mysqld"))
-				Expect(args).To(Equal([]string{
-					"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-					"--defaults-group-suffix=_plugin",
-					"--wsrep-start-position=78a55078-5760-11ee-bb01-6b49c8972768:45",
-				}))
-			})
+					Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+					logFile, executable, args := fakeOs.StartCommandArgsForCall(0)
+					Expect(logFile).ToNot(BeEmpty())
+					Expect(executable).To(Equal("mysqld"))
+					Expect(args).To(Equal([]string{
+						"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+						"--defaults-group-suffix=_plugin",
+						fmt.Sprintf("--wsrep-start-position=%s", expectedWsrepStartPosition),
+					}))
+				},
+				Entry("5.7", "example_mysqld_wsrep_recover_output_57.txt", "78a55078-5760-11ee-bb01-6b49c8972768:45"),
+				Entry("8.0", "example_mysqld_wsrep_recover_output_80.txt", "870e11cf-5be9-11ee-8754-b28c6414bbfe:3"),
+			)
 		})
 
 		When("running mysqld with --wsrep-recover returns the zero start position", func() {

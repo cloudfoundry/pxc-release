@@ -1,0 +1,10 @@
+2023-09-25T21:40:48.362680Z 0 [Warning] [MY-010097] [Server] Insecure configuration for --secure-log-path: Current value does not restrict location of generated files. Consider setting it to a valid, non-empty path.
+2023-09-25T21:40:48.363170Z 0 [System] [MY-010116] [Server] /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld (mysqld 8.0.33-25) starting as process 7949
+2023-09-25T21:40:48.370482Z 0 [Warning] [MY-013907] [InnoDB] Deprecated configuration parameters innodb_log_file_size and/or innodb_log_files_in_group have been used to compute innodb_redo_log_capacity=2147483648. Please use innodb_redo_log_capacity instead.
+2023-09-25T21:40:48.372071Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2023-09-25T21:40:50.262517Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2023-09-25T21:40:50.507422Z 1 [Note] [MY-000000] [WSREP] wsrep_init_schema_and_SR (nil)
+2023-09-25T21:40:50.531630Z 1 [System] [MY-000000] [WSREP] PXC upgrade completed successfully
+2023-09-25T21:40:50.613835Z 0 [Warning] [MY-011825] [InnoDB] Skipping buffer pool dump/restore during wsrep recovery.
+2023-09-25T21:40:50.651382Z 0 [Note] [MY-000000] [WSREP] Recovered position: 870e11cf-5be9-11ee-8754-b28c6414bbfe:3
+2023-09-25T21:40:52.230234Z 0 [System] [MY-010910] [Server] /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld: Shutdown complete (mysqld 8.0.33-25)  Percona XtraDB Cluster (GPL) 8.0.33-25, WSREP version 26.1.4.3.
