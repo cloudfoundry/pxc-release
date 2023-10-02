@@ -21,7 +21,7 @@ var _ = Describe("Failover", Ordered, Label("failover"), func() {
 		deploymentName = "pxc-failover-" + uuid.New().String()
 
 		Expect(cmd.Run(
-			"bosh", "update-resurrection", "off",
+			"bosh", "update-resurrection", "-d", deploymentName, "off",
 		)).To(Succeed())
 
 		Expect(bosh.DeployPXC(deploymentName,
