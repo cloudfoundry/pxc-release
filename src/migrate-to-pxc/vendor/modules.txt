@@ -1,4 +1,4 @@
-# github.com/cloudfoundry/gosigar v1.3.28
+# github.com/cloudfoundry/gosigar v1.3.29
 ## explicit; go 1.21
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
