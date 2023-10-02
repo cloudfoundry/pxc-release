@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"e2e-tests/utilities/bosh"
+	"e2e-tests/utilities/cmd"
 )
 
 var _ = Describe("Failover", Ordered, Label("failover"), func() {
@@ -18,6 +19,10 @@ var _ = Describe("Failover", Ordered, Label("failover"), func() {
 
 	BeforeAll(func() {
 		deploymentName = "pxc-failover-" + uuid.New().String()
+
+		Expect(cmd.Run(
+			"bosh", "update-resurrection", "off",
+		)).To(Succeed())
 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
