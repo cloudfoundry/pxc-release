@@ -5,7 +5,7 @@ go 1.20
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/fsouza/go-dockerclient v1.9.8
+	github.com/fsouza/go-dockerclient v1.10.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.3.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
@@ -39,11 +39,11 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/opencontainers/runc v1.1.9 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.15.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
+	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.13.0 // indirect
+	golang.org/x/tools v0.14.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
