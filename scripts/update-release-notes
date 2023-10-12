@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+: "${PREVIOUS_VERSION:?"PREVIOUS_VERSION must be set"}"
+: "${NEXT_VERSION:?"NEXT_VERSION must be set"}"
+: "${RELEASE_NOTES:?"RELEASE_NOTES must point to a file containing the release notes"}"
+
+__lastpass_login_check() {
+  if ! lpass status &>/dev/null; then
+    echo >&2 "Not logged into lastpass."
+    if ! lpass ls >/dev/null; then
+      echo >&2 "Unable to authenticate with lastpass. Aborting."
+      return 1
+    fi
+    return 0
+  fi
+}
+
+main() {
+  __lastpass_login_check
+
+  eval "$(
+      unset AWS_SESSION_TOKEN
+
+      AWS_ACCESS_KEY_ID="$(lpass show --notes dm-ci-secrets | yq .dedicated-mysql-service-account.access-key-id)" \
+      AWS_SECRET_ACCESS_KEY="$(lpass show --notes dm-ci-secrets | yq .dedicated-mysql-service-account.secret-access-key)" \
+      AWS_ROLE_ARN=$(lpass show --notes dm-ci-secrets | yq .dedicated-mysql-service-account.cf-core-services.role_arn)
+      aws sts assume-role --role-arn="${AWS_ROLE_ARN}" --role-session-name="$(uuidgen)" \
+        | jq -r '.Credentials
+            | [
+              "export AWS_ACCESS_KEY_ID=\(.AccessKeyId)",
+              "export AWS_SECRET_ACCESS_KEY=\(.SecretAccessKey)",
+              "export AWS_SESSION_TOKEN=\(.SessionToken)"
+              ] | join("\n")'
+  )"
+
+  aws s3 cp s3://pxc-release-notes/RELEASE_NOTES_v"${PREVIOUS_VERSION}" RELEASE_NOTES_v"${NEXT_VERSION}"
+  cat "${RELEASE_NOTES}" > RELEASE_NOTES_v"${NEXT_VERSION}"
+  aws s3 cp RELEASE_NOTES_v"${NEXT_VERSION}" s3://pxc-release-notes/
+}
+
+main
+
