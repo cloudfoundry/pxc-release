@@ -18,7 +18,7 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/containerd/containerd v1.7.6
+# github.com/containerd/containerd v1.7.7
 ## explicit; go 1.19
 github.com/containerd/containerd/pkg/userns
 # github.com/docker/docker v24.0.6+incompatible
@@ -78,7 +78,7 @@ github.com/google/uuid
 # github.com/imdario/mergo v0.3.16
 ## explicit; go 1.13
 github.com/imdario/mergo
-# github.com/klauspost/compress v1.17.0
+# github.com/klauspost/compress v1.17.1
 ## explicit; go 1.18
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
@@ -109,7 +109,7 @@ github.com/morikuni/aec
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 ## explicit
 github.com/nu7hatch/gouuid
-# github.com/nxadm/tail v1.4.8
+# github.com/nxadm/tail v1.4.11
 ## explicit; go 1.13
 github.com/nxadm/tail
 github.com/nxadm/tail/ratelimiter
