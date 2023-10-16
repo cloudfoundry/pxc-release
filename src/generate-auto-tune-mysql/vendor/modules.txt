@@ -1,4 +1,4 @@
-# github.com/cloudfoundry/gosigar v1.3.30
+# github.com/cloudfoundry/gosigar v1.3.31
 ## explicit; go 1.21
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
@@ -21,7 +21,7 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/pprof/profile
 # github.com/kr/pretty v0.2.1
 ## explicit; go 1.12
-# github.com/onsi/ginkgo/v2 v2.12.1
+# github.com/onsi/ginkgo/v2 v2.13.0
 ## explicit; go 1.18
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
