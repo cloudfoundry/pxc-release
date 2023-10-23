@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/v3"
-
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -16,6 +15,7 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/apiaggregator"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
+	"github.com/cloudfoundry-incubator/switchboard/metrics"
 	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
 	httprunner "github.com/cloudfoundry-incubator/switchboard/runner/http"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
@@ -61,6 +61,7 @@ func main() {
 
 	apiHandler := api.NewHandler(clusterStateManager, backends, logger, rootConfig.API, rootConfig.StaticDir)
 	aggregatorHandler := apiaggregator.NewHandler(logger, rootConfig.API)
+	metricsEmitter := metrics.New(backends)
 
 	members := grouper.Members{
 		{
@@ -88,6 +89,10 @@ func main() {
 		{
 			Name:   "active-node-monitor",
 			Runner: monitor.NewRunner(activeNodeClusterMonitor, logger),
+		},
+		{
+			Name:   "metrics",
+			Runner: httprunner.NewRunner("localhost:"+rootConfig.Metrics.Port, metricsEmitter.Handler(), serverTLSConfig, rootConfig.API.TLS.Enabled),
 		},
 	}
 

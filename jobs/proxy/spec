@@ -6,6 +6,7 @@ templates:
   proxy.yml.erb: config/proxy.yml
   post-start.erb: bin/post-start
   drain.erb: bin/drain
+  prom_scraper_config.yml: config/prom_scraper_config.yml
 
 consumes:
 - name: proxy

@@ -23,6 +23,7 @@ type Config struct {
 	StaticDir      string         `yaml:"StaticDir" validate:"nonzero"`
 	HealthPort     uint           `yaml:"HealthPort" validate:"nonzero"`
 	GaleraAgentTLS GaleraAgentTLS `yaml:"GaleraAgentTLS"`
+	Metrics        Metrics        `yaml:"Metrics"`
 	Logger         lager.Logger   `yaml:"-"`
 }
 
@@ -36,6 +37,10 @@ type SwitchboardApiTLS struct {
 	Enabled     bool   `yaml:"Enabled"`
 	Certificate string `yaml:"Certificate"`
 	PrivateKey  string `yaml:"PrivateKey"`
+}
+
+type Metrics struct {
+	Port string `yaml:"Port"`
 }
 
 type Proxy struct {
@@ -83,6 +88,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	lagerflags.AddFlags(flags)
 
+	serviceConfig.AddDefaults(&Config{Metrics: Metrics{Port: "9999"}})
 	serviceConfig.AddFlags(flags)
 	flags.Parse(configurationOptions)
 

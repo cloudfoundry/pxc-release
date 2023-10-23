@@ -1,0 +1,8 @@
+---
+port: 9999
+source_id: "switchboard_pxc_proxy"
+instance_id: <%= spec.id || spec.index.to_s %>
+scheme: https
+server_name: proxy-tls
+labels:
+  origin: switchboard
