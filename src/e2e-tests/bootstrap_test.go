@@ -1,7 +1,6 @@
 package e2e_tests
 
 import (
-	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"io"
@@ -91,15 +90,6 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 			By("mysql shutting down on all nodes")
 			mysqlIps, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
-
-			httpClient := &http.Client{
-				Transport: &http.Transport{
-					DialContext: proxyDialer,
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
-			}
 
 			for _, ip := range mysqlIps {
 				stopMySQL(httpClient, ip)
