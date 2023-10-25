@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/gstruct"
 
 	"e2e-tests/utilities/bosh"
 	"e2e-tests/utilities/credhub"
@@ -481,6 +484,48 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				auditLogContents := readAndWriteDataAndGetAuditLogContents(db, activeBackend)
 				Expect(auditLogContents).To(ContainSubstring("\"user\":\"included_user[included_user]"))
 				Expect(auditLogContents).ToNot(ContainSubstring("{\"audit_record\":{\"name\":\"Connect\""))
+			})
+		})
+	})
+
+	Context("Proxy", Label("proxy"), func() {
+		Describe("/v0/backends proxy api", func() {
+			type Backend struct {
+				Host                string `json:"host"`
+				Port                int    `json:"port"`
+				Healthy             bool   `json:"healthy"`
+				Name                string `json:"name"`
+				CurrentSessionCount int    `json:"currentSessionCount"`
+				Active              bool   `json:"active"`
+				TrafficEnabled      bool   `json:"trafficEnabled"`
+			}
+
+			It("reports the backend name with the full BOSH instance/uuid name", func() {
+				req, err := http.NewRequest(http.MethodPost, "http://"+proxyHost+":8080/v0/backends", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				proxyPassword, err := credhub.GetCredhubPassword("/" + deploymentName + "/cf_mysql_proxy_api_password")
+				Expect(err).NotTo(HaveOccurred())
+				req.SetBasicAuth("proxy", proxyPassword)
+				req.Header.Set("X-Forwarded-Proto", "https")
+
+				res, err := httpClient.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(res.StatusCode).To(Equal(http.StatusOK), `Expected 200 OK but got %q`, res.Status)
+
+				body, _ := io.ReadAll(res.Body)
+				var backends []Backend
+				Expect(json.Unmarshal(body, &backends)).To(Succeed())
+				Expect(len(backends)).To(Equal(3))
+
+				instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+				for _, i := range instances {
+					name := i.Instance
+					Expect(backends).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+						"Name": Equal(name),
+					})))
+				}
 			})
 		})
 	})

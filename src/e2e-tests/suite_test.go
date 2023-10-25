@@ -2,7 +2,9 @@ package e2e_tests
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -20,7 +22,7 @@ func TestE2E(t *testing.T) {
 }
 
 var (
-	proxyDialer proxy.DialContextFunc
+	httpClient *http.Client
 )
 
 var _ = BeforeSuite(func() {
@@ -42,11 +44,20 @@ var _ = BeforeSuite(func() {
 
 	if proxySpec := os.Getenv("BOSH_ALL_PROXY"); proxySpec != "" {
 		var err error
-		proxyDialer, err = proxy.NewDialerViaSSH(context.Background(), proxySpec)
+		proxyDialer, err := proxy.NewDialerViaSSH(context.Background(), proxySpec)
 		Expect(err).NotTo(HaveOccurred())
 
 		mysql.RegisterDialContext("tcp", func(ctx context.Context, addr string) (net.Conn, error) {
 			return proxyDialer(ctx, "tcp", addr)
 		})
+
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: proxyDialer,
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
 	}
 })
