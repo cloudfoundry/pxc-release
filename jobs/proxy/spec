@@ -6,6 +6,7 @@ templates:
   proxy.yml.erb: config/proxy.yml
   post-start.erb: bin/post-start
   drain.erb: bin/drain
+  healthcheck.erb: bin/healthcheck
 
 consumes:
 - name: proxy

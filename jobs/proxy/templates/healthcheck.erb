@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -u
+
+status_code=$(curl -k -s -o "/dev/null" -w "%{http_code}" "https://localhost:<%= p('health_port') %>")
+
+if [[ ${status_code} -ne 200 ]]; then
+  exit 1
+fi
+
+exit 0
