@@ -7,11 +7,11 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/fsouza/go-dockerclient v1.10.0
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.28.1
+	github.com/onsi/gomega v1.29.0
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1
 	gopkg.in/validator.v2 v2.0.1
@@ -20,8 +20,8 @@ require (
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/containerd/containerd v1.7.7 // indirect
-	github.com/docker/docker v24.0.6+incompatible // indirect
+	github.com/containerd/containerd v1.7.8 // indirect
+	github.com/docker/docker v24.0.7+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
