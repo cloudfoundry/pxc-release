@@ -45,6 +45,7 @@ wsrep_applier_threads           = <%= wsrep_applier_threads %>
 <%- end -%>
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
 <%- end -%>
+log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
 
 [mysqld-5.7]
 <%- if p('engine_config.galera.enabled') -%>
@@ -196,7 +197,6 @@ ssl-key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
 sockopt="cipher=ECDHE-RSA-AES256-GCM-SHA384"
 
 [mysqldump]
-quick
 max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
 
 [mysql]

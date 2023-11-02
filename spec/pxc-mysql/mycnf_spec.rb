@@ -2,6 +2,7 @@ require 'rspec'
 require 'json'
 require 'yaml'
 require 'bosh/template/test'
+require 'iniparse'
 
 describe 'my.cnf template' do
   let(:release) { Bosh::Template::Test::ReleaseDir.new(File.join(File.dirname(__FILE__), '../..')) }
@@ -88,6 +89,28 @@ describe 'my.cnf template' do
 
     it 'does not set require-secure-transport' do
       expect(rendered_template).not_to include("require-secure-transport")
+    end
+  end
+
+  context 'mysql 8.0' do
+    let(:parsed_mycnf) {
+      # Comment out my.cnf !include* directives to avoid parsing failures
+      rendered_template_cleaned = rendered_template.gsub(/^(!include.*)/, '#\1')
+
+      # Convert rendered my.cnf to a parsed hash, preserving duplicate keys
+      # i.e. "plugin-load-add=foo.so\nplugin-load-add=bar.so" => { "plugin-load-add" => ["foo.so","bar.so"]}
+      IniParse.parse(rendered_template_cleaned).
+        reduce({}) do |h, section|
+        h.update(
+          section.key => section.reduce({}) do |opts, o|
+            opts.update(o.key => opts.key?(o.key) ? [opts[o.key]].flatten << o.value : o.value)
+          end
+        )
+      end
+    }
+
+    it 'suppresses warnings about deprecated features to mitigate excessive logging' do
+        expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log-error-suppression-list" => "ER_SERVER_WARN_DEPRECATED"))
     end
   end
 
@@ -275,6 +298,5 @@ describe 'my.cnf template' do
         expect(rendered_template).to match(/wsrep_slave_threads\s+= 32/)
       end
     end
-
   end
 end
