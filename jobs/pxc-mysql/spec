@@ -219,6 +219,14 @@ properties:
   engine_config.binlog.space_limit_percent:
     description: 'Set this to an integer which represents the percentage of disk space to reserve for binary logs. 0 indicates no limit on binary log space.'
     default: 0
+  engine_config.binlog.enable_gtid_mode:
+    description: >
+        Enable gtid-mode / enforce-gtid-consistency for GTID based replication. NOTE: Enabling this option for existing
+        clusters can result in inconsistent GTIDs across the cluster.
+
+        For high-availability clusters this property must be explicitly enabled in the manifest and will default to
+        false.  When Galera is not enabled (i.e. for a single-node / standalone MySQL), this property defaults to true
+        unless explicitly disabled.
 
 
   # InnoDB Config

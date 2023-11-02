@@ -1,0 +1,5 @@
+---
+# Enable MySQL GTID Replication
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/binlog?/enable_gtid_mode?
+  value: true

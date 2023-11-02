@@ -25,7 +25,7 @@ describe 'my.cnf template' do
   ] }
   let(:template) { job.template('config/my.cnf') }
   let(:spec) { {} }
-  let(:rendered_template) {template.render(spec, consumes: links) }
+  let(:rendered_template) { template.render(spec, consumes: links) }
 
   it 'sets the authentication-policy' do
     expect(rendered_template).to match(/authentication-policy\s*=\s*mysql_native_password/)
@@ -59,7 +59,7 @@ describe 'my.cnf template' do
 
   context 'global properties are as expected ' do
     it 'sets max-connections' do
-      expect(rendered_template).to match(/max_connections[\s]*=[\s]*5000/)
+      expect(rendered_template).to match(/max_connections\s*=\s*5000/)
     end
   end
 
@@ -100,25 +100,45 @@ describe 'my.cnf template' do
       }
     } }
 
-    it 'set super-read-only if read_write_permissions specified' do
+    it 'configures the super-read-only option if read_write_permissions specified as "super_read_only"' do
       spec["engine_config"]["read_write_permissions"] = "super_read_only"
       expect(rendered_template).to include("super-read-only = ON")
     end
 
-    it 'set read-only if read_write_permissions specified' do
+    it 'configures the read-only option if read_write_permissions specified as "read_only"' do
       spec["engine_config"]["read_write_permissions"] = "read_only"
       expect(rendered_template).to include("read-only = ON")
       expect(rendered_template).not_to include("super-read-only = ON")
     end
 
-    it 'do nothing if read_write_permissions not specified' do
-      expect(rendered_template).not_to include("read-only = ON")
-      expect(rendered_template).not_to include("super-read-only = ON")
+    it 'does not set read-only options if read_write_permissions are not specified' do
+      expect(rendered_template).not_to include("read-only")
+      expect(rendered_template).not_to include("super-read-only")
     end
 
-    it 'turns gtid_mode and enforce_gtid_consistency on' do
-      expect(rendered_template).to include("gtid_mode = ON")
-      expect(rendered_template).to include("enforce_gtid_consistency = ON")
+    context 'when gtid_mode has not been explicitly configured' do
+      it 'turns gtid_mode and enforce_gtid_consistency on by default' do
+        expect(rendered_template).to include("gtid_mode = ON")
+        expect(rendered_template).to include("enforce_gtid_consistency = ON")
+      end
+    end
+
+    context 'when gtid_mode has been explicitly enabled' do
+      it 'turns gtid_mode and enforce_gtid_consistency on by user request' do
+        spec["engine_config"] = { "binlog" => { "enable_gtid_mode" => true } }
+
+        expect(rendered_template).to include("gtid_mode = ON"), "expected gtid_mode to be set in the my.cnf, but it was not"
+        expect(rendered_template).to include("enforce_gtid_consistency = ON"), "expected enforce_gtid_consistency to be set in the my.cnf, but it was not"
+      end
+    end
+
+    context 'when gtid_mode is explicitly disabled' do
+      it 'does not configure the gtid_mode and enforce_gtid_consistency options' do
+        spec["engine_config"] = { "binlog" => { "enable_gtid_mode" => false } }
+
+        expect(rendered_template).not_to include("gtid_mode"), "expected gtid_mode not to be rendered in the my.cnf"
+        expect(rendered_template).not_to include("enforce_gtid_consistency"), "expected enforce_gtid_consistency not to be rendered in the my.cnf"
+      end
     end
   end
 
@@ -185,26 +205,46 @@ describe 'my.cnf template' do
       end
     end
 
-    it 'do nothing if read_write_permissions specified' do
+    it 'does not set read-only options even if read_write_permissions specified as "super_read_only"' do
       spec["engine_config"]["read_write_permissions"] = "super_read_only"
-      expect(rendered_template).not_to include("read-only = ON")
-      expect(rendered_template).not_to include("super-read-only = ON")
+      expect(rendered_template).not_to include("read-only")
+      expect(rendered_template).not_to include("super-read-only")
     end
 
-    it 'do nothing if read_write_permissions specified' do
+    it 'does not set read-only options even if read_write_permissions specified as "read_only"' do
       spec["engine_config"]["read_write_permissions"] = "read_only"
-      expect(rendered_template).not_to include("read-only = ON")
-      expect(rendered_template).not_to include("super-read-only = ON")
+      expect(rendered_template).not_to include("read-only")
+      expect(rendered_template).not_to include("super-read-only")
     end
 
-    it 'do nothing if read_write_permissions not specified' do
-      expect(rendered_template).not_to include("read-only = ON")
-      expect(rendered_template).not_to include("super-read-only = ON")
+    it 'does not set read-only options if read_write_permissions are not specified' do
+      expect(rendered_template).not_to include("read-only")
+      expect(rendered_template).not_to include("super-read-only")
     end
 
-    it 'keeps gtid_mode and enforce_gtid_consistency off' do
-      expect(rendered_template).not_to include("gtid_mode = ON")
-      expect(rendered_template).not_to include("enforce_gtid_consistency = ON")
+    context 'when gtid_mode has not been explicitly configured' do
+      it 'does NOT turn gtid_mode and enforce_gtid_consistency on by default' do
+        expect(rendered_template).not_to include("gtid_mode"), "expected gtid_mode not to be rendered in the my.cnf"
+        expect(rendered_template).not_to include("enforce_gtid_consistency"), "expected enforce_gtid_consistency not to be rendered in the my.cnf"
+      end
+    end
+
+    context 'when gtid_mode has been explicitly enabled' do
+      it 'turns gtid_mode and enforce_gtid_consistency on by user request' do
+        spec["engine_config"] = { "binlog" => { "enable_gtid_mode" => true } }
+
+        expect(rendered_template).to include("gtid_mode = ON"), "expected gtid_mode to be set in the my.cnf, but it was not"
+        expect(rendered_template).to include("enforce_gtid_consistency = ON"), "expected enforce_gtid_consistency to be set in the my.cnf, but it was not"
+      end
+    end
+
+    context 'when gtid_mode is explicitly disabled' do
+      it 'does not configure the gtid_mode and enforce_gtid_consistency options' do
+        spec["engine_config"] = { "binlog" => { "enable_gtid_mode" => false } }
+
+        expect(rendered_template).not_to include("gtid_mode"), "expected gtid_mode not to be rendered in the my.cnf"
+        expect(rendered_template).not_to include("enforce_gtid_consistency"), "expected enforce_gtid_consistency not to be rendered in the my.cnf"
+      end
     end
 
     it 'defaults to no wsrep_applier_threads for mysql 8.0' do

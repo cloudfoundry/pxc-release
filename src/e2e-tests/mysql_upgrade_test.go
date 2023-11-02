@@ -98,5 +98,12 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output.String()).To(ContainSubstring(`InnoDB: Starting crash recovery.`))
 		})
+
+		By("asserting gtid_mode has not been enabled on a cluster by default", func() {
+			var gtidExecuted string
+			Expect(db.QueryRow(`SELECT @@global.gtid_executed`).Scan(&gtidExecuted)).To(Succeed())
+			Expect(gtidExecuted).To(BeEmpty())
+
+		})
 	})
 })

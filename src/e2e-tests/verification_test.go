@@ -41,6 +41,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation(`use-clustered.yml`),
+			bosh.Operation(`enable-mysql-gtid.yml`),
 			bosh.Operation(`enable-mysql-backup-user.yml`),
 			bosh.Operation(`test/seed-test-user.yml`),
 			bosh.Operation(`require-tls.yml`),
@@ -51,9 +52,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Var(`innodb_buffer_pool_size_percent`, `14`),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
-
-		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).
-			To(Succeed())
 
 		proxyIPs, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("proxy"))
 		Expect(err).NotTo(HaveOccurred())
@@ -71,6 +69,111 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			return
 		}
 		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
+	})
+
+	Context("MySQL Configuration", Label("configuration"), func() {
+		It("initializes a cluster with an empty gtid_executed", func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var queryResultString string
+				Expect(db.QueryRow("SELECT @@global.gtid_executed;").Scan(&queryResultString)).
+					To(Succeed())
+				Expect(queryResultString).To(BeEmpty())
+			}
+		})
+
+		It("records gtids with subsequent transactions", func() {
+			Expect(db.Exec(`CREATE DATABASE binary_logs`)).
+				Error().NotTo(HaveOccurred())
+			var expectedGTIDExecuted string
+			Expect(db.QueryRow("SELECT @@global.gtid_executed").Scan(&expectedGTIDExecuted)).
+				To(Succeed())
+			Expect(expectedGTIDExecuted).ToNot(BeEmpty())
+
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				instanceDB, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(func() string {
+					var memberGTIDExecuted string
+					_ = instanceDB.QueryRow("SELECT @@global.gtid_executed").Scan(&memberGTIDExecuted)
+					return memberGTIDExecuted
+				}).Should(Equal(expectedGTIDExecuted))
+			}
+		})
+
+		It("Sets the default character set to utf8mb4 ", func() {
+			var characterSetServer string
+			Expect(db.QueryRow(`SELECT @@global.character_set_server`).Scan(&characterSetServer)).To(Succeed())
+			Expect(characterSetServer).To(Equal("utf8mb4"))
+		})
+
+		It("Sets the default collation to the MySQL Server default for utf8mb4", func() {
+			var mysqlDefaultCollationForUTF8MB4 string
+			Expect(db.QueryRow(`SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE IS_DEFAULT = 'Yes' AND CHARACTER_SET_NAME = 'utf8mb4';`).
+				Scan(&mysqlDefaultCollationForUTF8MB4)).To(Succeed())
+
+			var collationServer string
+			Expect(db.QueryRow(`SELECT @@global.collation_server`).Scan(&collationServer)).To(Succeed())
+			Expect(collationServer).To(Equal(mysqlDefaultCollationForUTF8MB4))
+		})
+
+		It("configures a mysql-backup user", func() {
+			rows, err := db.Query(`SHOW GRANTS FOR 'mysql-backup'@'localhost'`)
+			Expect(err).NotTo(HaveOccurred())
+			var grants []string
+			for rows.Next() {
+				var grant string
+				Expect(rows.Scan(&grant)).To(Succeed())
+				grants = append(grants, grant)
+			}
+			Expect(rows.Err()).ToNot(HaveOccurred())
+			Expect(grants).ToNot(BeEmpty())
+		})
+
+		It("configures a user with access to a set of schemas based on a pattern from the seeded_users configuration", func() {
+			db, err := sql.Open("mysql", "test-multi-schema-user:secret-multi-schema-admin-credential@tcp("+proxyHost+")/?tls=skip-verify&interpolateParams=true")
+			Expect(err).NotTo(HaveOccurred())
+			defer db.Close()
+			db.SetMaxIdleConns(0)
+			db.SetMaxOpenConns(1)
+
+			Expect(db.Exec(`SELECT * FROM mysql.user`)).Error().To(MatchError(ContainSubstring(`SELECT command denied to user`)),
+				`Expected a multi-schema-admin user to NOT have access to sensitive mysql system tables, but successfully read mysql.user!`)
+
+			Expect(db.Exec(`CREATE DATABASE multi_db1`)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.Exec(`CREATE TABLE multi_db1.t1 (id int primary key auto_increment, data varchar(36))`)).
+				Error().NotTo(HaveOccurred())
+
+			Expect(db.Exec(`CREATE DATABASE multi_db2`)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.Exec(`CREATE TABLE multi_db2.t1 (id int primary key auto_increment, data varchar(36))`)).
+				Error().NotTo(HaveOccurred())
+
+			var (
+				userValue   string
+				storedValue string
+			)
+			userValue = uuid.NewString()
+			Expect(db.Exec(`INSERT INTO multi_db1.t1 (data) VALUES (?)`, userValue)).
+				Error().NotTo(HaveOccurred())
+
+			Expect(db.QueryRow(`SELECT data FROM multi_db1.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
+			Expect(storedValue).To(Equal(userValue))
+
+			userValue = uuid.NewString()
+			Expect(db.Exec(`INSERT INTO multi_db2.t1 (data) VALUES (?)`, userValue)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.QueryRow(`SELECT data FROM multi_db2.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
+			Expect(storedValue).To(Equal(userValue))
+		})
 	})
 
 	Context("MySQL Configuration Tuning (autotune)", Label("autotune"), func() {
@@ -514,75 +617,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Expect(auditLogContents).To(ContainSubstring("\"user\":\"included_user[included_user]"))
 				Expect(auditLogContents).ToNot(ContainSubstring("{\"audit_record\":{\"name\":\"Connect\""))
 			})
-		})
-	})
-
-	Context("MySQL Configuration", Label("configuration"), func() {
-		It("Sets the default character set to utf8mb4 ", func() {
-			var characterSetServer string
-			Expect(db.QueryRow(`SELECT @@global.character_set_server`).Scan(&characterSetServer)).To(Succeed())
-			Expect(characterSetServer).To(Equal("utf8mb4"))
-		})
-
-		It("Sets the default collation to the MySQL Server default for utf8mb4", func() {
-			var mysqlDefaultCollationForUTF8MB4 string
-			Expect(db.QueryRow(`SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE IS_DEFAULT = 'Yes' AND CHARACTER_SET_NAME = 'utf8mb4';`).
-				Scan(&mysqlDefaultCollationForUTF8MB4)).To(Succeed())
-
-			var collationServer string
-			Expect(db.QueryRow(`SELECT @@global.collation_server`).Scan(&collationServer)).To(Succeed())
-			Expect(collationServer).To(Equal(mysqlDefaultCollationForUTF8MB4))
-		})
-
-		It("configures a mysql-backup user", func() {
-			rows, err := db.Query(`SHOW GRANTS FOR 'mysql-backup'@'localhost'`)
-			Expect(err).NotTo(HaveOccurred())
-			var grants []string
-			for rows.Next() {
-				var grant string
-				Expect(rows.Scan(&grant)).To(Succeed())
-				grants = append(grants, grant)
-			}
-			Expect(rows.Err()).ToNot(HaveOccurred())
-			Expect(grants).ToNot(BeEmpty())
-		})
-
-		It("configures a user with access to a set of schemas based on a pattern from the seeded_users configuration", func() {
-			db, err := sql.Open("mysql", "test-multi-schema-user:secret-multi-schema-admin-credential@tcp("+proxyHost+")/?tls=skip-verify&interpolateParams=true")
-			Expect(err).NotTo(HaveOccurred())
-			defer db.Close()
-			db.SetMaxIdleConns(0)
-			db.SetMaxOpenConns(1)
-
-			Expect(db.Exec(`SELECT * FROM mysql.user`)).Error().To(MatchError(ContainSubstring(`SELECT command denied to user`)),
-				`Expected a multi-schema-admin user to NOT have access to sensitive mysql system tables, but successfully read mysql.user!`)
-
-			Expect(db.Exec(`CREATE DATABASE multi_db1`)).
-				Error().NotTo(HaveOccurred())
-			Expect(db.Exec(`CREATE TABLE multi_db1.t1 (id int primary key auto_increment, data varchar(36))`)).
-				Error().NotTo(HaveOccurred())
-
-			Expect(db.Exec(`CREATE DATABASE multi_db2`)).
-				Error().NotTo(HaveOccurred())
-			Expect(db.Exec(`CREATE TABLE multi_db2.t1 (id int primary key auto_increment, data varchar(36))`)).
-				Error().NotTo(HaveOccurred())
-
-			var (
-				userValue   string
-				storedValue string
-			)
-			userValue = uuid.NewString()
-			Expect(db.Exec(`INSERT INTO multi_db1.t1 (data) VALUES (?)`, userValue)).
-				Error().NotTo(HaveOccurred())
-
-			Expect(db.QueryRow(`SELECT data FROM multi_db1.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
-			Expect(storedValue).To(Equal(userValue))
-
-			userValue = uuid.NewString()
-			Expect(db.Exec(`INSERT INTO multi_db2.t1 (data) VALUES (?)`, userValue)).
-				Error().NotTo(HaveOccurred())
-			Expect(db.QueryRow(`SELECT data FROM multi_db2.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
-			Expect(storedValue).To(Equal(userValue))
 		})
 	})
 
