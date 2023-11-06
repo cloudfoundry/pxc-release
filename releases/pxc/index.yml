@@ -83,6 +83,8 @@ builds:
     version: 0.30.0
   b1048c28-cbcc-4015-65fa-5c34a9196899:
     version: 0.23.0
+  b478bd49-ee0a-4a4c-4b45-8a9d33889ea9:
+    version: 1.0.19
   b48849bb-60e4-4bbc-51ec-c424cdfebcb1:
     version: 0.7.0
   b4c8902b-64df-4eb1-50ea-fa94b1a19486:
