@@ -123,20 +123,22 @@ describe 'my.cnf template' do
       }
     } }
 
-    it 'configures the super-read-only option if read_write_permissions specified as "super_read_only"' do
-      spec["engine_config"]["read_write_permissions"] = "super_read_only"
-      expect(rendered_template).to include("super-read-only = ON")
-    end
+    context 'read_write_permissions' do
+      it 'configures the super-read-only option if read_write_permissions specified as "super_read_only"' do
+        spec["engine_config"]["read_write_permissions"] = "super_read_only"
+        expect(rendered_template).to include("super-read-only = ON")
+      end
 
-    it 'configures the read-only option if read_write_permissions specified as "read_only"' do
-      spec["engine_config"]["read_write_permissions"] = "read_only"
-      expect(rendered_template).to include("read-only = ON")
-      expect(rendered_template).not_to include("super-read-only = ON")
-    end
+      it 'configures the read-only option if read_write_permissions specified as "read_only"' do
+        spec["engine_config"]["read_write_permissions"] = "read_only"
+        expect(rendered_template).to include("read-only = ON")
+        expect(rendered_template).not_to include("super-read-only = ON")
+      end
 
-    it 'does not set read-only options if read_write_permissions are not specified' do
-      expect(rendered_template).not_to include("read-only")
-      expect(rendered_template).not_to include("super-read-only")
+      it 'does not set read-only options if read_write_permissions are not specified' do
+        expect(rendered_template).not_to include("read-only")
+        expect(rendered_template).not_to include("super-read-only")
+      end
     end
 
     context 'when gtid_mode has not been explicitly configured' do
@@ -228,21 +230,22 @@ describe 'my.cnf template' do
       end
     end
 
-    it 'does not set read-only options even if read_write_permissions specified as "super_read_only"' do
-      spec["engine_config"]["read_write_permissions"] = "super_read_only"
-      expect(rendered_template).not_to include("read-only")
-      expect(rendered_template).not_to include("super-read-only")
-    end
+    context 'read_write_permissions' do
+      it 'configures the super-read-only option if read_write_permissions specified as "super_read_only"' do
+        spec["engine_config"]["read_write_permissions"] = "super_read_only"
+        expect(rendered_template).to include("super-read-only = ON")
+      end
 
-    it 'does not set read-only options even if read_write_permissions specified as "read_only"' do
-      spec["engine_config"]["read_write_permissions"] = "read_only"
-      expect(rendered_template).not_to include("read-only")
-      expect(rendered_template).not_to include("super-read-only")
-    end
+      it 'configures the read-only option if read_write_permissions specified as "read_only"' do
+        spec["engine_config"]["read_write_permissions"] = "read_only"
+        expect(rendered_template).to include("read-only = ON")
+        expect(rendered_template).not_to include("super-read-only = ON")
+      end
 
-    it 'does not set read-only options if read_write_permissions are not specified' do
-      expect(rendered_template).not_to include("read-only")
-      expect(rendered_template).not_to include("super-read-only")
+      it 'does not set read-only options if read_write_permissions are not specified' do
+        expect(rendered_template).not_to include("read-only")
+        expect(rendered_template).not_to include("super-read-only")
+      end
     end
 
     context 'when gtid_mode has not been explicitly configured' do

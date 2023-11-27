@@ -93,11 +93,11 @@ wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcach
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2
 pxc-encrypt-cluster-traffic     = OFF
-<%- else -%>
+<%- end -%>
+
 <%- case p('engine_config.read_write_permissions') -%>
 <% when 'super_read_only' %>super-read-only = ON
 <% when 'read_only' %>read-only = ON
-<%- end -%>
 <%- end -%>
 
 <%- if p('engine_config.binlog.enable_gtid_mode', !p('engine_config.galera.enabled')) -%>
