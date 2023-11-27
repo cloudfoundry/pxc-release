@@ -661,4 +661,25 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			})
 		})
 	})
+
+	Context("read_write_permissions", Label("read_write_permissions"), func() {
+		It("can redeploy all MySQL nodes with read_only enabled", func() {
+			Expect(bosh.RedeployPXC(deploymentName,
+				bosh.Operation(`enable-read-only.yml`),
+			)).To(Succeed())
+
+			mysqlIps, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, ip := range mysqlIps {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+ip+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var readOnly bool
+				Expect(db.QueryRow(`SELECT @@global.read_only`).Scan(&readOnly)).To(Succeed())
+				Expect(readOnly).To(BeTrue())
+				Expect(db.Close())
+			}
+		})
+	})
 })

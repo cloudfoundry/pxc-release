@@ -74,6 +74,40 @@ func Deploy(deploymentName, manifestPath string, options ...DeployOptionFunc) er
 	return cmd.Run("bosh", args...)
 }
 
+func RedeployPXC(deploymentName string, options ...DeployOptionFunc) error {
+	manifestFile, err := os.CreateTemp("", "pxc_manifest_")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file for bosh manifest: %w", err)
+	}
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(manifestFile.Name())
+
+	if err = cmd.RunWithoutOutput(manifestFile, "bosh",
+		"--deployment="+deploymentName,
+		"manifest"); err != nil {
+		return fmt.Errorf("failed to retrieve bosh manifest: %w", err)
+	}
+
+	if err = manifestFile.Close(); err != nil {
+		return fmt.Errorf("failed to close manifest file: %w", err)
+	}
+
+	args := []string{
+		"--non-interactive",
+		"--deployment=" + deploymentName,
+		"deploy",
+		"--no-redact",
+		"--tty",
+		manifestFile.Name(),
+	}
+	for _, o := range options {
+		o(&args)
+	}
+
+	return cmd.RunCustom(cmd.WithCwd("../.."), "bosh", args...)
+}
+
 // DeployPXC deploys the top-level pxc-deployment.yml manifest from the top-level of this pxc-release repo
 // This function sets the current working directory to the top-level of this repo
 func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {

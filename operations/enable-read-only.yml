@@ -1,0 +1,8 @@
+---
+- path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/read_write_permissions?
+  type: replace
+  value: "read_only"
+
+- path: /instance_groups/name=mysql/jobs/name=galera-agent/properties/available_when_read_only?
+  type: replace
+  value: true
