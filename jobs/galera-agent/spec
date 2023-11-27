@@ -62,3 +62,8 @@ properties:
       This format is different for different logs. We do not recommend using this flag unless you have scripts that
       expect a particular timestamp format.
     default: "rfc3339"
+  available_when_read_only:
+    description: >
+        Health checks for mysql nodes which have the 'read-only' option enabled will be considered healthy. If enabled,
+        the proxy job will send traffic to a read-only backend, but "write" queries will fail with an error.
+    default: false

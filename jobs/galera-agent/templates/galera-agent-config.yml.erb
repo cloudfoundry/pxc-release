@@ -1,7 +1,7 @@
 <%=
 config = {
   "Port" => p('port'),
-  "PidFile" => '/var/vcap/sys/run/bpm/galera-agent/galera-agent.pid',
+  "AvailableWhenReadOnly" => p('available_when_read_only'),
   "MysqldPath" => "/var/vcap/packages/percona-xtradb-cluster-#{link('mysql').p('mysql_version')}/bin/mysqld",
   "MyCnfPath" => '/var/vcap/jobs/pxc-mysql/config/my.cnf',
   "DB" => {
