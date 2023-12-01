@@ -143,6 +143,8 @@ var _ = Describe("Switchboard", func() {
 		switchboardAPIPort           uint
 		switchboardAPIAggregatorPort uint
 		switchboardHealthPort        uint
+		metricsEnabled               bool
+		metricsPort                  uint
 		backends                     []config.Backend
 		rootConfig                   config.Config
 		proxyConfig                  config.Proxy
@@ -295,6 +297,8 @@ var _ = Describe("Switchboard", func() {
 		switchboardAPIPort = uint(10100 + GinkgoParallelProcess())
 		switchboardAPIAggregatorPort = uint(10800 + GinkgoParallelProcess())
 		switchboardHealthPort = uint(6160 + GinkgoParallelProcess())
+		metricsPort = uint(2112 + GinkgoParallelProcess())
+
 		backend1 := config.Backend{
 			Host:           "localhost",
 			Port:           uint(10200 + GinkgoParallelProcess()),
@@ -339,6 +343,10 @@ var _ = Describe("Switchboard", func() {
 				Enabled:    true,
 				ServerName: "localhost",
 				CA:         string(testCA),
+			},
+			Metrics: config.Metrics{
+				Enabled: metricsEnabled,
+				Port:    metricsPort,
 			},
 		}
 		healthcheckWaitDuration = 3 * proxyConfig.HealthcheckTimeout()
@@ -1172,6 +1180,40 @@ var _ = Describe("Switchboard", func() {
 						}, healthcheckWaitDuration, 200*time.Millisecond).Should(MatchError(ContainSubstring("connection refused")))
 					})
 
+				})
+			})
+
+			Describe("metrics", func() {
+				When("switchboard metrics are enabled", func() {
+					BeforeEach(func() {
+						rootConfig.Metrics.Enabled = true
+					})
+
+					It("responds with backend session metrics", func() {
+						resp, err := httpClient.Get(fmt.Sprintf("https://localhost:%d/metrics", metricsPort))
+						Expect(err).NotTo(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusOK))
+						Expect(resp.Body).ToNot(BeNil())
+
+						defer resp.Body.Close()
+						bodyBytes, err := io.ReadAll(resp.Body)
+						body := strings.Split(string(bodyBytes), "\n")
+						Expect(body).To(ContainElement("# HELP backend_sessions_total Gauge of the current sessions from this proxy to a mysql backend"))
+						Expect(body).To(ContainElement("# TYPE backend_sessions_total gauge"))
+						Expect(body).To(ContainElement(`backend_sessions_total{backend="backend-0"} 0`))
+						Expect(body).To(ContainElement(`backend_sessions_total{backend="backend-1"} 0`))
+					})
+				})
+
+				When("switchboard metrics are disabled", func() {
+					BeforeEach(func() {
+						rootConfig.Metrics.Enabled = false
+					})
+
+					It("returns errors when trying to connect to metrics port", func() {
+						_, err := httpClient.Get(fmt.Sprintf("https://localhost:%d/metrics", metricsPort))
+						Expect(err).To(MatchError(ContainSubstring("connect: connection refused")))
+					})
 				})
 			})
 		})

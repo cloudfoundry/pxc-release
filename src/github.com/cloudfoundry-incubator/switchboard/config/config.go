@@ -24,6 +24,12 @@ type Config struct {
 	HealthPort     uint           `yaml:"HealthPort" validate:"nonzero"`
 	GaleraAgentTLS GaleraAgentTLS `yaml:"GaleraAgentTLS"`
 	Logger         lager.Logger   `yaml:"-"`
+	Metrics        Metrics        `yaml:"Metrics"`
+}
+
+type Metrics struct {
+	Enabled bool `yaml:"Enabled"`
+	Port    uint `yaml:"Port" validate:"nonzero"`
 }
 
 type GaleraAgentTLS struct {
@@ -83,6 +89,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	lagerflags.AddFlags(flags)
 
+	serviceConfig.AddDefaults(&Config{Metrics: Metrics{Port: 9999}})
 	serviceConfig.AddFlags(flags)
 	flags.Parse(configurationOptions)
 

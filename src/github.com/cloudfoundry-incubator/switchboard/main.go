@@ -16,6 +16,7 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/apiaggregator"
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/domain"
+	"github.com/cloudfoundry-incubator/switchboard/metrics"
 	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
 	httprunner "github.com/cloudfoundry-incubator/switchboard/runner/http"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
@@ -89,6 +90,14 @@ func main() {
 			Name:   "active-node-monitor",
 			Runner: monitor.NewRunner(activeNodeClusterMonitor, logger),
 		},
+	}
+
+	if rootConfig.Metrics.Enabled {
+		metricsEmitter := metrics.New(backends)
+		members = append(members, grouper.Member{
+			Name:   "metrics",
+			Runner: httprunner.NewRunner(fmt.Sprintf("localhost:%d", rootConfig.Metrics.Port), metricsEmitter.Handler(), serverTLSConfig, rootConfig.API.TLS.Enabled),
+		})
 	}
 
 	if rootConfig.HealthPort != rootConfig.API.Port {

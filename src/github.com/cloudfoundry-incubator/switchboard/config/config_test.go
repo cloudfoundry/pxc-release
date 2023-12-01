@@ -275,4 +275,43 @@ var _ = Describe("Config", func() {
 			})
 		})
 	})
+
+	Describe("NewConfig", func() {
+		var rawConfig string
+
+		BeforeEach(func() {
+			rawConfig = "{}"
+		})
+
+		When("not enabling metrics", func() {
+			It("defaults to not enabling metrics", func() {
+				osArgs := []string{
+					"switchboard",
+					fmt.Sprintf("-config=%s", rawConfig),
+				}
+				rootConfig, err := NewConfig(osArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(rootConfig.Metrics.Enabled).To(Equal(false))
+			})
+		})
+
+		When("enabling metrics", func() {
+			BeforeEach(func() {
+				rawConfig = `{"Metrics": {"Enabled": true}}`
+			})
+
+			It("enables metrics with port 9999", func() {
+				osArgs := []string{
+					"switchboard",
+					fmt.Sprintf("-config=%s", rawConfig),
+				}
+				rootConfig, err := NewConfig(osArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(rootConfig.Metrics.Enabled).To(Equal(true))
+				Expect(rootConfig.Metrics.Port).To(Equal(uint(9999)))
+			})
+		})
+	})
 })

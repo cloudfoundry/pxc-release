@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -11,8 +10,6 @@ import (
 )
 
 type Emitter struct {
-	sync.Mutex
-
 	backendSessions *prometheus.Desc
 	backends        []*domain.Backend
 	registry        *prometheus.Registry
@@ -23,14 +20,14 @@ func New(backends []*domain.Backend) *Emitter {
 		registry: prometheus.NewRegistry(),
 		backends: backends,
 		backendSessions: prometheus.NewDesc(
-			"backend_session_total",
+			"backend_sessions_total",
 			"Gauge of the current sessions from this proxy to a mysql backend",
 			[]string{"backend"},
 			nil,
 		),
 	}
 
-	_ = e.registry.Register(e)
+	e.registry.MustRegister(e)
 	return e
 }
 func (e *Emitter) Describe(desc chan<- *prometheus.Desc) {
