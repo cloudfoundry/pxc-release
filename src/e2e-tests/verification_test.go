@@ -681,5 +681,14 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Expect(db.Close())
 			}
 		})
+
+		It("can connect to the MySQL nodes via the proxy", func() {
+			Expect(bosh.RedeployPXC(deploymentName,
+				bosh.Operation(`enable-read-only.yml`),
+			)).To(Succeed())
+
+			err := db.Ping()
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 })

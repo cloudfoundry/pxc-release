@@ -56,20 +56,20 @@ func (h *HealthChecker) Check() (string, error) {
 		return "", errors.New("joining")
 	case STATE_DONOR_DESYNCED:
 		if h.config.AvailableWhenDonor {
-			return h.healthy(value)
+			return h.healthy()
 		}
 		return "", errors.New("not synced")
 	case STATE_JOINED:
 		return "", errors.New("joined")
 	case STATE_SYNCED:
-		return h.healthy(value)
+		return h.healthy()
 	default:
 		return "", fmt.Errorf("Unrecognized state: %d", value)
 	}
 
 }
 
-func (h *HealthChecker) healthy(value int) (string, error) {
+func (h *HealthChecker) healthy() (string, error) {
 	if !h.config.AvailableWhenReadOnly {
 		readOnly, err := h.isReadOnly()
 		if err != nil {

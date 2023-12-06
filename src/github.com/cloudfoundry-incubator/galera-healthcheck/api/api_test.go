@@ -60,6 +60,7 @@ var _ = Describe("Sidecar API", func() {
 				Username: ApiUsername,
 				Password: ApiPassword,
 			},
+			AvailableWhenReadOnly: true,
 		}
 
 		monitClient.StopServiceReturns("Successfully sent stop request", nil)
@@ -262,6 +263,7 @@ var _ = Describe("Sidecar API", func() {
 					returnedState = domain.DBState{
 						WsrepLocalIndex: 1,
 						WsrepLocalState: domain.Synced,
+						ReadOnly:        true,
 					}
 
 					stateSnapshotter.StateReturns(returnedState, nil)
@@ -278,6 +280,7 @@ var _ = Describe("Sidecar API", func() {
 						WsrepLocalIndex        uint   `json:"wsrep_local_index"`
 						WsrepLocalState        uint   `json:"wsrep_local_state"`
 						WsrepLocalStateComment string `json:"wsrep_local_state_comment"`
+						Healthy                bool   `json:"healthy"`
 					}
 
 					json.NewDecoder(resp.Body).Decode(&state)
@@ -285,6 +288,7 @@ var _ = Describe("Sidecar API", func() {
 					Expect(state.WsrepLocalIndex).To(Equal(returnedState.WsrepLocalIndex))
 					Expect(state.WsrepLocalState).To(Equal(uint(returnedState.WsrepLocalState)))
 					Expect(state.WsrepLocalStateComment).To(Equal(string(returnedState.WsrepLocalState.Comment())))
+					Expect(state.Healthy).To(BeTrue())
 				})
 			})
 

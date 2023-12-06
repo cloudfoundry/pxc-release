@@ -29,11 +29,11 @@ type DBState struct {
 
 const InvalidIndex = math.MaxUint64
 
-func (s DBState) IsHealthy() bool {
+func (s DBState) IsHealthy(availableWhenReadOnly bool) bool {
 	switch {
 	case s.WsrepLocalIndex == InvalidIndex:
 		return false
-	case s.ReadOnly:
+	case s.ReadOnly && !availableWhenReadOnly:
 		return false
 	case s.MaintenanceEnabled:
 		return false

@@ -26,9 +26,10 @@ const (
 	Unhealthy = false
 )
 
-var _ = DescribeTable("IsHealthy",
+var _ = DescribeTable("IsHealthy and not available when readonly",
 	func(state domain.DBState, expected bool) {
-		Expect(state.IsHealthy()).To(Equal(expected))
+		availableWhenReadOnly := false
+		Expect(state.IsHealthy(availableWhenReadOnly)).To(Equal(expected))
 	},
 	Entry("Synced / not read-only / no maintenance is healthy", domain.DBState{
 		WsrepLocalState:    domain.Synced,
@@ -50,13 +51,12 @@ var _ = DescribeTable("IsHealthy",
 		ReadOnly:           true,
 		MaintenanceEnabled: true,
 	}, Unhealthy),
-	Entry("Synced / read-only / maintenance / wsrep_local_index == MaxInt is unhealthy", domain.DBState{
+	Entry("Synced / not read-only / maintenance / wsrep_local_index == MaxInt is unhealthy", domain.DBState{
 		WsrepLocalIndex:    18446744073709551615,
 		WsrepLocalState:    domain.Synced,
 		ReadOnly:           false,
 		MaintenanceEnabled: false,
 	}, Unhealthy),
-
 	Entry("DonorDesynced / not read-only / no maintenance is healthy", domain.DBState{
 		WsrepLocalState:    domain.DonorDesynced,
 		ReadOnly:           false,
@@ -83,7 +83,6 @@ var _ = DescribeTable("IsHealthy",
 		ReadOnly:           false,
 		MaintenanceEnabled: false,
 	}, Unhealthy),
-
 	Entry("Joined / not read-only / no maintenance is unhealthy", domain.DBState{
 		WsrepLocalState:    domain.Joined,
 		ReadOnly:           false,
@@ -123,6 +122,56 @@ var _ = DescribeTable("IsHealthy",
 		WsrepLocalState:    domain.Joining,
 		ReadOnly:           false,
 		MaintenanceEnabled: false,
+	}, Unhealthy),
+	Entry("Any other state is unhealthy", domain.DBState{
+		WsrepLocalState: domain.WsrepLocalState(42),
+	}, Unhealthy),
+)
+
+var _ = DescribeTable("IsHealthy and available when readonly",
+	func(state domain.DBState, expected bool) {
+		availableWhenReadOnly := true
+		Expect(state.IsHealthy(availableWhenReadOnly)).To(Equal(expected))
+	},
+	Entry("Synced / read-only / no maintenance is healthy", domain.DBState{
+		WsrepLocalState:    domain.Synced,
+		ReadOnly:           true,
+		MaintenanceEnabled: false,
+	}, Healthy),
+	Entry("Synced / read-only / maintenance is unhealthy", domain.DBState{
+		WsrepLocalState:    domain.Synced,
+		ReadOnly:           true,
+		MaintenanceEnabled: true,
+	}, Unhealthy),
+	Entry("DonorDesynced / read-only / no maintenance is healthy", domain.DBState{
+		WsrepLocalState:    domain.DonorDesynced,
+		ReadOnly:           true,
+		MaintenanceEnabled: false,
+	}, Healthy),
+	Entry("DonorDesynced / read-only / maintenance is unhealthy", domain.DBState{
+		WsrepLocalState:    domain.DonorDesynced,
+		ReadOnly:           true,
+		MaintenanceEnabled: true,
+	}, Unhealthy),
+	Entry("Joined / read-only / no maintenance is unhealthy", domain.DBState{
+		WsrepLocalState:    domain.Joined,
+		ReadOnly:           true,
+		MaintenanceEnabled: false,
+	}, Unhealthy),
+	Entry("Joined / read-only / maintenance is unhealthy", domain.DBState{
+		WsrepLocalState:    domain.Joined,
+		ReadOnly:           true,
+		MaintenanceEnabled: true,
+	}, Unhealthy),
+	Entry("Joining / read-only / no maintenance is unhealthy", domain.DBState{
+		WsrepLocalState:    domain.Joining,
+		ReadOnly:           true,
+		MaintenanceEnabled: false,
+	}, Unhealthy),
+	Entry("Joining / read-only / maintenance is unhealthy", domain.DBState{
+		WsrepLocalState:    domain.Joining,
+		ReadOnly:           true,
+		MaintenanceEnabled: true,
 	}, Unhealthy),
 	Entry("Any other state is unhealthy", domain.DBState{
 		WsrepLocalState: domain.WsrepLocalState(42),
