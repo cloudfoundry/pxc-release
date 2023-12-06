@@ -50,6 +50,13 @@
     }
   end
 
+  if p('metrics.enabled', false)
+    config[:Metrics] = {
+      Enabled: true,
+      Port: p('metrics.port'),
+    }
+  end
+
   if_p('inactive_mysql_port') do |inactive_mysql_port|
     config[:Proxy][:InactiveMysqlPort] = inactive_mysql_port
   end

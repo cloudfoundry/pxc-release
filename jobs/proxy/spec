@@ -84,6 +84,13 @@ properties:
   health_port:
     description: "Port for checking the health of the proxy process"
     default: 1936
+  metrics:
+    enabled:
+      description: Enable proxy metrics using prometheus
+      default: false
+    port:
+      description: Port for the prometheus API to listen on
+      default: 9999
   startup_delay:
     description: |
       If using a load balancer above the proxies,
