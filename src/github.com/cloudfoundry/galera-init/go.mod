@@ -3,8 +3,8 @@ module github.com/cloudfoundry/galera-init
 go 1.20
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.0.2
-	github.com/DATA-DOG/go-sqlmock v1.5.0
+	code.cloudfoundry.org/lager/v3 v3.0.3
+	github.com/DATA-DOG/go-sqlmock v1.5.1
 	github.com/fsouza/go-dockerclient v1.10.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.4.0
@@ -19,7 +19,7 @@ require (
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/containerd/containerd v1.7.10 // indirect
+	github.com/containerd/containerd v1.7.11 // indirect
 	github.com/docker/docker v24.0.7+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -27,7 +27,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20231203200248-ad67f76aa53d // indirect
+	github.com/google/pprof v0.0.0-20231205033806-a5a03c77bf08 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect

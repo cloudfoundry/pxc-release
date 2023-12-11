@@ -1,5 +1,5 @@
-github.com/cloudfoundry/gosigar v1.3.37 h1:tFOgzmDS9qAW1MqiqlnEnnTtavmC7qyPPmbfrjwJfBc=
-github.com/cloudfoundry/gosigar v1.3.37/go.mod h1:YkD/LaaO4ZM7c9UGZkAzchldB9wC69TT+7O1myltAG8=
+github.com/cloudfoundry/gosigar v1.3.38 h1:WbsrYoLFkJ/bN1s8SFLnFwjfo9U9bJ3rKFAZVj/AbM8=
+github.com/cloudfoundry/gosigar v1.3.38/go.mod h1:/V8poLl3GrM7iW3/UtoI3Mx64THn3Kfv21JR54A2E2M=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -11,8 +11,8 @@ github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/pprof v0.0.0-20231203200248-ad67f76aa53d h1:bM3Cipp7U7Sdn0DpYngVaLWFV9yonxQ1IB7ZPQ41OLw=
-github.com/google/pprof v0.0.0-20231203200248-ad67f76aa53d/go.mod h1:czg5+yv1E0ZGTi6S6vVK1mke0fV+FaUhNGcd6VRS9Ik=
+github.com/google/pprof v0.0.0-20231205033806-a5a03c77bf08 h1:PxlBVtIFHR/mtWk2i0gTEdCz+jBnqiuHNSki0epDbVs=
+github.com/google/pprof v0.0.0-20231205033806-a5a03c77bf08/go.mod h1:czg5+yv1E0ZGTi6S6vVK1mke0fV+FaUhNGcd6VRS9Ik=
 github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
