@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.0.0 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
@@ -26,7 +26,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
 	github.com/tedsuo/rata v1.0.0 // indirect
-	go.step.sm/crypto v0.38.0 // indirect
+	go.step.sm/crypto v0.39.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
