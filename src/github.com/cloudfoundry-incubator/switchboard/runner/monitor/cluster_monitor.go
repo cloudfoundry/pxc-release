@@ -1,8 +1,10 @@
 package monitor
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"sync"
@@ -140,55 +142,66 @@ func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shou
 
 	healthy := false
 	var (
-		index *int
-		url   string
-		err   error
-		resp  *http.Response
+		index      *int
+		url        string
+		err        error
+		httpStatus string
+		body       []byte
 	)
+	const maxBodySize = 1024
 
 	for _, url = range urls {
+		var resp *http.Response
 		resp, err = c.client.Get(url)
-		if err == nil {
-			if resp.StatusCode == http.StatusOK {
-				var v1StatusResponse struct {
-					WsrepLocalIndex uint `json:"wsrep_local_index"`
-					Healthy         bool `json:"healthy"`
-				}
-
-				_ = json.NewDecoder(resp.Body).Decode(&v1StatusResponse)
-
-				healthy = v1StatusResponse.Healthy
-				indexVal := int(v1StatusResponse.WsrepLocalIndex)
-				index = &indexVal
-			}
-			break
+		if err != nil {
+			continue
 		}
+
+		if body, err = io.ReadAll(io.LimitReader(resp.Body, maxBodySize)); err != nil {
+			err = fmt.Errorf("failed to read response body: %w", err)
+		}
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			var v1StatusResponse struct {
+				WsrepLocalIndex uint `json:"wsrep_local_index"`
+				Healthy         bool `json:"healthy"`
+			}
+
+			_ = json.Unmarshal(body, &v1StatusResponse)
+
+			healthy = v1StatusResponse.Healthy
+			indexVal := int(v1StatusResponse.WsrepLocalIndex)
+			index = &indexVal
+		}
+
+		httpStatus = resp.Status
+
+		if len(body) == 0 {
+			body = []byte("[empty body]")
+		}
+		break
 	}
 
 	if shouldLog {
-		if !healthy && err == nil {
-			c.logger.Error(
-				"Healthcheck failed on backend",
-				fmt.Errorf("Backend reported as unhealthy"),
-				lager.Data{
-					"backend":  backend.AsJSON(),
-					"endpoint": url,
-					"resp":     fmt.Sprintf("%#v", resp),
-				},
-			)
+		data := lager.Data{
+			"backend":  backend.AsJSON(),
+			"endpoint": url,
 		}
 
 		if err != nil {
-			c.logger.Error(
-				"Healthcheck failed on backend",
-				fmt.Errorf("Error during healthcheck http get"),
-				lager.Data{
-					"backend":  backend.AsJSON(),
-					"endpoint": url,
-					"resp":     fmt.Sprintf("%#v", resp),
-					"err":      err.Error(),
-				},
-			)
+			err = fmt.Errorf("Error during healthcheck request: %w", err)
+		} else if !healthy {
+			err = fmt.Errorf("Backend reported as unhealthy")
+		}
+
+		if httpStatus != "" {
+			data["resp"] = "HTTP " + httpStatus + ": " + string(bytes.TrimSpace(body))
+		}
+
+		if err != nil {
+			c.logger.Error("Healthcheck failed on backend", err, data)
 		}
 
 		if healthy {

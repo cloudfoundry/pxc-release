@@ -2,18 +2,20 @@ package monitor_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-
-	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
@@ -279,6 +281,14 @@ var _ = Describe("ClusterMonitor", func() {
 			backendHost       string
 		)
 
+		mustMarshalJSON := func(v any) string {
+			GinkgoHelper()
+
+			doc, err := json.Marshal(v)
+			Expect(err).NotTo(HaveOccurred(), `Failed to encode %v to json`, v)
+			return strings.NewReplacer("{", `\{`, "}", `\}`).Replace(string(doc))
+		}
+
 		BeforeEach(func() {
 			backendStatusPort = 9292
 			backendHost = "192.0.2.10"
@@ -368,12 +378,50 @@ var _ = Describe("ClusterMonitor", func() {
 			})
 		})
 
+		When("fetching the status endpoint sends a large body", func() {
+			JustBeforeEach(func() {
+				urlGetter.GetStub = func(url string) (*http.Response, error) {
+					m.RLock()
+					defer m.RUnlock()
+					return &http.Response{
+						Status:     fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(bytes.NewBufferString(strings.Repeat("x", 2048))),
+					}, nil
+				}
+			})
+
+			It("only logs the first 1024 bytes", func() {
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
+
+				Expect(logger.Buffer()).To(gbytes.Say(mustMarshalJSON(lager.LogFormat{
+					Timestamp: `.*`,
+					Source:    "ClusterMonitor test",
+					Message:   "ClusterMonitor test.Healthcheck failed on backend",
+					LogLevel:  lager.ERROR,
+					Data: lager.Data{
+						"backend": domain.BackendJSON{
+							Host:                "192.0.2.10",
+							Port:                3306,
+							StatusPort:          9292,
+							Healthy:             false,
+							Name:                "backend-0",
+							CurrentSessionCount: 0,
+						},
+						"endpoint": "http://192.0.2.10:9292/api/v1/status",
+						"error":    "Backend reported as unhealthy",
+						"resp":     `HTTP 200 OK: ` + strings.Repeat("x", 1024),
+					},
+				})))
+			})
+		})
+
 		When("fetching node health from the status endpoint fails with an error", func() {
 			JustBeforeEach(func() {
 				urlGetter.GetStub = func(url string) (*http.Response, error) {
 					m.RLock()
 					defer m.RUnlock()
-					return nil, errors.New("api not available")
+					return nil, errors.New("some network error: e.g. connection refused")
 				}
 			})
 
@@ -385,6 +433,29 @@ var _ = Describe("ClusterMonitor", func() {
 
 				Expect(backendStatus.Healthy).To(BeFalse())
 			})
+
+			It("logs context about the failure", func() {
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
+
+				Expect(logger.Buffer()).To(gbytes.Say(mustMarshalJSON(lager.LogFormat{
+					Timestamp: `.*`,
+					Source:    "ClusterMonitor test",
+					Message:   "ClusterMonitor test.Healthcheck failed on backend",
+					LogLevel:  lager.ERROR,
+					Data: lager.Data{
+						"backend": domain.BackendJSON{
+							Host:                "192.0.2.10",
+							Port:                3306,
+							StatusPort:          9292,
+							Healthy:             false,
+							Name:                "backend-0",
+							CurrentSessionCount: 0,
+						},
+						"endpoint": "http://192.0.2.10:9292/api/v1/status",
+						"error":    "Error during healthcheck request: some network error: e.g. connection refused",
+					},
+				})))
+			})
 		})
 
 		When("fetching node health from the status endpoint does not provide a OK response", func() {
@@ -395,8 +466,8 @@ var _ = Describe("ClusterMonitor", func() {
 
 					return &http.Response{
 						Body:       io.NopCloser(bytes.NewBuffer(nil)),
-						StatusCode: http.StatusTeapot,
 						Status:     fmt.Sprintf("%d %s", http.StatusTeapot, http.StatusText(http.StatusTeapot)),
+						StatusCode: http.StatusTeapot,
 					}, nil
 				}
 			})
@@ -413,7 +484,112 @@ var _ = Describe("ClusterMonitor", func() {
 			It("logs context about the failure", func() {
 				clusterMonitor.QueryBackendHealth(backend, backendStatus)
 
-				Expect(logger.Buffer()).To(gbytes.Say(`I'm a teapot`))
+				Expect(logger.Buffer()).To(gbytes.Say(mustMarshalJSON(lager.LogFormat{
+					Timestamp: `.*`,
+					Source:    "ClusterMonitor test",
+					Message:   "ClusterMonitor test.Healthcheck failed on backend",
+					LogLevel:  lager.ERROR,
+					Data: lager.Data{
+						"backend": domain.BackendJSON{
+							Host:                "192.0.2.10",
+							Port:                3306,
+							StatusPort:          9292,
+							Healthy:             false,
+							Name:                "backend-0",
+							CurrentSessionCount: 0,
+						},
+						"endpoint": "http://192.0.2.10:9292/api/v1/status",
+						"error":    "Backend reported as unhealthy",
+						"resp":     `HTTP 418 I'm a teapot: [[]empty body[]]`,
+					},
+				})))
+			})
+		})
+
+		When("fetching node health from the status endpoint indicates an unhealthy node", func() {
+			JustBeforeEach(func() {
+				urlGetter.GetStub = func(url string) (*http.Response, error) {
+					m.RLock()
+					defer m.RUnlock()
+
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewBufferString(`{"healthy": false, "wsrep_local_state_comment": "Joining", "wsrep_local_index": 1}` + "\n")),
+						StatusCode: http.StatusOK,
+						Status:     "200 OK",
+					}, nil
+				}
+			})
+
+			It("marks the backend as unhealthy", func() {
+				backend.SetHealthy()
+
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
+				Expect(urlGetter.GetCallCount()).To(Equal(1))
+
+				Expect(backendStatus.Healthy).To(BeFalse())
+			})
+
+			It("logs context about the failure", func() {
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
+
+				Expect(logger.Buffer()).To(gbytes.Say(mustMarshalJSON(lager.LogFormat{
+					Timestamp: `.*`,
+					Source:    "ClusterMonitor test",
+					Message:   "ClusterMonitor test.Healthcheck failed on backend",
+					LogLevel:  lager.ERROR,
+					Data: lager.Data{
+						"backend": domain.BackendJSON{
+							Host:                "192.0.2.10",
+							Port:                3306,
+							StatusPort:          9292,
+							Healthy:             false,
+							Name:                "backend-0",
+							CurrentSessionCount: 0,
+						},
+						"endpoint": "http://192.0.2.10:9292/api/v1/status",
+						"error":    "Backend reported as unhealthy",
+						"resp":     `HTTP 200 OK: {\"healthy\": false, \"wsrep_local_state_comment\": \"Joining\", \"wsrep_local_index\": 1}`,
+					},
+				})))
+			})
+
+			When("reading the body fails", func() {
+				JustBeforeEach(func() {
+					urlGetter.GetStub = func(url string) (*http.Response, error) {
+						m.RLock()
+						defer m.RUnlock()
+
+						return &http.Response{
+							Body:       &errReader{err: fmt.Errorf("some body read error")},
+							StatusCode: http.StatusOK,
+							Status:     "200 OK",
+						}, nil
+					}
+				})
+
+				It("logs an error", func() {
+					clusterMonitor.QueryBackendHealth(backend, backendStatus)
+
+					Expect(logger.Buffer()).To(gbytes.Say(mustMarshalJSON(lager.LogFormat{
+						Timestamp: `.*`,
+						Source:    "ClusterMonitor test",
+						Message:   "ClusterMonitor test.Healthcheck failed on backend",
+						LogLevel:  lager.ERROR,
+						Data: lager.Data{
+							"backend": domain.BackendJSON{
+								Host:                "192.0.2.10",
+								Port:                3306,
+								StatusPort:          9292,
+								Healthy:             false,
+								Name:                "backend-0",
+								CurrentSessionCount: 0,
+							},
+							"endpoint": "http://192.0.2.10:9292/api/v1/status",
+							"error":    "Error during healthcheck request: failed to read response body: some body read error",
+							"resp":     `HTTP 200 OK: [[]empty body[]]`,
+						},
+					})))
+				})
 			})
 		})
 	})
@@ -569,3 +745,17 @@ func unhealthyResponse(index int) *http.Response {
 		StatusCode: http.StatusOK,
 	}
 }
+
+type errReader struct {
+	err error
+}
+
+func (e *errReader) Close() error {
+	return nil
+}
+
+func (e *errReader) Read(_ []byte) (n int, err error) {
+	return 0, e.err
+}
+
+var _ io.ReadCloser = (*errReader)(nil)
