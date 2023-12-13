@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -349,7 +349,7 @@ var _ = Describe("ClusterMonitor", func() {
 						defer m.RUnlock()
 
 						return &http.Response{
-							Body:       ioutil.NopCloser(bytes.NewBuffer(nil)),
+							Body:       io.NopCloser(bytes.NewBuffer(nil)),
 							StatusCode: http.StatusTeapot,
 						}, errors.New("placeholder error")
 					}
@@ -393,7 +393,7 @@ var _ = Describe("ClusterMonitor", func() {
 					defer m.RUnlock()
 
 					return &http.Response{
-						Body:       ioutil.NopCloser(bytes.NewBuffer(nil)),
+						Body:       io.NopCloser(bytes.NewBuffer(nil)),
 						StatusCode: http.StatusTeapot,
 					}, nil
 				}
@@ -548,7 +548,7 @@ func healthyResponse(index int) *http.Response {
 	healthyResponseBodyTemplate := `{"wsrep_local_state":4,"wsrep_local_state_comment":"Synced","wsrep_local_index":%d,"healthy":true}`
 
 	return &http.Response{
-		Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(healthyResponseBodyTemplate, index)))),
+		Body:       io.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(healthyResponseBodyTemplate, index)))),
 		StatusCode: http.StatusOK,
 	}
 }
@@ -557,7 +557,7 @@ func unhealthyResponse(index int) *http.Response {
 	unhealthyResponseBodyTemplate := `{"wsrep_local_state":2,"wsrep_local_state_comment":"Joiner","wsrep_local_index":%d,"healthy":false}`
 
 	return &http.Response{
-		Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(unhealthyResponseBodyTemplate, index)))),
+		Body:       io.NopCloser(bytes.NewBuffer([]byte(fmt.Sprintf(unhealthyResponseBodyTemplate, index)))),
 		StatusCode: http.StatusOK,
 	}
 }
