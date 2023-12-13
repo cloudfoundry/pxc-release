@@ -367,7 +367,7 @@ var _ = Describe("ClusterMonitor", func() {
 			})
 		})
 
-		Context("when GETting the API returns an error", func() {
+		When("fetching node health from the status endpoint fails with an error", func() {
 			JustBeforeEach(func() {
 				urlGetter.GetStub = func(url string) (*http.Response, error) {
 					m.RLock()
@@ -386,7 +386,7 @@ var _ = Describe("ClusterMonitor", func() {
 			})
 		})
 
-		Context("when GETting the API returns a bad status code", func() {
+		When("fetching node health from the status endpoint does not provide a OK response", func() {
 			JustBeforeEach(func() {
 				urlGetter.GetStub = func(url string) (*http.Response, error) {
 					m.RLock()
