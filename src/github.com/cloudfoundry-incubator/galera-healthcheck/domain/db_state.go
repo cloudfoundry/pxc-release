@@ -8,16 +8,13 @@ import (
 type WsrepLocalState uint
 type WsrepLocalStateComment string
 
+// https://docs.percona.com/percona-xtradb-cluster/8.0/wsrep-status-index.html#wsrep_local_state
 const (
-	Joining WsrepLocalState = iota + 1 // https://splice.com/blog/iota-elegant-constants-golang/
+	Initialized WsrepLocalState = iota
+	Joining                     // https://splice.com/blog/iota-elegant-constants-golang/
 	DonorDesynced
 	Joined
 	Synced
-
-	JoiningString       = WsrepLocalStateComment("Joining")
-	DonorDesyncedString = WsrepLocalStateComment("Donor/Desynced")
-	JoinedString        = WsrepLocalStateComment("Joined")
-	SyncedString        = WsrepLocalStateComment("Synced")
 )
 
 type DBState struct {
@@ -46,14 +43,16 @@ func (s DBState) IsHealthy(availableWhenReadOnly bool) bool {
 
 func (w WsrepLocalState) Comment() WsrepLocalStateComment {
 	switch w {
+	case Initialized:
+		return "Initialized"
 	case Joining:
-		return JoiningString
+		return "Joining"
 	case DonorDesynced:
-		return DonorDesyncedString
+		return "Donor/Desynced"
 	case Joined:
-		return JoinedString
+		return "Joined"
 	case Synced:
-		return SyncedString
+		return "Synced"
 	default:
 		return WsrepLocalStateComment(fmt.Sprintf("Unrecognized state: %d", w))
 	}

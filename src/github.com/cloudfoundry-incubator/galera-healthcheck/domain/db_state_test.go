@@ -1,10 +1,10 @@
 package domain_test
 
 import (
-	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry-incubator/galera-healthcheck/domain"
 )
 
 var _ = Describe("WsrepLocalState", func() {
@@ -12,11 +12,11 @@ var _ = Describe("WsrepLocalState", func() {
 		func(state domain.WsrepLocalState, comment domain.WsrepLocalStateComment) {
 			Expect(state.Comment()).To(Equal(comment))
 		},
-		Entry("maps joining", domain.Joining, domain.JoiningString),
-		Entry("maps donor desynced", domain.DonorDesynced, domain.DonorDesyncedString),
-		Entry("maps joined", domain.Joined, domain.JoinedString),
-		Entry("maps synced", domain.Synced, domain.SyncedString),
-		Entry("maps unknown value of 0", domain.WsrepLocalState(0), domain.WsrepLocalStateComment("Unrecognized state: 0")),
+		Entry("maps joining", domain.Joining, domain.WsrepLocalStateComment("Joining")),
+		Entry("maps donor desynced", domain.DonorDesynced, domain.WsrepLocalStateComment("Donor/Desynced")),
+		Entry("maps joined", domain.Joined, domain.WsrepLocalStateComment("Joined")),
+		Entry("maps synced", domain.Synced, domain.WsrepLocalStateComment("Synced")),
+		Entry("maps initialized", domain.WsrepLocalState(0), domain.WsrepLocalStateComment("Initialized")),
 		Entry("maps unknown value greater than 4", domain.WsrepLocalState(1234), domain.WsrepLocalStateComment("Unrecognized state: 1234")),
 	)
 })
