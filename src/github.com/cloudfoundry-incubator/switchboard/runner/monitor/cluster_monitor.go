@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+
 	"github.com/cloudfoundry-incubator/switchboard/domain"
 )
 
@@ -200,8 +201,8 @@ func (c *ClusterMonitor) determineStateFromBackend(backend *domain.Backend, shou
 
 func (c *ClusterMonitor) QueryBackendHealth(backend *domain.Backend, healthMonitor *BackendStatus) {
 	c.logger.Debug("Querying Backend", lager.Data{"backend": backend.AsJSON(), "healthMonitor": healthMonitor})
-	healthMonitor.Counters.IncrementCount("dial")
 	shouldLog := healthMonitor.Counters.Should("log")
+	healthMonitor.Counters.IncrementCount("dial")
 
 	healthy, index := c.determineStateFromBackend(backend, shouldLog)
 

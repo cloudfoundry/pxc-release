@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 
@@ -395,6 +396,7 @@ var _ = Describe("ClusterMonitor", func() {
 					return &http.Response{
 						Body:       io.NopCloser(bytes.NewBuffer(nil)),
 						StatusCode: http.StatusTeapot,
+						Status:     fmt.Sprintf("%d %s", http.StatusTeapot, http.StatusText(http.StatusTeapot)),
 					}, nil
 				}
 			})
@@ -406,6 +408,12 @@ var _ = Describe("ClusterMonitor", func() {
 				Expect(urlGetter.GetCallCount()).To(Equal(1))
 
 				Expect(backendStatus.Healthy).To(BeFalse())
+			})
+
+			It("logs context about the failure", func() {
+				clusterMonitor.QueryBackendHealth(backend, backendStatus)
+
+				Expect(logger.Buffer()).To(gbytes.Say(`I'm a teapot`))
 			})
 		})
 	})
