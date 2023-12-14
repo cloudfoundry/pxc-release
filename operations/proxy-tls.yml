@@ -6,6 +6,10 @@
     certificate: ((proxy-tls.certificate))
     private_key: ((proxy-tls.private_key))
 
+- path: /instance_groups/name=proxy/jobs/name=proxy/properties/metrics?/server_name?
+  type: replace
+  value: proxy-tls
+
 - path: /variables/name=proxy-tls?
   type: replace
   value:

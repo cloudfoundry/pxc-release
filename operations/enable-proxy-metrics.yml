@@ -3,4 +3,3 @@
   path: /instance_groups/name=proxy/jobs/name=proxy/properties/metrics?
   value:
     enabled: true
-    port: 9999

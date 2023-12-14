@@ -1,0 +1,192 @@
+## Required external variables
+## cf_deployment_name=cf  (or the name of the bosh cf deployment)
+## cf_loggregator_ca=/${director_name}/${cf_deployment_name}/loggregator_ca (or the credhub reference to the loggregator_ca)
+---
+- type: replace
+  path: /releases/name=loggregator-agent?
+  value:
+    name: loggregator-agent
+    url: https://bosh.io/d/github.com/cloudfoundry/loggregator-agent-release
+    version: latest
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=loggr-forwarder-agent?
+  value:
+    name: loggr-forwarder-agent
+    release: loggregator-agent
+    properties:
+      tls:
+        ca_cert: "((loggregator_agent_tls.ca))"
+        cert: "((loggregator_agent_tls.certificate))"
+        key: "((loggregator_agent_tls.private_key))"
+      metrics:
+        ca_cert: "((loggr_forwarder_agent_metrics_tls.ca))"
+        cert: "((loggr_forwarder_agent_metrics_tls.certificate))"
+        key: "((loggr_forwarder_agent_metrics_tls.private_key))"
+        server_name: loggr_forwarder_agent_metrics
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=loggr-syslog-agent?
+  value:
+    name: loggr-syslog-agent
+    release: loggregator-agent
+    consumes:
+      binding_cache:
+        from: binding_cache
+        deployment: ((cf_deployment_name))
+    properties:
+      drain_ca_cert: "((loggregator_agent_tls.ca))"
+      port: 3460
+      tls:
+        ca_cert: "((loggregator_agent_tls.ca))"
+        cert: "((loggregator_agent_tls.certificate))"
+        key: "((loggregator_agent_tls.private_key))"
+      cache:
+        tls:
+          ca_cert: "((loggr_syslog_agent_api_tls.ca))"
+          cert: "((loggr_syslog_agent_api_tls.certificate))"
+          key: "((loggr_syslog_agent_api_tls.private_key))"
+          cn: "binding-cache"
+      metrics:
+        ca_cert: "((loggr_syslog_agent_metrics_tls.ca))"
+        cert: "((loggr_syslog_agent_metrics_tls.certificate))"
+        key: "((loggr_syslog_agent_metrics_tls.private_key))"
+        server_name: loggr_syslog_agent_metrics
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=loggregator_agent?
+  value:
+    name: loggregator_agent
+    release: loggregator-agent
+    consumes:
+      doppler:
+        from: doppler
+        deployment: ((cf_deployment_name))
+    properties:
+      grpc_port: 3459
+      disable_udp: true
+      loggregator:
+        tls:
+          ca_cert: "((loggregator_agent_tls.ca))"
+          agent:
+            cert: "((loggregator_agent_tls.certificate))"
+            key: "((loggregator_agent_tls.private_key))"
+      metrics:
+        ca_cert: "((loggregator_agent_metrics_tls.ca))"
+        cert: "((loggregator_agent_metrics_tls.certificate))"
+        key: "((loggregator_agent_metrics_tls.private_key))"
+        server_name: loggregator_agent_metrics
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=prom_scraper?
+  value:
+    name: prom_scraper
+    release: loggregator-agent
+    properties:
+      loggregator_agent:
+        tls:
+          ca_cert: "((loggregator_agent_tls.ca))"
+          cert: "((loggregator_agent_tls.certificate))"
+          key: "((loggregator_agent_tls.private_key))"
+        grpc_port: 3458
+      scrape:
+        tls:
+          ca_cert: |
+            ((prom_scraper_scrape_tls.ca))
+            ((proxy-tls.ca))
+          cert: "((prom_scraper_scrape_tls.certificate))"
+          key: "((prom_scraper_scrape_tls.private_key))"
+      metrics:
+        ca_cert: "((prom_scraper_metrics_tls.ca))"
+        cert: "((prom_scraper_metrics_tls.certificate))"
+        key: "((prom_scraper_metrics_tls.private_key))"
+        server_name: prom_scraper_metrics
+
+- type: replace
+  path: /variables/name=loggregator_agent_tls?
+  value:
+    name: loggregator_agent_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: loggregator_agent_tls
+      alternative_names: [loggregator_agent_tls, metron]
+
+- type: replace
+  path: /variables/name=loggregator_agent_metrics_tls?
+  value:
+    name: loggregator_agent_metrics_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: loggregator_agent_metrics
+      alternative_names: [loggregator_agent_metrics]
+
+- type: replace
+  path: /variables/name=loggr_syslog_agent_api_tls?
+  value:
+    name: loggr_syslog_agent_api_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: loggr_syslog_agent_api
+      alternative_names: [loggr_syslog_agent_api]
+
+- type: replace
+  path: /variables/name=loggr_syslog_agent_metrics_tls?
+  value:
+    name: loggr_syslog_agent_metrics_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: loggr_syslog_agent_metrics
+      alternative_names: [loggr_syslog_agent_metrics]
+
+- type: replace
+  path: /variables/name=loggr_forwarder_agent_metrics_tls?
+  value:
+    name: loggr_forwarder_agent_metrics_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: loggr_forwarder_agent_metrics
+      alternative_names: [loggr_forwarder_agent_metrics]
+
+- type: replace
+  path: /variables/name=prom_scraper_scrape_tls?
+  value:
+    name: prom_scraper_scrape_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: prom_scraper
+      alternative_names: [prom_scraper]
+
+- type: replace
+  path: /variables/name=prom_scraper_metrics_tls?
+  value:
+    name: prom_scraper_metrics_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: prom_scraper_metrics
+      alternative_names: [prom_scraper_metrics]
+
+- type: replace
+  path: /variables/name=loggregator_agent_metrics_tls?
+  value:
+    name: loggregator_agent_metrics_tls
+    type: certificate
+    update_mode: converge
+    options:
+      ca: ((cf_loggregator_ca))
+      common_name: loggregator_agent_metrics
+      alternative_names: [loggregator_agent_metrics]
+      extended_key_usage: [server_auth]
