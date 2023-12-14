@@ -7,6 +7,7 @@ templates:
   post-start.erb: bin/post-start
   drain.erb: bin/drain
   healthcheck.erb: bin/healthcheck
+  prom_scraper_config.yml.erb: config/prom_scraper_config.yml
 
 consumes:
 - name: proxy
@@ -89,6 +90,14 @@ properties:
   metrics.port:
     description: Port for the prometheus API to listen on
     default: 9999
+  metrics.source_id:
+    description: The source ID to set on scraped metrics
+    default: "pxc-proxy"
+  metrics.labels:
+    description: A map of labels that will be added to all proxy metrics
+    default: {}
+  metrics.server_name:
+    description: Required for HTTPS targets. Prom scraper uses this to set the server name for cert verification despite using localhost to resolve the request.
   startup_delay:
     description: |
       If using a load balancer above the proxies,

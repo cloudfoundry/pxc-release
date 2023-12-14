@@ -1,0 +1,18 @@
+<%-
+if !p('metrics.labels').is_a?(Hash)
+  raise "metrics.labels must be a hash but got #{p('metrics.labels')}"
+end
+-%>
+<%- if p('metrics.enabled', false) -%>
+---
+port: <%= p('metrics.port') %>
+source_id: <%= p('metrics.source_id') %>
+instance_id: <%= spec.id || spec.index.to_s %>
+<% if p('api_tls.enabled') %>
+scheme: "https"
+server_name: <%= p('metrics.server_name') %>
+<% else %>
+scheme: "http"
+<% end %>
+labels: <%= JSON.dump(p('metrics.labels')) %>
+<% end %>
