@@ -53,16 +53,14 @@ properties:
     description: "Timeout (milliseconds) before assuming a backend is unhealthy"
     default: 5000
   api_tls.enabled:
-      description: Enable TLS for client connections to the proxy's api endpoints
-      default: false
+    description: Enable TLS for client connections to the proxy's api endpoints
+    default: false
   api_tls.certificate:
-    certificate:
-      description: PEM-encoded certificate for securing TLS communication to the proxy API
-      default: ""
+    description: PEM-encoded certificate for securing TLS communication to the proxy API
+    default: ""
   api_tls.private_key:
-    private_key:
-      description: PEM-encoded key for securing TLS communication to the proxy API
-      default: ""
+    description: PEM-encoded key for securing TLS communication to the proxy API
+    default: ""
   api_port:
     description: "Port for the proxy API to listen on"
     default: 8080
