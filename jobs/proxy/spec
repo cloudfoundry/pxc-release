@@ -52,13 +52,14 @@ properties:
   healthcheck_timeout_millis:
     description: "Timeout (milliseconds) before assuming a backend is unhealthy"
     default: 5000
-  api_tls:
-    enabled:
+  api_tls.enabled:
       description: Enable TLS for client connections to the proxy's api endpoints
       default: false
+  api_tls.certificate:
     certificate:
       description: PEM-encoded certificate for securing TLS communication to the proxy API
       default: ""
+  api_tls.private_key:
     private_key:
       description: PEM-encoded key for securing TLS communication to the proxy API
       default: ""
@@ -84,13 +85,12 @@ properties:
   health_port:
     description: "Port for checking the health of the proxy process"
     default: 1936
-  metrics:
-    enabled:
-      description: Enable proxy metrics using prometheus
-      default: false
-    port:
-      description: Port for the prometheus API to listen on
-      default: 9999
+  metrics.enabled:
+    description: Enable proxy metrics using prometheus
+    default: false
+  metrics.port:
+    description: Port for the prometheus API to listen on
+    default: 9999
   startup_delay:
     description: |
       If using a load balancer above the proxies,
