@@ -1,5 +1,4 @@
 ---
 - type: replace
-  path: /instance_groups/name=proxy/jobs/name=proxy/properties/metrics?
-  value:
-    enabled: true
+  path: /instance_groups/name=proxy/jobs/name=proxy/properties/metrics?/enabled?
+  value: true
