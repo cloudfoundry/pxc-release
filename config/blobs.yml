@@ -26,10 +26,10 @@ libev-4.33.tar.gz:
   size: 569527
   object_id: 0ea3b0f6-7b83-4fe5-7ff8-966bcc56ab73
   sha: sha256:507eb7b8d1015fbec5b935f34ebed15bf346bed04a11ab82b8eee848c4205aea
-percona-xtrabackup-2.4.28.tar.gz:
-  size: 62525343
-  object_id: 5b8b1630-ef95-4728-4aa6-2bf0df02d080
-  sha: sha256:1d77f920a0cf536e12ddcd3a154583b1b52cd3db35bd2d06db629cc255367cea
+percona-xtrabackup-2.4.29.tar.gz:
+  size: 64667518
+  object_id: f196e2a0-e2ba-43ef-7d91-4319f8e6b927
+  sha: sha256:c59f0d612ec6a0f530ca3645546fb8af690f62d3ecbd70d33f30d3f56d9e842e
 percona-xtrabackup-8.0.35-30.tar.gz:
   size: 447842768
   object_id: f5af1d26-dba9-445a-51b3-5e08b2cfb2b7
