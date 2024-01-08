@@ -9,7 +9,7 @@ code.cloudfoundry.org/lager/v3/lagertest
 ## explicit; go 1.16
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
-# github.com/DATA-DOG/go-sqlmock v1.5.1
+# github.com/DATA-DOG/go-sqlmock v1.5.2
 ## explicit; go 1.15
 github.com/DATA-DOG/go-sqlmock
 # github.com/Microsoft/go-winio v0.6.1
@@ -45,8 +45,8 @@ github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/process
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/system
-# github.com/docker/go-connections v0.4.0
-## explicit
+# github.com/docker/go-connections v0.5.0
+## explicit; go 1.18
 github.com/docker/go-connections/nat
 # github.com/docker/go-units v0.5.0
 ## explicit
@@ -156,7 +156,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.10
+# github.com/opencontainers/runc v1.1.11
 ## explicit; go 1.17
 github.com/opencontainers/runc/libcontainer/user
 # github.com/openzipkin/zipkin-go v0.4.2
@@ -183,7 +183,7 @@ golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.15.0
+# golang.org/x/sys v0.16.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
