@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.30.0
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
@@ -18,10 +18,10 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.16.1 // indirect
+	golang.org/x/tools v0.17.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
