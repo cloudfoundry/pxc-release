@@ -1,0 +1,137 @@
+name: pxc
+version: 1.0.23
+commit_hash: b717c1b7
+uncommitted_changes: false
+jobs:
+- name: bootstrap
+  version: 546d6952b76ff10f7a9924fa098e149568bff804e4dae789cf26f12c068472cf
+  fingerprint: 546d6952b76ff10f7a9924fa098e149568bff804e4dae789cf26f12c068472cf
+  sha1: sha256:9f5809bd7a5cd5d1aaa6f98914f11caf43f08bfb5e5ea1ac63ab0bc90a00eb00
+  packages:
+  - bootstrap
+- name: cluster-health-logger
+  version: a4cbd585cf3df9841f1f0d627c1d4000b4b074be19491c629a838a6b4f341ce5
+  fingerprint: a4cbd585cf3df9841f1f0d627c1d4000b4b074be19491c629a838a6b4f341ce5
+  sha1: sha256:d8570070f9df0581947a9de451f21699bce81635592ab5fbcac12dccd3a9e525
+  packages:
+  - pxc-cluster-health-logger
+- name: galera-agent
+  version: 0200e6daca704f3d85c4f3e8f04eea675dfca3921698aff614062387ac0978ca
+  fingerprint: 0200e6daca704f3d85c4f3e8f04eea675dfca3921698aff614062387ac0978ca
+  sha1: sha256:2d03c2ee6e2201aa2dfed93ddbfaf1a847e81abe3bafc3a7499992a207ffe9e6
+  packages:
+  - galera-agent
+- name: gra-log-purger
+  version: 1724f3e5dc7c96e0c562b09cde8c0d180717fa7cfd48a70b8e9a051f157c9248
+  fingerprint: 1724f3e5dc7c96e0c562b09cde8c0d180717fa7cfd48a70b8e9a051f157c9248
+  sha1: sha256:c3d91855b632e3a5ef76ee0bf2471a93b2e7640084600510b91a33fad6320a75
+  packages:
+  - pxc-gra-log-purger
+- name: proxy
+  version: baae688a6b0bc164c4fcbe08167bff40b0af138e710e2efc0a1d52a4ff54aef2
+  fingerprint: baae688a6b0bc164c4fcbe08167bff40b0af138e710e2efc0a1d52a4ff54aef2
+  sha1: sha256:a574b4e2050060f2246ead9ecfe20ec7e9cdb80b28f27191d522da3c1d20f1e3
+  packages:
+  - proxy
+  - pxc-utils
+- name: pxc-mysql
+  version: aaccac07d49b38d2a49ee7fe78710463e32f0c69763edf960c86d33f812641ca
+  fingerprint: aaccac07d49b38d2a49ee7fe78710463e32f0c69763edf960c86d33f812641ca
+  sha1: sha256:ce8c62ac16f9094afa8772a2f76070b25aeb1ed9ff7a1528295b042e025db64d
+  packages:
+  - auto-tune-mysql
+  - galera-init
+  - percona-xtradb-cluster-5.7
+  - percona-xtradb-cluster-8.0
+  - percona-xtrabackup-2.4
+  - percona-xtrabackup-8.0
+  - pxc-utils
+- name: smoke-tests
+  version: 61bcba19e7cc4362f5d4ab9e7f37e199fbab5cc7a0291f3185d3d950dac0e3ff
+  fingerprint: 61bcba19e7cc4362f5d4ab9e7f37e199fbab5cc7a0291f3185d3d950dac0e3ff
+  sha1: sha256:4687c2aecf6588e803592f7f0e975c70a1d244b284680721c123b226c86eff43
+  packages:
+  - smoke-tests
+packages:
+- name: auto-tune-mysql
+  version: 6c651bbe3aa3698cb335b6232c081ccb468e6afa1cc7f8cb7bc818aa4225c84b
+  fingerprint: 6c651bbe3aa3698cb335b6232c081ccb468e6afa1cc7f8cb7bc818aa4225c84b
+  sha1: sha256:4b8212668a2960a711557530e34a7dd91f4ca2f2b216b0b19381672016f1cb6a
+  dependencies:
+  - golang-1-linux
+- name: bootstrap
+  version: c35a1ccca04c8420951e375f2ab917b6712fd613900b5fe6e536d81063aed498
+  fingerprint: c35a1ccca04c8420951e375f2ab917b6712fd613900b5fe6e536d81063aed498
+  sha1: sha256:b1f9d7695fd458940835ab317838081479dbe54529f0d35a3c467cc3cb88371c
+  dependencies:
+  - golang-1-linux
+- name: galera-agent
+  version: a75f58b91f542ee3be199f56094487130017a9db40890d7aaf8e14c0fc175f49
+  fingerprint: a75f58b91f542ee3be199f56094487130017a9db40890d7aaf8e14c0fc175f49
+  sha1: sha256:87a7e43405f1a2c98d65cfaee547c39042d5439879c2f36814a8693d026d7fb6
+  dependencies:
+  - golang-1-linux
+- name: galera-init
+  version: 22b0313dd6fe50ba5fde633cab703e819c8fd26f23c217c4d9ca82f2947c0921
+  fingerprint: 22b0313dd6fe50ba5fde633cab703e819c8fd26f23c217c4d9ca82f2947c0921
+  sha1: sha256:5e3e528384d27741acf8e62d0caa7ea75c46efeed03c30a43b6ff8eaf944f872
+  dependencies:
+  - golang-1-linux
+- name: golang-1-linux
+  version: c2342901fca75f4c7ec3f32e6a757e923089c6c50d8eb3effd2c25eac1009e31
+  fingerprint: c2342901fca75f4c7ec3f32e6a757e923089c6c50d8eb3effd2c25eac1009e31
+  sha1: sha256:d354b084ed879adc3218f89b9109b474a68c3eafb5c0ea204c4b77963e4736b0
+  dependencies: []
+- name: percona-xtrabackup-2.4
+  version: d3fe2bdf923184e51782a029f1bbfa7ef38798c2b3805652cc65d8a7f0f9d3fe
+  fingerprint: d3fe2bdf923184e51782a029f1bbfa7ef38798c2b3805652cc65d8a7f0f9d3fe
+  sha1: sha256:30eb3a7e441a2041c1b386f8d28c3a85d3546ded1cbfb49538fa8108cca14ba1
+  dependencies: []
+- name: percona-xtrabackup-8.0
+  version: f411b6b759206876405fdf3ed5c26c42419abc348eac21de655cff2120568ecf
+  fingerprint: f411b6b759206876405fdf3ed5c26c42419abc348eac21de655cff2120568ecf
+  sha1: sha256:1b30fbb33f1fc0c34fe0ec320cf6c52ccfe8b1279f1332cbab1bd291789af6e2
+  dependencies: []
+- name: percona-xtradb-cluster-5.7
+  version: 71968550e0816ea6bc23a7d48816a378bd1ca188661ab714e009d5c4e27e1913
+  fingerprint: 71968550e0816ea6bc23a7d48816a378bd1ca188661ab714e009d5c4e27e1913
+  sha1: sha256:c5f22d0cae47c28d8e477642e95062641257eaec514e529e2b11adfd63332dbb
+  dependencies: []
+- name: percona-xtradb-cluster-8.0
+  version: 55d29308240fe18253b385733d74f8fb61cad61f850b4f0e1c472212fca61e2e
+  fingerprint: 55d29308240fe18253b385733d74f8fb61cad61f850b4f0e1c472212fca61e2e
+  sha1: sha256:58e4bce6fa985e8d85150fefd2adc1ac8300dc9b46eb56918b00d5937ba52529
+  dependencies: []
+- name: proxy
+  version: 5407079754e0e4966c9e0c540be73bccdd51002e5a4239039fc7c6063c8d34ff
+  fingerprint: 5407079754e0e4966c9e0c540be73bccdd51002e5a4239039fc7c6063c8d34ff
+  sha1: sha256:b80e9a2192209d82c2fe17b1e8c316ef09ab1bfbce81b41271f801a6df3d92d2
+  dependencies:
+  - golang-1-linux
+- name: pxc-cluster-health-logger
+  version: 727f3c49f4a53b2ecfc3708a69aa58c9ff4b8c74b340beadd68beb27a8fa6cdc
+  fingerprint: 727f3c49f4a53b2ecfc3708a69aa58c9ff4b8c74b340beadd68beb27a8fa6cdc
+  sha1: sha256:7ad55e52d1003dca3618855caffffedb27504490542bb2128d9eaa9e014ec81d
+  dependencies:
+  - golang-1-linux
+- name: pxc-gra-log-purger
+  version: 2e4ef72747bfd0dfd23a19b29e08ca77191649ef06136a17c8e00ce7a255bb53
+  fingerprint: 2e4ef72747bfd0dfd23a19b29e08ca77191649ef06136a17c8e00ce7a255bb53
+  sha1: sha256:67c16a0502cf076d6c2c5a884da19e23bc5f06ac978818f4c839effad6045b14
+  dependencies:
+  - golang-1-linux
+- name: pxc-utils
+  version: b9354276e06987689ee15f994e681e380060f6203d2e22a58abd44fc8077052f
+  fingerprint: b9354276e06987689ee15f994e681e380060f6203d2e22a58abd44fc8077052f
+  sha1: sha256:11bc428449ab1386ee5e0bb1181b712569668f01541fdd85efcbf5d5ce80cd06
+  dependencies: []
+- name: smoke-tests
+  version: e78636557186df2b8e7b2b8cbbaf14ea591ee95a0ff8eaf44750ee51de69d210
+  fingerprint: e78636557186df2b8e7b2b8cbbaf14ea591ee95a0ff8eaf44750ee51de69d210
+  sha1: sha256:a068ff2d7f8b9a447a6b028bb440f45c70821793fdeccb4ba382ea760a6523ea
+  dependencies:
+  - golang-1-linux
+license:
+  version: 2af42e055f6786eee62230898de956d4889886933b99cc3491250a91590c7c53
+  fingerprint: 2af42e055f6786eee62230898de956d4889886933b99cc3491250a91590c7c53
+  sha1: sha256:303415c0dc4ecf8838a5b1b61b57e072d7d1e2764cc352521d79d45ac209314e
