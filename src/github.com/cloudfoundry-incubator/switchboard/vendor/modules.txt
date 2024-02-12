@@ -4,7 +4,7 @@ code.cloudfoundry.org/lager
 code.cloudfoundry.org/lager/lagerctx
 code.cloudfoundry.org/lager/lagerflags
 code.cloudfoundry.org/lager/lagertest
-# code.cloudfoundry.org/tlsconfig v0.0.0-20240116140718-a2c58c2ff70c
+# code.cloudfoundry.org/tlsconfig v0.0.0-20240209182105-bbe53504285f
 ## explicit; go 1.19
 code.cloudfoundry.org/tlsconfig
 code.cloudfoundry.org/tlsconfig/certtest
@@ -128,7 +128,7 @@ go.step.sm/crypto/keyutil
 go.step.sm/crypto/pemutil
 go.step.sm/crypto/randutil
 go.step.sm/crypto/x25519
-# golang.org/x/crypto v0.18.0
+# golang.org/x/crypto v0.19.0
 ## explicit; go 1.18
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -142,17 +142,17 @@ golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/mod v0.14.0
+# golang.org/x/mod v0.15.0
 ## explicit; go 1.18
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.20.0
+# golang.org/x/net v0.21.0
 ## explicit; go 1.18
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.16.0
+# golang.org/x/sys v0.17.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
