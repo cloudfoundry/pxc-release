@@ -1,5 +1,5 @@
-# github.com/cloudfoundry/gosigar v1.3.47
-## explicit; go 1.21
+# github.com/cloudfoundry/gosigar v1.3.48
+## explicit; go 1.21.0
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
 # github.com/fsnotify/fsnotify v1.7.0
