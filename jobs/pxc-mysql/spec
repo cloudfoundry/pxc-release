@@ -198,6 +198,9 @@ properties:
   engine_config.long_query_time:
     description: 'Threshold in seconds above which SQL queries get logged in the slow query log file'
     default: 10
+  engine_config.log_slow_verbosity:
+    description: 'Specifies how much information to include in your slow log'
+    default: 'query_plan,innodb'
 
 
   # Mysql Character Set Defaults

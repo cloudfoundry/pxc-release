@@ -478,6 +478,42 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		})
 	})
 
+	Context("Slow query logs", Label("slow-query"), func() {
+		const (
+			slowqueryLogPath = "/var/vcap/sys/log/pxc-mysql/mysql_slow_query.log"
+		)
+
+		var (
+			activeBackend string
+			tmpdir        string
+		)
+
+		getLogContents := func(db *sql.DB, activeBackend string) string {
+			Expect(bosh.Scp(deploymentName, activeBackend+":"+slowqueryLogPath, tmpdir)).To(Succeed())
+			logContents, err := os.ReadFile(filepath.Join(tmpdir, "mysql_slow_query.log"))
+			Expect(err).NotTo(HaveOccurred())
+			return string(logContents)
+		}
+
+		BeforeAll(func() {
+			var err error
+			tmpdir, err = os.MkdirTemp("", "audit_logs_")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(db.QueryRow(`SELECT @@global.wsrep_node_name`).Scan(&activeBackend)).To(Succeed())
+		})
+
+		It("logs slow queries with details", func() {
+			Expect(db.Query(`SELECT sleep(10)`)).Error().NotTo(HaveOccurred())
+
+			contents := getLogContents(db, activeBackend)
+
+			Expect(contents).To(ContainSubstring("# Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No"))
+			Expect(contents).To(ContainSubstring("# No InnoDB statistics available for this query"))
+			Expect(contents).To(ContainSubstring("SELECT sleep(10);"))
+		})
+	})
+
 	Context("Audit Logs", Label("audit-logs"), func() {
 		const (
 			databaseName      = "pxc_release_test_db"
