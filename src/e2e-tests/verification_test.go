@@ -497,14 +497,14 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 		BeforeAll(func() {
 			var err error
-			tmpdir, err = os.MkdirTemp("", "audit_logs_")
+			tmpdir, err = os.MkdirTemp("", "slow_query_logs_")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(db.QueryRow(`SELECT @@global.wsrep_node_name`).Scan(&activeBackend)).To(Succeed())
 		})
 
 		It("logs slow queries with details", func() {
-			Expect(db.Query(`SELECT sleep(10)`)).Error().NotTo(HaveOccurred())
+			Expect(db.Exec(`DO sleep(10)`)).Error().NotTo(HaveOccurred())
 
 			contents := getLogContents(db, activeBackend)
 
@@ -512,7 +512,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(contents).To(ContainSubstring("Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No"))
 			Expect(contents).To(ContainSubstring("Filesort: No  Filesort_on_disk: No  Merge_passes: 0"))
 			Expect(contents).To(ContainSubstring("No InnoDB statistics available for this query"))
-			Expect(contents).To(ContainSubstring("SELECT sleep(10);"))
+			Expect(contents).To(ContainSubstring("DO sleep(10);"))
 		})
 	})
 
