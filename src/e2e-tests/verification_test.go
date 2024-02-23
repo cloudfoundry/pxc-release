@@ -508,8 +508,10 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 			contents := getLogContents(db, activeBackend)
 
-			Expect(contents).To(ContainSubstring("# Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No"))
-			Expect(contents).To(ContainSubstring("# No InnoDB statistics available for this query"))
+			Expect(contents).To(ContainSubstring("Tmp_tables: 0  Tmp_disk_tables: 0  Tmp_table_sizes: 0"))
+			Expect(contents).To(ContainSubstring("Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No"))
+			Expect(contents).To(ContainSubstring("Filesort: No  Filesort_on_disk: No  Merge_passes: 0"))
+			Expect(contents).To(ContainSubstring("No InnoDB statistics available for this query"))
 			Expect(contents).To(ContainSubstring("SELECT sleep(10);"))
 		})
 	})
