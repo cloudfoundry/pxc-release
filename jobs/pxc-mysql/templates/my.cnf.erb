@@ -125,6 +125,8 @@ local_infile                    = <%= bool_to_on_off(p('engine_config.local_infi
 
 <%- if p('engine_config.binlog.enabled') -%>
 log_bin                         = mysql-bin
+<%- else -%>
+skip-log-bin
 <%- end -%>
 relay_log                       = mysql-relay
 relay_log_recovery              = OFF
