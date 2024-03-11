@@ -3,12 +3,12 @@ module e2e-tests
 go 1.20
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.0.0-20240301143844-95036809ae27
-	github.com/go-sql-driver/mysql v1.7.1
+	code.cloudfoundry.org/tlsconfig v0.0.0-20240308143921-4b874b341ed6
+	github.com/go-sql-driver/mysql v1.8.0
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.15.0
+	github.com/onsi/ginkgo/v2 v2.16.0
 	github.com/onsi/gomega v1.31.1
-	golang.org/x/crypto v0.20.0
+	golang.org/x/crypto v0.21.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -21,8 +21,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
 	go.step.sm/crypto v0.43.1 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.18.0 // indirect
+	golang.org/x/tools v0.19.0 // indirect
 )

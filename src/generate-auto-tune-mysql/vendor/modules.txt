@@ -1,4 +1,4 @@
-# github.com/cloudfoundry/gosigar v1.3.49
+# github.com/cloudfoundry/gosigar v1.3.50
 ## explicit; go 1.21.0
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
@@ -60,7 +60,7 @@ github.com/onsi/gomega/types
 github.com/pkg/errors
 # github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
-# golang.org/x/net v0.21.0
+# golang.org/x/net v0.22.0
 ## explicit; go 1.18
 golang.org/x/net/html
 golang.org/x/net/html/atom
