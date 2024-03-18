@@ -23,8 +23,8 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/containerd/containerd v1.7.13
-## explicit; go 1.19
+# github.com/containerd/containerd v1.7.14
+## explicit; go 1.21
 github.com/containerd/containerd/pkg/userns
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
@@ -58,7 +58,7 @@ github.com/docker/go-connections/nat
 # github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
-# github.com/fsouza/go-dockerclient v1.10.2
+# github.com/fsouza/go-dockerclient v1.11.0
 ## explicit; go 1.21
 github.com/fsouza/go-dockerclient
 # github.com/go-logr/logr v1.4.1
