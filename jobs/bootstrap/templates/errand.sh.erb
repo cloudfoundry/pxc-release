@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
-echo "Started bootstrap errand ..."
-/var/vcap/jobs/bpm/bin/bpm run bootstrap
-echo "Bootstrap errand completed"
+<% if spec.bootstrap %>
+  echo "Started bootstrap errand ..."
+  /var/vcap/jobs/bpm/bin/bpm run bootstrap
+  echo "Bootstrap errand completed"
+<% else %>
+  echo "This errand only runs on the bootstrap node"
+<% end %>
+exit 0
