@@ -9,7 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.31.1
+	github.com/onsi/gomega v1.32.0
 )
 
 require (
