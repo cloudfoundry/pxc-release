@@ -199,7 +199,7 @@ properties:
     description: 'Threshold in seconds above which SQL queries get logged in the slow query log file'
     default: 10
   engine_config.log_slow_verbosity:
-    description: 'Specifies how much information to include in your slow log'
+    description: 'Specifies how much information to include in your slow query log'
     default: 'query_plan,innodb'
 
 
