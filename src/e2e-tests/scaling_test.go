@@ -3,12 +3,12 @@ package e2e_tests
 import (
 	"database/sql"
 
-	"e2e-tests/utilities/cmd"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"e2e-tests/utilities/bosh"
+	"e2e-tests/utilities/cmd"
 )
 
 var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
@@ -22,6 +22,7 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
+			bosh.Operation("disable-binlog.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
 
@@ -53,6 +54,11 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 		Expect(clusterSize).To(Equal("3"))
 	})
 
+	It("disables the binary log", func() {
+		_, err := db.Exec(`SHOW BINARY LOGS`)
+		Expect(err).To(MatchError(ContainSubstring(`You are not using binary logging`)))
+	})
+
 	It("can write data to this healthy database", func() {
 		Expect(db.Exec(`CREATE DATABASE IF NOT EXISTS pxc_release_test_db`)).
 			Error().NotTo(HaveOccurred())
@@ -65,8 +71,8 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 	It("scales the cluster down to one node", func() {
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
-			bosh.Operation("test/seed-test-user.yml"),
 			bosh.Operation("minimal-mode.yml"),
+			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
 
 		var unused, clusterSize string
