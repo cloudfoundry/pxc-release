@@ -27,6 +27,23 @@ describe 'my.cnf template' do
   let(:template) { job.template('config/my.cnf') }
   let(:spec) { {} }
   let(:rendered_template) { template.render(spec, consumes: links) }
+  let(:parsed_mycnf) {
+    # Comment out my.cnf !include* directives to avoid parsing failures
+    rendered_template_cleaned = rendered_template.gsub(/^(!include.*)/, '#\1')
+    # Convert common bare option names to "$option = true" for testing
+    rendered_template_cleaned = rendered_template_cleaned.gsub(/((?:skip|disable)[_-][a-z_-]+)/, '\1 = true')
+
+    # Convert rendered my.cnf to a parsed hash, preserving duplicate keys
+    # i.e. "plugin-load-add=foo.so\nplugin-load-add=bar.so" => { "plugin-load-add" => ["foo.so","bar.so"]}
+    IniParse.parse(rendered_template_cleaned).
+      reduce({}) do |h, section|
+      h.update(
+        section.key => section.reduce({}) do |opts, o|
+          opts.update(o.key => opts.key?(o.key) ? [opts[o.key]].flatten << o.value : o.value)
+        end
+      )
+    end
+  }
 
   it 'sets the authentication-policy' do
     expect(rendered_template).to match(/authentication-policy\s*=\s*mysql_native_password/)
@@ -93,24 +110,8 @@ describe 'my.cnf template' do
   end
 
   context 'mysql 8.0' do
-    let(:parsed_mycnf) {
-      # Comment out my.cnf !include* directives to avoid parsing failures
-      rendered_template_cleaned = rendered_template.gsub(/^(!include.*)/, '#\1')
-
-      # Convert rendered my.cnf to a parsed hash, preserving duplicate keys
-      # i.e. "plugin-load-add=foo.so\nplugin-load-add=bar.so" => { "plugin-load-add" => ["foo.so","bar.so"]}
-      IniParse.parse(rendered_template_cleaned).
-        reduce({}) do |h, section|
-        h.update(
-          section.key => section.reduce({}) do |opts, o|
-            opts.update(o.key => opts.key?(o.key) ? [opts[o.key]].flatten << o.value : o.value)
-          end
-        )
-      end
-    }
-
     it 'suppresses warnings about deprecated features to mitigate excessive logging' do
-        expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log-error-suppression-list" => "ER_SERVER_WARN_DEPRECATED"))
+      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log-error-suppression-list" => "ER_SERVER_WARN_DEPRECATED"))
     end
   end
 
@@ -300,6 +301,24 @@ describe 'my.cnf template' do
       it 'configures wsrep_slave_threads to that value' do
         expect(rendered_template).to match(/wsrep_slave_threads\s+= 32/)
       end
+    end
+  end
+
+  it 'enables binary logs by default' do
+    expect(parsed_mycnf).to include("mysqld" => hash_including("log_bin" => "mysql-bin"))
+  end
+
+  context 'when engine_config.binlog.enabled is true' do
+    it 'enables binary logs' do
+      spec["engine_config"] = { "binlog" => { "enabled" => true } }
+      expect(parsed_mycnf).to include("mysqld" => hash_including("log_bin" => "mysql-bin"))
+    end
+  end
+
+  context 'when engine_config.binlog.enabled is false' do
+    it 'disables binary logs' do
+      spec["engine_config"] = { "binlog" => { "enabled" => false } }
+      expect(parsed_mycnf).to include("mysqld" => hash_including("skip-log-bin" => true))
     end
   end
 end
