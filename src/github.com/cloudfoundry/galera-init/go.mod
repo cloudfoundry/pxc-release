@@ -8,7 +8,7 @@ require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/fsouza/go-dockerclient v1.11.0
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d

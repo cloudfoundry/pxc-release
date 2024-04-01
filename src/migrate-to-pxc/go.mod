@@ -5,8 +5,8 @@ go 1.21.0
 toolchain go1.22.0
 
 require (
-	github.com/cloudfoundry/gosigar v1.3.50
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/cloudfoundry/gosigar v1.3.52
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.32.0

@@ -4,10 +4,10 @@ go 1.20
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	code.cloudfoundry.org/tlsconfig v0.0.0-20240322144156-e73504174425
+	code.cloudfoundry.org/tlsconfig v0.0.0-20240329144310-4d1ca5fa14a6
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.32.0
@@ -28,7 +28,7 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.44.1 // indirect
+	go.step.sm/crypto v0.44.2 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect

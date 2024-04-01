@@ -2,14 +2,14 @@
 ## explicit; go 1.20
 filippo.io/edwards25519
 filippo.io/edwards25519/field
-# github.com/cloudfoundry/gosigar v1.3.50
+# github.com/cloudfoundry/gosigar v1.3.52
 ## explicit; go 1.21.0
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/go-sql-driver/mysql v1.8.0
+# github.com/go-sql-driver/mysql v1.8.1
 ## explicit; go 1.18
 github.com/go-sql-driver/mysql
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572

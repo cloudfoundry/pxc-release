@@ -6,7 +6,7 @@ filippo.io/edwards25519/field
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
-# github.com/go-sql-driver/mysql v1.8.0
+# github.com/go-sql-driver/mysql v1.8.1
 ## explicit; go 1.18
 github.com/go-sql-driver/mysql
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
@@ -19,7 +19,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240320155624-b11c3daa6f07
+# github.com/google/pprof v0.0.0-20240327155427-868f304927ed
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/onsi/ginkgo/v2 v2.17.1

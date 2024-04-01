@@ -8,7 +8,7 @@ github.com/erikstmartin/go-testdb
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/go-sql-driver/mysql v1.8.0
+# github.com/go-sql-driver/mysql v1.8.1
 ## explicit; go 1.18
 github.com/go-sql-driver/mysql
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
