@@ -19,7 +19,9 @@ type DBHelper interface {
 	StartMysqldInBootstrap() (*exec.Cmd, error)
 	StopMysqld()
 	IsDatabaseReachable() bool
+	IsDatabaseSynced() bool
 	IsProcessRunning() bool
+	SetVariable(name string, value any) error
 }
 
 type GaleraDBHelper struct {
@@ -144,12 +146,22 @@ func (m GaleraDBHelper) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cm
 
 func (m GaleraDBHelper) IsDatabaseReachable() bool {
 	m.logger.Info(fmt.Sprintf("Determining if database is reachable"))
-	var (
-		unused string
-		value  string
-	)
 
-	if err := m.db.QueryRow(`SELECT @@global.wsrep_provider`).Scan(&value); err != nil {
+	if err := m.db.Ping(); err != nil {
+		m.logger.Error("database ping failed", err)
+		return false
+	}
+
+	m.logger.Info("database ping succeeded. database is reachable.")
+
+	return true
+}
+
+// TODO: This should be tested
+func (m GaleraDBHelper) IsDatabaseSynced() bool {
+	m.logger.Info(fmt.Sprintf("Determining if database is a galera synced node"))
+	var wsrepProvider string
+	if err := m.db.QueryRow(`SELECT @@global.wsrep_provider`).Scan(&wsrepProvider); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			m.logger.Info("Database is reachable, Galera is off")
 			return true
@@ -158,16 +170,25 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 		return false
 	}
 
-	if value == "none" {
+	if wsrepProvider == "none" {
 		m.logger.Info("Database is reachable, Galera is off")
 		return true
 	}
 
-	if err := m.db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_local\_state\_comment'`).Scan(&unused, &value); err != nil {
+	var wsrepLocalNodeState string
+	if err := m.db.QueryRow(`SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'wsrep_local_state_comment'`).Scan(&wsrepLocalNodeState); err != nil {
 		m.logger.Debug(fmt.Sprintf("Galera state not Synced, received: %v", err))
 		return false
 	}
 
-	m.logger.Info(fmt.Sprintf("Galera Database state is %s", value))
-	return value == "Synced"
+	m.logger.Info(fmt.Sprintf("Galera Database state is %s", wsrepLocalNodeState))
+	return wsrepLocalNodeState == "Synced"
+}
+
+func (m GaleraDBHelper) SetVariable(name string, value any) error {
+	if _, err := m.db.Exec(`SET GLOBAL `+name+` = ?`, value); err != nil {
+		return fmt.Errorf("failed to set global variable %q=%v: %s", name, value, err)
+	}
+
+	return nil
 }

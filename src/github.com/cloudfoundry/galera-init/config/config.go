@@ -37,6 +37,7 @@ type StartManager struct {
 	BootstrapNode                 bool     `yaml:"BootstrapNode"`
 	ClusterProbeTimeout           int      `yaml:"ClusterProbeTimeout" validate:"nonzero"`
 	GaleraInitStatusServerAddress string   `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`
+	WsrepApplierThreads           int      `yaml:"WsrepApplierThreads"`
 }
 
 type BackendTLS struct {

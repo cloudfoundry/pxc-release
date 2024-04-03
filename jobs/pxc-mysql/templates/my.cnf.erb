@@ -41,7 +41,7 @@ binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')
 source_verify_checksum          = ON
 <%- if p('engine_config.galera.enabled') -%>
 <%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
-wsrep_applier_threads           = <%= wsrep_applier_threads %>
+wsrep_applier_threads           = 1
 <%- end -%>
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
 <%- end -%>
@@ -51,7 +51,7 @@ log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
 <%- if p('engine_config.galera.enabled') -%>
 wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
 <%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
-wsrep_slave_threads             = <%= wsrep_applier_threads %>
+wsrep_slave_threads             = 1
 <%- end -%>
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/lib/libgalera_smm.so
 <%- end -%>

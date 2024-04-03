@@ -19,6 +19,16 @@ type FakeDBHelper struct {
 	isDatabaseReachableReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	IsDatabaseSyncedStub        func() bool
+	isDatabaseSyncedMutex       sync.RWMutex
+	isDatabaseSyncedArgsForCall []struct {
+	}
+	isDatabaseSyncedReturns struct {
+		result1 bool
+	}
+	isDatabaseSyncedReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	IsProcessRunningStub        func() bool
 	isProcessRunningMutex       sync.RWMutex
 	isProcessRunningArgsForCall []struct {
@@ -28,6 +38,18 @@ type FakeDBHelper struct {
 	}
 	isProcessRunningReturnsOnCall map[int]struct {
 		result1 bool
+	}
+	SetVariableStub        func(string, any) error
+	setVariableMutex       sync.RWMutex
+	setVariableArgsForCall []struct {
+		arg1 string
+		arg2 any
+	}
+	setVariableReturns struct {
+		result1 error
+	}
+	setVariableReturnsOnCall map[int]struct {
+		result1 error
 	}
 	StartMysqldInBootstrapStub        func() (*exec.Cmd, error)
 	startMysqldInBootstrapMutex       sync.RWMutex
@@ -114,6 +136,59 @@ func (fake *FakeDBHelper) IsDatabaseReachableReturnsOnCall(i int, result1 bool) 
 	}{result1}
 }
 
+func (fake *FakeDBHelper) IsDatabaseSynced() bool {
+	fake.isDatabaseSyncedMutex.Lock()
+	ret, specificReturn := fake.isDatabaseSyncedReturnsOnCall[len(fake.isDatabaseSyncedArgsForCall)]
+	fake.isDatabaseSyncedArgsForCall = append(fake.isDatabaseSyncedArgsForCall, struct {
+	}{})
+	stub := fake.IsDatabaseSyncedStub
+	fakeReturns := fake.isDatabaseSyncedReturns
+	fake.recordInvocation("IsDatabaseSynced", []interface{}{})
+	fake.isDatabaseSyncedMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeDBHelper) IsDatabaseSyncedCallCount() int {
+	fake.isDatabaseSyncedMutex.RLock()
+	defer fake.isDatabaseSyncedMutex.RUnlock()
+	return len(fake.isDatabaseSyncedArgsForCall)
+}
+
+func (fake *FakeDBHelper) IsDatabaseSyncedCalls(stub func() bool) {
+	fake.isDatabaseSyncedMutex.Lock()
+	defer fake.isDatabaseSyncedMutex.Unlock()
+	fake.IsDatabaseSyncedStub = stub
+}
+
+func (fake *FakeDBHelper) IsDatabaseSyncedReturns(result1 bool) {
+	fake.isDatabaseSyncedMutex.Lock()
+	defer fake.isDatabaseSyncedMutex.Unlock()
+	fake.IsDatabaseSyncedStub = nil
+	fake.isDatabaseSyncedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeDBHelper) IsDatabaseSyncedReturnsOnCall(i int, result1 bool) {
+	fake.isDatabaseSyncedMutex.Lock()
+	defer fake.isDatabaseSyncedMutex.Unlock()
+	fake.IsDatabaseSyncedStub = nil
+	if fake.isDatabaseSyncedReturnsOnCall == nil {
+		fake.isDatabaseSyncedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isDatabaseSyncedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeDBHelper) IsProcessRunning() bool {
 	fake.isProcessRunningMutex.Lock()
 	ret, specificReturn := fake.isProcessRunningReturnsOnCall[len(fake.isProcessRunningArgsForCall)]
@@ -164,6 +239,68 @@ func (fake *FakeDBHelper) IsProcessRunningReturnsOnCall(i int, result1 bool) {
 	}
 	fake.isProcessRunningReturnsOnCall[i] = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakeDBHelper) SetVariable(arg1 string, arg2 any) error {
+	fake.setVariableMutex.Lock()
+	ret, specificReturn := fake.setVariableReturnsOnCall[len(fake.setVariableArgsForCall)]
+	fake.setVariableArgsForCall = append(fake.setVariableArgsForCall, struct {
+		arg1 string
+		arg2 any
+	}{arg1, arg2})
+	stub := fake.SetVariableStub
+	fakeReturns := fake.setVariableReturns
+	fake.recordInvocation("SetVariable", []interface{}{arg1, arg2})
+	fake.setVariableMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeDBHelper) SetVariableCallCount() int {
+	fake.setVariableMutex.RLock()
+	defer fake.setVariableMutex.RUnlock()
+	return len(fake.setVariableArgsForCall)
+}
+
+func (fake *FakeDBHelper) SetVariableCalls(stub func(string, any) error) {
+	fake.setVariableMutex.Lock()
+	defer fake.setVariableMutex.Unlock()
+	fake.SetVariableStub = stub
+}
+
+func (fake *FakeDBHelper) SetVariableArgsForCall(i int) (string, any) {
+	fake.setVariableMutex.RLock()
+	defer fake.setVariableMutex.RUnlock()
+	argsForCall := fake.setVariableArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeDBHelper) SetVariableReturns(result1 error) {
+	fake.setVariableMutex.Lock()
+	defer fake.setVariableMutex.Unlock()
+	fake.SetVariableStub = nil
+	fake.setVariableReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDBHelper) SetVariableReturnsOnCall(i int, result1 error) {
+	fake.setVariableMutex.Lock()
+	defer fake.setVariableMutex.Unlock()
+	fake.SetVariableStub = nil
+	if fake.setVariableReturnsOnCall == nil {
+		fake.setVariableReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setVariableReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -308,8 +445,12 @@ func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.isDatabaseReachableMutex.RLock()
 	defer fake.isDatabaseReachableMutex.RUnlock()
+	fake.isDatabaseSyncedMutex.RLock()
+	defer fake.isDatabaseSyncedMutex.RUnlock()
 	fake.isProcessRunningMutex.RLock()
 	defer fake.isProcessRunningMutex.RUnlock()
+	fake.setVariableMutex.RLock()
+	defer fake.setVariableMutex.RUnlock()
 	fake.startMysqldInBootstrapMutex.RLock()
 	defer fake.startMysqldInBootstrapMutex.RUnlock()
 	fake.startMysqldInJoinMutex.RLock()

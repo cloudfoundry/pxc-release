@@ -3,8 +3,9 @@ package node_starter
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -83,8 +84,29 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		return "", nil, errors.New("Starting mysql failed, no channel created - exiting")
 	}
 
-	err = s.waitForDatabaseToAcceptConnections(mysqldChan)
-	if err != nil {
+	if err = s.waitForDatabaseToAcceptConnections(mysqldChan); err != nil {
+		return "", nil, err
+	}
+
+	// Once MySQL is reachable, we can scale up wsrep_applier_threads based on configuration,
+	// even if the node is not yet "Synced"
+	// This helps speed up nodes joining the cluster and general replication throughput and deferring this configuration
+	// to post-startup avoids some race conditions between bootstrapping nodes and IST
+
+	// TODO: In a production implementaiton, this defaulting logic should probably be pushed down to config parsing layer
+	// pxc-release should default to wsrep_applier_threads # of cores if not overridden by the user with static configuration
+	var wsrepApplierThreads = s.config.WsrepApplierThreads
+	if wsrepApplierThreads <= 0 {
+		// Use did not pick a value wsrep_applier_threads value, so default to number of available logical cores
+		wsrepApplierThreads = runtime.NumCPU()
+	}
+
+	if err = s.dbHelper.SetVariable("wsrep_applier_threads", wsrepApplierThreads); err != nil {
+		s.logger.Info("failed to set wsrep_applier_threads.  MySQL will default to one replication applier thread for cluster traffic.", lager.Data{"error": err.Error()})
+	}
+	s.logger.Info("Adjusted wsrep_applier_threads", lager.Data{"wsrep_applier_threads": wsrepApplierThreads})
+
+	if err = s.waitForGaleraSynced(mysqldChan); err != nil {
 		return "", nil, err
 	}
 
@@ -97,10 +119,10 @@ func (s *starter) GetMysqlCmd() *exec.Cmd {
 
 func (s *starter) bootstrapNode() (chan error, error) {
 	s.logger.Info("Updating safe_to_bootstrap flag")
-	read, err := ioutil.ReadFile(s.config.GrastateFileLocation)
+	read, err := os.ReadFile(s.config.GrastateFileLocation)
 	if err == nil {
 		subbed := strings.Replace(string(read), "safe_to_bootstrap: 0", "safe_to_bootstrap: 1", -1)
-		err = ioutil.WriteFile(s.config.GrastateFileLocation, []byte(subbed), 0777)
+		err = os.WriteFile(s.config.GrastateFileLocation, []byte(subbed), 0777)
 		if err != nil {
 			return nil, err
 		}
@@ -134,23 +156,53 @@ func (s *starter) joinCluster() (chan error, error) {
 
 func (s *starter) waitForDatabaseToAcceptConnections(mysqldChan chan error) error {
 	s.logger.Info(fmt.Sprintf("Attempting to reach database."))
-	numTries := 0
+
+	var (
+		numTries int
+		start    = time.Now().UTC()
+		ticker   = time.NewTicker(time.Second)
+	)
 
 	for {
-		numTries++
-
 		select {
 		case <-mysqldChan:
 			s.logger.Info("Database process exited, stop trying to connect to database")
 			return errors.New("Mysqld exited with error; aborting. Review the mysqld error logs for more information.")
-		default:
+		case <-ticker.C:
 			if s.dbHelper.IsDatabaseReachable() {
-				s.logger.Info(fmt.Sprintf("Database became reachable after %d seconds", numTries*StartupPollingFrequencyInSeconds))
+				s.logger.Info(fmt.Sprintf("Observed database available after %s", time.Since(start)))
 				return nil
-			} else {
-				s.logger.Info("Database not reachable, retrying...")
-				s.osHelper.Sleep(StartupPollingFrequencyInSeconds * time.Second)
 			}
+
+			numTries++
+			s.logger.Info("Still waiting: database is not online", lager.Data{"attempts": numTries, "wait_time": time.Since(start).String()})
+		}
+	}
+}
+
+func (s *starter) waitForGaleraSynced(mysqldChan chan error) error {
+	s.logger.Info(fmt.Sprintf("Attempting to determine if database node has reached synced state"))
+
+	var (
+		numTries int
+		start    = time.Now().UTC()
+		ticker   = time.NewTicker(time.Second)
+	)
+
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-mysqldChan:
+			s.logger.Info("Database process exited while waiting for node to join cluster. Aborting.")
+			return errors.New("Mysqld exited with error; aborting. Review the mysqld error logs for more information.")
+		case <-ticker.C:
+			if s.dbHelper.IsDatabaseSynced() {
+				s.logger.Info(fmt.Sprintf("Observed database state as 'Synced' after %s", time.Since(start)))
+				return nil
+			}
+			numTries++
+			s.logger.Info("Still waiting: database is not synced.", lager.Data{"attempts": numTries, "wait_time": time.Since(start).String()})
 		}
 	}
 }

@@ -17,6 +17,7 @@ config = {
       "ClusterIps" => cluster_ips,
       "BootstrapNode" => spec.bootstrap,
       "ClusterProbeTimeout" => p('cluster_probe_timeout'),
+      "WsrepApplierThreads" => p('engine_config.galera.wsrep_applier_threads', 0),
     }
 }
 
