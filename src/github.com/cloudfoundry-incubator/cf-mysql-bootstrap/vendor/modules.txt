@@ -21,7 +21,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240327155427-868f304927ed
+# github.com/google/pprof v0.0.0-20240402174815-29b9bb013b0f
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/imdario/mergo v0.3.16
@@ -79,18 +79,21 @@ github.com/openzipkin/zipkin-go/model
 ## explicit
 github.com/pivotal-cf-experimental/service-config
 github.com/pivotal-cf-experimental/service-config/test_helpers
-# golang.org/x/mod v0.16.0
+# golang.org/x/mod v0.17.0
 ## explicit; go 1.18
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.22.0
+# golang.org/x/net v0.24.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.18.0
+# golang.org/x/sync v0.7.0
+## explicit; go 1.18
+golang.org/x/sync/errgroup
+# golang.org/x/sys v0.19.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 # golang.org/x/text v0.14.0
@@ -115,7 +118,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.19.0
+# golang.org/x/tools v0.20.0
 ## explicit; go 1.19
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/astutil
@@ -138,6 +141,7 @@ golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/pkgbits
+golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/tokeninternal
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
