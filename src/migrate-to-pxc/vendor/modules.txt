@@ -2,7 +2,7 @@
 ## explicit; go 1.20
 filippo.io/edwards25519
 filippo.io/edwards25519/field
-# github.com/cloudfoundry/gosigar v1.3.53
+# github.com/cloudfoundry/gosigar v1.3.54
 ## explicit; go 1.21.0
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
