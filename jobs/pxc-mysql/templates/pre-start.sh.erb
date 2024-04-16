@@ -14,7 +14,6 @@ RUN_DIR=/var/vcap/sys/run/pxc-ctl
 MYSQL_RUN_DIR=/var/vcap/sys/run/pxc-mysql
 SECURE_FILE_PRIV=/var/vcap/data/pxc-mysql/files
 SERVER_AUDIT_LOG_DIR=/var/vcap/store/mysql_audit_logs
-SLOW_QUERY_LOG_FILE=${LOG_DIR}/mysql_slow_query.log
 
 source /var/vcap/packages/pxc-utils/logging.sh
 source /var/vcap/packages/pxc-utils/pid_utils.sh
@@ -65,9 +64,6 @@ chown -R vcap:vcap ${TMPDIR}
 mkdir -p ${SECURE_FILE_PRIV}
 chmod 0750 ${SECURE_FILE_PRIV}
 chown -R vcap:vcap ${SECURE_FILE_PRIV}
-
-touch ${SLOW_QUERY_LOG_FILE}
-date +%Y-%m-%dT%H:%M:%S.%NZ >> ${SLOW_QUERY_LOG_FILE} 2>> ${SLOW_QUERY_LOG_FILE}
 
 mkdir -p ${LOG_DIR}
 chown -R vcap:vcap ${LOG_DIR}
