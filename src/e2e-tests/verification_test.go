@@ -47,6 +47,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/test-audit-logging.yml`),
 			bosh.Operation(`test/use-mtls.yml`),
 			bosh.Operation(`test/tune-mysql-config.yml`),
+			bosh.Operation(`test/with-syslog.yml`),
 			bosh.Var(`innodb_buffer_pool_size_percent`, `14`),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
@@ -284,6 +285,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 					Certificates: []tls.Certificate{
 						untrustedCert,
 					},
+					MaxVersion:         tls.VersionTLS12,
 					InsecureSkipVerify: true,
 				})).To(Succeed())
 			})
@@ -343,6 +345,78 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			var result int
 			err = db.QueryRow(`SELECT 1`).Scan(&result)
 			Expect(err).To(MatchError(MatchRegexp("is not allowed to connect to this MySQL server|Access denied for user")))
+		})
+	})
+
+	Context("Slow query logs", Label("slow-query"), func() {
+		const (
+			slowqueryLogPath = "/var/vcap/sys/log/pxc-mysql/mysql_slow_query.log"
+		)
+
+		var (
+			activeBackend string
+			tmpdir        string
+		)
+
+		getLogContents := func(db *sql.DB, activeBackend string, fileName string) string {
+			Expect(bosh.Scp(deploymentName, activeBackend+":"+slowqueryLogPath, tmpdir)).To(Succeed())
+			logContents, err := os.ReadFile(filepath.Join(tmpdir, fileName))
+			Expect(err).NotTo(HaveOccurred())
+			return string(logContents)
+		}
+
+		BeforeAll(func() {
+			var err error
+			tmpdir, err = os.MkdirTemp("", "slow_query_logs_")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(db.QueryRow(`SELECT @@global.wsrep_node_name`).Scan(&activeBackend)).To(Succeed())
+		})
+
+		It("logs slow queries with details", func() {
+			Expect(db.Exec(`DO sleep(10)`)).Error().NotTo(HaveOccurred())
+
+			contents := getLogContents(db, activeBackend, "mysql_slow_query.log")
+
+			Expect(contents).To(ContainSubstring("Tmp_tables: 0  Tmp_disk_tables: 0  Tmp_table_sizes: 0"))
+			Expect(contents).To(ContainSubstring("Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No"))
+			Expect(contents).To(ContainSubstring("Filesort: No  Filesort_on_disk: No  Merge_passes: 0"))
+			Expect(contents).To(ContainSubstring("No InnoDB statistics available for this query"))
+			Expect(contents).To(ContainSubstring("DO sleep(10);"))
+		})
+		It("syslog does not forward slow queries", func() {
+			// execute a slow query
+			Expect(db.Exec(`DO sleep(10)`)).Error().NotTo(HaveOccurred())
+			// fetch forwarded logs
+			output, err := bosh.RemoteCommand(deploymentName, "syslog_storer", "cat /var/vcap/store/syslog_storer/syslog.log | grep '47450'")
+			Expect(err).NotTo(HaveOccurred())
+
+			// assert the forwarded logs do not contain any slow queries
+			Expect(output).To(Not(ContainSubstring("Tmp_tables: 0  Tmp_disk_tables: 0  Tmp_table_sizes: 0")))
+			Expect(output).To(Not(ContainSubstring("Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No")))
+			Expect(output).To(Not(ContainSubstring("Filesort: No  Filesort_on_disk: No  Merge_passes: 0")))
+			Expect(output).To(Not(ContainSubstring("No InnoDB statistics available for this query")))
+			Expect(output).To(Not(ContainSubstring("DO sleep(10);")))
+		})
+		It("rotates the slow query log", func() {
+			By("allocating 51 MiB to the mysql_slow_query log")
+			_, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo fallocate -l 51MiB /var/vcap/sys/log/pxc-mysql/mysql_slow_query")
+			Expect(err).NotTo(HaveOccurred())
+			// call logrotate utility
+			By("rotating the mysql_slow_query log")
+			_, err = bosh.RemoteCommand(deploymentName, "mysql/0", "sudo /usr/sbin/logrotate /etc/logrotate.conf")
+			Expect(err).NotTo(HaveOccurred())
+			// assert the slow query log gets rotated
+			By("asserting the log is now less than 51 MiB")
+			output, err := bosh.RemoteCommand(deploymentName, "mysql/0", "stat --printf='%s' /var/vcap/sys/log/pxc-mysql/mysql_slow_query")
+			var size int
+			size, err = strconv.Atoi(output)
+			Expect(err).NotTo(HaveOccurred())
+			By("asserting a new log was created")
+			Expect(size).Should(BeNumerically("<", 53477376))
+			_, err = bosh.RemoteCommand(deploymentName, "mysql/0", "test -f /var/vcap/sys/log/pxc-mysql/mysql_slow_query.1.gz")
+			Expect(err).NotTo(HaveOccurred())
+
 		})
 	})
 

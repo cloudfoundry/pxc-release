@@ -1,0 +1,29 @@
+---
+- type: replace
+  path: /releases/name=syslog?
+  value:
+    name: syslog
+    version: latest
+    url: https://bosh.io/d/github.com/cloudfoundry/syslog-release
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=syslog_forwarder?
+  value:
+    name: syslog_forwarder
+    release: syslog
+
+- type: replace
+  path: /instance_groups/name=syslog_storer?
+  value:
+    name: syslog_storer
+    release: syslog
+    instances: 1
+    vm_type: default
+    stemcell: default
+    networks:
+      - name: default
+    azs:
+      - z1
+    jobs:
+      - name: syslog_storer
+        release: syslog
