@@ -8,4 +8,5 @@ files:
 - percona-xtrabackup-8.0*.tar.gz
 - libev-*.tar.gz
 - libaio_*.tar.xz
+- pkg-config_*.tar.gz
 - procps_*.orig.tar.xz

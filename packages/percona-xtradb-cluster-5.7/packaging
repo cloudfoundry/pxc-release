@@ -5,7 +5,7 @@ set -o errexit -o nounset -o pipefail
 install_build_dependencies() {
   tar -xf libaio_*.orig.tar.xz
   cd libaio-*/
-  make install
+  make install prefix="${BOSH_INSTALL_TARGET}"
   cd -
 
   tar -xf boost_1_59_0.tar.bz2
@@ -36,25 +36,32 @@ unpack_source() {
 
 apply_patches() {
   (
-    cd ./*Percona-XtraDB-Cluster-*/
+    cd Percona-XtraDB-Cluster-*/
     patch -p1 < ../patches/libgalera_pxc57_cmake.patch
   )
 }
 
-configure_source() {
+build_and_install() {
   (
-    cd ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
+    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
     cp GALERA-REVISION GALERA_GIT_REVISION
     cmake . \
       -DBOOST_ROOT=../../boost_1_59_0 \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
       -DGALERA_REVISION="$(<GALERA-REVISION)"
+    make -j "$(nproc)" install/strip
+    mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
   )
 
   (
-    cd ./*Percona-XtraDB-Cluster-*/
+    cd Percona-XtraDB-Cluster-*/
     source MYSQL_VERSION
     compilation_comment="Percona XtraDB Cluster (GPL) ${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
+
+    export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+    export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+    export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+    export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
 
     mkdir bld && cd bld
     cmake .. \
@@ -63,6 +70,7 @@ configure_source() {
       -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_C_COMPILER=gcc \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib' \
       -DCOMPILATION_COMMENT="${compilation_comment}" \
       -DENABLED_LOCAL_INFILE=off \
       -DINSTALL_MYSQLTESTDIR= \
@@ -83,19 +91,10 @@ configure_source() {
       -DWITH_UNIT_TESTS=OFF \
       -DWITH_WSREP=ON \
       -DWITH_ZLIB=bundled
+
+      make -j "$(nproc)" install/strip
+      rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
   )
-}
-
-build_source() {
-  make -C ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc)
-  make -C ./*Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
-}
-
-install_distribution() {
-  make -C ./*Percona-XtraDB-Cluster-*/bld/ -j $(nproc) install/strip
-  make -C ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc) install/strip
-  mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
-  rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
 }
 
 main() {
@@ -103,9 +102,7 @@ main() {
     install_socat
     unpack_source
     apply_patches
-    configure_source
-    build_source
-    install_distribution
+    build_and_install
 }
 
 main
