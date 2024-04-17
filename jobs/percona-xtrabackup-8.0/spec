@@ -1,0 +1,8 @@
+name: percona-xtrabackup-8.0
+
+templates: {}
+
+packages:
+- percona-xtrabackup-8.0
+
+properties: {}
