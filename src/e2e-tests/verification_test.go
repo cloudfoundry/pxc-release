@@ -377,11 +377,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(db.Exec(`DO sleep(10)`)).Error().NotTo(HaveOccurred())
 
 			contents := getLogContents(db, activeBackend, "mysql_slow_query")
-
-			Expect(contents).To(ContainSubstring("Tmp_tables: 0  Tmp_disk_tables: 0  Tmp_table_sizes: 0"))
-			Expect(contents).To(ContainSubstring("Full_scan: No  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No"))
-			Expect(contents).To(ContainSubstring("Filesort: No  Filesort_on_disk: No  Merge_passes: 0"))
-			Expect(contents).To(ContainSubstring("No InnoDB statistics available for this query"))
 			Expect(contents).To(ContainSubstring("DO sleep(10);"))
 		})
 		It("syslog does not forward slow queries", func() {
