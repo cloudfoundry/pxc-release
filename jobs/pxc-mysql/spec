@@ -3,6 +3,7 @@ name: pxc-mysql
 
 templates:
   audit_logs.logrotate.erb: config/mysql_clustered_audit_logs.logrotate
+  mysql_slow_query_logs.logrotate.erb: config/mysql_slow_query_logs.logrotate
   bpm.yml.erb: config/bpm.yml
   cleanup-socket.sh.erb: bin/cleanup-socket
   client-ca.pem.erb: certificates/client-ca.pem

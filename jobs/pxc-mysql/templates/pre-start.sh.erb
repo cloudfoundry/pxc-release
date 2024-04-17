@@ -62,6 +62,9 @@ chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
 ln -sf /var/vcap/jobs/pxc-mysql/config/mysql_clustered_audit_logs.logrotate /etc/logrotate.d/mysql_clustered_audit_logs
 <% end %>
 
+# logrotate mysql_slow_query
+ln -sf /var/vcap/jobs/pxc-mysql/config/mysql_slow_query_logs.logrotate /etc/logrotate.d/mysql_slow_query_logs
+
 if [[ ! -d "${TMPDIR}" ]]; then
   log "pre-start setup script: directory ${TMPDIR} does not exist, creating it now"
   mkdir -p ${TMPDIR}
