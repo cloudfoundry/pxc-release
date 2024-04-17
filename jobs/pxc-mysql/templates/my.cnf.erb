@@ -132,7 +132,7 @@ log_bin_trust_function_creators = 1
 
 # Slow query logging:
 slow_query_log                  = 1
-slow_query_log_file             = /var/vcap/sys/log/pxc-mysql/mysql_slow_query.log
+slow_query_log_file             = /var/vcap/sys/log/pxc-mysql/mysql_slow_query
 long_query_time                 = <%= p('engine_config.long_query_time') %>
 log_queries_not_using_indexes   = <%= bool_to_on_off(p('engine_config.log_queries_not_using_indexes')) %>
 
