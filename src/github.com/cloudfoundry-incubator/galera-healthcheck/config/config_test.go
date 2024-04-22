@@ -130,7 +130,7 @@ var _ = Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(conn.Close()).To(Succeed())
 
-			Eventually(errCh).Should(Receive(nil))
+			Eventually(errCh).Should(Receive(BeNil()))
 		})
 
 		When("tls is disabled", func() {
@@ -158,7 +158,7 @@ var _ = Describe("Config", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(msg)).To(Equal("foo"))
 				Expect(conn.Close()).To(Succeed())
-				Eventually(errCh).Should(Receive(nil))
+				Eventually(errCh).Should(Receive(BeNil()))
 			})
 		})
 
