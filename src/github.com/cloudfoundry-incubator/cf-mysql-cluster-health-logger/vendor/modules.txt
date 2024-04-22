@@ -24,7 +24,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240415144954-be81aee2d733
+# github.com/google/pprof v0.0.0-20240422182052-72c8669ad3e7
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/imdario/mergo v0.3.16
@@ -54,7 +54,7 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.32.0
+# github.com/onsi/gomega v1.33.0
 ## explicit; go 1.20
 github.com/onsi/gomega
 github.com/onsi/gomega/format
