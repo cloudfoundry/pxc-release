@@ -5,7 +5,7 @@ code.cloudfoundry.org/lager/v3/internal/truncate
 code.cloudfoundry.org/lager/v3/lagerctx
 code.cloudfoundry.org/lager/v3/lagerflags
 code.cloudfoundry.org/lager/v3/lagertest
-# code.cloudfoundry.org/tlsconfig v0.0.0-20240417163319-a2cf10de323a
+# code.cloudfoundry.org/tlsconfig v0.0.0-20240427164042-d6180ef19863
 ## explicit; go 1.19
 code.cloudfoundry.org/tlsconfig
 code.cloudfoundry.org/tlsconfig/certtest
@@ -25,9 +25,9 @@ github.com/cespare/xxhash/v2
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
-# github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
-## explicit; go 1.13
-github.com/go-task/slim-sprig
+# github.com/go-task/slim-sprig/v3 v3.0.0
+## explicit; go 1.20
+github.com/go-task/slim-sprig/v3
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -35,7 +35,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240422182052-72c8669ad3e7
+# github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/imdario/mergo v0.3.16
@@ -47,7 +47,7 @@ github.com/maxbrunsfeld/counterfeiter/v6
 github.com/maxbrunsfeld/counterfeiter/v6/arguments
 github.com/maxbrunsfeld/counterfeiter/v6/command
 github.com/maxbrunsfeld/counterfeiter/v6/generator
-# github.com/onsi/ginkgo/v2 v2.17.1
+# github.com/onsi/ginkgo/v2 v2.17.2
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -84,8 +84,8 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/openzipkin/zipkin-go v0.4.2
-## explicit; go 1.18
+# github.com/openzipkin/zipkin-go v0.4.3
+## explicit; go 1.20
 github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
 # github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
@@ -123,12 +123,13 @@ github.com/tedsuo/ifrit/ginkgomon_v2
 github.com/tedsuo/ifrit/grouper
 github.com/tedsuo/ifrit/http_server
 github.com/tedsuo/ifrit/sigmon
-# go.step.sm/crypto v0.44.7
+# go.step.sm/crypto v0.44.8
 ## explicit; go 1.20
 go.step.sm/crypto/fingerprint
 go.step.sm/crypto/internal/bcrypt_pbkdf
 go.step.sm/crypto/internal/emoji
 go.step.sm/crypto/internal/utils
+go.step.sm/crypto/internal/utils/utfbom
 go.step.sm/crypto/keyutil
 go.step.sm/crypto/pemutil
 go.step.sm/crypto/randutil
