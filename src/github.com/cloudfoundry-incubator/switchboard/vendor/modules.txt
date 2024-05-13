@@ -4,7 +4,7 @@ code.cloudfoundry.org/lager
 code.cloudfoundry.org/lager/lagerctx
 code.cloudfoundry.org/lager/lagerflags
 code.cloudfoundry.org/lager/lagertest
-# code.cloudfoundry.org/tlsconfig v0.0.0-20240504164951-c74da1f146df
+# code.cloudfoundry.org/tlsconfig v0.0.0-20240510172918-c1e19801fe80
 ## explicit; go 1.19
 code.cloudfoundry.org/tlsconfig
 code.cloudfoundry.org/tlsconfig/certtest
@@ -145,7 +145,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.24.0
+# golang.org/x/net v0.25.0
 ## explicit; go 1.18
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -180,7 +180,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.20.0
+# golang.org/x/tools v0.21.0
 ## explicit; go 1.19
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
@@ -195,7 +195,6 @@ golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
 golang.org/x/tools/internal/event/label
-golang.org/x/tools/internal/event/tag
 golang.org/x/tools/internal/gcimporter
 golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk

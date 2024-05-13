@@ -2,7 +2,7 @@
 ## explicit; go 1.20
 filippo.io/edwards25519
 filippo.io/edwards25519/field
-# github.com/cloudfoundry/gosigar v1.3.56
+# github.com/cloudfoundry/gosigar v1.3.58
 ## explicit; go 1.21.0
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
@@ -87,7 +87,7 @@ github.com/pkg/errors
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.24.0
+# golang.org/x/net v0.25.0
 ## explicit; go 1.18
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -121,7 +121,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.20.0
+# golang.org/x/tools v0.21.0
 ## explicit; go 1.19
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
@@ -136,7 +136,6 @@ golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
 golang.org/x/tools/internal/event/label
-golang.org/x/tools/internal/event/tag
 golang.org/x/tools/internal/gcimporter
 golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
