@@ -1,5 +1,5 @@
-code.cloudfoundry.org/tlsconfig v0.0.0-20240510172918-c1e19801fe80 h1:nxUb5mt6hUgetPgjwcApBzu7SvoweFyxeJndc6ueERU=
-code.cloudfoundry.org/tlsconfig v0.0.0-20240510172918-c1e19801fe80/go.mod h1:nrEZdor0XB7oBXmkKyVtYFk3oGF6eCmryhVBOeGaUso=
+code.cloudfoundry.org/tlsconfig v0.0.0-20240516170203-d50b3d56ba06 h1:6mvV9jU4n3O/qravFisQ9SAf5hfm8OPhbPhsp6dbfFE=
+code.cloudfoundry.org/tlsconfig v0.0.0-20240516170203-d50b3d56ba06/go.mod h1:ZY3YrTTScCAwr0qLDISfNBmYuXCmgvOlHhzQKQ/Gk9w=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -26,8 +26,8 @@ github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262 h1:unQFBIznI+VYD1
 github.com/square/certstrap v1.3.0 h1:N9P0ZRA+DjT8pq5fGDj0z3FjafRKnBDypP0QHpMlaAk=
 github.com/square/certstrap v1.3.0/go.mod h1:wGZo9eE1B7WX2GKBn0htJ+B3OuRl2UsdCFySNooy9hU=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
-go.step.sm/crypto v0.44.8 h1:jDSHL6FdB1UTA0d56ECNx9XtLVkewzeg38Vy3HWB3N8=
-go.step.sm/crypto v0.44.8/go.mod h1:QEmu4T9YewrDuaJnrV1I0zWZ15aJ/mqRUfL5w3R2WgU=
+go.step.sm/crypto v0.45.0 h1:Z0WYAaaOYrJmKP9sJkPW+6wy3pgN3Ija8ek/D4serjc=
+go.step.sm/crypto v0.45.0/go.mod h1:6IYlT0L2jfj81nVyCPpvA5cORy0EVHPhieSgQyuwHIY=
 golang.org/x/crypto v0.23.0 h1:dIJU/v2J8Mdglj/8rJ6UUOM3Zc9zLZxVZwwxMooUSAI=
 golang.org/x/crypto v0.23.0/go.mod h1:CKFgDieR+mRhux2Lsu27y0fO304Db0wZe70UKqHu0v8=
 golang.org/x/net v0.25.0 h1:d/OCCoBEUq33pjydKrGQhw7IlUPI2Oylr+8qLx49kac=
@@ -39,7 +39,7 @@ golang.org/x/text v0.15.0 h1:h1V/4gjBv8v9cjcR6+AR5+/cIYK5N/WAgiv4xlsEtAk=
 golang.org/x/text v0.15.0/go.mod h1:18ZOQIKpY8NJVqYksKHtTdi31H5itFRjB5/qKTNYzSU=
 golang.org/x/tools v0.21.0 h1:qc0xYgIbsSDt9EyWz05J5wfa7LOVW0YTLOXrqdLAWIw=
 golang.org/x/tools v0.21.0/go.mod h1:aiJjzUbINMkxbQROHiO6hDPo2LHcIPhhQsa9DLh0yGk=
-google.golang.org/protobuf v1.33.0 h1:uNO2rsAINq/JlFpSdYEKIZ0uKD/R9cpdv0T+yoGwGmI=
+google.golang.org/protobuf v1.34.1 h1:9ddQBjfCyZPOHPUiPxpYESBLc+T8P3E+Vo4IbKZgFWg=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
