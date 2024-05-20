@@ -184,9 +184,13 @@ end.join("\n")
 
 EOF
 
-/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql \
---defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf \
-< ${sqlcommands}
+pxc_maint_mode=$(/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --execute 'select @@global.pxc_maint_mode != "DISABLED"' -sN)
+if [[ $pxc_maint_mode -eq 1 ]]; then
+    echo "pxc_maint_mode is on, skipping seeding users and databases"
+    exit 0
+fi
+
+/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf < ${sqlcommands}
 
 # TODO: look at pre-start.sh.erb's use of logging.sh helpers
 echo "post-start: galera-init initialized successfully"
