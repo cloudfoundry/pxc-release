@@ -161,14 +161,6 @@ users = p('seeded_databases').map { |e|
 }]
 }.to_h.merge(p('seeded_users')).sort.to_h
 
-if_link('galera-agent') do |link|
-users["galera-agent"] = {
-"role" => "minimal",
-"password" => link.p('db_password'),
-"host" => "localhost",
-}
-end
-
 if_link('cluster-health-logger') do |link|
 users["cluster-health-logger"] = {
 "role" => "minimal",
