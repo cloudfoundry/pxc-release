@@ -4,6 +4,8 @@
 set -e
 set -o pipefail
 
+source /var/vcap/packages/pxc-utils/logging.sh
+
 <%-
   unless %w[5.7 8.0].include? p('mysql_version')
     raise "Unsupported value '#{p('mysql_version')}' for 'mysql_version' property. Choose from '8.0' or '5.7'"
@@ -14,12 +16,12 @@ set -o pipefail
 
 pxc_maint_mode=$(/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --execute 'select @@global.pxc_maint_mode != "DISABLED"' -sN)
 if [[ $pxc_maint_mode -eq 1 ]]; then
-    echo "pxc_maint_mode is on, skipping seeding users and databases"
+    log "pxc_maint_mode is on, skipping seeding users and databases"
     exit 0
 fi
 
 /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf < /var/vcap/jobs/pxc-mysql/config/seeded_users_and_databases.sql
 
 # TODO: look at pre-start.sh.erb's use of logging.sh helpers
-echo "post-start: galera-init initialized successfully"
+log "post-start: galera-init initialized successfully"
 <% end %>
