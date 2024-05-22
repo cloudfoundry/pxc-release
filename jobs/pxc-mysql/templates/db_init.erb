@@ -43,6 +43,16 @@ IDENTIFIED WITH mysql_native_password BY '<%= link.p("db_password") %>'
 REVOKE ALL PRIVILEGES ON *.* FROM 'galera-agent'@'localhost';
 <%- end -%>
 
+<%- if_link('cluster-health-logger') do |link| -%>
+CREATE USER IF NOT EXISTS 'cluster-health-logger'@'localhost'
+IDENTIFIED WITH mysql_native_password BY '<%= link.p('db_password') %>'
+/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+ALTER USER 'cluster-health-logger'@'localhost'
+IDENTIFIED WITH mysql_native_password BY '<%= link.p('db_password') %>'
+/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+REVOKE ALL PRIVILEGES ON *.* FROM 'cluster-health-logger'@'localhost';
+<%- end -%>
+
 <%- hosts.each do |host| -%>
 CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
 ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
