@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+require 'erb'
+require 'json'
+require 'bosh/template/test'
+
+def main
+  topdir = File.join(File.dirname(__FILE__), '../../..')
+  template = Bosh::Template::Test::ReleaseDir.new(topdir)
+    .job('pxc-mysql').template('config/seeded_users_and_databases.sql')
+
+  spec = {}
+  spec.merge! JSON.parse(STDIN.read)
+  puts "-- spec => #{spec}"
+  puts template.render(spec)
+end
+
+if __FILE__ == $0
+  main
+end

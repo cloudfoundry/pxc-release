@@ -1,0 +1,151 @@
+SET @@session.sql_log_bin = off;
+
+<%=
+def create_user(user)
+max_user_clause = ''
+if user['max_user_connections']
+max_user_clause = "WITH MAX_USER_CONNECTIONS #{user['max_user_connections']}"
+end
+%{
+CREATE USER IF NOT EXISTS #{user['username']}@#{user['host']}
+  IDENTIFIED WITH mysql_native_password BY #{user['password']}
+  #{max_user_clause}/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+ALTER USER #{user['username']}@#{user['host']}
+  IDENTIFIED WITH mysql_native_password BY #{user['password']}
+  #{max_user_clause}/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+}.strip
+end
+
+def grant_admin_privs(user)
+%{
+GRANT ALL PRIVILEGES ON *.* TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
+GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
+}.strip
+end
+
+def collation_server
+if p('engine_config.collation_server') != 'use_default'
+" COLLATE '#{p('engine_config.collation_server')}'"
+else
+""
+end
+end
+
+def create_schema_if_specified(user)
+if user['schema'].nil? || user['schema'].empty?
+return ""
+end
+charset = p('engine_config.character_set_server')
+%{
+CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])} CHARACTER SET '#{charset}'#{collation_server};
+}.strip
+
+end
+def grant_schema_admin_privs(user)
+if user['schema'].nil? || user['schema'].empty?
+raise "user #{user['username']} with schema-admin role specified with an empty schema"
+end
+
+%{
+#{revoke_all_privileges(user)}
+GRANT ALL PRIVILEGES ON #{ident_escaped(user['schema'])}.* TO #{user['username']}@#{user['host']};
+REVOKE LOCK TABLES ON #{ident_escaped(user['schema'])}.* FROM #{user['username']}@#{user['host']};
+#{create_schema_if_specified(user)}
+}.strip
+end
+
+def grant_multi_schema_admin_privs(user)
+if user['schema'].nil? || user['schema'].empty?
+raise "user #{user['username']} with multi-schema-admin role specified with an empty schema"
+end
+
+%{
+#{revoke_all_privileges(user)}
+GRANT ALL PRIVILEGES ON #{ident(user['schema'])}.* TO #{user['username']}@#{user['host']};
+REVOKE LOCK TABLES ON #{ident(user['schema'])}.* FROM #{user['username']}@#{user['host']};
+}.strip
+end
+
+def grant_mysql_metrics_privs(user)
+%{
+#{revoke_all_privileges(user)}
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO #{user['username']}@#{user['host']};
+#{create_schema_if_specified(user)}
+}.strip
+end
+
+def revoke_all_privileges(user)
+%{
+REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
+}.strip
+end
+
+def user_from_cfg(username, cfg)
+if username.nil? || username.empty?
+raise("seeded_users property specifies an empty username")
+end
+if cfg['host'].nil? || cfg['host'].empty?
+raise("seeded_users property specifies an empty allowed 'host' for username #{username}")
+end
+if cfg['password'].nil? || cfg['password'].empty?
+raise("seeded_users property specifies an empty allowed 'password' for username #{username}")
+end
+if cfg['role'].nil? || cfg['role'].empty?
+raise("seeded_users property specifies an empty allowed 'role' for username #{username}")
+end
+
+mysql_host = case cfg['host']
+when "localhost" then "localhost"
+when "loopback" then "127.0.0.1"
+when "any" then "%"
+else
+raise "invalid host '#{cfg['host']}' specified for username #{username}"
+end
+
+{
+"username" => escape(username),
+"host" => escape(mysql_host),
+"password" => escape(cfg['password']),
+"schema" => cfg['schema'],
+"role" => cfg["role"],
+"max_user_connections" => cfg["max_user_connections"],
+}.compact
+end
+
+def grant_privs(user)
+case user['role']
+when "admin" then grant_admin_privs(user)
+when "schema-admin" then grant_schema_admin_privs(user)
+when "mysql-metrics" then grant_mysql_metrics_privs(user)
+when "minimal" then revoke_all_privileges(user)
+when "multi-schema-admin" then grant_multi_schema_admin_privs(user)
+else raise "Unsupported role '#{user['role']}' for user #{user['username']}"
+end
+end
+
+def emit_user(user)
+%{-- user: #{user['username']}@#{user['host']} role: #{user['role']}
+#{create_user(user)}
+#{grant_privs(user)}
+}
+end
+
+def escape(value) "'#{value.gsub("'", "''")}'" end
+def ident(value) "`#{value.gsub("`", "``")}`" end
+def ident_escaped(value) "#{ident(value).gsub("_", "\\_").gsub("%", "\\%")}" end
+
+# Merge seeded_databases w/ seeded_users and sort by key for easier testing
+users = p('seeded_databases').map { |e|
+[e["username"], {
+"role" => "schema-admin",
+"password" => e["password"],
+"host" => "any",
+"schema" => e["name"]
+}]
+}.to_h.merge(p('seeded_users')).sort.to_h
+
+users.map do |username, cfg|
+emit_user user_from_cfg(username, cfg)
+end.join("\n")
+%>
+SET @@session.sql_log_bin = on;

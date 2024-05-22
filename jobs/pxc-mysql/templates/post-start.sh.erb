@@ -18,7 +18,7 @@ if [[ $pxc_maint_mode -eq 1 ]]; then
     exit 0
 fi
 
-/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --execute <(/var/vcap/jobs/pxc-mysql/config/seeded_users_and_databases.sql)
+/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf < /var/vcap/jobs/pxc-mysql/config/seeded_users_and_databases.sql
 
 # TODO: look at pre-start.sh.erb's use of logging.sh helpers
 echo "post-start: galera-init initialized successfully"
