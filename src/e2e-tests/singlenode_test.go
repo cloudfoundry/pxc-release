@@ -65,9 +65,20 @@ var _ = Describe(fmt.Sprintf("Single Node for PXC version %s", expectedMysqlVers
 			To(Succeed())
 		Expect(queryResultString).ToNot(BeEmpty())
 	})
+
 	It("does not go through crash recovery", func() {
 		output, err := bosh.RemoteCommand(deploymentName, "mysql/0", "stat /var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log")
 		Expect(output).To(ContainSubstring(`stat: cannot statx '/var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log': No such file or directory`))
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("seeds users during pre-start", func() {
+		Expect(bosh.RemoteCommand(deploymentName, "mysql/0",
+			"sudo monit unmonitor galera-init && "+
+				"sudo /var/vcap/jobs/bpm/bin/bpm stop pxc-mysql -p galera-init && "+
+				"sudo rm -rf /var/vcap/store/pxc-mysql &&"+
+				"sudo /var/vcap/jobs/pxc-mysql/bin/pre-start")).Error().NotTo(HaveOccurred())
+
+		Expect(db.Ping()).To(Succeed())
 	})
 })
