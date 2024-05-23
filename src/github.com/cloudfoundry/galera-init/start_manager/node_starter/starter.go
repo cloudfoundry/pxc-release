@@ -88,6 +88,10 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		return "", nil, err
 	}
 
+	if err := s.dbHelper.SeedUsersAndDatabases(); err != nil {
+		return "", nil, err
+	}
+
 	return newNodeState, mysqldChan, nil
 }
 

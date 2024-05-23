@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/gbytes"
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
@@ -476,6 +477,31 @@ var _ = Describe("GaleraDBHelper", func() {
 				Expect(cmd).To(BeNil())
 			})
 		})
+	})
 
+	Describe("SeedUsersAndDatabases", func() {
+		It("loads the 'seeded_users_and_databases.sql' file into MySQL", func() {
+			err := helper.SeedUsersAndDatabases()
+			Expect(err).NotTo(HaveOccurred())
+
+			executable, args := fakeOs.RunCommandArgsForCall(0)
+
+			Expect(executable).To(Equal("mysql"))
+			Expect(args).To(ContainElement(ContainSubstring("seeded_users_and_databases.sql")))
+		})
+
+		When("the command fails", func() {
+			BeforeEach(func() {
+				fakeOs.RunCommandReturns("some error occurred", fmt.Errorf("some error occurred"))
+			})
+
+			It("logs error messages", func() {
+				err := helper.SeedUsersAndDatabases()
+				Expect(err).To(MatchError("some error occurred"))
+
+				Expect(testLogger.Buffer()).To(gbytes.Say(`"message":"db_helper.Error seeding users and databases"`))
+				Expect(testLogger.Buffer()).To(gbytes.Say(`"data":{"error":"some error occurred"}`))
+			})
+		})
 	})
 })
