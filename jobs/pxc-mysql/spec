@@ -22,7 +22,6 @@ templates:
   mylogin.cnf.erb: config/mylogin.cnf
   seeded_users_and_databases.sql.erb: config/seeded_users_and_databases.sql
   pre-start.sh.erb: bin/pre-start
-  post-start.sh.erb: bin/post-start
   pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
