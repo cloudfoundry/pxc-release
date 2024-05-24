@@ -112,6 +112,8 @@ func createGaleraContainer(
 			mustAbsPath("fixtures/docker_entrypoint.sh:/usr/local/bin/docker_entrypoint.sh"),
 			mustAbsPath("fixtures/init.sql:/usr/local/etc/init.sql"),
 			mustAbsPath("fixtures/my.cnf.template:/usr/local/etc/my.cnf.template"),
+			mustAbsPath("fixtures/mylogin.cnf:/var/vcap/jobs/pxc-mysql/config/mylogin.cnf"),
+			mustAbsPath("fixtures/seeded_users_and_databases.sql:/var/vcap/jobs/pxc-mysql/config/seeded_users_and_databases.sql"),
 		),
 		AddEnvVars(
 			"CONFIG="+string(marshalledConfig),
