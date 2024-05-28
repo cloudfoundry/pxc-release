@@ -176,7 +176,6 @@ var _ = Describe("Starter", func() {
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
 					ensureMysqlCmdMatches(fakeCommandJoinStr)
-					Expect(fakeDBHelper.SeedUsersAndDatabasesCallCount()).To(Equal(1), "SeedUsersAndDatabases is not called")
 				})
 			})
 		})
@@ -225,17 +224,6 @@ var _ = Describe("Starter", func() {
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(expectedErr))
 				})
-
-				It("does not seed users and databases", func() {
-					errorChan <- nil
-					fakeDBHelper.IsDatabaseReachableReturns(false)
-
-					var err error
-					_, _, err = starter.StartNodeFromState("CLUSTERED")
-					Expect(err).Should(HaveOccurred())
-
-					Expect(fakeDBHelper.SeedUsersAndDatabasesCallCount()).To(Equal(0), "SeedUsersAndDatabases is not called")
-				})
 			})
 
 			Context("starting cluster returns an error", func() {
@@ -269,17 +257,6 @@ var _ = Describe("Starter", func() {
 				})
 			})
 
-			When("seeding users and databases fails", func() {
-				BeforeEach(func() {
-					fakeDBHelper.SeedUsersAndDatabasesReturns(errors.New("some errors"))
-				})
-
-				It("returns an error", func() {
-					_, _, err := starter.StartNodeFromState("CLUSTERED")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("some errors"))
-				})
-			})
 		})
 	})
 })

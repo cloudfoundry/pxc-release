@@ -20,7 +20,6 @@ templates:
   get-sequence-number.sh.erb: bin/get-sequence-number
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
-  seeded_users_and_databases.sql.erb: config/seeded_users_and_databases.sql
   pre-start.sh.erb: bin/pre-start
   pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem

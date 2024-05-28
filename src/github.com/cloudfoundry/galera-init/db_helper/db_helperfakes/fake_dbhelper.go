@@ -29,16 +29,6 @@ type FakeDBHelper struct {
 	isProcessRunningReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	SeedUsersAndDatabasesStub        func() error
-	seedUsersAndDatabasesMutex       sync.RWMutex
-	seedUsersAndDatabasesArgsForCall []struct {
-	}
-	seedUsersAndDatabasesReturns struct {
-		result1 error
-	}
-	seedUsersAndDatabasesReturnsOnCall map[int]struct {
-		result1 error
-	}
 	StartMysqldInBootstrapStub        func() (*exec.Cmd, error)
 	startMysqldInBootstrapMutex       sync.RWMutex
 	startMysqldInBootstrapArgsForCall []struct {
@@ -174,59 +164,6 @@ func (fake *FakeDBHelper) IsProcessRunningReturnsOnCall(i int, result1 bool) {
 	}
 	fake.isProcessRunningReturnsOnCall[i] = struct {
 		result1 bool
-	}{result1}
-}
-
-func (fake *FakeDBHelper) SeedUsersAndDatabases() error {
-	fake.seedUsersAndDatabasesMutex.Lock()
-	ret, specificReturn := fake.seedUsersAndDatabasesReturnsOnCall[len(fake.seedUsersAndDatabasesArgsForCall)]
-	fake.seedUsersAndDatabasesArgsForCall = append(fake.seedUsersAndDatabasesArgsForCall, struct {
-	}{})
-	stub := fake.SeedUsersAndDatabasesStub
-	fakeReturns := fake.seedUsersAndDatabasesReturns
-	fake.recordInvocation("SeedUsersAndDatabases", []interface{}{})
-	fake.seedUsersAndDatabasesMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeDBHelper) SeedUsersAndDatabasesCallCount() int {
-	fake.seedUsersAndDatabasesMutex.RLock()
-	defer fake.seedUsersAndDatabasesMutex.RUnlock()
-	return len(fake.seedUsersAndDatabasesArgsForCall)
-}
-
-func (fake *FakeDBHelper) SeedUsersAndDatabasesCalls(stub func() error) {
-	fake.seedUsersAndDatabasesMutex.Lock()
-	defer fake.seedUsersAndDatabasesMutex.Unlock()
-	fake.SeedUsersAndDatabasesStub = stub
-}
-
-func (fake *FakeDBHelper) SeedUsersAndDatabasesReturns(result1 error) {
-	fake.seedUsersAndDatabasesMutex.Lock()
-	defer fake.seedUsersAndDatabasesMutex.Unlock()
-	fake.SeedUsersAndDatabasesStub = nil
-	fake.seedUsersAndDatabasesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDBHelper) SeedUsersAndDatabasesReturnsOnCall(i int, result1 error) {
-	fake.seedUsersAndDatabasesMutex.Lock()
-	defer fake.seedUsersAndDatabasesMutex.Unlock()
-	fake.SeedUsersAndDatabasesStub = nil
-	if fake.seedUsersAndDatabasesReturnsOnCall == nil {
-		fake.seedUsersAndDatabasesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.seedUsersAndDatabasesReturnsOnCall[i] = struct {
-		result1 error
 	}{result1}
 }
 
@@ -373,8 +310,6 @@ func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	defer fake.isDatabaseReachableMutex.RUnlock()
 	fake.isProcessRunningMutex.RLock()
 	defer fake.isProcessRunningMutex.RUnlock()
-	fake.seedUsersAndDatabasesMutex.RLock()
-	defer fake.seedUsersAndDatabasesMutex.RUnlock()
 	fake.startMysqldInBootstrapMutex.RLock()
 	defer fake.startMysqldInBootstrapMutex.RUnlock()
 	fake.startMysqldInJoinMutex.RLock()

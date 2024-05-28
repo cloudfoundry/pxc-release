@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
@@ -29,7 +28,6 @@ var _ = BeforeSuite(func() {
 
 	var err error
 	pool, err = dockertest.NewPool("")
-	pool.MaxWait = 5 * time.Minute
 	Expect(err).NotTo(HaveOccurred())
 
 	volumeID = uuid.New().String()
@@ -59,5 +57,6 @@ func startMySQL(tag string, mysqlOptions []string, extraMounts []string) (*docke
 	defer func(db *sql.DB) {
 		_ = db.Close()
 	}(db)
+
 	return resource, pool.Retry(db.Ping)
 }

@@ -20,7 +20,6 @@ type DBHelper interface {
 	StopMysqld()
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
-	SeedUsersAndDatabases() error
 }
 
 type GaleraDBHelper struct {
@@ -171,28 +170,4 @@ func (m GaleraDBHelper) IsDatabaseReachable() bool {
 
 	m.logger.Info(fmt.Sprintf("Galera Database state is %s", value))
 	return value == "Synced"
-}
-
-func (m GaleraDBHelper) SeedUsersAndDatabases() error {
-	var maintenanceModeDisabled string
-	if err := m.db.QueryRow(`SELECT @@global.pxc_maint_mode != "DISABLED"`).Scan(&maintenanceModeDisabled); err != nil {
-		m.logger.Info("Error checking for maintenance mode", lager.Data{"error": err.Error()})
-		return err
-	}
-	if maintenanceModeDisabled == "1" {
-		m.logger.Info("PXC is in maintenance mode, skipping seeding users")
-		return nil
-	}
-
-	args := []string{
-		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf",
-		"--execute=source /var/vcap/jobs/pxc-mysql/config/seeded_users_and_databases.sql",
-	}
-	_, err := m.osHelper.RunCommand("mysql", args...)
-
-	if err != nil {
-		m.logger.Info("Error seeding users and databases", lager.Data{"error": err.Error()})
-	}
-
-	return err
 }

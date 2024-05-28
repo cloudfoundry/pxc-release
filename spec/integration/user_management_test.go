@@ -53,26 +53,16 @@ var _ = Describe("UserManagement", Ordered, func() {
 		doc, err := json.Marshal(dbUsers)
 		Expect(err).NotTo(HaveOccurred())
 
-		dbInitTmp, err := os.CreateTemp("", "db_init_")
+		f, err := os.CreateTemp("", "db_init_")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(os.Chmod(dbInitTmp.Name(), 0644)).To(Succeed())
-
-		seededUsersAndDbsTmp, err := os.CreateTemp("", "seeded_users_and_dbs_")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(os.Chmod(seededUsersAndDbsTmp.Name(), 0644)).To(Succeed())
+		defer f.Close()
+		Expect(os.Chmod(f.Name(), 0644)).To(Succeed())
 
 		cmd := exec.Command("./scripts/render-db_init")
 		cmd.Stdin = bytes.NewBuffer(doc)
-		cmd.Stdout = dbInitTmp
+		cmd.Stdout = f
 		cmd.Stderr = GinkgoWriter
 		GinkgoWriter.Println("$ ./scripts/render-db_init")
-		Expect(cmd.Run()).To(Succeed())
-
-		cmd = exec.Command("./scripts/render-seeded_users_and_databases")
-		cmd.Stdin = bytes.NewBuffer(doc)
-		cmd.Stdout = seededUsersAndDbsTmp
-		cmd.Stderr = GinkgoWriter
-		GinkgoWriter.Println("$ ./scripts/render-seeded_users_and_databases")
 		Expect(cmd.Run()).To(Succeed())
 
 		// Initialize the data volume first, so our db_init does not interfere with percona's entrypoint bootstrapping
@@ -83,14 +73,8 @@ var _ = Describe("UserManagement", Ordered, func() {
 		resource, err = startMySQL(
 			mysqlVersionTag,
 			[]string{"--init-file=/db_init"},
-			[]string{dbInitTmp.Name() + ":/db_init", seededUsersAndDbsTmp.Name() + ":/seeded_users_and_databases.sql"},
+			[]string{f.Name() + ":/db_init"},
 		)
-		Expect(err).NotTo(HaveOccurred())
-		exitCode, err := resource.Exec([]string{"mysql", "--user=root", "--execute=source /seeded_users_and_databases.sql"}, dockertest.ExecOptions{
-			StdOut: GinkgoWriter,
-			StdErr: GinkgoWriter,
-		})
-		Expect(exitCode).To(Equal(0))
 		Expect(err).NotTo(HaveOccurred())
 	})
 

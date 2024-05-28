@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
-	"github.com/onsi/gomega/gbytes"
 
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
@@ -477,74 +476,6 @@ var _ = Describe("GaleraDBHelper", func() {
 				Expect(cmd).To(BeNil())
 			})
 		})
-	})
 
-	Describe("SeedUsersAndDatabases", func() {
-		When("database returns an error checking for maintenance mode", func() {
-			BeforeEach(func() {
-				mock.ExpectQuery(`SELECT @@global.pxc_maint_mode != "DISABLED"`).
-					WillReturnError(fmt.Errorf("mysql error"))
-			})
-
-			It("returns an error", func() {
-				err := helper.SeedUsersAndDatabases()
-				Expect(err).To(MatchError("mysql error"))
-
-				Expect(testLogger.Buffer()).To(gbytes.Say(`"message":"db_helper.Error checking for maintenance mode"`))
-				Expect(testLogger.Buffer()).To(gbytes.Say(`"data":{"error":"mysql error"}`))
-			})
-		})
-
-		When("PXC is not in maintenance mode", func() {
-			BeforeEach(func() {
-				mock.ExpectQuery(`SELECT @@global.pxc_maint_mode != "DISABLED"`).
-					WillReturnRows(sqlmock.NewRows([]string{"@@global.pxc_maint_mode != \"DISABLED\""}).
-						AddRow("0"))
-			})
-
-			It("loads the 'seeded_users_and_databases.sql' file into MySQL", func() {
-				err := helper.SeedUsersAndDatabases()
-				Expect(err).NotTo(HaveOccurred())
-
-				executable, args := fakeOs.RunCommandArgsForCall(0)
-
-				Expect(executable).To(Equal("mysql"))
-				Expect(args).To(ContainElement(ContainSubstring("seeded_users_and_databases.sql")))
-			})
-
-			When("the command fails", func() {
-				BeforeEach(func() {
-					fakeOs.RunCommandReturns("some error occurred", fmt.Errorf("some error occurred"))
-				})
-
-				It("logs error messages", func() {
-					err := helper.SeedUsersAndDatabases()
-					Expect(err).To(MatchError("some error occurred"))
-
-					Expect(testLogger.Buffer()).To(gbytes.Say(`"message":"db_helper.Error seeding users and databases"`))
-					Expect(testLogger.Buffer()).To(gbytes.Say(`"data":{"error":"some error occurred"}`))
-				})
-			})
-		})
-
-		When("PXC is in maintenance mode", func() {
-			BeforeEach(func() {
-				mock.ExpectQuery(`SELECT @@global.pxc_maint_mode != "DISABLED"`).
-					WillReturnRows(sqlmock.NewRows([]string{"@@global.pxc_maint_mode != \"DISABLED\""}).
-						AddRow("1"))
-			})
-
-			It("does not load the 'seeded_users_and_databases.sql' file into MySQL", func() {
-				err := helper.SeedUsersAndDatabases()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeOs.RunCommandCallCount()).To(Equal(0))
-			})
-
-			It("logs an info message", func() {
-				_ = helper.SeedUsersAndDatabases()
-
-				Expect(testLogger.Buffer()).To(gbytes.Say(`"message":"db_helper.PXC is in maintenance mode, skipping seeding users"`))
-			})
-		})
 	})
 })
