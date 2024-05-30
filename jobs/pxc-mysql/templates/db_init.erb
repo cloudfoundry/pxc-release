@@ -70,7 +70,7 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 
   def collation_server
     if p('engine_config.collation_server') != 'use_default'
-      " COLLATE '#{p('engine_config.collation_server')}'"
+      " COLLATE ''#{p('engine_config.collation_server')}''"
     else
       ""
     end
@@ -82,7 +82,11 @@ GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
     end
     charset = p('engine_config.character_set_server')
     %{
-CREATE SCHEMA IF NOT EXISTS #{ident(user['schema'])} CHARACTER SET '#{charset}'#{collation_server};
+SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = #{escape(user['schema'])};
+SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA #{ident(user['schema'])} CHARACTER SET ''#{charset}''#{collation_server}');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 }.strip
 
   end

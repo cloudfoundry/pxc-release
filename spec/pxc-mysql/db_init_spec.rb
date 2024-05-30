@@ -22,7 +22,11 @@ describe 'db_init template' do
     context 'when the the default collation is used' do
       it 'creates a database by specifying only the character set' do
         create_db_statement = <<~SQL
-          CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'utf8mb4';
+          SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'metrics_db';
+          SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA `metrics_db` CHARACTER SET ''utf8mb4''');
+          PREPARE stmt FROM @_sql;
+          EXECUTE stmt;
+          DROP PREPARE stmt;
         SQL
 
         expect(template.render(spec)).to include(create_db_statement)
@@ -32,7 +36,11 @@ describe 'db_init template' do
     context 'when the spec is configured explicitly with the collation name "use_default"' do
       it 'creates a database by specifying only the character set' do
         create_db_statement = <<~SQL
-          CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'utf8mb4';
+          SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'metrics_db';
+          SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA `metrics_db` CHARACTER SET ''utf8mb4''');
+          PREPARE stmt FROM @_sql;
+          EXECUTE stmt;
+          DROP PREPARE stmt;
         SQL
 
         expect(template.render(spec)).to include(create_db_statement)
@@ -46,7 +54,11 @@ describe 'db_init template' do
 
       it 'creates a database by specifying only the character set' do
         create_db_statement = <<~SQL
-          CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'latin7' COLLATE 'latin7_estonian_cs';
+          SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'metrics_db';
+          SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA `metrics_db` CHARACTER SET ''latin7'' COLLATE ''latin7_estonian_cs''');
+          PREPARE stmt FROM @_sql;
+          EXECUTE stmt;
+          DROP PREPARE stmt;
         SQL
 
         expect(template.render(spec)).to include(create_db_statement)

@@ -47,7 +47,11 @@ ALTER USER 'cloud_controller'@'%'
 REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
 GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
 REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
-CREATE SCHEMA IF NOT EXISTS `cloud_controller` CHARACTER SET 'utf8mb4';
+SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'cloud_controller';
+SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA `cloud_controller` CHARACTER SET ''utf8mb4''');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 
 -- user: 'multi-schema-admin-user'@'%' role: multi-schema-admin
 CREATE USER IF NOT EXISTS 'multi-schema-admin-user'@'%'
@@ -69,7 +73,11 @@ ALTER USER 'mysql-metrics'@'%'
   WITH MAX_USER_CONNECTIONS 3/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
 GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysql-metrics'@'%';
-CREATE SCHEMA IF NOT EXISTS `metrics_db` CHARACTER SET 'utf8mb4';
+SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'metrics_db';
+SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA `metrics_db` CHARACTER SET ''utf8mb4''');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 
 -- user: 'special-admin-user'@'%' role: admin
 CREATE USER IF NOT EXISTS 'special-admin-user'@'%'
