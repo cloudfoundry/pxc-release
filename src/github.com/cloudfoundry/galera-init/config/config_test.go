@@ -11,7 +11,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/pivotal-cf-experimental/service-config"
 
 	. "github.com/cloudfoundry/galera-init/config"
 )
@@ -23,7 +22,7 @@ var _ = Describe("Config", func() {
 		var serviceConfig *ServiceConfig
 
 		BeforeEach(func() {
-			serviceConfig = New()
+			serviceConfig = NewServiceConfig()
 			flags := flag.NewFlagSet("galera-init", flag.ExitOnError)
 			serviceConfig.AddFlags(flags)
 

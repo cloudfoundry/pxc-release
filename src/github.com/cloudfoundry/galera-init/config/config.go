@@ -11,7 +11,6 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerflags"
-	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
 )
 
@@ -64,7 +63,7 @@ func NewConfig(osArgs []string) (*Config, error) {
 	binaryName := osArgs[0]
 	configurationOptions := osArgs[1:]
 
-	serviceConfig := service_config.New()
+	serviceConfig := NewServiceConfig()
 	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
 
 	lagerflags.AddFlags(flags)

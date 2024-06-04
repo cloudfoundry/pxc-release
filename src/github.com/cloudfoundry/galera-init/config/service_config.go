@@ -1,4 +1,4 @@
-package service_config
+package config
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/imdario/mergo"
 	"gopkg.in/yaml.v2"
 )
 
@@ -27,7 +28,7 @@ type ServiceConfig struct {
 	helpWriter     io.Writer
 }
 
-func New() *ServiceConfig {
+func NewServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
 		helpWriter: os.Stderr,
 	}
@@ -96,7 +97,7 @@ func (c ServiceConfig) Read(model interface{}) error {
 		return err
 	}
 
-	reader := NewReader(bytes)
+	reader := newReader(bytes)
 
 	if c.defaultModel != nil {
 		err = reader.ReadWithDefaults(model, c.defaultModel)
@@ -127,4 +128,33 @@ func (c ServiceConfig) PrintUsage() {
 			fmt.Fprintf(c.helpWriter, "Default config values:\n%s", defaultStr)
 		}
 	}
+}
+
+type reader struct {
+	configBytes []byte
+}
+
+func newReader(configBytes []byte) *reader {
+	return &reader{
+		configBytes: configBytes,
+	}
+}
+
+func (r reader) Read(model interface{}) error {
+	err := yaml.Unmarshal(r.configBytes, model)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Unmarshaling config: %s", err.Error()))
+	}
+
+	return nil
+}
+
+func (r reader) ReadWithDefaults(model interface{}, defaults interface{}) error {
+
+	err := r.Read(model)
+	if err != nil {
+		return err
+	}
+
+	return mergo.Merge(model, defaults)
 }

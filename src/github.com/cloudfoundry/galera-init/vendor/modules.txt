@@ -123,8 +123,6 @@ github.com/moby/term/windows
 # github.com/morikuni/aec v1.0.0
 ## explicit
 github.com/morikuni/aec
-# github.com/onsi/ginkgo v1.16.5
-## explicit; go 1.16
 # github.com/onsi/ginkgo/v2 v2.19.0
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2
@@ -172,9 +170,6 @@ github.com/opencontainers/image-spec/specs-go/v1
 ## explicit; go 1.20
 github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
-# github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
-## explicit
-github.com/pivotal-cf-experimental/service-config
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
