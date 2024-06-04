@@ -2,7 +2,6 @@ package cluster_health_checker_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -14,16 +13,17 @@ import (
 
 	. "github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/cluster_health_checker/cluster_health_checkerfakes"
+	"github.com/cloudfoundry/galera-init/test_helpers"
 )
 
 var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 	var testLogger *slog.Logger
-	var slogHandler *SlogHander
+	var slogHandler *test_helpers.SlogHandler
 	var fakeUrlGetter *cluster_health_checkerfakes.FakeUrlGetter
 
 	BeforeEach(func() {
 		fakeUrlGetter = &cluster_health_checkerfakes.FakeUrlGetter{}
-		slogHandler = NewSlogHander()
+		slogHandler = test_helpers.NewSlogHandler()
 		testLogger = slog.New(slogHandler)
 	})
 
@@ -79,37 +79,3 @@ var _ = Describe("ClusterHealthChecker.HealthyCluster()", func() {
 		Expect(len(requestURLs)).To(Equal(2))
 	})
 })
-
-type SlogHander struct {
-	handler  slog.Handler
-	Buffer   *gbytes.Buffer
-	Messages []string
-}
-
-func NewSlogHander() *SlogHander {
-	buffer := gbytes.NewBuffer()
-
-	return &SlogHander{
-		handler: slog.NewJSONHandler(buffer, nil),
-		Buffer:  buffer,
-	}
-}
-
-func (s *SlogHander) Enabled(ctx context.Context, level slog.Level) bool {
-	return s.handler.Enabled(ctx, level)
-}
-
-func (s *SlogHander) Handle(ctx context.Context, record slog.Record) error {
-	s.Messages = append(s.Messages, record.Message)
-	return s.handler.Handle(ctx, record)
-}
-
-func (s *SlogHander) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return s.handler.WithAttrs(attrs)
-}
-
-func (s *SlogHander) WithGroup(name string) slog.Handler {
-	return s.handler.WithGroup(name)
-}
-
-var _ slog.Handler = &SlogHander{}
