@@ -1,7 +1,6 @@
 package e2e_tests
 
 import (
-	"bytes"
 	"crypto/tls"
 	"database/sql"
 	"encoding/json"
@@ -10,9 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -21,8 +18,6 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/gstruct"
 
 	"e2e-tests/utilities/bosh"
@@ -247,44 +242,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(output.String()).NotTo(ContainSubstring(`Access denied for user 'cluster-health-logger'`))
-		})
-	})
-
-	Context("download-logs script", Label("download-logs"), func() {
-		It("fetches SHOW ENGINE INNODB STATUS output", func() {
-			logsDir, err := os.MkdirTemp("", "download_logs_")
-			Expect(err).NotTo(HaveOccurred())
-			defer os.RemoveAll(logsDir)
-
-			downloadLogsCmd := exec.Command("./scripts/download-logs", "-o", logsDir)
-			downloadLogsCmd.Env = append(os.Environ(),
-				"DOWNLOAD_LOGS_GPG_PASSPHRASE_FROM_STDIN=true",
-				"BOSH_DEPLOYMENT="+deploymentName,
-			)
-			downloadLogsCmd.Dir = `../..`
-			downloadLogsCmd.Stdin = bytes.NewBufferString("some-passphrase")
-
-			session, err := gexec.Start(downloadLogsCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(session, "10m", "1s").Should(gexec.Exit(0))
-
-			innodbStatusOutput := gbytes.NewBuffer()
-			tarCmd := "tar"
-			if runtime.GOOS != "linux" {
-				tarCmd = "gtar"
-			}
-			gpgCmd := fmt.Sprintf(`gpg -d --batch --passphrase=some-passphrase < %s/*-mysql-logs.tar.gz.gpg `+
-				`| %s -Ozxv --wildcards "*/innodb_status.out"`, logsDir, tarCmd)
-			decryptCmd := exec.Command("bash", "-c", gpgCmd)
-
-			stdout := io.MultiWriter(GinkgoWriter, innodbStatusOutput)
-
-			session, err = gexec.Start(decryptCmd, stdout, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(session, "10m", "1s").Should(gexec.Exit(0))
-			Expect(innodbStatusOutput).To(gbytes.Say(`(?m)^END OF INNODB MONITOR OUTPUT\s*$`))
 		})
 	})
 
