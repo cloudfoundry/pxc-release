@@ -1,0 +1,7 @@
+---
+name: jemalloc
+
+dependencies: []
+
+files:
+- jemalloc-*.tar.bz2

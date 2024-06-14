@@ -31,6 +31,7 @@ templates:
 packages:
 - auto-tune-mysql
 - galera-init
+- jemalloc
 - percona-xtradb-cluster-5.7
 - percona-xtradb-cluster-8.0
 - percona-xtrabackup-2.4
@@ -266,6 +267,16 @@ properties:
     description: Minimum length of words that are stored in an InnoDB FULLTEXT index.
 
   # Generic Config
+  engine_config.jemalloc.enabled:
+    description: >
+        Enable the jemalloc memory allocator.
+        See: https://github.com/jemalloc/jemalloc
+    default: false
+  engine_config.jemalloc.profiling:
+    description: >
+        Enable jemalloc memory profiling.  Requires engine_config.jemalloc.enabled to be configured.
+        See: https://docs.percona.com/percona-server/8.0/jemalloc-profiling.html
+    default: false
   engine_config.event_scheduler:
     description: 'Events are named database objects containing SQL statements that are to be executed at a later stage, either once off, or at regular intervals.'
     default: false

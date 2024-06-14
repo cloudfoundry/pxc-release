@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -euo pipefail
+
+tar -xf jemalloc-*.tar.bz2
+cd jemalloc-*/
+./configure --prefix="${BOSH_INSTALL_TARGET}" --with-version=VERSION --enable-stats --enable-prof
+make -j "$(nproc)" install
+cd -

@@ -50,6 +50,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/tune-mysql-config.yml`),
 			bosh.Operation(`test/with-wildcard-schema-access.yml`),
 			bosh.Operation(`test/with-syslog.yml`),
+			bosh.Operation(`enable-jemalloc.yml`),
 			bosh.Var(`innodb_buffer_pool_size_percent`, `14`),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
@@ -762,6 +763,44 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 			err := db.Ping()
 			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("jemalloc", Label("jemalloc"), func() {
+		It("uses jemalloc", func() {
+			var jemallocAllocated uint64
+			Expect(db.QueryRow(`SELECT ALLOCATED FROM performance_schema.malloc_stats_totals`).
+				Scan(&jemallocAllocated)).To(Succeed())
+
+			Expect(jemallocAllocated).To(BeNumerically(">", 0),
+				`Expected to see allocations from jemalloc but performance_schema.malloc_stats_totals.ALLOCATE was zero!`)
+		})
+
+		It("does not enable profiling by default", func() {
+			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(Equal("-"), `Expected no memory profiles to be found in /var/vcap/data/pxc-mysql/tmp/`)
+		})
+	})
+
+	When("jemalloc profiling is enabled", Label("jemalloc", "profiling"), func() {
+		BeforeAll(func() {
+			Expect(bosh.RedeployPXC(deploymentName, bosh.Operation("enable-jemalloc-profiling.yml"))).To(Succeed())
+		})
+
+		It("enables access to jemalloc memory profiles", func() {
+			By("writing profile files to the ephemeral disk after FLUSH MEMORY PROFILE is run")
+			Expect(db.Exec(`FLUSH MEMORY PROFILE`)).Error().NotTo(HaveOccurred())
+
+			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(HavePrefix("/var/vcap/data/pxc-mysql/tmp/jeprof_mysqld"), `Expected a memory profile to be generated, but it was not.`)
+
+			By("providing the jeprof utility as part of the jemalloc package for generating human readable memory profile reports")
+			out, err = bosh.RemoteCommand(deploymentName,
+				"mysql/0", "sudo /var/vcap/packages/jemalloc/bin/jeprof --show_bytes --text /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld "+out)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(MatchRegexp(`Total: \d+ B`))
 		})
 	})
 })

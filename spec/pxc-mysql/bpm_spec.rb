@@ -28,4 +28,19 @@ describe 'galera-agent-config template' do
       expect(parsed_bpm_yaml["processes"][0]["env"]["PATH"]).to eq('/usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-5.7/bin:/var/vcap/packages/percona-xtrabackup-2.4/bin')
     end
   end
+
+  context 'when jemalloc is enabled' do
+    before { spec["engine_config"] = { "jemalloc" => { "enabled" => true } } }
+
+    it 'loads the jemalloc by setting the LD_PRELOAD environment variable' do
+      expect(parsed_bpm_yaml["processes"][0]["env"]["LD_PRELOAD"]).to eq('/var/vcap/packages/jemalloc/lib/libjemalloc.so.2')
+    end
+
+    context 'when profiling is enabled' do
+      before { spec["engine_config"]["jemalloc"]["profiling"] = true }
+      it 'enables jemalloc profiling by setting the MALLOC_CONF environment variable' do
+        expect(parsed_bpm_yaml["processes"][0]["env"]["MALLOC_CONF"]).to eq('prof:true')
+      end
+    end
+  end
 end

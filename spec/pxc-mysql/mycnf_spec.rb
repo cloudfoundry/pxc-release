@@ -321,4 +321,20 @@ describe 'my.cnf template' do
       expect(parsed_mycnf).to include("mysqld" => hash_including("skip-log-bin" => true))
     end
   end
+
+  # https://docs.percona.com/percona-server/8.0/jemalloc-profiling.html
+  context 'when jemalloc profiling is enabled' do
+    before { spec["engine_config"] = { "jemalloc" => { "enabled" => true, "profiling" => true } } }
+
+    it 'enables the Percona jemalloc-profiling option for mysql-8.0' do
+      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("jemalloc-profiling" => "ON"))
+    end
+
+    # The jemalloc-profiling feature is only supported in Percona v8.0.25+
+    it 'does not attempt to enable jemalloc-profiling for mysql-5.7' do
+      expect(parsed_mycnf).to_not include("mysqld" => hash_including("jemalloc-profiling" => "ON"))
+      expect(parsed_mycnf).to_not include("mysqld-5.7" => hash_including("jemalloc-profiling" => "ON"))
+    end
+  end
+
 end

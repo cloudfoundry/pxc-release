@@ -18,6 +18,10 @@ check_0.15.2.orig.tar.gz:
   size: 773805
   object_id: d1c4eec5-21ea-433c-6572-7ca6a1e60f5b
   sha: sha256:8451b68ac5d6f3157b24f22eceff575bcf566264f6d78f3852f89d4e08cf42e1
+jemalloc-5.3.0.tar.bz2:
+  size: 736023
+  object_id: 3de075b1-afbb-47d4-4bbd-0cc130b02431
+  sha: sha256:2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa
 libaio_0.3.112.orig.tar.xz:
   size: 38196
   object_id: 882ebd2d-d1ec-43f2-796e-3060030a4474

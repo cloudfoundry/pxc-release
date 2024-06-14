@@ -1,0 +1,3 @@
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/jemalloc?/profiling?
+  value: true

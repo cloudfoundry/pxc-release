@@ -46,6 +46,9 @@ wsrep_applier_threads           = <%= wsrep_applier_threads %>
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
 <%- end -%>
 log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
+<%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
+jemalloc-profiling              = ON
+<%- end -%>
 
 [mysqld-5.7]
 <%- if p('engine_config.galera.enabled') -%>

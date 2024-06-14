@@ -26,6 +26,12 @@ processes:
     pre_start: /var/vcap/jobs/pxc-mysql/bin/cleanup-socket
   env:
     PATH: <%= path.join(":") %>
+<%- if p('engine_config.jemalloc.enabled') -%>
+    LD_PRELOAD: /var/vcap/packages/jemalloc/lib/libjemalloc.so.2
+<%- if p('engine_config.jemalloc.profiling') -%>
+    MALLOC_CONF: prof:true
+<%- end -%>
+<%- end -%>
   limits:
     processes: <%= [p('engine_config.max_connections')*2+200,5000].max %>
     open_files: 1048576
