@@ -65,6 +65,7 @@ build() {
       -DBUILD_CONFIG=mysql_release \
       -DBOOST_ROOT="${boost_dir}" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DMINIMAL_RELWITHDEBINFO=OFF \
       -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_C_COMPILER=gcc \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
