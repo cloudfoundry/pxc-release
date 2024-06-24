@@ -768,6 +768,16 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 	Context("jemalloc", Label("jemalloc"), func() {
 		It("uses jemalloc", func() {
+
+			_, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo grep -q jemalloc /proc/$(pidof mysqld)/maps")
+			Expect(err).NotTo(HaveOccurred(),
+				`Expected to see jemalloc in the memory map of the mysqld process, but it was not`)
+
+			if expectedMysqlVersion != "8.0" {
+				// MySQL v5.7 does not support the performance_schema.malloc_* tables present in MySQL v8.0
+				return
+			}
+
 			var jemallocAllocated uint64
 			Expect(db.QueryRow(`SELECT ALLOCATED FROM performance_schema.malloc_stats_totals`).
 				Scan(&jemallocAllocated)).To(Succeed())
@@ -775,20 +785,24 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(jemallocAllocated).To(BeNumerically(">", 0),
 				`Expected to see allocations from jemalloc but performance_schema.malloc_stats_totals.ALLOCATE was zero!`)
 		})
-
-		It("does not enable profiling by default", func() {
-			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(out).To(Equal("-"), `Expected no memory profiles to be found in /var/vcap/data/pxc-mysql/tmp/`)
-		})
 	})
 
 	When("jemalloc profiling is enabled", Label("jemalloc", "profiling"), func() {
 		BeforeAll(func() {
+			if expectedMysqlVersion != "8.0" {
+				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
+			}
+
 			Expect(bosh.RedeployPXC(deploymentName, bosh.Operation("enable-jemalloc-profiling.yml"))).To(Succeed())
 		})
 
-		It("enables access to jemalloc memory profiles", func() {
+		It("does not write memory profiles by default", func() {
+			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(Equal("-"), `Expected no memory profiles to be found in /var/vcap/data/pxc-mysql/tmp/`)
+		})
+
+		It("enables access to jemalloc memory profile when adminstrative commands are run", func() {
 			By("writing profile files to the ephemeral disk after FLUSH MEMORY PROFILE is run")
 			Expect(db.Exec(`FLUSH MEMORY PROFILE`)).Error().NotTo(HaveOccurred())
 
