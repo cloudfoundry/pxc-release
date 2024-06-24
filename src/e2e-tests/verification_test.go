@@ -806,13 +806,16 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			By("writing profile files to the ephemeral disk after FLUSH MEMORY PROFILE is run")
 			Expect(db.Exec(`FLUSH MEMORY PROFILE`)).Error().NotTo(HaveOccurred())
 
-			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
+			var mysqlNode string
+			Expect(db.QueryRow(`SELECT @@global.wsrep_node_name`).Scan(&mysqlNode)).To(Succeed())
+
+			out, err := bosh.RemoteCommand(deploymentName, mysqlNode, "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(HavePrefix("/var/vcap/data/pxc-mysql/tmp/jeprof_mysqld"), `Expected a memory profile to be generated, but it was not.`)
 
 			By("providing the jeprof utility as part of the jemalloc package for generating human readable memory profile reports")
 			out, err = bosh.RemoteCommand(deploymentName,
-				"mysql/0", "sudo /var/vcap/packages/jemalloc/bin/jeprof --show_bytes --text /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld "+out)
+				mysqlNode, "sudo /var/vcap/packages/jemalloc/bin/jeprof --show_bytes --text /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld "+out)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(MatchRegexp(`Total: \d+ B`))
 		})
