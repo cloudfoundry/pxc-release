@@ -1,4 +1,4 @@
-# github.com/cloudfoundry/gosigar v1.3.61
+# github.com/cloudfoundry/gosigar v1.3.62
 ## explicit; go 1.21.0
 github.com/cloudfoundry/gosigar
 github.com/cloudfoundry/gosigar/sys/windows
@@ -16,7 +16,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240528025155-186aa0362fba
+# github.com/google/pprof v0.0.0-20240622144329-c177fd99eaa9
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/kr/pretty v0.2.1
