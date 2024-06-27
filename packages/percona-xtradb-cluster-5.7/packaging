@@ -36,14 +36,14 @@ unpack_source() {
 
 apply_patches() {
   (
-    cd Percona-XtraDB-Cluster-*/
+    cd ./*Percona-XtraDB-Cluster-*/
     patch -p1 < ../patches/libgalera_pxc57_cmake.patch
   )
 }
 
 configure_source() {
   (
-    cd Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
+    cd ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/
     cp GALERA-REVISION GALERA_GIT_REVISION
     cmake . \
       -DBOOST_ROOT=../../boost_1_59_0 \
@@ -52,7 +52,7 @@ configure_source() {
   )
 
   (
-    cd Percona-XtraDB-Cluster-*/
+    cd ./*Percona-XtraDB-Cluster-*/
     source MYSQL_VERSION
     compilation_comment="Percona XtraDB Cluster (GPL) ${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
 
@@ -87,13 +87,13 @@ configure_source() {
 }
 
 build_source() {
-  make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc)
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
+  make -C ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc)
+  make -C ./*Percona-XtraDB-Cluster-*/bld/ -j $(nproc)
 }
 
 install_distribution() {
-  make -C Percona-XtraDB-Cluster-*/bld/ -j $(nproc) install/strip
-  make -C Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc) install/strip
+  make -C ./*Percona-XtraDB-Cluster-*/bld/ -j $(nproc) install/strip
+  make -C ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera/ -j $(nproc) install/strip
   mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
   rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
 }
