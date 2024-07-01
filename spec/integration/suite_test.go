@@ -43,7 +43,7 @@ func startMySQL(tag string, mysqlOptions []string, extraMounts []string) (*docke
 		}, mysqlOptions...),
 		Env:          []string{"PXC_CLUSTER_NAME=testcluster", "MYSQL_ALLOW_EMPTY_PASSWORD=1"},
 		Mounts:       append([]string{volumeID + ":/var/lib/mysql"}, extraMounts...),
-		ExposedPorts: []string{"3306"},
+		ExposedPorts: []string{"3306/tcp"},
 	})
 	if err != nil {
 		return nil, err
