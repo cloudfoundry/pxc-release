@@ -19,9 +19,8 @@ pushd boost_1_59_0
     ./b2 -j "${NPROC}"
 popd
 
-TMPDIR=$(mktemp -d --tmpdir="$(pwd)")
-tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz -C "${TMPDIR}"
-pushd  "${TMPDIR}"/percona-xtradb-cluster-galera
+tar -xf pxc/Percona-XtraDB-Cluster-*.tar.gz
+pushd ./*Percona-XtraDB-Cluster-*/percona-xtradb-cluster-galera
     patch -p2 < ../../patches/libgalera/libgalera_cmake.patch
     cmake . \
         -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
