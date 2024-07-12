@@ -1,7 +1,7 @@
-Percona-XtraDB-Cluster-5.7.44-31.65.tar.gz:
-  size: 74220986
-  object_id: 69ec7e2a-df75-4fe9-5e46-2e1f01ad0bec
-  sha: sha256:db109aab346f8565a29dea24c89866c4615114a0d7936ecf5cab41c148ccae2e
+Percona-XtraDB-Cluster-5.7.44-31.65-2.tar.gz:
+  size: 465899520
+  object_id: eb3813af-f785-4431-6e2e-7703e1c9a223
+  sha: sha256:84f4f46e8e78181912bb3c6bc7d4c1ffce33783e17c29a47585010de523f644a
 Percona-XtraDB-Cluster-8.0.36-28.tar.gz:
   size: 476053281
   object_id: c94ddf96-a9b2-4e1a-6f0d-35640a263822
