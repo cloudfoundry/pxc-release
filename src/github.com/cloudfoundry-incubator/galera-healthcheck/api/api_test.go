@@ -291,6 +291,27 @@ var _ = Describe("Sidecar API", func() {
 					Expect(state.WsrepLocalStateComment).To(Equal(string(returnedState.WsrepLocalState.Comment())))
 					Expect(state.Healthy).To(BeTrue())
 				})
+
+				When("it interprets the state as 'unhealthy'", func() {
+					BeforeEach(func() {
+						stateSnapshotter.StateReturns(domain.DBState{
+							WsrepLocalIndex:    uint(0),
+							WsrepLocalState:    domain.WsrepLocalState(0),
+							ReadOnly:           false,
+							MaintenanceEnabled: true, // forces unhealthy state
+						}, nil)
+					})
+
+					It("logs the unhealthy state", func() {
+						req := createReq("api/v1/status", "GET")
+						_, err := http.DefaultClient.Do(req)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(len(testLogger.Logs())).To(Equal(1))
+						logData := testLogger.Logs()[0]
+						Expect(logData.Message).To(Equal("mysql_cmd.unhealthy state: api.V1StatusResponse{WsrepLocalState:0x0, WsrepLocalStateComment:\"Initialized\", WsrepLocalIndex:0x0, Healthy:false} maintenanceEnabled: true readOnly: false"))
+					})
+				})
 			})
 
 			Context("when getting the state fails", func() {

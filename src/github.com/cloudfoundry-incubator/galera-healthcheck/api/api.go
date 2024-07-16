@@ -141,12 +141,18 @@ func (r router) v1Status() http.Handler {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		json.NewEncoder(w).Encode(V1StatusResponse{
+		healthy := s.IsHealthy(r.rootConfig.AvailableWhenReadOnly)
+		resp := V1StatusResponse{
 			WsrepLocalState:        uint(s.WsrepLocalState),
 			WsrepLocalStateComment: string(s.WsrepLocalState.Comment()),
 			WsrepLocalIndex:        s.WsrepLocalIndex,
-			Healthy:                s.IsHealthy(r.rootConfig.AvailableWhenReadOnly),
-		})
+			Healthy:                healthy,
+		}
+
+		if !healthy {
+			r.logger.Info(fmt.Sprintf("unhealthy state: %#v maintenanceEnabled: %t readOnly: %t", resp, s.MaintenanceEnabled, s.ReadOnly))
+		}
+		json.NewEncoder(w).Encode(resp)
 	})
 }
 
