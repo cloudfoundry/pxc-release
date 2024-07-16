@@ -34,6 +34,7 @@ var _ = Describe("Sidecar API", func() {
 		ts               *httptest.Server
 
 		ExpectedStateSnapshot domain.DBState
+		testLogger            *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
@@ -53,7 +54,7 @@ var _ = Describe("Sidecar API", func() {
 		stateSnapshotter = new(apifakes.FakeStateSnapshotter)
 		stateSnapshotter.StateReturns(ExpectedStateSnapshot, nil)
 
-		testLogger := lagertest.NewTestLogger("mysql_cmd")
+		testLogger = lagertest.NewTestLogger("mysql_cmd")
 
 		testConfig := &config.Config{
 			SidecarEndpoint: config.SidecarEndpointConfig{
@@ -303,6 +304,16 @@ var _ = Describe("Sidecar API", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("logs the error", func() {
+					req := createReq("api/v1/status", "GET")
+					_, err := http.DefaultClient.Do(req)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(len(testLogger.Logs())).To(Equal(1))
+					logData := testLogger.Logs()[0]
+					Expect(logData.Data["error"]).To(Equal("possibly not a galera cluster"))
 				})
 			})
 		})
