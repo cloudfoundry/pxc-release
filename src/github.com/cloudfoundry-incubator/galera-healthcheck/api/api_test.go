@@ -292,24 +292,78 @@ var _ = Describe("Sidecar API", func() {
 					Expect(state.Healthy).To(BeTrue())
 				})
 
-				When("it interprets the state as 'unhealthy'", func() {
+				It("logs the initial transition to its healthy state", func() {
+					req := createReq("api/v1/status", "GET")
+					resp, err := http.DefaultClient.Do(req)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+					logData := testLogger.Logs()[0]
+					Expect(logData.Message).To(Equal("mysql_cmd.health transition response: api.V1StatusResponse{WsrepLocalState:0x4, WsrepLocalStateComment:\"Synced\", WsrepLocalIndex:0x1, Healthy:true} maintenanceEnabled: false readOnly: true"))
+				})
+
+				When("a healthy node becomes & stays unhealthy", func() {
 					BeforeEach(func() {
-						stateSnapshotter.StateReturns(domain.DBState{
-							WsrepLocalIndex:    uint(0),
-							WsrepLocalState:    domain.WsrepLocalState(0),
+						stateSnapshotter.StateReturnsOnCall(0, domain.DBState{
+							WsrepLocalIndex:    uint(2),
+							WsrepLocalState:    domain.Synced,
 							ReadOnly:           false,
-							MaintenanceEnabled: true, // forces unhealthy state
+							MaintenanceEnabled: false,
 						}, nil)
+						for i := 1; i <= 3; i++ {
+							stateSnapshotter.StateReturnsOnCall(i, domain.DBState{
+								WsrepLocalIndex:    uint(2),
+								WsrepLocalState:    domain.Synced,
+								ReadOnly:           false,
+								MaintenanceEnabled: true, // trigger unhealthy state
+							}, nil)
+						}
 					})
 
-					It("logs the unhealthy state", func() {
+					It("logs a single transition to the unhealthy status", func() {
 						req := createReq("api/v1/status", "GET")
-						_, err := http.DefaultClient.Do(req)
-						Expect(err).ToNot(HaveOccurred())
+						for i := 1; i <= 4; i++ {
+							_, err := http.DefaultClient.Do(req)
+							Expect(err).ToNot(HaveOccurred())
+						}
 
+						Expect(stateSnapshotter.StateCallCount()).To(Equal(4))
+						Expect(len(testLogger.Logs())).To(Equal(2))
+						logData := testLogger.Logs()[0] // initial "healthy" status
+						Expect(logData.Message).To(Equal("mysql_cmd.health transition response: api.V1StatusResponse{WsrepLocalState:0x4, WsrepLocalStateComment:\"Synced\", WsrepLocalIndex:0x2, Healthy:true} maintenanceEnabled: false readOnly: false"))
+						logData = testLogger.Logs()[1] // single "unhealthy" status
+						Expect(logData.Message).To(Equal("mysql_cmd.health transition response: api.V1StatusResponse{WsrepLocalState:0x4, WsrepLocalStateComment:\"Synced\", WsrepLocalIndex:0x2, Healthy:false} maintenanceEnabled: true readOnly: false"))
+					})
+				})
+				When("an unhealthy node becomes & stays healthy", func() {
+					BeforeEach(func() {
+						stateSnapshotter.StateReturnsOnCall(0, domain.DBState{
+							WsrepLocalIndex:    uint(2),
+							WsrepLocalState:    domain.Synced,
+							ReadOnly:           false,
+							MaintenanceEnabled: true, // triggers unhealthy state
+						}, nil)
+						for i := 1; i <= 3; i++ {
+							stateSnapshotter.StateReturnsOnCall(i, domain.DBState{
+								WsrepLocalIndex:    uint(2),
+								WsrepLocalState:    domain.Synced,
+								ReadOnly:           false,
+								MaintenanceEnabled: false,
+							}, nil)
+						}
+					})
+
+					It("logs a single transition to the healthy status", func() {
+						req := createReq("api/v1/status", "GET")
+						for i := 1; i <= 4; i++ {
+							_, err := http.DefaultClient.Do(req)
+							Expect(err).ToNot(HaveOccurred())
+						}
+
+						Expect(stateSnapshotter.StateCallCount()).To(Equal(4))
 						Expect(len(testLogger.Logs())).To(Equal(1))
 						logData := testLogger.Logs()[0]
-						Expect(logData.Message).To(Equal("mysql_cmd.unhealthy state: api.V1StatusResponse{WsrepLocalState:0x0, WsrepLocalStateComment:\"Initialized\", WsrepLocalIndex:0x0, Healthy:false} maintenanceEnabled: true readOnly: false"))
+						Expect(logData.Message).To(Equal("mysql_cmd.health transition response: api.V1StatusResponse{WsrepLocalState:0x4, WsrepLocalStateComment:\"Synced\", WsrepLocalIndex:0x2, Healthy:true} maintenanceEnabled: false readOnly: false"))
 					})
 				})
 			})
