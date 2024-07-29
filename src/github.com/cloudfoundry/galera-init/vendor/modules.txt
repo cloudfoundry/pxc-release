@@ -28,7 +28,7 @@ github.com/containerd/containerd/pkg/userns
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/docker/docker v27.1.0+incompatible
+# github.com/docker/docker v27.1.1+incompatible
 ## explicit
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/container
@@ -107,8 +107,8 @@ github.com/moby/patternmatcher
 # github.com/moby/sys/sequential v0.6.0
 ## explicit; go 1.17
 github.com/moby/sys/sequential
-# github.com/moby/sys/user v0.1.0
-## explicit; go 1.17
+# github.com/moby/sys/user v0.2.0
+## explicit; go 1.21
 github.com/moby/sys/user
 # github.com/moby/term v0.5.0
 ## explicit; go 1.18
@@ -157,7 +157,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.33.1
+# github.com/onsi/gomega v1.34.0
 ## explicit; go 1.20
 github.com/onsi/gomega
 github.com/onsi/gomega/format
