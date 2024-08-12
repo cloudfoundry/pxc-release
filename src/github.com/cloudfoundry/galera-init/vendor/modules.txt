@@ -112,8 +112,8 @@ github.com/moby/patternmatcher
 # github.com/moby/sys/sequential v0.6.0
 ## explicit; go 1.17
 github.com/moby/sys/sequential
-# github.com/moby/sys/user v0.2.0
-## explicit; go 1.21
+# github.com/moby/sys/user v0.3.0
+## explicit; go 1.17
 github.com/moby/sys/user
 # github.com/moby/term v0.5.0
 ## explicit; go 1.18
@@ -124,7 +124,7 @@ github.com/moby/term/windows
 github.com/morikuni/aec
 # github.com/onsi/ginkgo v1.16.5
 ## explicit; go 1.16
-# github.com/onsi/ginkgo/v2 v2.19.1
+# github.com/onsi/ginkgo/v2 v2.20.0
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -180,7 +180,7 @@ github.com/pkg/errors
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+# golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
@@ -189,7 +189,7 @@ golang.org/x/exp/slices
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.27.0
+# golang.org/x/net v0.28.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
@@ -198,11 +198,11 @@ golang.org/x/net/html/charset
 # golang.org/x/sync v0.8.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.23.0
+# golang.org/x/sys v0.24.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.16.0
+# golang.org/x/text v0.17.0
 ## explicit; go 1.18
 golang.org/x/text/cases
 golang.org/x/text/encoding
@@ -224,7 +224,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.23.0
+# golang.org/x/tools v0.24.0
 ## explicit; go 1.19
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/astutil
