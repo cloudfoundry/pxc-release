@@ -337,4 +337,24 @@ describe 'my.cnf template' do
     end
   end
 
+  context 'when no explicit innodb_flush_method is set' do
+    it 'defaults innodb_flush_method to fsync' do
+      expect(rendered_template).to match("innodb_flush_method\s+= fsync")
+    end
+  end
+
+  context 'when an explicit innodb_flush_method is set' do
+    let(:spec) { { "engine_config" => { "innodb_flush_method" => "O_DIRECT"} } }
+    it 'configures that innodb_flush_method' do
+      expect(rendered_template).to match("innodb_flush_method\s+= O_DIRECT")
+    end
+  end
+
+  context 'when an invalid innodb_flush_method is set' do
+    let(:spec) { { "engine_config" => { "innodb_flush_method" => "INVALID"} } }
+    it 'throws an exception' do
+      expect { template.render(spec, consumes: links) }.to raise_error(RuntimeError, "Only innodb_flush_method=O_DIRECT or fsync or unset are supported!")
+    end
+  end
+
 end
