@@ -247,7 +247,7 @@ properties:
     default: 1
   engine_config.innodb_flush_method:
     description: 'Advanced configuration variable, consult the documentation before changing. Controls how MySQL opens data files; by default uses fsync(). Set to O_DIRECT if innodb_buffer_pool is sufficiently large that you can use O_DIRECT thus avoiding double-buffering.'
-    default: fsync
+    default: O_DIRECT
   engine_config.innodb_large_prefix:
     description: 'Whether innodb_large_prefix is enabled'
     default: true
