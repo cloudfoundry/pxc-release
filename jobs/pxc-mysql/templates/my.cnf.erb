@@ -21,9 +21,9 @@
     "OFF"
   end
 
-  if_p('innodb_flush_method') do |innodb_flush_method|
-    if innodb_flush_method != 'O_DIRECT'
-        raise "Only innodb-flush-method=O_DIRECT or unset is supported!"
+  if_p('engine_config.innodb_flush_method') do |innodb_flush_method|
+    if innodb_flush_method != 'O_DIRECT' && innodb_flush_method != 'fsync'
+        raise "Only innodb_flush_method=O_DIRECT or fsync or unset are supported!"
     end
   end
 -%>
