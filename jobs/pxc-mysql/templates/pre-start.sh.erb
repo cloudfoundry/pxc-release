@@ -42,6 +42,11 @@ fi
 
 shopt -u nullglob
 
+<%- if_p('kernel.vm.swappiness') do |s| -%>
+echo "vm.swappiness = <%= "#{format("%d", s)}" %>" > /etc/sysctl.d/70-mysql-swappiness.conf
+sysctl --system
+<%- end -%>
+
 if [[ ! -d "${RUN_DIR}" ]]; then
   mkdir -p ${RUN_DIR}
 fi

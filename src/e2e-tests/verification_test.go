@@ -45,6 +45,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/tune-mysql-config.yml`),
 			bosh.Operation(`test/with-wildcard-schema-access.yml`),
 			bosh.Operation(`test/with-syslog.yml`),
+			bosh.Operation(`test/optimize-vm-swappiness.yml`),
 			bosh.Operation(`enable-jemalloc.yml`),
 			bosh.Var(`innodb_buffer_pool_size_percent`, `14`),
 			bosh.Var(`binlog_space_percent`, `20`),
@@ -66,6 +67,21 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			return
 		}
 		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
+	})
+
+	Context("OS configuration", Label("os_config"), func() {
+		It("configures vm.swappiness = 1", func() {
+			swappinessValues, err := bosh.RemoteCommand(deploymentName, "mysql", "cat /proc/sys/vm/swappiness")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(strings.Fields(swappinessValues)).To(ConsistOf("1", "1", "1"),
+				`Expected vm.swappiness to be 1 on all mysql nodes, but it was not!`)
+
+			sysctlOutput, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo sysctl --load /etc/sysctl.d/70-mysql-swappiness.conf 2>&1`)
+			Expect(err).NotTo(HaveOccurred(), "Expected sysctl to be able to read /etc/sysctl.d/70-mysql-swappiness.conf, but it failed!\noutput = %s", sysctlOutput)
+			Expect(sysctlOutput).To(ContainSubstring(`vm.swappiness = 1`),
+				"Expected vm.swappiness to be 1, but it was not!\nCommand output: %s", sysctlOutput)
+		})
 	})
 
 	Context("MySQL Configuration", Label("configuration"), func() {

@@ -354,3 +354,8 @@ properties:
   mysql_version:
     description: "Version of MySQL to use.  One of '5.7' or '8.0'"
     default: "8.0"
+
+  kernel.vm.swappiness:
+    description: "Configure Linux vm.swappiness"
+    # https://docs.kernel.org/admin-guide/sysctl/vm.html#swappiness
+    # https://www.percona.com/blog/mysql-101-linux-tuning-for-mysql/
