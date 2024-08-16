@@ -85,6 +85,21 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	})
 
 	Context("MySQL Configuration", Label("configuration"), func() {
+		It("sets the expected innodb_flush_method", Label("innodb_flush_method"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var innodbFlushMethod string
+				Expect(db.QueryRow("SELECT @@global.innodb_flush_method").Scan(&innodbFlushMethod)).
+					To(Succeed())
+				Expect(innodbFlushMethod).To(Equal(`fsync`))
+				Expect(db.Close()).To(Succeed())
+			}
+		})
+
 		It("initializes a cluster with an empty gtid_executed", func() {
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
@@ -760,13 +775,34 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		})
 	})
 
-	When("jemalloc profiling is enabled", Label("jemalloc", "profiling"), func() {
+	When("redeploying with additional feature flags", func() {
 		BeforeAll(func() {
 			if expectedMysqlVersion != "8.0" {
 				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
 			}
 
-			Expect(bosh.RedeployPXC(deploymentName, bosh.Operation("enable-jemalloc-profiling.yml"))).To(Succeed())
+			By("e.g. enabling jemalloc profiling")
+			By("e.g. enabling O_DIRECT")
+			Expect(bosh.RedeployPXC(deploymentName,
+				bosh.Operation("enable-jemalloc-profiling.yml"),
+				bosh.Operation(`set-innodb-flush-method.yml`),
+				bosh.Var(`innodb_flush_method`, `O_DIRECT`),
+			)).To(Succeed())
+		})
+
+		It("sets the expected innodb_flush_method", Label("innodb_flush_method"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var innodbFlushMethod string
+				Expect(db.QueryRow("SELECT @@global.innodb_flush_method").Scan(&innodbFlushMethod)).
+					To(Succeed())
+				Expect(innodbFlushMethod).To(Equal(`O_DIRECT`))
+				Expect(db.Close()).To(Succeed())
+			}
 		})
 
 		It("does not write memory profiles by default", func() {
@@ -775,7 +811,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(out).To(Equal("-"), `Expected no memory profiles to be found in /var/vcap/data/pxc-mysql/tmp/`)
 		})
 
-		It("enables access to jemalloc memory profile when adminstrative commands are run", func() {
+		It("enables access to jemalloc memory profile when administrative commands are run", func() {
 			By("writing profile files to the ephemeral disk after FLUSH MEMORY PROFILE is run")
 			Expect(db.Exec(`FLUSH MEMORY PROFILE`)).Error().NotTo(HaveOccurred())
 

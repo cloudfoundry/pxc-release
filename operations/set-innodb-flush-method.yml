@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/innodb_flush_method?
+  value: ((innodb_flush_method))
