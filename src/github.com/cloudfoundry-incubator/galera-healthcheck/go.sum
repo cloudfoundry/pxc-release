@@ -1,7 +1,7 @@
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
-code.cloudfoundry.org/tlsconfig v0.0.0-20240808182450-b1b581e211a2 h1:KoCAuwi0tDa3JJW9qF6m7Fz5n6ftDx+yIVWEHgraRHw=
-code.cloudfoundry.org/tlsconfig v0.0.0-20240808182450-b1b581e211a2/go.mod h1:6ymG8DjGLta+bnqdpUmdv88Ikje2VvOTq+8drVe4pUU=
+code.cloudfoundry.org/tlsconfig v0.1.0 h1:/SGZk3K7t79cuhSVs/qZXayEnLV1kodmvU3EBcc4E4w=
+code.cloudfoundry.org/tlsconfig v0.1.0/go.mod h1:6ymG8DjGLta+bnqdpUmdv88Ikje2VvOTq+8drVe4pUU=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
