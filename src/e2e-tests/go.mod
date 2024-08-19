@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.22.5
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.0.0-20240808182450-b1b581e211a2
+	code.cloudfoundry.org/tlsconfig v0.1.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.20.0
