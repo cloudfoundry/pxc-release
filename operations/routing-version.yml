@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /releases/name=routing/version
+  value: ((routing_version))
