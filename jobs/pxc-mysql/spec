@@ -352,7 +352,7 @@ properties:
           connect_timeout: 10
         mysqld:
           early-plugin-load: keyring_file.so
-          keyring_file_data: /var/vcap/data/pxc-mysql/keyring
+          keyring_file_data: /var/vcap/store/pxc-mysql/keyring
 
   logging.format.timestamp:
     description: |
