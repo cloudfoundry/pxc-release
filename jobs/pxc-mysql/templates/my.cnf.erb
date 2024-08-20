@@ -1,7 +1,24 @@
 <%-
   base_folder = '/var/vcap/sys/run/pxc-mysql'
-
   instance_addresses = link('mysql').instances.map { |instance| instance.address }
+
+  class AdditionalEntries
+    def initialize(entries)
+      @entries = entries || {}
+    end
+
+    def extract_section(section)
+      return {} unless @entries.key?(section)
+      section_entries = @entries[section]
+      @entries.delete(section)
+      section_entries
+    end
+
+    def available_sections
+      @entries.keys
+    end
+  end
+  additional_entries = AdditionalEntries.new(p('engine_config.additional_raw_entries'))
 
   def csv_excluded_audit_users
     if_p('engine_config.audit_logs.audit_log_exclude_accounts_csv') do |user_csv|
@@ -27,13 +44,17 @@
     end
   end
 -%>
-[client]
+[<%= section = 'client' %>]
 port                            = <%= p('port') %>
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
 
 !include                        /var/vcap/jobs/pxc-mysql/config/auto-tune.cnf
 
-[mysqld-8.0]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.0' %>]
 authentication-policy           = mysql_native_password
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 log_replica_updates             = ON
@@ -50,7 +71,11 @@ log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
 jemalloc-profiling              = ON
 <%- end -%>
 
-[mysqld-5.7]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-5.7' %>]
 <%- if p('engine_config.galera.enabled') -%>
 wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
 <%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
@@ -61,10 +86,13 @@ wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/
 log_slave_updates               = ON
 expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
 master_verify_checksum          = ON
-
 symbolic-links                  = OFF
 
-[mysqld]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld' %>]
 character_set_server            = <%= p('engine_config.character_set_server') %>
 <%- if p('engine_config.collation_server') != 'use_default' -%>
 collation_server                = <%= p('engine_config.collation_server') %>
@@ -184,7 +212,11 @@ max_connections                 = <%= p('engine_config.max_connections') %>
 # Event Scheduler
 event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
 
-[mysqld_plugin]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld_plugin' %>]
 <%- if p('engine_config.audit_logs.enabled') -%>
 plugin-load                     = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
@@ -195,15 +227,38 @@ audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in
 audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
 <%- end -%>
 
-[sst]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'sst' %>]
 encrypt=4
 ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem
 ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem
 ssl-key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
 sockopt="cipher=ECDHE-RSA-AES256-GCM-SHA384"
 
-[mysqldump]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqldump' %>]
 max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
 
-[mysql]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysql' %>]
 max_allowed_packet              = <%= p('engine_config.max_allowed_packet') %>
+
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+<%- additional_entries.available_sections.each do |new_section| %>
+[<%= new_section %>]
+<%- additional_entries.extract_section(new_section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+<%- end -%>
