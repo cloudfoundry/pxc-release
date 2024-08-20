@@ -202,6 +202,16 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(db.QueryRow(`SELECT data FROM multi_db2.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
 			Expect(storedValue).To(Equal(userValue))
 		})
+
+		It("sets expected default values for selected properties", func() { // Ensure these values change on later redeployment test
+			var maxAllowedPacket string
+			Expect(db.QueryRow(`SELECT @@global.max_allowed_packet`).Scan(&maxAllowedPacket)).To(Succeed())
+			Expect(maxAllowedPacket).To(Equal("268435456"), "max_allowed_packet value is not at expected 256M default value")
+
+			var idbParallelThreads string
+			Expect(db.QueryRow(`SELECT @@global.innodb_parallel_read_threads`).Scan(&idbParallelThreads)).To(Succeed())
+			Expect(idbParallelThreads).To(Equal("4"), "innodb_parallel_read_threads value is not at expected 4 default value")
+		})
 	})
 
 	Context("MySQL Configuration Tuning (autotune)", Label("autotune"), func() {
@@ -783,10 +793,12 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 			By("e.g. enabling jemalloc profiling")
 			By("e.g. enabling O_DIRECT")
+			By("e.g. applying additional my.cnf entries")
 			Expect(bosh.RedeployPXC(deploymentName,
 				bosh.Operation("enable-jemalloc-profiling.yml"),
 				bosh.Operation(`set-innodb-flush-method.yml`),
 				bosh.Var(`innodb_flush_method`, `O_DIRECT`),
+				bosh.Operation("test/additional-mycnf-entries.yml"),
 			)).To(Succeed())
 		})
 
@@ -827,6 +839,26 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				mysqlNode, "sudo /var/vcap/packages/jemalloc/bin/jeprof --show_bytes --text /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld "+out)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(MatchRegexp(`Total: \d+ B`))
+		})
+
+		Context("dynamically injecting my.cnf entries", func() {
+			It("sets a net new property within an existing section", func() {
+				var idbParallelThreads string
+				Expect(db.QueryRow(`SELECT @@global.innodb_parallel_read_threads`).Scan(&idbParallelThreads)).To(Succeed())
+				Expect(idbParallelThreads).To(Equal("1"), "dynamic my.cnf failed to configure mysql with the expected innodb_parallel_read_threads")
+			})
+			It("overrides the value of an existing property (max_allowed_packet)", func() {
+				var maxAllowedPacket string
+				Expect(db.QueryRow(`SELECT @@global.max_allowed_packet`).Scan(&maxAllowedPacket)).To(Succeed())
+				Expect(maxAllowedPacket).To(Equal("1073741824"), "dynamic my.cnf failed to configure mysql with the expected max_allowed_packet parameter")
+			})
+			It("creates a net new section with properties consumable by mysql processes", func() {
+				xtrabackupPath := "/var/vcap/packages/percona-xtrabackup-" + expectedMysqlVersion + "/bin/"
+				xtrabackupOptions, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo "+
+					xtrabackupPath+"xtrabackup --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf --help --verbose | grep target")
+				Expect(err).NotTo(HaveOccurred()) // note "xtrabackup --help ..." returns 1
+				Expect(xtrabackupOptions).To(MatchRegexp(`target-dir\s*\/var\/vcap\/store\/custom-backup-dir\/`), "dynamic my.cnf failed to configure xtrabackup with the expected target-dir parameter")
+			})
 		})
 	})
 })
