@@ -810,9 +810,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			By("enabling O_DIRECT")
 			By("disabling sync_binlog")
 			By("applying additional my.cnf entries")
-			By("e.g. enabling jemalloc profiling")
-			By("e.g. enabling O_DIRECT")
-			By("e.g. applying additional my.cnf entries")
 
 			Expect(bosh.RedeployPXC(deploymentName,
 				bosh.Operation("enable-jemalloc-profiling.yml"),
