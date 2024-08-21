@@ -349,6 +349,19 @@ properties:
   engine_config.galera.wsrep_applier_threads:
       description: 'Defines the number of threads to use when applying replicated write-sets.'
 
+  engine_config.additional_raw_entries:
+      description: |
+        This option allows for adding extra raw configuration entries divided into sections.
+        These entries will be appended to the end of each respective section and can potentially overwrite existing configuration settings.
+        Use it carefully and at your own risk.
+      default: {}
+      example:
+        mysql:
+          connect_timeout: 10
+        mysqld:
+          early-plugin-load: keyring_file.so
+          keyring_file_data: /var/vcap/store/pxc-mysql/keyring
+
   logging.format.timestamp:
     description: |
       Format for timestamp in component logs. Valid values are 'rfc3339', 'unix-epoch'. 'rfc3339' is the recommended
