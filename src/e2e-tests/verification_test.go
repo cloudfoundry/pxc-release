@@ -85,6 +85,21 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	})
 
 	Context("MySQL Configuration", Label("configuration"), func() {
+		It("sets the default sync_binlog value", Label("sync_binlog"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var syncBinlog string
+				Expect(db.QueryRow("SELECT @@global.sync_binlog").Scan(&syncBinlog)).
+					To(Succeed())
+				Expect(syncBinlog).To(Equal(`1`))
+				Expect(db.Close()).To(Succeed())
+			}
+		})
+
 		It("sets the expected innodb_flush_method", Label("innodb_flush_method"), func() {
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
@@ -781,13 +796,31 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
 			}
 
-			By("e.g. enabling jemalloc profiling")
-			By("e.g. enabling O_DIRECT")
+			By("enabling jemalloc profiling")
+			By("enabling O_DIRECT")
+			By("disabling sync_binlog")
 			Expect(bosh.RedeployPXC(deploymentName,
 				bosh.Operation("enable-jemalloc-profiling.yml"),
 				bosh.Operation(`set-innodb-flush-method.yml`),
+				bosh.Operation(`set-sync-binlog.yml`),
 				bosh.Var(`innodb_flush_method`, `O_DIRECT`),
+				bosh.Var(`sync_binlog`, `0`),
 			)).To(Succeed())
+		})
+
+		It("sets the explicitly configured sync_binlog value", Label("sync_binlog"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var syncBinlog string
+				Expect(db.QueryRow("SELECT @@global.sync_binlog").Scan(&syncBinlog)).
+					To(Succeed())
+				Expect(syncBinlog).To(Equal(`0`))
+				Expect(db.Close()).To(Succeed())
+			}
 		})
 
 		It("sets the expected innodb_flush_method", Label("innodb_flush_method"), func() {

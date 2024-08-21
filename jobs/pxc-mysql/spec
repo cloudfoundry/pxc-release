@@ -248,6 +248,14 @@ properties:
   engine_config.innodb_flush_method:
     description: 'Advanced configuration variable, consult the documentation before changing. Controls how MySQL opens data files; by default uses fsync(). Set to O_DIRECT if innodb_buffer_pool is sufficiently large that you can use O_DIRECT thus avoiding double-buffering.'
     default: fsync
+  engine_config.sync_binlog:
+    description: >
+      Advanced configuration variable, consult the documentation before changing.
+
+      sync_binlog=0: Disables synchronization of the binary log to disk by the MySQL server. Instead, the MySQL server relies on the operating system to flush the binary log to disk from time to time as it does for any other file. This setting provides the best performance, but in the event of a power failure or operating system crash, it is possible that the server has committed transactions that have not been synchronized to the binary log.
+
+      sync_binlog=1: Enables synchronization of the binary log to disk before transactions are committed. This is the safest setting but can have a negative impact on performance due to the increased number of disk writes. In the event of a power failure or operating system crash, transactions that are missing from the binary log are only in a prepared state. This permits the automatic recovery routine to roll back the transactions, which guarantees that no transaction is lost from the binary log.
+    default: 1
   engine_config.innodb_large_prefix:
     description: 'Whether innodb_large_prefix is enabled'
     default: true
