@@ -3,7 +3,7 @@
   path: "/instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config/additional_raw_entries?"
   value:
     mysqld:
-      innodb_parallel_read_threads: 1
+      innodb_compression_level: 0
       max_allowed_packet: 1G
     xtrabackup:
       target-dir: /var/vcap/store/custom-backup-dir/

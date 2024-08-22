@@ -224,8 +224,8 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(maxAllowedPacket).To(Equal("268435456"), "max_allowed_packet value is not at expected 256M default value")
 
 			var idbParallelThreads string
-			Expect(db.QueryRow(`SELECT @@global.innodb_parallel_read_threads`).Scan(&idbParallelThreads)).To(Succeed())
-			Expect(idbParallelThreads).To(Equal("4"), "innodb_parallel_read_threads value is not at expected 4 default value")
+			Expect(db.QueryRow(`SELECT @@global.innodb_compression_level`).Scan(&idbParallelThreads)).To(Succeed())
+			Expect(idbParallelThreads).To(Equal("6"), "innodb_compression_level value is not at expected 6 default value")
 		})
 	})
 
@@ -878,8 +878,8 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		Context("dynamically injecting my.cnf entries", func() {
 			It("sets a net new property within an existing section", func() {
 				var idbParallelThreads string
-				Expect(db.QueryRow(`SELECT @@global.innodb_parallel_read_threads`).Scan(&idbParallelThreads)).To(Succeed())
-				Expect(idbParallelThreads).To(Equal("1"), "dynamic my.cnf failed to configure mysql with the expected innodb_parallel_read_threads")
+				Expect(db.QueryRow(`SELECT @@global.innodb_compression_level`).Scan(&idbParallelThreads)).To(Succeed())
+				Expect(idbParallelThreads).To(Equal("0"), "dynamic my.cnf failed to configure mysql with the expected innodb_compression_level")
 			})
 			It("overrides the value of an existing property (max_allowed_packet)", func() {
 				var maxAllowedPacket string
