@@ -37,6 +37,7 @@ packages:
 - percona-xtrabackup-2.4
 - percona-xtrabackup-8.0
 - pxc-utils
+- percona-toolkit
 
 consumes:
 - name: mysql
