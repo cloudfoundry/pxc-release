@@ -9,9 +9,7 @@ mkdir -p "${BOSH_INSTALL_TARGET}"/bin
 tar -C percona-toolkit -xzf ./percona-toolkit-*.tar.gz
 
 cd ./percona-toolkit/percona-toolkit-* \
-    && perl Makefile.PL \
-    && make \
-    && make test \
-    && make install \
-    && cp bin/* ${BOSH_INSTALL_TARGET}/bin \
-    && rm -rf bin
+    && cp bin/pt-mysql-summary ${BOSH_INSTALL_TARGET}/bin \
+    && cp bin/pt-summary ${BOSH_INSTALL_TARGET}/bin \
+    && cp bin/pt-stalk ${BOSH_INSTALL_TARGET}/bin
+
