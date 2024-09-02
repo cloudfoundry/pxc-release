@@ -1,18 +1,18 @@
 module github.com/cloudfoundry-incubator/galera-healthcheck
 
-go 1.21
+go 1.22
 
-toolchain go1.22.5
+toolchain go1.22.6
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	code.cloudfoundry.org/tlsconfig v0.1.0
+	code.cloudfoundry.org/tlsconfig v0.2.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.34.1
+	github.com/onsi/gomega v1.34.2
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1
 	github.com/tedsuo/rata v1.0.0
@@ -29,9 +29,8 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.51.1 // indirect
+	go.step.sm/crypto v0.51.2 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
