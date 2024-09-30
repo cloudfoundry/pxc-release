@@ -29,7 +29,7 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.52.0 // indirect
+	go.step.sm/crypto v0.53.0 // indirect
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
