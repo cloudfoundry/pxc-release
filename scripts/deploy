@@ -1,17 +1,22 @@
 #!/bin/bash
 
-set -o errexit
-set -o nounset
-set -o pipefail
+set -o errexit -o nounset -o pipefail
+
+: "${PXC_DEPLOYMENT_NAME:=pxc}"
+: "${PXC_DEPLOY_VERSION:=}"
+: "${MYSQL_VERSION:=}"
+: "${ENABLE_CLUSTER:=true}"
+: "${ENABLE_INTEGRATION:=true}"
+: "${REDACT:=false}"
 
 main() {
-  local deployment_name=${PXC_DEPLOYMENT_NAME:-pxc}
+  local deployment_name=${PXC_DEPLOYMENT_NAME}
   local -a deploy_opts=(
     --ops-file=operations/deployment-name.yml
     --var=deployment_name="${deployment_name}"
   )
 
-  if [[ -n ${PXC_DEPLOY_VERSION:-} ]]; then
+  if [[ -n ${PXC_DEPLOY_VERSION} ]]; then
     deploy_opts+=(
       --ops-file=operations/pxc-version.yml
       --var=pxc_version="${PXC_DEPLOY_VERSION}"
@@ -20,22 +25,18 @@ main() {
     deploy_opts+=(--ops-file=operations/dev-release.yml)
   fi
 
-  if [[ -n ${MYSQL_VERSION:-} ]]; then
+  if [[ -n ${MYSQL_VERSION} ]]; then
     deploy_opts+=(
       --ops-file=operations/mysql-version.yml
       --var=mysql_version="'${MYSQL_VERSION}'"
     )
   fi
 
-  if [[ ${ENABLE_CLUSTER:-true} == "true" ]]; then
+  if [[ ${ENABLE_CLUSTER} == "true" ]]; then
     deploy_opts+=(--ops-file=operations/use-clustered.yml)
   fi
 
-  if [[ ${ENABLE_INTEGRATION:-true} == "true" ]]; then
-    deploy_opts+=(--ops-file=operations/integration-tests.yml)
-  fi
-
-  if [[ "${REDACT:-}" == "false" ]]; then
+  if [[ "${REDACT}" == "false" ]]; then
     deploy_opts+=("--no-redact")
   fi
 
