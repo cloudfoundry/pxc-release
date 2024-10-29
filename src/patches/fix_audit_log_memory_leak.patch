@@ -1,0 +1,87 @@
+commit e2e7d5225f07e9e7e6e947b6bcc6d82c80fdc607
+Author: Oleksandr Kachan <oleksandr.kachan@percona.com>
+Date:   Sat Sep 14 18:19:38 2024 +0300
+
+    PS-9369: Fix currently processed query comparison in audit_log
+    
+    https://perconadev.atlassian.net/browse/PS-9369
+    
+    The audit_log uses stack to keep track of table access operations being
+    performed in scope of one query. It compares last known table access query
+    string stored on top of this stack with actual query in audit event being
+    processed at the moment to decide if new record should be pushed to stack
+    or it is time to clean records from the stack.
+    
+    Currently audit_log simply compares char* variables to decide if this is
+    the same query string. This approach doesn't work. As a result plugin looses
+    control of the stack size and it starts growing with the time consuming
+    memory. This issue is not noticable on short term server connections
+    as memory is freed once connection is closed. At the same time this
+    leads to extra memory consumption for long running server connections.
+    
+    The following is done to fix the issue:
+    - Query is sent along with audit event as MYSQL_LEX_CSTRING structure.
+      It is not correct to ignore MYSQL_LEX_CSTRING.length comparison as
+      sometimes MYSQL_LEX_CSTRING.str pointer may be not iniialised
+      properly. Added string length check to make sure structure contains
+      any valid string.
+    - Used strncmp to compare actual strings instead of comparing char*
+      variables.
+
+diff --git a/plugin/audit_log/audit_log.cc b/plugin/audit_log/audit_log.cc
+index 8cc1eab324b..698dedb1723 100644
+--- a/plugin/audit_log/audit_log.cc
++++ b/plugin/audit_log/audit_log.cc
+@@ -746,7 +746,7 @@ struct query_stack_frame {
+   /* number of accessed databases */
+   int databases_accessed;
+   /* query */
+-  const char *query;
++  MYSQL_LEX_CSTRING query;
+ };
+ 
+ struct query_stack {
+@@ -977,8 +977,12 @@ static bool audit_log_update_thd_local(MYSQL_THD thd,
+     if (event_general->event_subclass == MYSQL_AUDIT_GENERAL_STATUS) {
+       local->skip_query = false;
+ 
+-      if (local->stack.frames[local->stack.top].query ==
+-          event_general->general_query.str) {
++      if (event_general->general_query.length != 0 &&
++          local->stack.frames[local->stack.top].query.length ==
++              event_general->general_query.length &&
++          strncmp(local->stack.frames[local->stack.top].query.str,
++                  event_general->general_query.str,
++                  event_general->general_query.length) == 0) {
+         local->skip_query |=
+             audit_log_include_databases &&
+             local->stack.frames[local->stack.top].databases_accessed > 0 &&
+@@ -993,7 +997,8 @@ static bool audit_log_update_thd_local(MYSQL_THD thd,
+         local->stack.frames[local->stack.top].databases_included = 0;
+         local->stack.frames[local->stack.top].databases_accessed = 0;
+         local->stack.frames[local->stack.top].databases_excluded = 0;
+-        local->stack.frames[local->stack.top].query = nullptr;
++        local->stack.frames[local->stack.top].query.str = nullptr;
++        local->stack.frames[local->stack.top].query.length = 0;
+ 
+         if (local->stack.top > 0) --local->stack.top;
+       }
+@@ -1060,12 +1065,15 @@ static bool audit_log_update_thd_local(MYSQL_THD thd,
+     const mysql_event_table_access *event_table =
+         (const mysql_event_table_access *)event;
+ 
+-    if (local->stack.frames[local->stack.top].query != event_table->query.str &&
+-        local->stack.frames[local->stack.top].query != nullptr) {
++    if (event_table->query.length != 0 &&
++        (local->stack.frames[local->stack.top].query.length !=
++             event_table->query.length ||
++         strncmp(local->stack.frames[local->stack.top].query.str,
++                 event_table->query.str, event_table->query.length) != 0)) {
+       if (++local->stack.top >= local->stack.size)
+         realloc_stack_frames(thd, local->stack.size * 2);
+     }
+-    local->stack.frames[local->stack.top].query = event_table->query.str;
++    local->stack.frames[local->stack.top].query = event_table->query;
+ 
+     ++local->stack.frames[local->stack.top].databases_accessed;
+ 
