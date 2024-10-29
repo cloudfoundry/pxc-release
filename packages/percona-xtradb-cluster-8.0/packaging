@@ -53,7 +53,6 @@ build() {
 
   (
     cd Percona-XtraDB-Cluster-*/
-    patch -p1 < ../patches/fix_audit_log_memory_leak.patch
     source MYSQL_VERSION
     mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
     wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
