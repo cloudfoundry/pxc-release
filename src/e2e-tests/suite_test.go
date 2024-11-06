@@ -50,7 +50,7 @@ var _ = BeforeSuite(func() {
 
 	if proxySpec := os.Getenv("BOSH_ALL_PROXY"); proxySpec != "" {
 		var err error
-		proxyDialer, err := proxy.NewDialerViaSSH(context.Background(), proxySpec)
+		proxyDialer, err := proxy.NewDialer(proxySpec)
 		Expect(err).NotTo(HaveOccurred())
 
 		mysql.RegisterDialContext("tcp", func(ctx context.Context, addr string) (net.Conn, error) {

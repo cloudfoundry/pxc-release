@@ -8,17 +8,41 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/net/proxy"
 )
 
 type DialContextFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 
-func NewDialerViaSSH(_ context.Context, proxyURL string) (DialContextFunc, error) {
+func NewDialer(proxyURL string) (DialContextFunc, error) {
+	GinkgoHelper()
 	u, err := parseProxyURL(proxyURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid url: %w", err)
 	}
+
+	if u.Scheme == "socks5" {
+		GinkgoWriter.Println()
+		GinkgoWriter.Println("Setting up proxy access via direct socks5:", proxyURL)
+		GinkgoWriter.Println()
+
+		dialer, err := proxy.SOCKS5("tcp", u.Host, nil, proxy.Direct)
+		Expect(err).NotTo(HaveOccurred())
+
+		return func(_ context.Context, network, addr string) (net.Conn, error) {
+			return dialer.Dial(network, addr)
+		}, nil
+	}
+
+	if u.Scheme != "ssh+socks5" {
+		return nil, fmt.Errorf("unsupported BOSH_ALL_PROXY scheme: %s", u.Scheme)
+	}
+
+	GinkgoWriter.Println()
+	GinkgoWriter.Println("Setting up proxy access via ssh+socks5:", proxyURL)
+	GinkgoWriter.Println()
 
 	sshClientConfig, err := sshConfig(u)
 	if err != nil {
@@ -32,9 +56,7 @@ func NewDialerViaSSH(_ context.Context, proxyURL string) (DialContextFunc, error
 
 	startKeepAlive(conn)
 
-	return func(_ context.Context, network, addr string) (net.Conn, error) {
-		return conn.Dial(network, addr)
-	}, nil
+	return conn.DialContext, nil
 }
 
 func sshConfig(proxyURL *url.URL) (*ssh.ClientConfig, error) {
@@ -57,22 +79,20 @@ func parseProxyURL(proxyURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("invalid url: %w", err)
 	}
 
-	if u.Scheme != "ssh+socks5" {
+	if u.Scheme != "ssh+socks5" && u.Scheme != "socks5" {
 		return nil, fmt.Errorf("unsupported schema %q", u.Scheme)
 	}
 
-	if u.User.Username() == "" {
-		u.User = url.User("jumpbox")
-	}
+	if privateKeyPath := u.Query().Get("private-key"); privateKeyPath != "" {
+		privateKey, err := os.ReadFile(privateKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read private-key file %q: %w", privateKeyPath, err)
+		}
 
-	privateKey, err := os.ReadFile(u.Query().Get("private-key"))
-	if err != nil {
-		return nil, fmt.Errorf("unable to read private-key file %q: %w", u.Query().Get("private-key"), err)
+		values := u.Query()
+		values.Set("private-key", string(privateKey))
+		u.RawQuery = values.Encode()
 	}
-
-	values := u.Query()
-	values.Set("private-key", string(privateKey))
-	u.RawQuery = values.Encode()
 
 	return u, nil
 }
@@ -85,7 +105,7 @@ func startKeepAlive(conn *ssh.Client) {
 			case <-t.C:
 				_, _, err := conn.SendRequest("keepalive@openssh.com", true, nil)
 				if err != nil {
-					ginkgo.GinkgoWriter.Printf("error sending ssh keep-alive: %s", err)
+					GinkgoWriter.Printf("error sending ssh keep-alive: %s", err)
 				}
 			}
 		}
