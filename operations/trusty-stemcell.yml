@@ -1,4 +1,0 @@
----
-- type: replace
-  path: /stemcells/os=ubuntu-xenial/os
-  value: ubuntu-trusty
