@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.2
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.14.0
+	code.cloudfoundry.org/lager/v3 v3.15.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/fsouza/go-dockerclient v1.12.0
 	github.com/go-sql-driver/mysql v1.8.1
