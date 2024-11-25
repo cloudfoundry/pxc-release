@@ -7,8 +7,8 @@ toolchain go1.23.1
 require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/ginkgo/v2 v2.22.0
+	github.com/onsi/gomega v1.36.0
 	github.com/ory/dockertest/v3 v3.11.0
 )
 
@@ -29,7 +29,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20241101162523-b92577c0c142 // indirect
+	github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/user v0.3.0 // indirect
