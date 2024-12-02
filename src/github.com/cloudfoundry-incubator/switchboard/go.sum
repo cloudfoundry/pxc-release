@@ -592,8 +592,8 @@ cloud.google.com/go/workflows v1.7.0/go.mod h1:JhSrZuVZWuiDfKEFxU0/F1PQjmpnpcoIS
 cloud.google.com/go/workflows v1.8.0/go.mod h1:ysGhmEajwZxGn1OhGOGKsTXc5PyxOc0vfKf5Af+to4M=
 cloud.google.com/go/workflows v1.9.0/go.mod h1:ZGkj1aFIOd9c8Gerkjjq7OW7I5+l6cSvT3ujaO/WwSA=
 cloud.google.com/go/workflows v1.10.0/go.mod h1:fZ8LmRmZQWacon9UCX1r/g/DfAXx5VcPALq2CxzdePw=
-code.cloudfoundry.org/lager/v3 v3.15.0 h1:n31lbeh9krwuQLCRUWNEVZBk/BFEtyhQBwDZxFauPw4=
-code.cloudfoundry.org/lager/v3 v3.15.0/go.mod h1:x5XGPsP6QF0HMW/FpRilBHu4gy+cWRur8/fiZEyj6z8=
+code.cloudfoundry.org/lager/v3 v3.16.0 h1:v7LnlPN+6tiLmE4qHLP4FHRwywRoG3cNE43vIS35O2E=
+code.cloudfoundry.org/lager/v3 v3.16.0/go.mod h1:BBAP7NdUAZLLhJhcbjFWX4w4uNpDWgSMMAPc6lX/wT0=
 code.cloudfoundry.org/tlsconfig v0.10.0 h1:IGbLsOfQmzjI1o5bcGtsTwsZl/Qoz/n5/NkBK68Lk1I=
 code.cloudfoundry.org/tlsconfig v0.10.0/go.mod h1:Rz8UI6zoOnB9UFxYfPpZhAsl2hDsmjmVW9SGmUhsDSk=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
@@ -771,8 +771,8 @@ github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38/go.mod h1:kpwsk12EmLe
 github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22/go.mod h1:kpwsk12EmLew5upagYY7GY0pfYCcupk39gWOCRROcvE=
 github.com/google/pprof v0.0.0-20210609004039-a478d1d731e9/go.mod h1:kpwsk12EmLew5upagYY7GY0pfYCcupk39gWOCRROcvE=
 github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1/go.mod h1:kpwsk12EmLew5upagYY7GY0pfYCcupk39gWOCRROcvE=
-github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b h1:SXO0REt4iu865upYCk8aKBBJQ4BqoE0ReP23ClMu60s=
-github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
+github.com/google/pprof v0.0.0-20241128161848-dc51965c6481 h1:yudKIrXagAOl99WQzrP1gbz5HLB9UjhcOFnPzdd6Qec=
+github.com/google/pprof v0.0.0-20241128161848-dc51965c6481/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=

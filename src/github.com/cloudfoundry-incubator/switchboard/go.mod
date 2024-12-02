@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.2
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.15.0
+	code.cloudfoundry.org/lager/v3 v3.16.0
 	code.cloudfoundry.org/tlsconfig v0.10.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
 	github.com/onsi/ginkgo/v2 v2.22.0
@@ -24,7 +24,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b // indirect
+	github.com/google/pprof v0.0.0-20241128161848-dc51965c6481 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
