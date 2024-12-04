@@ -42,7 +42,7 @@ install_runtime_dependencies() {
   mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra"
 
   local version
-  for version in 2.4 8.0; do
+  for version in 8.0 8.4; do
     ln -sf "/var/vcap/packages/percona-xtrabackup-${version}" "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}"
   done
 
@@ -99,7 +99,6 @@ build() {
       -DWITH_AUTHENTICATION_FIDO=OFF \
       -DWITH_AUTHENTICATION_KERBEROS=OFF \
       -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF \
-      -DWITH_BOOST="${boost_dir}" \
       -DWITH_ICU=system \
       -DWITH_READLINE=system \
       -DWITH_ROUTER=OFF \
