@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.18.0
+# code.cloudfoundry.org/lager/v3 v3.19.0
 ## explicit; go 1.22.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -28,7 +28,7 @@ github.com/Microsoft/go-winio/pkg/guid
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/docker/docker v27.4.0+incompatible
+# github.com/docker/docker v27.4.1+incompatible
 ## explicit
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/container
@@ -98,7 +98,7 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
+# github.com/maxbrunsfeld/counterfeiter/v6 v6.11.0
 ## explicit; go 1.23
 github.com/maxbrunsfeld/counterfeiter/v6
 github.com/maxbrunsfeld/counterfeiter/v6/arguments
@@ -190,7 +190,7 @@ github.com/sirupsen/logrus
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.32.0
+# golang.org/x/net v0.33.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
