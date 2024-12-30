@@ -5,11 +5,11 @@ go 1.23
 toolchain go1.23.2
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.19.0
-	code.cloudfoundry.org/tlsconfig v0.13.0
+	code.cloudfoundry.org/lager/v3 v3.20.0
+	code.cloudfoundry.org/tlsconfig v0.14.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
 	github.com/onsi/ginkgo/v2 v2.22.1
-	github.com/onsi/gomega v1.36.1
+	github.com/onsi/gomega v1.36.2
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/prometheus/client_golang v1.20.5
 	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
