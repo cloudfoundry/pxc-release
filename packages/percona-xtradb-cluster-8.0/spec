@@ -8,4 +8,5 @@ files:
 - boost_1_77_0.tar.bz2
 - check_*.tar.gz
 - libaio_*.orig.tar.xz
+- pkg-config_*.tar.gz
 - socat-*.tar.gz
