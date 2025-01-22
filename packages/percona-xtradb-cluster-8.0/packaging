@@ -11,9 +11,18 @@ main() {
 }
 
 install_build_dependencies() {
+  tar -xf pkg-config_*.tar.gz
+  cd pkg-config-*/
+  ./configure \
+    --prefix=/usr \
+    --with-internal-glib \
+    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  make -j "$(nproc)" install
+  cd -
+
   tar -xf libaio_*.orig.tar.xz
   cd libaio-*/
-  make install
+  make install prefix="${BOSH_INSTALL_TARGET}"
   cd -
 
   tar -xf boost_*.tar.bz2
@@ -61,6 +70,14 @@ build() {
     echo "${mysql_version}" >"${BOSH_INSTALL_TARGET}/VERSION"
 
     mkdir bld && cd bld
+
+    # Point search paths to ${BOSH_INSTALL_TARGET} to find vendored build dependencies
+    # libaio,in particular, won't be found in a non-standard path without this change.
+    export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+    export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+    export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+    export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+
     cmake .. \
       -DBUILD_CONFIG=mysql_release \
       -DBOOST_ROOT="${boost_dir}" \
@@ -69,6 +86,7 @@ build() {
       -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_C_COMPILER=gcc \
       -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
       -DCOMPILATION_COMMENT="${compilation_comment}" \
       -DENABLED_LOCAL_INFILE=OFF \
       -DINSTALL_MYSQLTESTDIR= \

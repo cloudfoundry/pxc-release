@@ -12,15 +12,15 @@ main() {
 install_build_dependencies() {
   tar -xf libaio_*.tar.xz
   cd libaio-*/
-  make -j $(nproc) install
+  make -j "$(nproc)" install prefix="${BOSH_INSTALL_TARGET}"
   cd -
 
   tar -xf libev-*.tar.gz
   cd libev-*/
   ./configure --prefix=/usr/local --disable-static
-  make -j $(nproc) install
+  make -j "$(nproc)" install
   ./configure --prefix="${BOSH_INSTALL_TARGET}" --libdir="${BOSH_INSTALL_TARGET}/lib/private" --disable-static
-  make -j $(nproc) install-exec
+  make -j "$(nproc)" install-exec
   cd -
 }
 
@@ -33,19 +33,24 @@ build_and_install() {
   cd percona-xtrabackup-*/
   mkdir bld && cd bld
 
+  export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib:${BOSH_INSTALL_TARGET}/lib/private"
+  export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+  export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+  export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+
+  # shellcheck disable=SC2016
   cmake .. \
     -DBUILD_CONFIG=xtrabackup_release \
     -DCMAKE_CXX_COMPILER=g++ \
     -DCMAKE_C_COMPILER=gcc \
     -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-    -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private' \
+    -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
     -DINSTALL_MYSQLTESTDIR= \
     -DWITH_BOOST=../../boost_1_59_0 \
     -DWITH_MAN_PAGES=OFF \
     -DWITH_SSL=system
 
-  make -j $(nproc)
-  make -j $(nproc) install/strip
+  make -j "$(nproc)" install/strip
   rm -fr "${BOSH_INSTALL_TARGET}/man/"
 }
 
