@@ -7,17 +7,7 @@ end
 ---
 processes:
 - name: galera-agent
-  executable: bash
-  args:
-  - "-c"
-  - |
-    if [[ -f /sys/fs/cgroup/net_cls,net_prio/monit-api-access/cgroup.procs ]]; then
-      echo $$ > /sys/fs/cgroup/net_cls,net_prio/monit-api-access/cgroup.procs
-    fi
-    umount /sys/fs/cgroup -R
-    exec runuser -u vcap -- /var/vcap/packages/galera-agent/bin/galera-agent \
-      --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml \
-      -timeFormat=<%= p('logging.format.timestamp') %>
+  executable: /var/vcap/jobs/galera-agent/bin/service
   limits:
     open_files: 1048576
   additional_volumes:
@@ -25,12 +15,17 @@ processes:
     writable: true
   - path: /var/vcap/data/pxc-mysql
     writable: true
+  - path: /var/vcap/jobs/pxc-mysql
+    mount_only: true
+    writable: false
+  - path: /var/vcap/bosh/etc
+    mount_only: true
+    writable: false
+  - path: /var/vcap/store
+    writable: true
+    mount_only: true
   unsafe:
     privileged: true
     unrestricted_volumes:
-    - path: /var/vcap/jobs/pxc-mysql
-      writable: false
-    - path: /var/vcap/store
-      writable: true
     - path: "/sys/fs/cgroup"
       writable: true
