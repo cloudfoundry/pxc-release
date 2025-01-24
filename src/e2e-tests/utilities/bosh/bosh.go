@@ -135,6 +135,13 @@ func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 		)
 	}
 
+	if stemcellOS := os.Getenv("STEMCELL_OS"); stemcellOS != "" {
+		args = append(args,
+			"--ops-file=operations/stemcell-os.yml",
+			fmt.Sprintf("--var=stemcell_os=%q", stemcellOS),
+		)
+	}
+
 	for _, o := range options {
 		o(&args)
 	}
