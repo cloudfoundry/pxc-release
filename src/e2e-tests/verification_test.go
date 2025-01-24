@@ -1,6 +1,7 @@
 package e2e_tests
 
 import (
+	"bytes"
 	"crypto/tls"
 	"database/sql"
 	"encoding/json"
@@ -21,6 +22,7 @@ import (
 	"github.com/onsi/gomega/gstruct"
 
 	"e2e-tests/utilities/bosh"
+	"e2e-tests/utilities/cmd"
 	"e2e-tests/utilities/credhub"
 )
 
@@ -81,6 +83,30 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).NotTo(HaveOccurred(), "Expected sysctl to be able to read /etc/sysctl.d/70-mysql-swappiness.conf, but it failed!\noutput = %s", sysctlOutput)
 			Expect(sysctlOutput).To(ContainSubstring(`vm.swappiness = 1`),
 				"Expected vm.swappiness to be 1, but it was not!\nCommand output: %s", sysctlOutput)
+		})
+
+		It("runs the expected stemcell", func() {
+			stemcellOS := os.Getenv("STEMCELL_OS")
+			if stemcellOS == "" {
+				Skip("No STEMCELL_OS environment variable set. Skipping stemcell verification")
+
+				var result struct {
+					Tables []struct {
+						Rows []struct {
+							Stemcell string `json:"stemcell_s"`
+						}
+					}
+				}
+
+				var out bytes.Buffer
+				Expect(cmd.RunWithoutOutput(&out, "bosh", "deployment", "--deployment="+deploymentName, "--json")).To(Succeed())
+
+				Expect(json.Unmarshal(out.Bytes(), &result)).To(Succeed())
+
+				Expect(result.Tables[0].Rows[0].Stemcell).To(ContainSubstring(stemcellOS))
+
+				GinkgoWriter.Printf("OK!  Found stemcell os (%q) in output: %s\n", stemcellOS, out.String())
+			}
 		})
 	})
 

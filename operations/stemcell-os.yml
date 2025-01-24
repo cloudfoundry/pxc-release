@@ -1,0 +1,8 @@
+---
+- type: replace
+  path: /stemcells/alias=default/os
+  value: ((stemcell_os))
+
+- type: replace
+  path: /stemcells/alias=default/version
+  value: latest
