@@ -88,6 +88,7 @@ build() {
       -DWITH_ROUTER=OFF \
       -DWITH_GROUP_REPLICATION=OFF \
       -DWITH_SSL=system \
+      -DWITH_TIRPC=bundled \
       -DWITH_UNIT_TESTS=OFF \
       -DWITH_WSREP=ON \
       -DWITH_ZLIB=bundled
