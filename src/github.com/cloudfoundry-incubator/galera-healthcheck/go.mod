@@ -5,8 +5,8 @@ go 1.23
 toolchain go1.23.2
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.25.0
-	code.cloudfoundry.org/tlsconfig v0.17.0
+	code.cloudfoundry.org/lager/v3 v3.26.0
+	code.cloudfoundry.org/tlsconfig v0.18.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.8.1
@@ -16,7 +16,7 @@ require (
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1
 	github.com/tedsuo/rata v1.0.0
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.35.0
 	gopkg.in/validator.v2 v2.0.1
 )
 
@@ -38,7 +38,7 @@ require (
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
