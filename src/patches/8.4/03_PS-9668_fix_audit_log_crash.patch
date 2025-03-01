@@ -1,0 +1,109 @@
+commit adf228350fc1559702b987fd3db4fdfaf3cb0856
+Author: Dmitry Lenev <dmitry.lenev@percona.com>
+Date:   Mon Feb 10 21:14:55 2025 +0100
+
+    PS-9668: Executing LOCK TABLES FOR BACKUP after enabling audit logs crashes the server
+    
+    https://perconadev.atlassian.net/browse/PS-9668
+    
+    Attempt to execute LOCK TABLES FOR BACKUP (or few other Percona Specific
+    SQL commands) on Percona Server 8.4 with enabled audit log filter
+    component crashed server.
+    
+    The crash occurred because get_sql_command_string() function which is
+    used by mysql_event_tracking_query_notify() call to prepare description
+    of statement execution event for audit log plugins returned incorrect
+    value - nullptr, instead of valid string describing statement, for all
+    Percona-specific statements. This resulted in crash further down event
+    processing pipeline.
+    
+    Nullptr value was returned in these cases because elements for all
+    Percona-specific statements were missing from Command_maps::sql_commands[]
+    static array used by get_sql_command_string() implementation (this array was
+    introduced when Upstream moved to component API for audit log).
+    
+    This patch fixes the problem by adding elements for all Percona-specific
+    statements to Command_maps::sql_commands[] array.
+    
+    It also makes sure that static_assert which we already have in this
+    code, and which is supposed to enforce presence of elements in the array
+    for all SQL statements, works correctly. To do this we make declaration
+    of Command_maps::sql_commands[] within class body incomplete (this is
+    allowed as such declarations are not definitions for static class
+    members), so its size can be deduced from the list of elements for SQL
+    commands used for its initialization at its definition place outside
+    of class body.
+
+diff --git a/mysql-test/suite/component_audit_log_filter/r/percona_bug_ps9668.result b/mysql-test/suite/component_audit_log_filter/r/percona_bug_ps9668.result
+new file mode 100644
+index 00000000000..bfd49646337
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/r/percona_bug_ps9668.result
+@@ -0,0 +1,11 @@
++SELECT audit_log_filter_set_filter('log_all', '{"filter": {"log": true}}');
++audit_log_filter_set_filter('log_all', '{"filter": {"log": true}}')
++OK
++SELECT audit_log_filter_set_user('%', 'log_all');
++audit_log_filter_set_user('%', 'log_all')
++OK
++# LOCK TABLES FOR BACKUP should not cause server crash.
++LOCK TABLES FOR BACKUP;
++UNLOCK TABLES;
++#
++# Cleanup
+diff --git a/mysql-test/suite/component_audit_log_filter/t/percona_bug_ps9668.test b/mysql-test/suite/component_audit_log_filter/t/percona_bug_ps9668.test
+new file mode 100644
+index 00000000000..d0481c9512b
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/t/percona_bug_ps9668.test
+@@ -0,0 +1,19 @@
++#
++# PS-9668: Executing LOCK TABLES FOR BACKUP after enabling audit logs crashes the server
++#
++--source include/have_component_audit_log.inc
++--source include/have_debug.inc
++--source ../inc/audit_tables_init.inc
++--source ../inc/audit_comp_install.inc
++
++SELECT audit_log_filter_set_filter('log_all', '{"filter": {"log": true}}');
++SELECT audit_log_filter_set_user('%', 'log_all');
++
++--echo # LOCK TABLES FOR BACKUP should not cause server crash.
++LOCK TABLES FOR BACKUP;
++UNLOCK TABLES;
++
++--echo #
++--echo # Cleanup
++--source ../inc/audit_comp_uninstall.inc
++--source ../inc/audit_tables_cleanup.inc
+diff --git a/sql/command_mapping.cc b/sql/command_mapping.cc
+index b2f165017f7..655f9fc3c4e 100644
+--- a/sql/command_mapping.cc
++++ b/sql/command_mapping.cc
+@@ -42,7 +42,7 @@ class Command_maps final {
+     return (it != server_command_map.end() ? it->second : COM_END);
+   }
+ 
+-  static const char *sql_commands[static_cast<unsigned int>(SQLCOM_END)];
++  static const char *sql_commands[];
+ 
+  private:
+   std::unordered_map<const char *, enum_server_command> server_command_map;
+@@ -206,7 +206,16 @@ const char *Command_maps::sql_commands[] = {"select",
+                                             "unlock_instance",
+                                             "restart_server",
+                                             "create_srs",
+-                                            "drop_srs"};
++                                            "drop_srs",
++                                            "show_parse_tree",
++                                            "show_user_stats",
++                                            "show_table_stats",
++                                            "show_index_stats",
++                                            "show_client_stats",
++                                            "show_thread_stats",
++                                            "lock_tables_for_backup",
++                                            "create_compression_dictionary",
++                                            "drop_compression_dictionary"};
+ 
+ Command_maps *g_command_maps{nullptr};
+ }  // namespace

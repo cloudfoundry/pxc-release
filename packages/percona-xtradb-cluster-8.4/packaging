@@ -61,6 +61,9 @@ build() {
 
   (
     cd Percona-XtraDB-Cluster-*/
+    for name in ../patches/8.4/*;do
+      patch -p1 < "$name"
+    done
     source MYSQL_VERSION
     mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
     wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
