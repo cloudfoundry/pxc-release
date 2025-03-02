@@ -205,7 +205,6 @@ max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
 tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
 
 # These are mandatory MySQL settings for Galera to work
-binlog_format                   = ROW
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2
 <%-# Due to auto-tuning of innodb_buffer_pool configs, we only re-configure them here if the operator has an explicit value -%>
