@@ -59,13 +59,16 @@ chown -R vcap:vcap ${MYSQL_RUN_DIR}
 
 log "pre-start setup script: set up ENV and logging"
 
-<% if p('engine_config.audit_logs.enabled') %>
+<%- if p('engine_config.audit_logs.enabled') && p('mysql_version') != "8.4" -%>
 mkdir -p ${SERVER_AUDIT_LOG_DIR}
 chown vcap:vcap ${SERVER_AUDIT_LOG_DIR}
 
 # logrotate audit logs
 ln -sf /var/vcap/jobs/pxc-mysql/config/mysql_clustered_audit_logs.logrotate /etc/logrotate.d/mysql_clustered_audit_logs
-<% end %>
+<%- else -%>
+<%# MySQL 8.4 audit log plugin handles rotations internally %>
+rm -f /etc/logrotate.d/mysql_clustered_audit_logs
+<%- end -%>
 
 # logrotate mysql_slow_query
 ln -sf /var/vcap/jobs/pxc-mysql/config/mysql_slow_query_logs.logrotate /etc/logrotate.d/mysql_slow_query_logs

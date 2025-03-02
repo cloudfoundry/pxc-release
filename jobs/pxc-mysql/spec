@@ -21,6 +21,7 @@ templates:
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
   pre-start.sh.erb: bin/pre-start
+  post-start.sh.erb: bin/post-start
   pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
