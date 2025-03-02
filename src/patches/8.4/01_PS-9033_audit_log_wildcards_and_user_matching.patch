@@ -1,0 +1,695 @@
+commit a36aa56e2f8eac07bd1ef65f066f82d85f576023
+Author: Yura Sorokin <yura.sorokin@percona.com>
+Date:   Thu Feb 27 15:15:51 2025 +0100
+
+    Merge branch 'dev/PS-9024-8.0-audit_log_filter_host_wildcards' into dev/PS-9024-8.4-audit_log_filter_host_wildcards
+
+diff --git a/components/audit_log_filter/audit_log_filter.cc b/components/audit_log_filter/audit_log_filter.cc
+index e25a055fe5a..4181a108337 100644
+--- a/components/audit_log_filter/audit_log_filter.cc
++++ b/components/audit_log_filter/audit_log_filter.cc
+@@ -659,24 +659,28 @@ bool AuditLogFilter::get_connection_user(Security_context_handle &ctx,
+   MYSQL_LEX_CSTRING user{"", 0};
+   MYSQL_LEX_CSTRING host{"", 0};
+ 
+-  if (m_security_context_opts_srv->get(ctx, "user", &user) == 1) {
++  if (m_security_context_opts_srv->get(ctx, "priv_user", &user) == 1) {
+     LogComponentErr(ERROR_LEVEL, ER_LOG_PRINTF_MSG,
+                     "Can not get user name from security context");
+     return false;
+   }
+ 
+-  if (m_security_context_opts_srv->get(ctx, "host", &host) == 1) {
++  if (m_security_context_opts_srv->get(ctx, "priv_host", &host) == 1) {
+     LogComponentErr(ERROR_LEVEL, ER_LOG_PRINTF_MSG,
+                     "Can not get user host from security context");
+     return false;
+   }
+ 
+-  if (user.length == 0 || host.length == 0) {
+-    return false;
++  if (user.length == 0) {
++    user_name.clear();
++  } else {
++    user_name.assign(user.str, user.length);
++  }
++  if (host.length == 0) {
++    user_host.clear();
++  } else {
++    user_host.assign(host.str, host.length);
+   }
+-
+-  user_name = user.str;
+-  user_host = host.str;
+ 
+   return true;
+ }
+diff --git a/components/audit_log_filter/audit_udf.cc b/components/audit_log_filter/audit_udf.cc
+index 1347eb87a88..32b09501443 100644
+--- a/components/audit_log_filter/audit_udf.cc
++++ b/components/audit_log_filter/audit_udf.cc
+@@ -72,7 +72,8 @@ std::unique_ptr<UserNameInfo> check_parse_user_name_host(
+ 
+   const std::regex user_name_all_regex("^%$");
+   const std::regex user_name_regex("(.*)@(.*)");
+-  const std::regex deprecated_symbols_regex("[\\*|\\%]");
++  const std::regex deprecated_account_name_characters_regex("[*|%]");
++  const std::regex deprecated_host_name_characters_regex("[*|]");
+ 
+   auto user_info_data = std::make_unique<UserNameInfo>();
+ 
+@@ -106,13 +107,15 @@ std::unique_ptr<UserNameInfo> check_parse_user_name_host(
+         return nullptr;
+       }
+ 
+-      if (std::regex_search(user_name_match.str(), deprecated_symbols_regex)) {
++      if (std::regex_search(user_name_match.str(),
++                            deprecated_account_name_characters_regex)) {
+         std::snprintf(message, MYSQL_ERRMSG_SIZE,
+                       "Wrong argument: bad user name format");
+         return nullptr;
+       }
+ 
+-      if (std::regex_search(user_host_match.str(), deprecated_symbols_regex)) {
++      if (std::regex_search(user_host_match.str(),
++                            deprecated_host_name_characters_regex)) {
+         std::snprintf(message, MYSQL_ERRMSG_SIZE,
+                       "Wrong argument: bad host name format");
+         return nullptr;
+diff --git a/components/audit_log_filter/log_record_formatter/json.cc b/components/audit_log_filter/log_record_formatter/json.cc
+index ab9dd1f191a..dddef43c2c7 100644
+--- a/components/audit_log_filter/log_record_formatter/json.cc
++++ b/components/audit_log_filter/log_record_formatter/json.cc
+@@ -410,7 +410,7 @@ AuditRecordString LogRecordFormatterJson::apply(
+          << R"(    "connection_data": {)" << "\n"
+          << R"(      "connection_type": ")" << connection_type_name_to_string(audit_record.event->connection_type) << "\",\n"
+          << R"(      "status": )" << audit_record.event->status << ",\n"
+-         << R"(      "db": ")" << make_escaped_string(&audit_record.event->database) << "\"}"
++         << R"(      "db": ")" << make_escaped_string(&audit_record.event->database) << "\"\n    }"
+          << extra_attrs_to_string(audit_record.extended_info) << "\n  }";
+   /* clang-format on */
+ 
+@@ -861,7 +861,7 @@ std::string LogRecordFormatterJson::extra_attrs_to_string(
+       is_first_attr = false;
+     }
+ 
+-    result << "}";
++    result << "\n    }";
+   }
+ 
+   return result.str();
+diff --git a/mysql-test/suite/component_audit_log_filter/r/filter_definition_filter_by_anonymous_user.result b/mysql-test/suite/component_audit_log_filter/r/filter_definition_filter_by_anonymous_user.result
+new file mode 100644
+index 00000000000..b22640e46cf
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/r/filter_definition_filter_by_anonymous_user.result
+@@ -0,0 +1,51 @@
++CREATE USER ''@'127.0.0.1';
++SET @filter = '{
++  "filter": {
++    "class": {
++      "name": "connection",
++      "event": {
++        "name": "connect"
++      }
++    }
++  }
++}';
++SELECT audit_log_filter_set_filter('log_connect', @filter);
++audit_log_filter_set_filter('log_connect', @filter)
++OK
++###
++### 1. Connecting as an anonymous user with no rules set
++###
++SET @audit_filter_log_name = audit_log_rotate();
++USER()	CURRENT_USER()
++foobarbaz@localhost	@127.0.0.1
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 2. Connecting as an anonymous user with default rule set
++###
++SELECT audit_log_filter_set_user('%', 'log_connect');
++audit_log_filter_set_user('%', 'log_connect')
++OK
++SET @audit_filter_log_name = audit_log_rotate();
++USER()	CURRENT_USER()
++foobarbaz@localhost	@127.0.0.1
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 3. Connecting as an anonymous user with a dedicated rule for this anonymous user
++###
++SELECT audit_log_filter_remove_user('%');
++audit_log_filter_remove_user('%')
++OK
++SELECT audit_log_filter_set_user('@127.0.0.1', 'log_connect');
++audit_log_filter_set_user('@127.0.0.1', 'log_connect')
++OK
++SET @audit_filter_log_name = audit_log_rotate();
++USER()	CURRENT_USER()
++foobarbaz@localhost	@127.0.0.1
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++SELECT audit_log_filter_remove_user('@127.0.0.1');
++audit_log_filter_remove_user('@127.0.0.1')
++OK
++DROP USER ''@'127.0.0.1';
+diff --git a/mysql-test/suite/component_audit_log_filter/r/filter_definition_filter_by_wildcard_host.result b/mysql-test/suite/component_audit_log_filter/r/filter_definition_filter_by_wildcard_host.result
+new file mode 100644
+index 00000000000..b8fc231dfce
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/r/filter_definition_filter_by_wildcard_host.result
+@@ -0,0 +1,126 @@
++SET @filter = '{
++  "filter": {
++    "class": {
++      "name": "connection",
++      "event": {
++        "name": "connect"
++      }
++    }
++  }
++}';
++SELECT audit_log_filter_set_filter('log_connect', @filter);
++audit_log_filter_set_filter('log_connect', @filter)
++OK
++###
++### 1.1 IPv4 and IPv6 users, default audit log rule
++###
++CREATE USER 'usr'@'127.0.0.1' IDENTIFIED BY 'password';
++CREATE USER 'usr'@'::1' IDENTIFIED BY 'password';
++SELECT audit_log_filter_set_user('%', 'log_connect');
++audit_log_filter_set_user('%', 'log_connect')
++OK
++SET @audit_filter_log_name = audit_log_rotate();
++USER()	CURRENT_USER()
++usr@localhost	usr@127.0.0.1
++USER()	CURRENT_USER()
++usr@localhost	usr@::1
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 1.2 IPv4 and wildcard users, default audit log rule
++###
++DROP USER 'usr'@'::1';
++CREATE USER 'usr'@'%' IDENTIFIED BY 'password';
++USER()	CURRENT_USER()
++usr@localhost	usr@127.0.0.1
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 1.3 Only wildcard user, default audit log rule
++###
++DROP USER 'usr'@'127.0.0.1';
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 2.1 Only wildcard user, IPv4 audit log rule
++###
++SELECT audit_log_filter_remove_user('%');
++audit_log_filter_remove_user('%')
++OK
++SELECT audit_log_filter_set_user('usr@127.0.0.1', 'log_connect');
++audit_log_filter_set_user('usr@127.0.0.1', 'log_connect')
++OK
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 2.2 IPv4 and wildcard users, IPv4 audit log rule
++###
++CREATE USER 'usr'@'127.0.0.1' IDENTIFIED BY 'password';
++USER()	CURRENT_USER()
++usr@localhost	usr@127.0.0.1
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 2.3 IPv4 and IPv6 users, IPv4 audit log rule
++###
++DROP USER 'usr'@'%';
++CREATE USER 'usr'@'::1' IDENTIFIED BY 'password';
++USER()	CURRENT_USER()
++usr@localhost	usr@127.0.0.1
++USER()	CURRENT_USER()
++usr@localhost	usr@::1
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 3.1 IPv4 and IPv6 users, wildcard audit log rule
++###
++SELECT audit_log_filter_remove_user('usr@127.0.0.1');
++audit_log_filter_remove_user('usr@127.0.0.1')
++OK
++SELECT audit_log_filter_set_user('usr@%', 'log_connect');
++audit_log_filter_set_user('usr@%', 'log_connect')
++OK
++SET @audit_filter_log_name = audit_log_rotate();
++USER()	CURRENT_USER()
++usr@localhost	usr@127.0.0.1
++USER()	CURRENT_USER()
++usr@localhost	usr@::1
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 3.2 IPv4 and wildcard users, wildcard audit log rule
++###
++DROP USER 'usr'@'::1';
++CREATE USER 'usr'@'%' IDENTIFIED BY 'password';
++USER()	CURRENT_USER()
++usr@localhost	usr@127.0.0.1
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++###
++### 3.3 Only wildcard user, wildcard audit log rule
++###
++DROP USER 'usr'@'127.0.0.1';
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++USER()	CURRENT_USER()
++usr@localhost	usr@%
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++SELECT audit_log_filter_remove_user('usr@%');
++audit_log_filter_remove_user('usr@%')
++OK
++DROP USER 'usr'@'%';
+diff --git a/mysql-test/suite/component_audit_log_filter/r/udf_audit_log_filter_set_user.result b/mysql-test/suite/component_audit_log_filter/r/udf_audit_log_filter_set_user.result
+index a92d5ed4d2e..8aae7aeb689 100644
+--- a/mysql-test/suite/component_audit_log_filter/r/udf_audit_log_filter_set_user.result
++++ b/mysql-test/suite/component_audit_log_filter/r/udf_audit_log_filter_set_user.result
+@@ -35,16 +35,17 @@ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argume
+ SELECT audit_log_filter_set_user('aaaaaa', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: wrong user_name format, it should be in user_name@host_name format, or '%' to represent the default account
+ #
+-# Wildcards are not allowed in user or host name
++# [*|%] characters are not allowed in user name
++# [*|] characters are not allowed in host name
+ SELECT audit_log_filter_set_user('user%@localhost', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: bad user name format
+ SELECT audit_log_filter_set_user('user*@localhost', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: bad user name format
+-SELECT audit_log_filter_set_user('user@host%', 'filter_1');
++SELECT audit_log_filter_set_user('user@host|', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: bad host name format
+ SELECT audit_log_filter_set_user('user@host*', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: bad host name format
+-SELECT audit_log_filter_set_user('user@%', 'filter_1');
++SELECT audit_log_filter_set_user('user@|', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: bad host name format
+ SELECT audit_log_filter_set_user('user@*', 'filter_1');
+ ERROR HY000: Can't initialize function 'audit_log_filter_set_user'; Wrong argument: bad host name format
+diff --git a/mysql-test/suite/component_audit_log_filter/r/writer_buffer_size_overflow.result b/mysql-test/suite/component_audit_log_filter/r/writer_buffer_size_overflow.result
+index e2f9e9ab920..9df3510502b 100644
+--- a/mysql-test/suite/component_audit_log_filter/r/writer_buffer_size_overflow.result
++++ b/mysql-test/suite/component_audit_log_filter/r/writer_buffer_size_overflow.result
+@@ -29,6 +29,6 @@ Variable_name	Value
+ Audit_log_filter_events_lost	2
+ SHOW GLOBAL STATUS LIKE 'Audit_log_filter_event_max_drop_size';
+ Variable_name	Value
+-Audit_log_filter_event_max_drop_size	4307
++Audit_log_filter_event_max_drop_size	4308
+ #
+ # Cleanup
+diff --git a/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_anonymous_user-master.opt b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_anonymous_user-master.opt
+new file mode 100644
+index 00000000000..b82cc6c7777
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_anonymous_user-master.opt
+@@ -0,0 +1 @@
++--loose-audit_log_filter.format=JSON
+diff --git a/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_anonymous_user.test b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_anonymous_user.test
+new file mode 100644
+index 00000000000..73c6bbfaf9b
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_anonymous_user.test
+@@ -0,0 +1,79 @@
++--source include/have_component_audit_log.inc
++
++--source ../inc/audit_tables_init.inc
++--source ../inc/audit_comp_install.inc
++
++--let $anonymous_user_name = foobarbaz
++--let $ipv4_localhost = 127.0.0.1
++
++--let $MYSQL_PORT = `SELECT @@port`
++
++eval CREATE USER ''@'$ipv4_localhost';
++
++SET @filter = '{
++  "filter": {
++    "class": {
++      "name": "connection",
++      "event": {
++        "name": "connect"
++      }
++    }
++  }
++}';
++SELECT audit_log_filter_set_filter('log_connect', @filter);
++
++--echo ###
++--echo ### 1. Connecting as an anonymous user with no rules set
++--echo ###
++SET @audit_filter_log_name = audit_log_rotate();
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$anonymous_user_name -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 0 AS no_connection_events_must_be_logged`)
++
++
++--echo ###
++--echo ### 2. Connecting as an anonymous user with default rule set
++--echo ###
++SELECT audit_log_filter_set_user('%', 'log_connect');
++SET @audit_filter_log_name = audit_log_rotate();
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$anonymous_user_name -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 1 AS one_connection_event_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$anonymous_user_name' AS event_must_be_from_fake_user_name`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS event_must_be_from_ipv4_localhost`)
++
++
++--echo ###
++--echo ### 3. Connecting as an anonymous user with a dedicated rule for this anonymous user
++--echo ###
++SELECT audit_log_filter_remove_user('%');
++eval SELECT audit_log_filter_set_user('@$ipv4_localhost', 'log_connect');
++SET @audit_filter_log_name = audit_log_rotate();
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$anonymous_user_name -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 1 AS one_connection_event_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$anonymous_user_name' AS event_must_be_from_fake_user_name`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS event_must_be_from_ipv4_localhost`)
++
++
++eval SELECT audit_log_filter_remove_user('@$ipv4_localhost');
++
++eval DROP USER ''@'$ipv4_localhost';
++
++--source ../inc/audit_comp_uninstall.inc
++--source ../inc/audit_tables_cleanup.inc
+diff --git a/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_wildcard_host-master.opt b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_wildcard_host-master.opt
+new file mode 100644
+index 00000000000..b82cc6c7777
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_wildcard_host-master.opt
+@@ -0,0 +1 @@
++--loose-audit_log_filter.format=JSON
+diff --git a/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_wildcard_host.test b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_wildcard_host.test
+new file mode 100644
+index 00000000000..17b0f0edffa
+--- /dev/null
++++ b/mysql-test/suite/component_audit_log_filter/t/filter_definition_filter_by_wildcard_host.test
+@@ -0,0 +1,218 @@
++--source include/have_ipv6.inc
++--source include/have_component_audit_log.inc
++
++--source ../inc/audit_tables_init.inc
++--source ../inc/audit_comp_install.inc
++
++--let $user_name = usr
++--let $ipv4_localhost = 127.0.0.1
++--let $ipv6_localhost = ::1
++--let $password = password
++
++--let $MYSQL_PORT = `SELECT @@port`
++
++SET @filter = '{
++  "filter": {
++    "class": {
++      "name": "connection",
++      "event": {
++        "name": "connect"
++      }
++    }
++  }
++}';
++SELECT audit_log_filter_set_filter('log_connect', @filter);
++
++--echo ###
++--echo ### 1.1 IPv4 and IPv6 users, default audit log rule
++--echo ###
++
++eval CREATE USER '$user_name'@'$ipv4_localhost' IDENTIFIED BY '$password';
++eval CREATE USER '$user_name'@'$ipv6_localhost' IDENTIFIED BY '$password';
++
++SELECT audit_log_filter_set_user('%', 'log_connect');
++
++SET @audit_filter_log_name = audit_log_rotate();
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 2 AS two_connection_events_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS first_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS first_event_must_be_from_ipv4_localhost`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.user') = '$user_name' AS second_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.ip') = '$ipv6_localhost' AS second_event_must_be_from_ipv6_localhost`)
++
++
++--echo ###
++--echo ### 1.2 IPv4 and wildcard users, default audit log rule
++--echo ###
++eval DROP USER '$user_name'@'$ipv6_localhost';
++eval CREATE USER '$user_name'@'%' IDENTIFIED BY '$password';
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 2 AS two_connection_events_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS first_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS first_event_must_be_from_ipv4_localhost`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.user') = '$user_name' AS second_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.ip') = '$ipv6_localhost' AS second_event_must_be_from_ipv6_localhost`)
++
++
++--echo ###
++--echo ### 1.3 Only wildcard user, default audit log rule
++--echo ###
++eval DROP USER '$user_name'@'$ipv4_localhost';
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 2 AS two_connection_events_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS first_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS first_event_must_be_from_ipv4_localhost`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.user') = '$user_name' AS second_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.ip') = '$ipv6_localhost' AS second_event_must_be_from_ipv6_localhost`)
++
++
++--echo ###
++--echo ### 2.1 Only wildcard user, IPv4 audit log rule
++--echo ###
++SELECT audit_log_filter_remove_user('%');
++eval SELECT audit_log_filter_set_user('$user_name@$ipv4_localhost', 'log_connect');
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 0 AS no_connection_events_must_be_logged`)
++
++
++--echo ###
++--echo ### 2.2 IPv4 and wildcard users, IPv4 audit log rule
++--echo ###
++eval CREATE USER '$user_name'@'$ipv4_localhost' IDENTIFIED BY '$password';
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 1 AS one_connection_event_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS event_must_be_from_ipv4_localhost`)
++
++
++--echo ###
++--echo ### 2.3 IPv4 and IPv6 users, IPv4 audit log rule
++--echo ###
++eval DROP USER '$user_name'@'%';
++eval CREATE USER '$user_name'@'$ipv6_localhost' IDENTIFIED BY '$password';
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 1 AS one_connection_event_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS event_must_be_from_ipv4_localhost`)
++
++
++--echo ###
++--echo ### 3.1 IPv4 and IPv6 users, wildcard audit log rule
++--echo ###
++eval SELECT audit_log_filter_remove_user('$user_name@$ipv4_localhost');
++eval SELECT audit_log_filter_set_user('$user_name@%', 'log_connect');
++
++SET @audit_filter_log_name = audit_log_rotate();
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 0 AS no_connection_events_must_be_logged`)
++
++
++--echo ###
++--echo ### 3.2 IPv4 and wildcard users, wildcard audit log rule
++--echo ###
++eval DROP USER '$user_name'@'$ipv6_localhost';
++eval CREATE USER '$user_name'@'%' IDENTIFIED BY '$password';
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 1 AS one_connection_event_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv6_localhost' AS event_must_be_from_ipv6_localhost`)
++
++
++--echo ###
++--echo ### 3.3 Only wildcard user, wildcard audit log rule
++--echo ###
++eval DROP USER '$user_name'@'$ipv4_localhost';
++
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv4_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++--source include/count_sessions.inc
++--exec $MYSQL -u$user_name -p$password -h$ipv6_localhost -P$MYSQL_PORT -e "SELECT USER(), CURRENT_USER();" test
++--source include/wait_until_count_sessions.inc
++SET @audit_filter_log_name = audit_log_rotate();
++SET @content = CAST(CONVERT(LOAD_FILE(CONCAT(@@global.datadir, @audit_filter_log_name)) USING ascii) AS JSON);
++
++--assert(`SELECT JSON_LENGTH(@content) = 2 AS two_connection_events_must_be_logged`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.user') = '$user_name' AS first_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[0].login.ip') = '$ipv4_localhost' AS first_event_must_be_from_ipv4_localhost`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.user') = '$user_name' AS second_event_must_be_from_usr`)
++--assert(`SELECT JSON_EXTRACT(@content, '\$[1].login.ip') = '$ipv6_localhost' AS second_event_must_be_from_ipv6_localhost`)
++
++eval SELECT audit_log_filter_remove_user('$user_name@%');
++
++eval DROP USER '$user_name'@'%';
++
++--source ../inc/audit_comp_uninstall.inc
++--source ../inc/audit_tables_cleanup.inc
+diff --git a/mysql-test/suite/component_audit_log_filter/t/generate_audit_events.inc b/mysql-test/suite/component_audit_log_filter/t/generate_audit_events.inc
+index 6449d515417..5d8475a1c01 100644
+--- a/mysql-test/suite/component_audit_log_filter/t/generate_audit_events.inc
++++ b/mysql-test/suite/component_audit_log_filter/t/generate_audit_events.inc
+@@ -43,6 +43,7 @@ INSTALL COMPONENT "file://component_audit_api_message_emit";
+ SELECT audit_api_message_emit_udf('component_text', 'producer_text', 'message_text', 'key', 'value') AS 'Message';
+ UNINSTALL COMPONENT "file://component_audit_api_message_emit";
+ 
++--source include/count_sessions.inc
+ # AuditRecordConnection
+ # AuditRecordAuthentication
+ CREATE USER 'user1'@'%' IDENTIFIED BY '111';
+@@ -51,6 +52,7 @@ connect (conn1,localhost,user1,111,test);
+ disconnect conn1;
+ connection default;
+ DROP USER user1;
++--source include/wait_until_count_sessions.inc
+ 
+ # AuditRecordServerShutdown
+ #--source include/restart_mysqld.inc
+diff --git a/mysql-test/suite/component_audit_log_filter/t/udf_audit_log_filter_set_user.test b/mysql-test/suite/component_audit_log_filter/t/udf_audit_log_filter_set_user.test
+index 15d0bcc3a2c..643f0a95304 100644
+--- a/mysql-test/suite/component_audit_log_filter/t/udf_audit_log_filter_set_user.test
++++ b/mysql-test/suite/component_audit_log_filter/t/udf_audit_log_filter_set_user.test
+@@ -52,17 +52,18 @@ SELECT audit_log_filter_set_user('root@localhost', '');
+ SELECT audit_log_filter_set_user('aaaaaa', 'filter_1');
+ 
+ --echo #
+---echo # Wildcards are not allowed in user or host name
++--echo # [*|%] characters are not allowed in user name
++--echo # [*|] characters are not allowed in host name
+ --error 1123
+ SELECT audit_log_filter_set_user('user%@localhost', 'filter_1');
+ --error 1123
+ SELECT audit_log_filter_set_user('user*@localhost', 'filter_1');
+ --error 1123
+-SELECT audit_log_filter_set_user('user@host%', 'filter_1');
++SELECT audit_log_filter_set_user('user@host|', 'filter_1');
+ --error 1123
+ SELECT audit_log_filter_set_user('user@host*', 'filter_1');
+ --error 1123
+-SELECT audit_log_filter_set_user('user@%', 'filter_1');
++SELECT audit_log_filter_set_user('user@|', 'filter_1');
+ --error 1123
+ SELECT audit_log_filter_set_user('user@*', 'filter_1');
+ --error 1123
