@@ -21,6 +21,7 @@ templates:
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
   pre-start.sh.erb: bin/pre-start
+  post-start.sh.erb: bin/post-start
   pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
@@ -34,8 +35,10 @@ packages:
 - jemalloc
 - percona-xtradb-cluster-5.7
 - percona-xtradb-cluster-8.0
+- percona-xtradb-cluster-8.4
 - percona-xtrabackup-2.4
 - percona-xtrabackup-8.0
+- percona-xtrabackup-8.4
 - pxc-utils
 
 consumes:

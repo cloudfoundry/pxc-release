@@ -1,3 +1,4 @@
+<%- if p('mysql_version') != '8.4' -%>
 /var/vcap/store/mysql_audit_logs/mysql_server_audit.log.1 {
   missingok
   rotate <%= p('engine_config.audit_logs.file_rotations') %>
@@ -6,3 +7,4 @@
   size=1M
   nocopy
 }
+<%- end -%>
