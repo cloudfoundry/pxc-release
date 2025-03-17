@@ -316,8 +316,8 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(output.String()).
-				To(ContainSubstring(`timestamp|wsrep_local_state_uuid|wsrep_protocol_version|wsrep_last_applied|wsrep_last_committed`),
-					`Expected to find the expected header in the bosh logs output, but did not.  Output: %s Attempt: %d`, output.String())
+				To(MatchRegexp(`timestamp\|.*wsrep_.*\|sql_log_bin`),
+					`Expected to find the expected header in the bosh logs output, but did not`)
 		})
 
 		It("does not write errors to the stderr file", func() {
