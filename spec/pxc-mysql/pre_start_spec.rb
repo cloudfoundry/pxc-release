@@ -23,4 +23,15 @@ describe 'galera-agent-config template' do
       expect(rendered_template).to_not include("apply_pxc57_crash_recovery")
     end
   end
+
+  describe 'disable_persistent_storage_safety_check' do
+    it 'leaves the safety check on by default' do
+      expect(rendered_template).to match(/^check_mysql_disk_persistence/)
+    end
+
+    it 'removes the safety check when disabled' do
+      spec['disable_persistent_storage_safety_check'] = true
+      expect(rendered_template).to_not match(/^check_mysql_disk_persistence/)
+    end
+  end
 end

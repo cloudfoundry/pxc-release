@@ -69,6 +69,9 @@ properties:
   pxc_enabled:
     description: 'Used for disabling the job. Useful if co-locating the cf-mysql release mysql job and migrating'
     default: true
+  disable_persistent_storage_safety_check:
+    description: 'pre-start checks that /var/vcap/store is a persistent volume to prevent accidentally running the database on an ephemeral disk. This can be used to disable this check for test or bosh-lite situations'
+    default: false
 
 
   # Admin Users

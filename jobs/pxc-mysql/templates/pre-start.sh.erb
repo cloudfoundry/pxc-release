@@ -123,7 +123,9 @@ function check_mysql_disk_capacity() {
   fi
 }
 
+<%- unless p('disable_persistent_storage_safety_check') -%>
 check_mysql_disk_persistence
+<%- end -%>
 check_mysql_disk_capacity
 
 # move the datadir
