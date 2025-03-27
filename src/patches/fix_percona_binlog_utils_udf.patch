@@ -1,0 +1,39 @@
+diff --git a/plugin/binlog_utils_udf/binlog_utils_udf.cc b/plugin/binlog_utils_udf/binlog_utils_udf.cc
+index 524b604bf4a..ead12abea10 100644
+--- a/plugin/binlog_utils_udf/binlog_utils_udf.cc
++++ b/plugin/binlog_utils_udf/binlog_utils_udf.cc
+@@ -1,13 +1,12 @@
+ #include <array>
+ #include <cstring>
++#include <filesystem>
+ #include <limits>
+ #include <memory>
+ #include <stdexcept>
+ #include <string>
+ #include <type_traits>
+ 
+-#include <boost/algorithm/find_backward.hpp>
+-
+ #include <mysql/plugin.h>
+ 
+ #include <mysql/components/services/component_sys_var_service.h>
+@@ -488,12 +487,13 @@ mysqlpp::udf_result_t<STRING_RESULT> get_gtid_set_by_binlog_impl::calculate(
+ 
+   // trying to find the specified binlog name in the index
+   auto binlog_name_sv = ctx.get_arg<STRING_RESULT>(0);
+-  auto bg = std::cbegin(log_index.second);
+-  auto en = std::cend(log_index.second);
+-  fn_reflen_buffer binlog_name_buffer;
+-  auto normalized_binlog_name =
+-      check_and_normalize_binlog_name(binlog_name_sv, binlog_name_buffer);
+-  auto fnd = boost::algorithm::find_backward(bg, en, normalized_binlog_name);
++  auto normalized_binlog_name = std::filesystem::path(binlog_name_sv).filename();
++  auto bg = std::crbegin(log_index.second);
++  auto en = std::crend(log_index.second);
++  auto fnd = std::find_if(bg, en, [&normalized_binlog_name](auto &s) {
++    auto basename = std::filesystem::path(s).filename();
++    return basename == normalized_binlog_name;
++  });
+   if (fnd == en) throw std::runtime_error("Binary log does not exist");
+ 
+   // if found, reading previous GTIDs from it

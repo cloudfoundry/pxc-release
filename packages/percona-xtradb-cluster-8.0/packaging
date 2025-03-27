@@ -4,6 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+trap 'sleep infinity' ERR
+
 main() {
   install_build_dependencies
   install_runtime_dependencies
@@ -62,6 +64,7 @@ build() {
 
   (
     cd Percona-XtraDB-Cluster-*/
+    patch -p1 < ../patches/fix_percona_binlog_utils_udf.patch
     source MYSQL_VERSION
     mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
     wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
@@ -103,6 +106,9 @@ build() {
       -DWITH_BOOST="${boost_dir}" \
       -DWITH_ICU=system \
       -DWITH_READLINE=system \
+      -DWITH_NDB=OFF \
+      -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF \
+      -DWITH_NDB_JAVA=OFF \
       -DWITH_ROUTER=OFF \
       -DWITH_GROUP_REPLICATION=OFF \
       -DWITH_SSL=system \
