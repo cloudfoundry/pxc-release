@@ -70,7 +70,7 @@ github.com/onsi/gomega/types
 # github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 ## explicit
 github.com/pivotal-cf-experimental/service-config
-# golang.org/x/net v0.37.0
+# golang.org/x/net v0.38.0
 ## explicit; go 1.23.0
 golang.org/x/net/html
 golang.org/x/net/html/atom
