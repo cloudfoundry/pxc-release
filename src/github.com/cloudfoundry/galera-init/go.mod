@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.3
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.32.0
+	code.cloudfoundry.org/lager/v3 v3.33.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/fsouza/go-dockerclient v1.12.1
 	github.com/go-sql-driver/mysql v1.9.2
@@ -49,11 +49,11 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
-	golang.org/x/tools v0.31.0 // indirect
+	golang.org/x/tools v0.32.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
