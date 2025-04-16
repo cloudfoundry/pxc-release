@@ -8,7 +8,6 @@ require (
 	github.com/cloudfoundry/gosigar v1.3.92
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/pkg/errors v0.9.1
 )
 
 require (
@@ -17,6 +16,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20250501235452-c0086092b71a // indirect
 	github.com/kr/pretty v0.2.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
