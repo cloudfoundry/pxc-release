@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 
-	generateAutoTuneMysql "github.com/cloudfoundry/generate-auto-tune-mysql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
+
+	generateAutoTuneMysql "github.com/cloudfoundry/generate-auto-tune-mysql"
 )
 
 var sampleConfig1 = `
