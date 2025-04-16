@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io"
-	"strings"
+	"text/template"
 
 	"github.com/pkg/errors"
 )
@@ -19,31 +18,41 @@ type GenerateValues struct {
 }
 
 func Generate(values GenerateValues, writer io.Writer) error {
-
 	bufferPoolSize := float64(values.TotalMem) * values.TargetPercentageofMem / 100.0
 
-	params := []string{}
-	params = append(params, fmt.Sprintf("innodb_buffer_pool_size = %d", uint64(bufferPoolSize)))
+	totalDisk := values.TotalDiskinKB * 1024
+	binLogSpaceLimit := float64(totalDisk) * values.TargetPercentageofDisk / 100.0
 
-	if values.TargetPercentageofDisk != 0.0 {
-		totalDisk := values.TotalDiskinKB * 1024
-		binLogSpaceLimit := float64(totalDisk) * values.TargetPercentageofDisk / 100.0
-		params = append(params, fmt.Sprintf("binlog_space_limit = %d", uint64(binLogSpaceLimit)))
+	maxBinlogSize := min(int64(binLogSpaceLimit/3), 1024*1024*1024)
+	maxBinlogSize = (maxBinlogSize / binlogBlockSize) * binlogBlockSize
 
-		maxBinlogSize := min(int64(binLogSpaceLimit/3), 1024*1024*1024)
-		maxBinlogSize = (maxBinlogSize / binlogBlockSize) * binlogBlockSize
-
-		params = append(params, fmt.Sprintf("max_binlog_size = %d", uint64(maxBinlogSize)))
+	tmpl, _ := template.New("auto_tune").Parse(`
+[mysqld]
+innodb_buffer_pool_size = {{.BufferPoolSize}}
+{{if ne .TargetPercentageOfDisk 0.0 -}}
+binlog_space_limit = {{.BinlogSpaceLimit}}
+max_binlog_size = {{.MaxBinlogSize}}
+{{end -}}
+[mysqld-8.0]
+wsrep_applier_threads = {{.NumCPUs}}
+[mysqld-5.7]
+wsrep_slave_threads = {{.NumCPUs}}
+`)
+	data := struct {
+		BufferPoolSize         uint64
+		BinlogSpaceLimit       uint64
+		MaxBinlogSize          uint64
+		NumCPUs                int
+		TargetPercentageOfDisk float64
+	}{
+		BufferPoolSize:         uint64(bufferPoolSize),
+		BinlogSpaceLimit:       uint64(binLogSpaceLimit),
+		MaxBinlogSize:          uint64(maxBinlogSize),
+		NumCPUs:                values.NumCPUs,
+		TargetPercentageOfDisk: values.TargetPercentageofDisk,
 	}
+	err := tmpl.Execute(writer, data)
 
-	params = append(params, fmt.Sprintf("[mysqld-8.0]"))
-	params = append(params, fmt.Sprintf("wsrep_applier_threads = %d", values.NumCPUs))
-
-	params = append(params, fmt.Sprintf("[mysqld-5.7]"))
-	params = append(params, fmt.Sprintf("wsrep_slave_threads = %d", values.NumCPUs))
-
-	config := "\n[mysqld]\n" + strings.Join(params, "\n") + "\n"
-	_, err := writer.Write([]byte(config))
 	return errors.Wrap(err, "failed to emit mysql configuration")
 }
 
