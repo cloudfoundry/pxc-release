@@ -1,3 +1,10 @@
-set -e
+set -eu
 
-cp -a cf-mysql-common/* ${BOSH_INSTALL_TARGET}
+source /var/vcap/packages/golang-1-linux/bosh/compile.env
+
+go build \
+  -C audit-log-tools \
+  -o "${BOSH_INSTALL_TARGET}/bin/configure-audit-log-component" \
+  ./cmd/configure-audit-log-component
+
+cp -a cf-mysql-common/* "${BOSH_INSTALL_TARGET}"
