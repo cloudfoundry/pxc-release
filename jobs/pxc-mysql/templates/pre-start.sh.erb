@@ -5,8 +5,8 @@ set -e
 set -o pipefail
 
 <%-
-  unless %w[5.7 8.0].include? p('mysql_version')
-    raise "Unsupported value '#{p('mysql_version')}' for 'mysql_version' property. Choose from '8.0' or '5.7'"
+  unless %w[5.7 8.0 8.4].include? p('mysql_version')
+    raise "Unsupported value '#{p('mysql_version')}' for 'mysql_version' property. Choose from '8.4', '8.0' or '5.7'"
   end
 -%>
 
@@ -156,6 +156,8 @@ function check_bpm_pid {
 <%- if p('mysql_version') == "5.7" -%>
 /var/vcap/jobs/pxc-mysql/bin/mysql57_upgrade
 <%- end -%>
+
+# TODO: we may need to apply similar crash recovery logic for 8.0 => 8.4 upgrades
 <%- if p('mysql_version') == "8.0" -%>
 function is_pxc57_datadir {
   [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
