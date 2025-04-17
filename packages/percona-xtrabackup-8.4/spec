@@ -8,4 +8,4 @@ files:
 - libev-*.tar.gz
 - percona-xtrabackup-8.4*.tar.gz
 - pkg-config_*.tar.gz
-- procps_*.orig.tar.xz
+- procps-ng-*.tar.xz
