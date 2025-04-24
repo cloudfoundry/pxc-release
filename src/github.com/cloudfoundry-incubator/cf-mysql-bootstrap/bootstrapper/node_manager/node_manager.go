@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"strconv"
@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 )
@@ -128,8 +129,7 @@ func (nm *nodeManager) VerifyAllNodesAreReachable() error {
 		statusMysqlUrl := fmt.Sprintf("%s/%s", url, nm.rootConfig.MysqlStatus)
 		_, err := nm.sendGetRequest(statusMysqlUrl)
 		if err != nil {
-			err = fmt.Errorf("Could not reach node: %s, received: %s", url, err.Error())
-			return err
+			return fmt.Errorf("Could not reach node: %s, received: %w", url, err)
 		}
 	}
 	return nil
@@ -322,11 +322,11 @@ func (nm *nodeManager) sendRequest(endpoint string, method string) (string, erro
 	resp, err := httpClient.Do(req)
 	responseBody := ""
 	if err != nil {
-		return responseBody, fmt.Errorf("Failed to %s: %s", endpoint, err.Error())
+		return responseBody, fmt.Errorf("Failed to %s: %w", endpoint, err)
 	}
 
 	if resp.Body != nil {
-		responseBytes, _ := ioutil.ReadAll(resp.Body)
+		responseBytes, _ := io.ReadAll(resp.Body)
 		responseBody = string(responseBytes)
 	}
 

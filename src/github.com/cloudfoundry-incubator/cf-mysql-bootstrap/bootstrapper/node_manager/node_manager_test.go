@@ -1,6 +1,8 @@
 package node_manager_test
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,13 +10,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/bootstrapper/node_manager"
 	clockPkg "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/clock/fakes"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/fakes"
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/test_helpers"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -924,7 +927,8 @@ var _ = Describe("TLS connectivity", func() {
 		It("returns the expected error", func() {
 			err := nodeManager.VerifyAllNodesAreReachable()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(HaveSuffix("x509: certificate is valid for example.com, not incorrectValue.org"))
+			var expectedErr *tls.CertificateVerificationError
+			Expect(errors.As(err, &expectedErr)).To(BeTrue(), `Expected a certificate verification error, but got %s`, err)
 		})
 	})
 
