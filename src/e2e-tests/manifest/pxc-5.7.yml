@@ -3,13 +3,9 @@ name: ((deployment_name))
 
 releases:
 - name: "pxc"
-  version: "0.44.0"
-  url: "https://bosh.io/d/github.com/cloudfoundry-incubator/pxc-release?v=0.44.0"
-  sha1: "495099d35e3b2a24bf73ed42c152e1ff10cb3576"
-- name: "bpm"
-  version: "1.1.18"
-  url: "https://bosh.io/d/github.com/cloudfoundry/bpm-release?v=1.1.18"
-  sha1: "86675f90d66f7018c57f4ae0312f1b3834dd58c9"
+  version: "0.50.0"
+- name: bpm
+  version: latest
 
 addons:
 - name: bpm
