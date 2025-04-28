@@ -2,13 +2,7 @@
 
 set -o errexit -o nounset -o pipefail
 
-# Nice output formatting
-normal=$(tput sgr0)
-bold=$(tput bold)
-red=$(tput setaf 1)
-
 <% if_link('galera-agent') do |galera_agent| %>
-
 wsrep_recover() {
   /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/bin/mysqld --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf --wsrep-recover --disable-log-error 2>&1
 }
@@ -16,21 +10,21 @@ wsrep_recover() {
 report_sequence_number() {
   if bpm pid pxc-mysql -p galera-init > /dev/null 2>&1; then
     echo ""
-    echo -e "${bold}${red}\tCannot get sequence number while MySQL is running."
-    echo -e "\tRefer to documentation on how to shut down running instances.${normal}"
+    echo -e "\tCannot get sequence number while MySQL is running."
+    echo -e "\tRefer to documentation on how to shut down running instances."
     echo ""
     return 1
   fi
 
   if ! mysqld_logs=$(wsrep_recover); then
-    echo "${bold}${red}Failure obtaining sequence number!${normal}"
+    echo "Failure obtaining sequence number!"
     echo "mysqld output was:"
     echo "${mysqld_logs}"
     return 1
   fi
 
   if ! uuid_seqno=$(awk '/Recovered position:/{print $NF}' <<< "${mysqld_logs}"); then
-    echo "${bold}${red}Unable to extract wsrep position from mysqld logs!${normal}"
+    echo "Unable to extract wsrep position from mysqld logs!"
     echo "mysqld output was:"
     echo "${mysqld_logs}"
     return 1
@@ -45,6 +39,6 @@ report_sequence_number() {
 report_sequence_number
 
 <% end.else do %>
-echo "${bold}${red}This tool only works with a Galera cluster with more than one node.${normal}"
+echo "This tool only works with a Galera cluster with more than one node."
 exit 1
 <% end %>
