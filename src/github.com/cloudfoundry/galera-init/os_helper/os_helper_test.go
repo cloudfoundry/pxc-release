@@ -7,11 +7,11 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/google/uuid"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/cloudfoundry/galera-init/os_helper"
 )
 
 var _ = Describe("OsHelper", func() {
