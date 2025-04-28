@@ -881,7 +881,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		It("does not write memory profiles by default", func() {
 			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(out).To(Equal("-"), `Expected no memory profiles to be found in /var/vcap/data/pxc-mysql/tmp/`)
+			Expect(out).To(Equal(""), `Expected no memory profiles to be found in /var/vcap/data/pxc-mysql/tmp/`)
 		})
 
 		It("enables access to jemalloc memory profile when administrative commands are run", func() {

@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	. "github.com/onsi/ginkgo/v2"
 
 	"e2e-tests/utilities/cmd"
 )
@@ -271,16 +274,41 @@ func Restart(deploymentName, instanceSpec string) error {
 
 func RemoteCommand(deploymentName, instanceSpec, cmdString string) (string, error) {
 	var output bytes.Buffer
-	err := cmd.RunWithoutOutput(&output,
+	if err := cmd.RunWithoutOutput(io.MultiWriter(&output, GinkgoWriter),
 		"bosh",
 		"--deployment="+deploymentName,
 		"ssh",
 		instanceSpec,
-		"--column=Stdout",
+		"--json",
 		"--results",
 		"--command="+cmdString,
-	)
-	return strings.TrimSpace(output.String()), err
+	); err != nil {
+		return output.String(), fmt.Errorf("remote command %q failed: %w", cmdString, err)
+	}
+
+	var result struct {
+		Tables []struct {
+			Rows []struct {
+				Stdout string `json:"stdout"`
+			} `json:"Rows"`
+		} `json:"Tables"`
+	}
+
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+		return output.String(), fmt.Errorf("failed to unmarshal bosh cli response (%q): %w", output.String(), err)
+	}
+
+	if len(result.Tables) == 0 || len(result.Tables[0].Rows) == 0 {
+		return output.String(), fmt.Errorf("no tables or rows provided by bosh cli (%q)", output.String())
+	}
+
+	var out strings.Builder
+
+	for _, row := range result.Tables[0].Rows {
+		_, _ = out.WriteString(row.Stdout)
+	}
+
+	return strings.TrimSpace(out.String()), nil
 }
 
 func Logs(deploymentName, instanceSpec, filter string) (*bytes.Buffer, error) {
