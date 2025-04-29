@@ -18,6 +18,22 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 		deploymentName string
 	)
 
+	connectToProxy := func() *sql.DB {
+		proxyInstances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("proxy"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(proxyInstances)).To(BeNumerically(">", 0), `No proxy instances found!`)
+
+		GinkgoWriter.Printf("Found %d proxy instances. Connecting to %s [%s]", len(proxyInstances), proxyInstances[0].Instance, proxyInstances[0].IP)
+
+		host := proxyInstances[0].IP
+		db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+host+")/?tls=skip-verify")
+		Expect(err).NotTo(HaveOccurred(), `Failed to initialize mysql connection pool: %s`, err)
+		db.SetMaxIdleConns(0)
+		db.SetMaxOpenConns(1)
+
+		return db
+	}
+
 	BeforeAll(func() {
 		deploymentName = "pxc-scaling-" + uuid.New().String()
 
@@ -31,14 +47,7 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).
 			To(Succeed())
 
-		proxyIPs, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("proxy"))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(proxyIPs).To(HaveLen(2))
-
-		db, err = sql.Open("mysql", "test-admin:integration-tests@tcp("+proxyIPs[0]+")/?tls=skip-verify")
-		Expect(err).NotTo(HaveOccurred())
-		db.SetMaxIdleConns(0)
-		db.SetMaxOpenConns(1)
+		db = connectToProxy()
 	})
 
 	AfterAll(func() {
@@ -87,6 +96,9 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 			bosh.Operation("minimal-mode.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
+
+		// Reinitialize db in case the instance the test previously chose has now been deleted
+		db = connectToProxy()
 
 		var unused, clusterSize string
 		Expect(db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_cluster\_size'`).
