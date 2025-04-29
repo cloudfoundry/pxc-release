@@ -25,6 +25,7 @@ var _ = Describe("Wait scripts", Ordered, Label("bosh-wait-scripts"), func() {
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation(`use-clustered.yml`),
 			bosh.Operation(`test/seed-test-user.yml`),
+			bosh.Operation(`iaas/cluster.yml`),
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).

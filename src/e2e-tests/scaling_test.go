@@ -23,6 +23,7 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
+			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation("disable-binlog.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
@@ -82,6 +83,7 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 	It("scales the cluster down to one node", func() {
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
+			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation("minimal-mode.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
@@ -123,6 +125,7 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 	It("can scale back up to three nodes", func() {
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
+			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
 	})
@@ -150,6 +153,7 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
+			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation("test/seed-test-user.yml"),
 			bosh.Operation("minimal-mode.yml"),
 		)).ToNot(Succeed())

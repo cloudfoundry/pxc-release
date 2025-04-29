@@ -21,6 +21,7 @@ var _ = Describe(fmt.Sprintf("Single Node for PXC version %s", expectedMysqlVers
 		deploymentName = "pxc-single-node-" + uuid.New().String()
 
 		Expect(bosh.DeployPXC(deploymentName,
+			bosh.Operation(`iaas/single-node.yml`),
 			bosh.Operation(`test/seed-test-user.yml`),
 		)).To(Succeed())
 

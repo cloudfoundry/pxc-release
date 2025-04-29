@@ -119,6 +119,7 @@ func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 		"pxc-deployment.yml",
 		"--ops-file=operations/deployment-name.yml",
 		"--var=deployment_name=" + deploymentName,
+		"--vars-env=PXC_TEST",
 	}
 
 	if pxcVersion := os.Getenv("PXC_DEPLOY_VERSION"); pxcVersion != "" {
@@ -158,11 +159,20 @@ func Operation(path string) DeployOptionFunc {
 	}
 }
 
+// Var is a helper method to set a single interpolated key=value pair in a bosh manifest
+// Syntactic sugar for bosh deploy --var=$key=$value
 func Var(key, value string) DeployOptionFunc {
-	// This function assumes that bosh deploy is run with a cwd of the top of this repo.
-	// All standard ops-files will be relative to ./operations/
 	return func(args *[]string) {
 		*args = append(*args, fmt.Sprintf("--var=%s=%q", key, value))
+	}
+}
+
+// VarsEnv is a helper method to read bosh variables from the environment
+// Syntactic sugar for bosh deploy --vars-env=$prefix
+// Example VarsEnv("PXC_TEST") will resolve variables by looking up PXC_TEST_${var_name}
+func VarsEnv(prefix string) DeployOptionFunc {
+	return func(args *[]string) {
+		*args = append(*args, "--vars-env="+prefix)
 	}
 }
 

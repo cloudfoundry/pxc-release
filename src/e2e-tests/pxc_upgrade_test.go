@@ -26,6 +26,7 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 		By("deploying pxc-release 0.x based on PXC 5.7")
 		Expect(bosh.Deploy(deploymentName, "manifest/pxc-5.7.yml",
 			bosh.Var("deployment_name", deploymentName),
+			bosh.VarsEnv("PXC_TEST"),
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
@@ -86,13 +87,13 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 			By("Using a collation-server not compatible with 5.7")
 			Expect(bosh.DeployPXC(deploymentName,
 				bosh.Operation("use-clustered.yml"),
-				bosh.Operation("dev-release.yml"),
+				bosh.Operation(`iaas/cluster.yml`),
 				bosh.Operation("test/collation-server.yml"),
 			)).To(Succeed())
 		} else {
 			Expect(bosh.DeployPXC(deploymentName,
 				bosh.Operation("use-clustered.yml"),
-				bosh.Operation("dev-release.yml"),
+				bosh.Operation(`iaas/cluster.yml`),
 			)).To(Succeed())
 		}
 

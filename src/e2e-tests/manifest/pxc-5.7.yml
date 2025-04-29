@@ -20,9 +20,9 @@ addons:
 instance_groups:
 - name: mysql
   instances: 3
-  azs: [z1, z2, z3]
-  networks: [{name: default}]
-  vm_type: default
+  azs: ((azs))
+  networks: [{name: ((network))}]
+  vm_type: ((vm_type))
   stemcell: default
   persistent_disk: 10000
   jobs:
@@ -62,9 +62,9 @@ instance_groups:
     release: pxc
 - name: proxy
   instances: 2
-  azs: [z1, z2]
-  networks: [{name: default}]
-  vm_type: default
+  azs: ((azs))
+  networks: [{name: ((network))}]
+  vm_type: ((vm_type))
   stemcell: default
   jobs:
   - name: proxy

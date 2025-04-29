@@ -48,6 +48,22 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(missingEnvs).To(BeEmpty(), "Missing environment variables: %s", strings.Join(missingEnvs, ", "))
 
+	if _, ok := os.LookupEnv("PXC_TEST_azs"); !ok {
+		GinkgoT().Setenv("PXC_TEST_azs", "[z1,z2,z3]")
+	}
+
+	if _, ok := os.LookupEnv("PXC_TEST_network"); !ok {
+		GinkgoT().Setenv("PXC_TEST_network", "default")
+	}
+
+	if _, ok := os.LookupEnv("PXC_TEST_vm_type"); !ok {
+		GinkgoT().Setenv("PXC_TEST_vm_type", "small")
+	}
+
+	GinkgoWriter.Println("Using PXC_TEST_azs=" + os.Getenv("PXC_TEST_azs"))
+	GinkgoWriter.Println("Using PXC_TEST_network=" + os.Getenv("PXC_TEST_network"))
+	GinkgoWriter.Println("Using PXC_TEST_vm_type=" + os.Getenv("PXC_TEST_vm_type"))
+
 	if proxySpec := os.Getenv("BOSH_ALL_PROXY"); proxySpec != "" {
 		var err error
 		proxyDialer, err := proxy.NewDialer(proxySpec)

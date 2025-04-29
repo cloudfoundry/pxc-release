@@ -32,6 +32,7 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 			bosh.Operation("use-clustered.yml"),
 			bosh.Operation("galera-agent-tls.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
+			bosh.Operation(`iaas/cluster.yml`),
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).

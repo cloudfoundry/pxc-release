@@ -18,12 +18,10 @@
     name: syslog_storer
     release: syslog
     instances: 1
-    vm_type: default
+    vm_type: ((vm_type))
     stemcell: default
-    networks:
-      - name: default
-    azs:
-      - z1
+    networks: [{name: ((network))}]
+    azs: ((azs))
     jobs:
       - name: syslog_storer
         release: syslog

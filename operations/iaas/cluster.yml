@@ -1,0 +1,24 @@
+---
+- type: replace
+  path: /instance_groups/name=mysql/azs
+  value: ((azs))
+
+- type: replace
+  path: /instance_groups/name=mysql/networks/0/name
+  value: ((network))
+
+- type: replace
+  path: /instance_groups/name=mysql/vm_type
+  value: ((vm_type))
+
+- type: replace
+  path: /instance_groups/name=proxy/azs
+  value: ((azs))
+
+- type: replace
+  path: /instance_groups/name=proxy/networks/0/name
+  value: ((network))
+
+- type: replace
+  path: /instance_groups/name=proxy/vm_type
+  value: ((vm_type))

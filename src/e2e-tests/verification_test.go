@@ -49,6 +49,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/with-syslog.yml`),
 			bosh.Operation(`test/optimize-vm-swappiness.yml`),
 			bosh.Operation(`enable-jemalloc.yml`),
+			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Var(`innodb_buffer_pool_size_percent`, `14`),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
