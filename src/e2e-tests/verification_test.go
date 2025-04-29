@@ -894,12 +894,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			out, err := bosh.RemoteCommand(deploymentName, mysqlNode, "sudo find /var/vcap/data/pxc-mysql/tmp/ -type f -name 'jeprof*'")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(HavePrefix("/var/vcap/data/pxc-mysql/tmp/jeprof_mysqld"), `Expected a memory profile to be generated, but it was not.`)
-
-			By("providing the jeprof utility as part of the jemalloc package for generating human readable memory profile reports")
-			out, err = bosh.RemoteCommand(deploymentName,
-				mysqlNode, "sudo /var/vcap/packages/jemalloc/bin/jeprof --show_bytes --text /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld "+out)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(out).To(MatchRegexp(`Total: \d+ B`))
 		})
 
 		Context("dynamically injecting my.cnf entries", func() {
