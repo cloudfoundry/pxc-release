@@ -142,6 +142,22 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			}
 		})
 
+		// https://bugs.mysql.com/bug.php?id=111353
+		It("sets innodb_doublewrite_pages to 128 for performance", func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var innodbDoubleWritePages int
+				Expect(db.QueryRow("SELECT @@global.innodb_doublewrite_pages").Scan(&innodbDoubleWritePages)).
+					To(Succeed())
+				Expect(innodbDoubleWritePages).To(Equal(128))
+				Expect(db.Close()).To(Succeed())
+			}
+		})
+
 		It("initializes a cluster with an empty gtid_executed", func() {
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
