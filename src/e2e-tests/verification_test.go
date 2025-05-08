@@ -813,7 +813,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).NotTo(HaveOccurred(),
 				`Expected to see jemalloc in the memory map of the mysqld process, but it was not`)
 
-			if expectedMysqlVersion != "8.0" {
+			if expectedMysqlVersion == "5.7" {
 				// MySQL v5.7 does not support the performance_schema.malloc_* tables present in MySQL v8.0
 				return
 			}
@@ -829,7 +829,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 	When("redeploying with additional feature flags", func() {
 		BeforeAll(func() {
-			if expectedMysqlVersion != "8.0" {
+			if expectedMysqlVersion == "5.7" {
 				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
 			}
 

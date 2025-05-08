@@ -54,6 +54,25 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 <%= key %> = <%= value %>
 <%- end -%>
 
+[<%= section = 'mysqld-8.4' %>]
+mysql-native-password           = ON
+# TODO: Dedup; probably by moving this to [mysqld] and dropping [mysqld-5.7] support
+authentication-policy           = mysql_native_password
+mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
+log_replica_updates             = ON
+binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
+source_verify_checksum          = ON
+<%- if p('engine_config.galera.enabled') -%>
+<%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
+wsrep_applier_threads           = <%= wsrep_applier_threads %>
+<%- end -%>
+wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.4/lib/libgalera_smm.so
+<%- end -%>
+log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
+<%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
+jemalloc-profiling              = ON
+<%- end -%>
+
 [<%= section = 'mysqld-8.0' %>]
 authentication-policy           = mysql_native_password
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
@@ -186,7 +205,6 @@ max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
 tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
 
 # These are mandatory MySQL settings for Galera to work
-binlog_format                   = ROW
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2
 <%-# Due to auto-tuning of innodb_buffer_pool configs, we only re-configure them here if the operator has an explicit value -%>
@@ -218,8 +236,13 @@ event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_sche
 <%- end -%>
 
 [<%= section = 'mysqld_plugin' %>]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+  <%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-5.7_plugin' %>]
 <%- if p('engine_config.audit_logs.enabled') -%>
-plugin-load                     = audit_log=audit_log.so
+plugin-load-add                 = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
 audit_log_format                = JSON
 audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
@@ -227,6 +250,40 @@ audit_log_rotations             = 1
 audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
 audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
 <%- end -%>
+
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+  <%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.0_plugin' %>]
+<%- if p('engine_config.audit_logs.enabled') -%>
+plugin-load-add                 = audit_log=audit_log.so
+audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
+audit_log_format                = JSON
+audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
+audit_log_rotations             = 1
+audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
+audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
+<%- end -%>
+
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+  <%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.4_plugin' %>]
+plugin-load-add                 = mysql_native_password.so
+# "loose" used here because the component may not yet be loaded when mysqld first starts
+# Audit log component will read this configuration on first try
+# "loose" tells mysql to not treat "unknown option" as a fatal error
+loose-audit_log_filter.disable        = <%= ! p('engine_config.audit_logs.enabled') %>
+loose-audit_log_filter.database       = mysql
+#loose-audit_log_filter.compression    = GZIP
+loose-audit_log_filter.file           = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
+loose-audit_log_filter.format         = JSON
+loose-audit_log_filter.rotate_on_size = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>M
+loose-audit_log_filter.max_size       = <%= (p('engine_config.audit_logs.file_rotations') + 1) * p('engine_config.audit_logs.rotate_size_in_mb') %>M
+# Note: Users and policy filters are controlled via SQL commands
+# See: https://docs.percona.com/percona-server/8.4/audit-log-filter-overview.html
 
 <%- additional_entries.extract_section(section).each do |key, value| -%>
 <%= key %> = <%= value %>

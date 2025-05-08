@@ -1,5 +1,10 @@
 ---
 name: pxc-utils
+
+dependencies:
+- golang-1-linux
+
 files:
 - cf-mysql-common/pid_utils.sh
 - cf-mysql-common/logging.sh
+- audit-log-tools/**
