@@ -31,7 +31,7 @@ describe 'galera-agent-config template' do
 
     it 'removes the safety check when disabled' do
       spec['disable_persistent_storage_safety_check'] = true
-      expect(rendered_template).to_not match(/^check_mysql_disk_persistence/)
+      expect(rendered_template).to_not match(/^check_mysql_disk_persistence$/)
     end
   end
 end
