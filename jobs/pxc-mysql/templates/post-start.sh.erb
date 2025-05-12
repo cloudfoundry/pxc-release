@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -o errexit -o nounset -o pipefail
+
+<%# Only PXC v8.4 supports the audit log filter component for now %>
+<%- if p('mysql_version') == "8.4" -%>
+export MYSQL_DSN="<%= "#{p('admin_username')}:#{p('admin_password')}@unix(#{p('mysql_socket')})/mysql?interpolateParams=true&sql_log_bin=off&wsrep_on=off" %>"
+export MYSQL_AUDIT_EXCLUDE_USERS="<%=
+  # Default pxc release components that should be excluded
+  default_excluded_user = %w[galera-agent@localhost cluster-health-logger@localhost]
+
+  # Note: legacy assumption is that all users are wildcard
+  #       PXC v8.4.3 does not (yet) support wildcard filters so these are still broken.
+
+  # csv users, e.g. "user1,user2,user3"
+  csv_excluded_users = p('engine_config.audit_logs.audit_log_exclude_accounts_csv', '').split(",").collect { |u| "#{u}@%"}
+  # "list" of users, e.g. ["user4", "user5", "user6"]
+  audit_log_excluded_users =  p('engine_config.audit_logs.audit_log_exclude_accounts').collect { |u| "#{u}@%" }
+
+  users = default_excluded_user + audit_log_excluded_users + csv_excluded_users
+
+  "#{users.join(',')}"
+%>"
+
+/var/vcap/packages/pxc-utils/bin/configure-audit-log-component
+<%- end -%>
