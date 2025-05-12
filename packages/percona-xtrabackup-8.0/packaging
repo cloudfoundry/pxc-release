@@ -31,8 +31,8 @@ install_build_dependencies() {
   make -j "$(nproc)" install-exec
   cd -
 
-  tar -xf procps_*.tar.xz
-  cd procps-*/
+  tar -xf procps-ng-*.tar.xz
+  cd procps-ng-*/
   local discard_dir
   discard_dir=$(mktemp -d)
   ./configure \

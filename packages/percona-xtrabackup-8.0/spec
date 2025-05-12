@@ -9,4 +9,4 @@ files:
 - libev-*.tar.gz
 - libaio_*.tar.xz
 - pkg-config_*.tar.gz
-- procps_*.orig.tar.xz
+- procps-ng-*.tar.xz
