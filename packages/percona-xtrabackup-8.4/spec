@@ -1,0 +1,11 @@
+---
+name: percona-xtrabackup-8.4
+
+dependencies: []
+
+files:
+- libaio_*.tar.xz
+- libev-*.tar.gz
+- percona-xtrabackup-8.4*.tar.gz
+- pkg-config_*.tar.gz
+- procps-ng-*.tar.xz
