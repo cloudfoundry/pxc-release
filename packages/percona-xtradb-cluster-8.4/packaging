@@ -1,0 +1,120 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+main() {
+  install_build_dependencies
+  install_runtime_dependencies
+  build
+}
+
+install_build_dependencies() {
+  tar -xf pkg-config_*.tar.gz
+  cd pkg-config-*/
+  ./configure \
+    --prefix=/usr \
+    --with-internal-glib \
+    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  make -j "$(nproc)" install
+  cd -
+
+  tar -xf libaio_*.orig.tar.xz
+  cd libaio-*/
+  make install prefix="${BOSH_INSTALL_TARGET}"
+  cd -
+
+  tar -xf boost_*.tar.bz2
+  cd boost_*/
+  ./bootstrap.sh --with-libraries=program_options,system
+  ./b2 -j "$(nproc)" link=static
+  cd -
+
+  tar -xf check_*.tar.gz
+  cd check-*/
+  CFLAGS="-Wno-format-extra-args" ./configure --prefix=/usr
+  make -j "$(nproc)" install
+  cd -
+}
+
+install_runtime_dependencies() {
+  mkdir -p "${BOSH_INSTALL_TARGET}/bin/pxc_extra"
+
+  local version
+  for version in 8.0 8.4; do
+    ln -sf "/var/vcap/packages/percona-xtrabackup-${version}" "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}"
+  done
+
+  tar -xf socat-*.tar.gz
+  cd socat-*/
+  ./configure "--prefix=${BOSH_INSTALL_TARGET}"
+  make -j "$(nproc)" install
+  cd -
+}
+
+build() {
+  tar -xf Percona-XtraDB-Cluster-*.tar.gz
+
+  local boost_dir
+  boost_dir=$(readlink -f boost_*/)
+
+  (
+    cd Percona-XtraDB-Cluster-*/
+    source MYSQL_VERSION
+    mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
+    wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
+    compilation_comment="Percona XtraDB Cluster (GPL) ${mysql_version}, WSREP version ${wsrep_version}"
+
+    echo "${mysql_version}" >"${BOSH_INSTALL_TARGET}/VERSION"
+
+    mkdir bld && cd bld
+
+    # Point search paths to ${BOSH_INSTALL_TARGET} to find vendored build dependencies
+    # libaio,in particular, won't be found in a non-standard path without this change.
+    export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+    export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
+    export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+    export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+
+    cmake .. \
+      -DBUILD_CONFIG=mysql_release \
+      -DBOOST_ROOT="${boost_dir}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DMINIMAL_RELWITHDEBINFO=OFF \
+      -DCMAKE_CXX_COMPILER=g++ \
+      -DCMAKE_C_COMPILER=gcc \
+      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
+      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
+      -DCOMPILATION_COMMENT="${compilation_comment}" \
+      -DENABLED_LOCAL_INFILE=OFF \
+      -DINSTALL_MYSQLTESTDIR= \
+      -DINSTALL_SECURE_FILE_PRIVDIR=NULL \
+      -DINSTALL_STATIC_LIBRARIES=OFF \
+      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqlx.sock \
+      -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql \
+      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqld.sock \
+      -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config \
+      -DWITH_AUTHENTICATION_LDAP=OFF \
+      -DWITH_AUTHENTICATION_FIDO=OFF \
+      -DWITH_AUTHENTICATION_KERBEROS=OFF \
+      -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF \
+      -DWITH_ICU=system \
+      -DWITH_READLINE=system \
+      -DWITH_ROUTER=OFF \
+      -DWITH_GROUP_REPLICATION=OFF \
+      -DWITH_NDB=OFF \
+      -DWITH_SSL=system \
+      -DWITH_TIRPC=bundled \
+      -DWITH_UNIT_TESTS=OFF \
+      -DWITH_WSREP=ON \
+      -DWITH_ZLIB=bundled
+
+    make -j "$(nproc)" install/strip
+  )
+
+  mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
+  rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
+}
+
+main
