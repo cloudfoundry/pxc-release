@@ -28,7 +28,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	var missingEnvs []string
-	expectedMysqlVersion = "8.0"
+	expectedMysqlVersion = "8.4"
 	if envMysqlVersion := os.Getenv("MYSQL_VERSION"); envMysqlVersion != "" {
 		expectedMysqlVersion = envMysqlVersion
 	}
