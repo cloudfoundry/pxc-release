@@ -83,7 +83,7 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 
 		By(fmt.Sprintf("upgrading single instance 5.7 to clustered PXC %s", expectedMysqlVersion))
 		By("Using a collation-server not compatible with 5.7")
-		if expectedMysqlVersion == "8.0" {
+		if expectedMysqlVersion != "5.7" {
 			By("Using a collation-server not compatible with 5.7")
 			Expect(bosh.DeployPXC(deploymentName,
 				bosh.Operation("use-clustered.yml"),
@@ -98,7 +98,7 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 		}
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
-		if expectedMysqlVersion == "8.0" {
+		if expectedMysqlVersion != "5.7" {
 			By("asserting pxc-5.7 actually went through crash recovery", func() {
 				output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-57-recovery.log")
 				Expect(err).NotTo(HaveOccurred())
