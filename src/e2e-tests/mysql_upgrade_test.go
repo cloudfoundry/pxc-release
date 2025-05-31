@@ -13,12 +13,12 @@ import (
 
 var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrade"), Ordered, func() {
 	BeforeAll(func() {
-		if expectedMysqlVersion != "8.0" {
+		if expectedMysqlVersion == "5.7" {
 			Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping mysql-version-upgrade test.")
 		}
 	})
 
-	It("can upgrade from mysql_version=5.7 to mysql_version=8.0", func() {
+	It("can upgrade from mysql_version=5.7 to mysql_version="+expectedMysqlVersion, func() {
 		deploymentName := "pxc-mysql-version-upgrade-" + uuid.New().String()
 
 		DeferCleanup(func() {
@@ -76,7 +76,8 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		Expect(credhub.Regenerate("/" + deploymentName + "/cf_mysql_mysql_cluster_health_password")).
 			To(Succeed())
 
-		By("upgrading from mysql_version=5.7 to the 8.0")
+		By("upgrading from mysql_version=5.7 to " + expectedMysqlVersion)
+
 		By("Using a collation-server not compatible with 5.7")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
@@ -86,10 +87,10 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		)).To(Succeed())
 
 		Eventually(db.Ping).Should(Succeed())
-		By("asserting the deployed MySQL version was 8.0", func() {
+		By("asserting the deployed MySQL version was "+expectedMysqlVersion, func() {
 			var mysqlVersion string
 			Expect(db.QueryRow(`SELECT @@global.version`).Scan(&mysqlVersion)).To(Succeed())
-			Expect(mysqlVersion).To(HavePrefix("8.0."))
+			Expect(mysqlVersion).To(HavePrefix(expectedMysqlVersion))
 		})
 
 		By("verify the deployment is working as expected")
@@ -105,7 +106,6 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 			var gtidExecuted string
 			Expect(db.QueryRow(`SELECT @@global.gtid_executed`).Scan(&gtidExecuted)).To(Succeed())
 			Expect(gtidExecuted).To(BeEmpty())
-
 		})
 	})
 })
