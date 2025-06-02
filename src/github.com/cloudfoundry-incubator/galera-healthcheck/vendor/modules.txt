@@ -24,7 +24,7 @@ github.com/bmizerany/pat
 github.com/erikstmartin/go-testdb
 # github.com/fsnotify/fsnotify v1.5.0
 ## explicit; go 1.13
-# github.com/go-logr/logr v1.4.2
+# github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
@@ -41,7 +41,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20250501235452-c0086092b71a
+# github.com/google/pprof v0.0.0-20250602020802-c6617b811d0e
 ## explicit; go 1.23.0
 github.com/google/pprof/profile
 # github.com/imdario/mergo v0.3.16
@@ -110,7 +110,7 @@ github.com/square/certstrap/pkix
 # github.com/tedsuo/rata v1.0.0
 ## explicit
 github.com/tedsuo/rata
-# go.step.sm/crypto v0.64.0
+# go.step.sm/crypto v0.66.0
 ## explicit; go 1.23.0
 go.step.sm/crypto/fingerprint
 go.step.sm/crypto/internal/bcrypt_pbkdf

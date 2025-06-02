@@ -26,7 +26,7 @@ github.com/Microsoft/go-winio/pkg/guid
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/docker/docker v28.1.1+incompatible
+# github.com/docker/docker v28.2.2+incompatible
 ## explicit
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/common
@@ -57,7 +57,7 @@ github.com/docker/go-units
 # github.com/fsouza/go-dockerclient v1.12.1
 ## explicit; go 1.23
 github.com/fsouza/go-dockerclient
-# github.com/go-logr/logr v1.4.2
+# github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
@@ -77,7 +77,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20250501235452-c0086092b71a
+# github.com/google/pprof v0.0.0-20250602020802-c6617b811d0e
 ## explicit; go 1.23.0
 github.com/google/pprof/profile
 # github.com/google/renameio/v2 v2.0.0

@@ -24,15 +24,15 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250501235452-c0086092b71a // indirect
+	github.com/google/pprof v0.0.0-20250602020802-c6617b811d0e // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.64.0 // indirect
+	go.step.sm/crypto v0.66.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
