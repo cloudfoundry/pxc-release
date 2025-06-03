@@ -34,6 +34,8 @@ binlog_space_limit = {{.binlogSpaceLimit}}
 {{if .maxBinlogSize -}}
 max_binlog_size = {{.maxBinlogSize}}
 {{end -}}
+[mysqld-8.4]
+wsrep_applier_threads = {{.numCPUs}}
 [mysqld-8.0]
 wsrep_applier_threads = {{.numCPUs}}
 [mysqld-5.7]

@@ -309,6 +309,35 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(binlogSpaceLimit).To(Equal(int(expectedbinlogSpaceLimit)))
 			Expect(maxBinlogSize).To(Equal(int(expectedmaxBinlogSize)))
 		})
+
+		discoverNumberOfCPUs := func(instance string) int64 {
+			GinkgoHelper()
+			value, err := bosh.RemoteCommand(deploymentName, instance, `nproc`)
+			Expect(err).NotTo(HaveOccurred())
+
+			result, err := strconv.ParseInt(value, 10, 64)
+			Expect(err).NotTo(HaveOccurred())
+
+			return result
+		}
+
+		It("scales wsrep_applier_threads to the number of vCPUs on the mysql vm", func() {
+			numberOfVCPUs := discoverNumberOfCPUs("mysql/0")
+			Expect(numberOfVCPUs).To(BeNumerically(">", 0))
+
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=preferred&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+				var wsrepApplierThreads int64
+				// Change to @@global.wsrep_applier_threads once MySQL v5.7 support is no longer required.
+				Expect(db.QueryRow("SELECT @@global.wsrep_slave_threads").Scan(&wsrepApplierThreads)).
+					To(Succeed())
+				Expect(wsrepApplierThreads).To(Equal(numberOfVCPUs))
+				Expect(db.Close()).To(Succeed())
+			}
+		})
 	})
 
 	Context("ClusterHealthLogger", Label("cluster-health-logger"), func() {
