@@ -16,23 +16,23 @@ import (
 	"e2e-tests/utilities/proxy"
 )
 
-func TestE2E(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "PXC E2E Tests")
-}
-
 var (
 	httpClient           *http.Client
 	expectedMysqlVersion string
 )
 
-var _ = BeforeSuite(func() {
-	var missingEnvs []string
+func TestE2E(t *testing.T) {
 	expectedMysqlVersion = "8.4"
 	if envMysqlVersion := os.Getenv("MYSQL_VERSION"); envMysqlVersion != "" {
 		expectedMysqlVersion = envMysqlVersion
 	}
 
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "PXC E2E Tests")
+}
+
+var _ = BeforeSuite(func() {
+	var missingEnvs []string
 	for _, v := range []string{
 		"BOSH_ENVIRONMENT",
 		"BOSH_CA_CERT",
