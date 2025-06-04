@@ -736,7 +736,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 					createUserWithPermissions(db, databaseName, excludedUser, excludedUserPassword)
 				})
 
-				//TODO: probably "passing" because we're not finding the string because of new logging format, not that we're excluding user properly
 				It("does not log any of the excluded user's activity in the audit log", func() {
 					dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", excludedUser, excludedUserPassword, proxyHost, 3306)
 					db, err := sql.Open("mysql", dsn)
@@ -754,7 +753,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 					createUserWithPermissions(db, databaseName, excludedUser, excludedUserPassword)
 				})
 
-				//TODO: probably "passing" because we're not finding the string because of new logging format, not that we're excluding user properly
 				It("does not log any of the excluded user's activity in the audit log", func() {
 					dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", excludedUser, excludedUserPassword, proxyHost, 3306)
 					db, err := sql.Open("mysql", dsn)
@@ -777,7 +775,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				createUserWithPermissions(db, databaseName, includedUser, includedUserPassword)
 			})
 
-			XIt("does log all of the included user's activity in the audit log", func() {
+			It("does log all of the included user's activity in the audit log", func() {
 				dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", includedUser, includedUserPassword, proxyHost, 3306)
 
 				db, err := sql.Open("mysql", dsn)
@@ -786,7 +784,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Expect(auditLogContents).To(ContainSubstring("\"user\":\"included_user[included_user]"))
 			})
 
-			XIt("does NOT log the user's LOGIN event in the audit log", func() {
+			It("does NOT log the user's LOGIN event in the audit log", func() {
 				dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", includedUser, includedUserPassword, proxyHost, 3306)
 
 				db, err := sql.Open("mysql", dsn)
@@ -894,7 +892,8 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	When("redeploying with additional feature flags", func() {
 		BeforeAll(func() {
 			if expectedMysqlVersion == "5.7" {
-				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
+				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") < v8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
+
 			}
 
 			By("enabling jemalloc profiling")
