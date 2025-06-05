@@ -86,10 +86,8 @@ mkdir -p ${LOG_DIR}
 chown -R vcap:vcap ${LOG_DIR}
 
 # add mysql to path
-if [[ ! -f /usr/local/bin/mysql ]]; then
-  log "Adding mysql to path"
-  ln -sf "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysql" /usr/local/bin
-fi
+log "Ensuring mysql on path"
+ln -sf "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysql" /usr/local/bin
 
 
  /var/vcap/packages/auto-tune-mysql/bin/generate-auto-tune-mysql \
