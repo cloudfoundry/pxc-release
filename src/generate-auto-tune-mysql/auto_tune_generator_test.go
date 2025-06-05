@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 
-	generateAutoTuneMysql "github.com/cloudfoundry/generate-auto-tune-mysql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	gomegaformat "github.com/onsi/gomega/format"
+
+	generateAutoTuneMysql "github.com/cloudfoundry/generate-auto-tune-mysql"
 )
 
 var sampleConfig1 = `
@@ -14,6 +16,8 @@ var sampleConfig1 = `
 innodb_buffer_pool_size = 84
 binlog_space_limit = 214748364
 max_binlog_size = 71581696
+[mysqld-8.4]
+wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
 [mysqld-5.7]
@@ -25,6 +29,8 @@ var sampleConfig2 = `
 innodb_buffer_pool_size = 6
 binlog_space_limit = 2149135626
 max_binlog_size = 716378112
+[mysqld-8.4]
+wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
 [mysqld-5.7]
@@ -36,6 +42,8 @@ var sampleConfig3 = `
 innodb_buffer_pool_size = 84
 binlog_space_limit = 5368709120
 max_binlog_size = 1073741824
+[mysqld-8.4]
+wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
 [mysqld-5.7]
@@ -45,6 +53,8 @@ wsrep_slave_threads = 3
 var sampleConfig4 = `
 [mysqld]
 innodb_buffer_pool_size = 84
+[mysqld-8.4]
+wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
 [mysqld-5.7]
@@ -58,6 +68,7 @@ var _ = Describe("AutoTuneGenerator", func() {
 		)
 
 		BeforeEach(func() {
+			gomegaformat.TruncatedDiff = false
 			values.TotalMem = uint64(200)
 			values.TotalDiskinKB = uint64(2 * 1024 * 1024)
 			values.TargetPercentageofMem = float64(42)
@@ -126,6 +137,6 @@ var _ = Describe("AutoTuneGenerator", func() {
 
 type FailingWriter struct{}
 
-func (FailingWriter) Write(p []byte) (n int, err error) {
+func (FailingWriter) Write(_ []byte) (n int, err error) {
 	return -1, errors.New("write failed")
 }

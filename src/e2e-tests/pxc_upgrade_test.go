@@ -12,8 +12,14 @@ import (
 	"e2e-tests/utilities/credhub"
 )
 
-var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
-	It(fmt.Sprintf("can upgrade from pxc-release 5.7 to pxc %s", expectedMysqlVersion), func() {
+var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), Ordered, func() {
+	BeforeAll(func() {
+		if expectedMysqlVersion == "8.4" {
+			Skip("Upgrades from legacy pxc/v0 to Percona XtraDB Cluster v8.4 are unsupported. Skipping.")
+		}
+	})
+
+	It("can upgrade from pxc v0 to pxc v1 using mysql_version="+expectedMysqlVersion, func() {
 		deploymentName := "pxc-upgrade-" + uuid.New().String()
 
 		DeferCleanup(func() {
@@ -83,22 +89,26 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), func() {
 
 		By(fmt.Sprintf("upgrading single instance 5.7 to clustered PXC %s", expectedMysqlVersion))
 		By("Using a collation-server not compatible with 5.7")
-		if expectedMysqlVersion == "8.0" {
+		if expectedMysqlVersion != "5.7" {
 			By("Using a collation-server not compatible with 5.7")
 			Expect(bosh.DeployPXC(deploymentName,
 				bosh.Operation("use-clustered.yml"),
 				bosh.Operation(`iaas/cluster.yml`),
 				bosh.Operation("test/collation-server.yml"),
+				bosh.Operation(`mysql-version.yml`),
+				bosh.Var("mysql_version", expectedMysqlVersion),
 			)).To(Succeed())
 		} else {
 			Expect(bosh.DeployPXC(deploymentName,
 				bosh.Operation("use-clustered.yml"),
 				bosh.Operation(`iaas/cluster.yml`),
+				bosh.Operation(`mysql-version.yml`),
+				bosh.Var("mysql_version", expectedMysqlVersion),
 			)).To(Succeed())
 		}
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
-		if expectedMysqlVersion == "8.0" {
+		if expectedMysqlVersion != "5.7" {
 			By("asserting pxc-5.7 actually went through crash recovery", func() {
 				output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-57-recovery.log")
 				Expect(err).NotTo(HaveOccurred())

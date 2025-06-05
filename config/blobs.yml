@@ -6,6 +6,10 @@ Percona-XtraDB-Cluster-8.0.41-32.tar.gz:
   size: 525841859
   object_id: d22077a4-69fa-4068-47ac-b7af5522ea9f
   sha: sha256:015ce901e6fddab7cb1c2855618da39bb44af49da7be17ce7317beba5f9da2e0
+Percona-XtraDB-Cluster-8.4.4-4.tar.gz:
+  size: 492559188
+  object_id: 9269dac7-764e-4eaa-5f23-a64fbea4f98b
+  sha: sha256:2a12ddd6bad66022ce126e221e9be122682b6ce0a4dd4c64b7cd8d70da985e6b
 boost_1_59_0.tar.bz2:
   size: 70389425
   object_id: 7344fc77-b911-45c2-5467-c6d5fcab6d29
@@ -38,14 +42,18 @@ percona-xtrabackup-8.0.35-31.tar.gz:
   size: 447786172
   object_id: 845f90c2-0643-459d-61cd-57ebf90bb585
   sha: sha256:c6bda1e7f983e5a667bff22d1d67d33404db4e741676d03c9c60bbd4b263cabf
+percona-xtrabackup-8.4.0-3.tar.gz:
+  size: 432700178
+  object_id: 4a9986a8-31fb-41b1-63bd-e5d4199ea34c
+  sha: sha256:0d0538a615031e31eecf9de9ae1daa332ca8707b0901f8ca41f595f0f29798a8
 pkg-config_0.29.2.orig.tar.gz:
   size: 2016830
   object_id: ca3d829d-016e-4acd-6509-9d1766884b9d
   sha: sha256:6fc69c01688c9458a57eb9a1664c9aba372ccda420a02bf4429fe610e7e7d591
-procps_3.3.17.orig.tar.xz:
-  size: 1008428
-  object_id: 49ca152b-47d2-4737-5f55-154159b7ed7d
-  sha: sha256:4518b3e7aafd34ec07d0063d250fd474999b20b200218c3ae56f5d2113f141b4
+procps-ng-4.0.5.tar.xz:
+  size: 1517672
+  object_id: e196e815-f7be-462d-64f0-feaac1caffe0
+  sha: sha256:c2e6d193cc78f84cd6ddb72aaf6d5c6a9162f0470e5992092057f5ff518562fa
 socat-1.7.4.4.tar.gz:
   size: 662968
   object_id: beda2a1f-82fe-4370-47c9-080352292869
