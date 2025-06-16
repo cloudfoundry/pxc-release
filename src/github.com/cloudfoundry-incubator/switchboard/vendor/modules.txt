@@ -1,11 +1,11 @@
-# code.cloudfoundry.org/lager/v3 v3.38.0
+# code.cloudfoundry.org/lager/v3 v3.39.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
 code.cloudfoundry.org/lager/v3/lagerctx
 code.cloudfoundry.org/lager/v3/lagerflags
 code.cloudfoundry.org/lager/v3/lagertest
-# code.cloudfoundry.org/tlsconfig v0.28.0
+# code.cloudfoundry.org/tlsconfig v0.29.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/tlsconfig
 code.cloudfoundry.org/tlsconfig/certtest

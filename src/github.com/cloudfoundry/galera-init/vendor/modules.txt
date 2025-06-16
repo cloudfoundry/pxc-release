@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.38.0
+# code.cloudfoundry.org/lager/v3 v3.39.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -61,7 +61,7 @@ github.com/fsouza/go-dockerclient
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
-# github.com/go-sql-driver/mysql v1.9.2
+# github.com/go-sql-driver/mysql v1.9.3
 ## explicit; go 1.21.0
 github.com/go-sql-driver/mysql
 # github.com/go-task/slim-sprig/v3 v3.0.0
