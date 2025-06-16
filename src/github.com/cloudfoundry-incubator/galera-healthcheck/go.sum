@@ -1,7 +1,7 @@
-code.cloudfoundry.org/lager/v3 v3.38.0 h1:GdVXER9oERubn1DFySpyZcLXIm8w1W7Ysa9iImXmXWY=
-code.cloudfoundry.org/lager/v3 v3.38.0/go.mod h1:EZsowCP5rrps2jcf4DRHOoSeYVLZtO5IibdIWO4ZfYg=
-code.cloudfoundry.org/tlsconfig v0.28.0 h1:vXP1LsABwFp6L6EJHi0Aw4qwcD2pNxS1dTLIC5BznUU=
-code.cloudfoundry.org/tlsconfig v0.28.0/go.mod h1:WAJyn33181UwiAxMweQQDhxcy2b39k0L1xtKxcZwqLI=
+code.cloudfoundry.org/lager/v3 v3.39.0 h1:axxT3QTIu7ZWNyV7IKtNrSP4xmtMPbgbIJ5lY3ixYU8=
+code.cloudfoundry.org/lager/v3 v3.39.0/go.mod h1:xcAxUZal+NkRwwF40JEY/rouQB/IaIfzjf5wi3jSYUs=
+code.cloudfoundry.org/tlsconfig v0.29.0 h1:t9//PpF7fNJi4mfmkzWd1F4fHpqREQUsQMIe4sj6AKU=
+code.cloudfoundry.org/tlsconfig v0.29.0/go.mod h1:YDHTq7ZNy8W26SinApuFKxlhg78xN28g86so8kRD6/Q=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
@@ -19,8 +19,8 @@ github.com/fsnotify/fsnotify v1.5.0 h1:NO5hkcB+srp1x6QmwvNZLeaOgbM8cmBTN32THzjvu
 github.com/fsnotify/fsnotify v1.5.0/go.mod h1:BX0DCEr5pT4jm2CnQdVP1lFV521fcCNcyEeNp4DQQDk=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
-github.com/go-sql-driver/mysql v1.9.2 h1:4cNKDYQ1I84SXslGddlsrMhc8k4LeDVj6Ad6WRjiHuU=
-github.com/go-sql-driver/mysql v1.9.2/go.mod h1:qn46aNg1333BRMNU69Lq93t8du/dwxI64Gl8i5p1WMU=
+github.com/go-sql-driver/mysql v1.9.3 h1:U/N249h2WzJ3Ukj8SowVFjdtZKfu9vlLZxjPXV1aweo=
+github.com/go-sql-driver/mysql v1.9.3/go.mod h1:qn46aNg1333BRMNU69Lq93t8du/dwxI64Gl8i5p1WMU=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
 github.com/go-task/slim-sprig/v3 v3.0.0 h1:sUs3vkvUymDpBKi3qH1YSqBQk9+9D/8M2mN1vB6EwHI=
 github.com/go-task/slim-sprig/v3 v3.0.0/go.mod h1:W848ghGpv3Qj3dhTPRyJypKRiqCdHZiAzKg9hl15HA8=

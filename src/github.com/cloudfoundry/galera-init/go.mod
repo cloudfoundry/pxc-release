@@ -5,10 +5,10 @@ go 1.23.0
 toolchain go1.23.3
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.38.0
+	code.cloudfoundry.org/lager/v3 v3.39.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/fsouza/go-dockerclient v1.12.1
-	github.com/go-sql-driver/mysql v1.9.2
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/renameio/v2 v2.0.0
 	github.com/google/uuid v1.6.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
