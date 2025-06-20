@@ -12,21 +12,13 @@ import (
 )
 
 var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrade"), Ordered, func() {
-	var previousVersion string
-	switch expectedMysqlVersion {
-	case "8.0":
-		previousVersion = "5.7"
-	case "8.4":
-		previousVersion = "8.0"
-	}
-
 	BeforeAll(func() {
-		if previousVersion == "" {
-			Skip("Current MYSQL_VERSION(" + expectedMysqlVersion + ") has no supported previous version to upgrade from.")
+		if expectedMysqlVersion != "8.0" {
+			Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") != 8.0. Skipping mysql-version-upgrade test.")
 		}
 	})
 
-	It("can upgrade from mysql_version="+previousVersion+" to mysql_version="+expectedMysqlVersion, func() {
+	It("can upgrade from mysql_version=5.7 to mysql_version=8.0", func() {
 		deploymentName := "pxc-mysql-version-upgrade-" + uuid.New().String()
 
 		DeferCleanup(func() {
@@ -36,13 +28,13 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 			Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
 		})
 
-		By("deploying the current pxc-release with mysql_version=" + previousVersion)
+		By("deploying the current pxc-release with mysql_version='5.7'")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
+			bosh.Operation(`mysql-version.yml`),
 			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation("test/seed-test-user.yml"),
-			bosh.Operation(`mysql-version.yml`),
-			bosh.Var("mysql_version", previousVersion),
+			bosh.Var("mysql_version", "5.7"),
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
@@ -55,13 +47,13 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		Expect(err).NotTo(HaveOccurred())
 		defer db.Close()
 
-		By("asserting the deployed MySQL version was "+previousVersion, func() {
+		By("asserting the deployed MySQL version was 5.7", func() {
 			var mysqlVersion string
 			Expect(db.QueryRow(`SELECT @@global.version`).Scan(&mysqlVersion)).To(Succeed())
-			Expect(mysqlVersion).To(HavePrefix(previousVersion + "."))
+			Expect(mysqlVersion).To(HavePrefix("5.7."))
 		})
 
-		By("having the test intentionally crashing the first node so that upgrades must perform crash recovery", func() {
+		By("having the test intentionally crashing the first (mysql-5.7) node so that upgrades must perform crash recovery", func() {
 			Expect(db.Exec(`CREATE DATABASE IF NOT EXISTS crash_upgrade_test`)).Error().NotTo(HaveOccurred())
 			Expect(db.Exec(`CREATE TABLE IF NOT EXISTS crash_upgrade_test.t1 (id int primary key auto_increment, data varchar(40))`)).Error().NotTo(HaveOccurred())
 
@@ -84,9 +76,8 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		Expect(credhub.Regenerate("/" + deploymentName + "/cf_mysql_mysql_cluster_health_password")).
 			To(Succeed())
 
-		By("upgrading from mysql_version=" + previousVersion + " to mysql_version=" + expectedMysqlVersion)
-
-		By("Using a collation-server not compatible with mysql-5.7")
+		By("upgrading from mysql_version=5.7 to the 8.0")
+		By("Using a collation-server not compatible with 5.7")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
 			bosh.Operation(`iaas/cluster.yml`),
@@ -95,25 +86,26 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 		)).To(Succeed())
 
 		Eventually(db.Ping).Should(Succeed())
-		By("asserting the deployed MySQL version was "+expectedMysqlVersion, func() {
+		By("asserting the deployed MySQL version was 8.0", func() {
 			var mysqlVersion string
 			Expect(db.QueryRow(`SELECT @@global.version`).Scan(&mysqlVersion)).To(Succeed())
-			Expect(mysqlVersion).To(HavePrefix(expectedMysqlVersion))
+			Expect(mysqlVersion).To(HavePrefix("8.0."))
 		})
 
 		By("verify the deployment is working as expected")
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
 
-		By("asserting mysql actually went performed crash recovery as part of the upgrade process", func() {
-			output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-*-recovery.log")
+		By("asserting pxc-5.7 actually went through crash recovery", func() {
+			output, err := bosh.Logs(deploymentName, "mysql/0", "pxc-mysql/pxc-57-recovery.log")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(output.String()).To(MatchRegexp(`Starting .*crash recovery`))
+			Expect(output.String()).To(ContainSubstring(`InnoDB: Starting crash recovery.`))
 		})
 
 		By("asserting gtid_mode has not been enabled on a cluster by default", func() {
 			var gtidExecuted string
 			Expect(db.QueryRow(`SELECT @@global.gtid_executed`).Scan(&gtidExecuted)).To(Succeed())
 			Expect(gtidExecuted).To(BeEmpty())
+
 		})
 	})
 })

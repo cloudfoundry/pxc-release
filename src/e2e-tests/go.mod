@@ -6,7 +6,6 @@ toolchain go1.23.3
 
 require (
 	code.cloudfoundry.org/tlsconfig v0.29.0
-	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.23.4

@@ -2,6 +2,7 @@ package e2e_tests
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -62,6 +63,16 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 		Expect(db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_cluster\_size'`).
 			Scan(&unused, &clusterSize)).To(Succeed())
 		Expect(clusterSize).To(Equal("3"))
+	})
+
+	Context("OS configuration", Label("os_config"), func() {
+		It("uses the default vm.swappiness when no special configuraiton is provided", Label("os_config"), func() {
+			swappinessValues, err := bosh.RemoteCommand(deploymentName, "mysql", "cat /proc/sys/vm/swappiness")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(strings.Fields(swappinessValues)).To(ConsistOf("60", "60", "60"),
+				`Expected vm.swappiness to be 1 on all mysql nodes, but it was not!`)
+		})
 	})
 
 	It("disables the binary log given the disable-binlog ops-file", func() {
