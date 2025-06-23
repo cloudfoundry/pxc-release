@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.3
 
 require (
-	github.com/cloudfoundry/gosigar v1.3.93
+	github.com/cloudfoundry/gosigar v1.3.94
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 )
