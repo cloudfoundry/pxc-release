@@ -15,9 +15,16 @@ describe 'galera-agent-config template' do
     expect(parsed_bpm_yaml["processes"][0]["env"]["PATH"]).to eq('/usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-8.0/bin')
   end
 
+  context 'when mysql_version is explicitly set to 8.4' do
+    before { spec["mysql_version"] = "8.4" }
+    it 'set PATH for Percona XtraDB Cluster 8.4' do
+      expect(parsed_bpm_yaml["processes"][0]["env"]["PATH"]).to eq('/usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-8.4/bin')
+    end
+  end
+
   context 'when mysql_version is explicitly set to 8.0' do
     before { spec["mysql_version"] = "8.0" }
-    it 'set PATH for Percona XtraDB Cluster 5.7' do
+    it 'set PATH for Percona XtraDB Cluster 8.0' do
       expect(parsed_bpm_yaml["processes"][0]["env"]["PATH"]).to eq('/usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-8.0/bin')
     end
   end

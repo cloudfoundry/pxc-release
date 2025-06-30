@@ -378,7 +378,7 @@ properties:
     default: "rfc3339"
 
   mysql_version:
-    description: "Version of MySQL to use.  One of '5.7' or '8.0'"
+    description: "Version of MySQL to use.  One of '5.7' or '8.0' or '8.4'"
     default: "8.0"
 
   kernel.vm.swappiness:
