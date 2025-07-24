@@ -32,6 +32,8 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	GinkgoT().Setenv("MYSQL_VERSION", expectedMysqlVersion)
+
 	var missingEnvs []string
 	for _, v := range []string{
 		"BOSH_ENVIRONMENT",
