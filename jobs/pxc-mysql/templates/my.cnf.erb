@@ -76,6 +76,7 @@ jemalloc-profiling              = ON
 <%- end -%>
 
 [<%= section = 'mysqld-8.0' %>]
+innodb-doublewrite-pages        = 128
 authentication-policy           = mysql_native_password
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 log_replica_updates             = ON
@@ -227,7 +228,6 @@ innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>M
 innodb_stats_on_metadata        = ON
 innodb_stats_persistent         = OFF
 innodb_strict_mode              = <%= bool_to_on_off(p('engine_config.innodb_strict_mode')) %>
-innodb-doublewrite-pages        = 128
 
 max_connections                 = <%= p('engine_config.max_connections') %>
 

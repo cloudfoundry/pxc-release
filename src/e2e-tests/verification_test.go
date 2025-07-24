@@ -151,6 +151,10 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 		// https://bugs.mysql.com/bug.php?id=111353
 		It("sets innodb_doublewrite_pages to 128 for performance", func() {
+			if expectedMysqlVersion == "5.7" {
+				Skip("innodb_doublewrite_pages is not supported on MySQL v5.7")
+			}
+
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
 			for _, i := range instances {

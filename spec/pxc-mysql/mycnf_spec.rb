@@ -282,6 +282,10 @@ describe 'my.cnf template' do
       expect(rendered_template).not_to include("wsrep_slave_threads")
     end
 
+    it 'does not specify innodb-doublewrite-pages by default for MySQL v5.7 compatibility' do
+      expect(parsed_mycnf).not_to include("mysqld" => hash_including("innodb-doublewrite-pages"))
+    end
+
     context 'engine_config.galera.wsrep_applier_threads is explicitly configured' do
       let(:spec) { {
         "admin_username" => "foo",
