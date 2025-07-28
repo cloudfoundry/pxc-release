@@ -9,7 +9,7 @@ require (
 	code.cloudfoundry.org/tlsconfig v0.31.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3
 	github.com/onsi/ginkgo/v2 v2.23.4
-	github.com/onsi/gomega v1.37.0
+	github.com/onsi/gomega v1.38.0
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/prometheus/client_golang v1.22.0
 	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
