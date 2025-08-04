@@ -5,13 +5,13 @@ go 1.23.0
 toolchain go1.23.3
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.41.0
+	code.cloudfoundry.org/lager/v3 v3.42.0
 	code.cloudfoundry.org/tlsconfig v0.31.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
 	gopkg.in/validator.v2 v2.0.1
 )
@@ -33,7 +33,7 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.67.0 // indirect
+	go.step.sm/crypto v0.68.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/mod v0.26.0 // indirect
