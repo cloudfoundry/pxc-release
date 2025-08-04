@@ -1,7 +1,9 @@
 package main_test
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -164,18 +166,20 @@ var _ = Describe("PurgeGraLogs", func() {
 		)
 
 		BeforeEach(func() {
-			tempFileFd, err = ioutil.TempFile(tempDir, "not-a-directory")
+			tempFileFd, err = os.CreateTemp(tempDir, "not-a-directory")
 			Expect(err).NotTo(HaveOccurred())
 			tempFile = tempFileFd.Name()
 		})
 
 		AfterEach(func() {
-			os.Remove(tempFile)
+			_ = os.Remove(tempFile)
 		})
 
-		It("returns an out of sandbox error", func() {
+		It("returns an error", func() {
 			_, _, err := PurgeGraLogs(tempFile, timeFormat, time.Hour*24*2)
-			Expect(err).To(BeAssignableToTypeOf(&os.SyscallError{}))
+
+			var pathError *fs.PathError
+			Expect(errors.As(err, &pathError)).To(BeTrue(), "should return fs.PathError, but got %#v", err)
 		})
 	})
 })
