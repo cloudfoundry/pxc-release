@@ -22,6 +22,16 @@ echo -e "\n>>>>>>>> Testing Bootstrapper..."
 echo -e "\n>>>>>>>> Testing Cluster Health Logger..."
 "${RELEASE_DIR}/src/github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/bin/test" "$@"
 
+echo -e "\n>>>>>>>> Testing Generate Auto-Tune MySQL..."
+pushd "${RELEASE_DIR}/src/generate-auto-tune-mysql"
+  go run github.com/onsi/ginkgo/v2/ginkgo -v
+popd
+
+echo -e "\n>>>>>>>> Testing GRA Log Purger..."
+pushd "${RELEASE_DIR}/src/gra-log-purger"
+  go run github.com/onsi/ginkgo/v2/ginkgo -v
+popd
+
 pushd ${RELEASE_DIR}
 bundle install
 bundle exec rspec ./spec
