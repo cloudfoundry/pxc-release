@@ -14,7 +14,7 @@ DROP USER IF EXISTS 'roadmin'@'%';
 
 CREATE USER IF NOT EXISTS 'mysql-backup'@'localhost';
 ALTER USER 'mysql-backup'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-backup-pw';
-GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to 'mysql-backup'@'localhost';
+GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, REPLICATION SLAVE, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to 'mysql-backup'@'localhost';
 
 CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
