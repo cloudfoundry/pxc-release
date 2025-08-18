@@ -5,8 +5,8 @@ go 1.23.0
 toolchain go1.23.3
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.42.0
-	code.cloudfoundry.org/tlsconfig v0.32.0
+	code.cloudfoundry.org/lager/v3 v3.43.0
+	code.cloudfoundry.org/tlsconfig v0.33.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.9.3

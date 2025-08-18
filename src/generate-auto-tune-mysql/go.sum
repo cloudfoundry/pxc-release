@@ -1,5 +1,5 @@
-github.com/cloudfoundry/gosigar v1.3.97 h1:ln81A8Z34VN0eV9fMG8lZVW1Q3/pGY891PBNTZOWmjg=
-github.com/cloudfoundry/gosigar v1.3.97/go.mod h1:oSelTg29BaodYK8aqGBfw8Bmi5R4EJZXMrLTWpqeqQ0=
+github.com/cloudfoundry/gosigar v1.3.98 h1:QmgLZTzhqUFgXe+zcsD3Qkv3NJNHfC5lH1dZ01+WCPA=
+github.com/cloudfoundry/gosigar v1.3.98/go.mod h1:oSelTg29BaodYK8aqGBfw8Bmi5R4EJZXMrLTWpqeqQ0=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
