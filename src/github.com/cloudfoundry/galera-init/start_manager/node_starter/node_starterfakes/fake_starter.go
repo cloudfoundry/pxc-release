@@ -161,10 +161,6 @@ func (fake *FakeStarter) StartNodeFromStateReturnsOnCall(i int, result1 string, 
 func (fake *FakeStarter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getMysqlCmdMutex.RLock()
-	defer fake.getMysqlCmdMutex.RUnlock()
-	fake.startNodeFromStateMutex.RLock()
-	defer fake.startNodeFromStateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

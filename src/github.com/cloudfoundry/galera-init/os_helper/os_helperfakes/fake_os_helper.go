@@ -584,22 +584,6 @@ func (fake *FakeOsHelper) WriteStringToFileReturnsOnCall(i int, result1 error) {
 func (fake *FakeOsHelper) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.fileExistsMutex.RLock()
-	defer fake.fileExistsMutex.RUnlock()
-	fake.killCommandMutex.RLock()
-	defer fake.killCommandMutex.RUnlock()
-	fake.readFileMutex.RLock()
-	defer fake.readFileMutex.RUnlock()
-	fake.runCommandMutex.RLock()
-	defer fake.runCommandMutex.RUnlock()
-	fake.sleepMutex.RLock()
-	defer fake.sleepMutex.RUnlock()
-	fake.startCommandMutex.RLock()
-	defer fake.startCommandMutex.RUnlock()
-	fake.waitForCommandMutex.RLock()
-	defer fake.waitForCommandMutex.RUnlock()
-	fake.writeStringToFileMutex.RLock()
-	defer fake.writeStringToFileMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

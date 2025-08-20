@@ -116,10 +116,6 @@ func (fake *FakeStartManager) ShutdownCalls(stub func()) {
 func (fake *FakeStartManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.executeMutex.RLock()
-	defer fake.executeMutex.RUnlock()
-	fake.shutdownMutex.RLock()
-	defer fake.shutdownMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
