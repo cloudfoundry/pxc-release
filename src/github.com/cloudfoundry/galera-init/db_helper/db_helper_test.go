@@ -152,8 +152,8 @@ var _ = Describe("GaleraDBHelper", func() {
 						fmt.Sprintf("--wsrep-start-position=%s", expectedWsrepStartPosition),
 					}))
 				},
-				Entry("5.7", "example_mysqld_wsrep_recover_output_57.txt", "78a55078-5760-11ee-bb01-6b49c8972768:45"),
 				Entry("8.0", "example_mysqld_wsrep_recover_output_80.txt", "870e11cf-5be9-11ee-8754-b28c6414bbfe:3"),
+				Entry("8.4", "example_mysqld_wsrep_recover_output_84.txt", "870e11cf-5be9-11ee-8754-b28c6414bbfe:3"),
 			)
 		})
 

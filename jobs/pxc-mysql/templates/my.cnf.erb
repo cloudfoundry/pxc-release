@@ -54,67 +54,8 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 <%= key %> = <%= value %>
 <%- end -%>
 
-<%# TODO: Dedup mysqld-8.0 and mysqld-8.4 options; Possibly move the common options to [mysqld] and dropping [mysqld-5.7] support %>
-[<%= section = 'mysqld-8.4' %>]
-<%# Re-enable mysql_native_password authentication plugin for backwards compatibility %>
-mysql_native_password           = ON
-
-authentication_policy           = <%= p('engine_config.user_authentication_policy') %>
-mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
-log_replica_updates             = ON
-binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
-source_verify_checksum          = ON
-<%- if p('engine_config.galera.enabled') -%>
-<%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
-wsrep_applier_threads           = <%= wsrep_applier_threads %>
-<%- end -%>
-wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.4/lib/libgalera_smm.so
-<%- end -%>
-log_error_suppression_list      = ER_SERVER_WARN_DEPRECATED
-<%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
-jemalloc_profiling              = ON
-<%- end -%>
-
-[<%= section = 'mysqld-8.0' %>]
-innodb_doublewrite_pages        = 128
-authentication_policy           = <%= p('engine_config.user_authentication_policy') %>
-mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
-log_replica_updates             = ON
-binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
-source_verify_checksum          = ON
-<%- if p('engine_config.galera.enabled') -%>
-<%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
-wsrep_applier_threads           = <%= wsrep_applier_threads %>
-<%- end -%>
-wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
-<%- end -%>
-log_error_suppression_list      = ER_SERVER_WARN_DEPRECATED
-<%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
-jemalloc_profiling              = ON
-<%- end -%>
-
-<%- additional_entries.extract_section(section).each do |key, value| -%>
-<%= key %> = <%= value %>
-<%- end -%>
-
-[<%= section = 'mysqld-5.7' %>]
-<%- if p('engine_config.galera.enabled') -%>
-wsrep_sst_auth                  = <%= p('admin_username')%>:<%= p('admin_password') %>
-<%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
-wsrep_slave_threads             = <%= wsrep_applier_threads %>
-<%- end -%>
-wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/lib/libgalera_smm.so
-<%- end -%>
-log_slave_updates               = ON
-expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
-master_verify_checksum          = ON
-symbolic_links                  = OFF
-
-<%- additional_entries.extract_section(section).each do |key, value| -%>
-<%= key %> = <%= value %>
-<%- end -%>
-
 [<%= section = 'mysqld' %>]
+authentication_policy           = <%= p('engine_config.user_authentication_policy') %>
 character_set_server            = <%= p('engine_config.character_set_server') %>
 <%- if p('engine_config.collation_server') != 'use_default' -%>
 collation_server                = <%= p('engine_config.collation_server') %>
@@ -133,6 +74,9 @@ require_secure_transport        = ON
 # GALERA options:
 pxc_strict_mode                 = MASTER
 pxc_maint_transition_period     = 0
+<%- if_p("engine_config.galera.wsrep_applier_threads") do |wsrep_applier_threads| -%>
+wsrep_applier_threads           = <%= wsrep_applier_threads %>
+<%- end -%>
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
 wsrep_load_data_splitting       = ON
@@ -142,6 +86,7 @@ wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size'
 wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
+wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/lib/libgalera_smm.so
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2
@@ -162,11 +107,13 @@ enforce_gtid_consistency = ON
 lower_case_table_names          = <%= p('engine_config.enable_lower_case_table_names') ? 1 : 0 %>
 user                            = vcap
 socket                          = <%= "#{base_folder}/mysqld.sock" %>
+mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 port                            = <%= p('port') %>
 datadir                         = /var/vcap/store/pxc-mysql
 tmpdir                          = /var/vcap/data/pxc-mysql/tmp
 pid_file                        = /var/vcap/store/pxc-mysql/mysql.pid
 log_error                       = /var/vcap/sys/log/pxc-mysql/mysql.err.log
+log_error_suppression_list      = ER_SERVER_WARN_DEPRECATED
 init_file                       = /var/vcap/jobs/pxc-mysql/config/db_init
 skip_external_locking           = TRUE
 secure_file_priv                = /var/vcap/data/pxc-mysql/files
@@ -177,13 +124,16 @@ skip_name_resolve               = ON
 local_infile                    = <%= bool_to_on_off(p('engine_config.local_infile')) %>
 
 <%- if p('engine_config.binlog.enabled') -%>
+binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
 log_bin                         = mysql-bin
+log_replica_updates             = ON
 sync_binlog                     = <%= p('engine_config.binlog.sync') %>
 <%- else -%>
 skip_log_bin
 <%- end -%>
 relay_log                       = mysql-relay
 relay_log_recovery              = OFF
+source_verify_checksum          = ON
 
 <%- if_p("engine_config.wait_timeout") do |timeout| -%>
 wait_timeout = <%= timeout %>
@@ -207,7 +157,6 @@ userstat                        = <%= bool_to_on_off(p('engine_config.userstat')
 max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
 tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
 
-# These are mandatory MySQL settings for Galera to work
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2
 <%-# Due to auto-tuning of innodb_buffer_pool configs, we only re-configure them here if the operator has an explicit value -%>
@@ -218,6 +167,7 @@ innodb_buffer_pool_instances    = <%= innodb_buffer_pool_instances %>
 innodb_buffer_pool_size         = <%= innodb_buffer_pool_size %>
 <%- end -%>
 innodb_doublewrite              = ON
+innodb_doublewrite_pages        = 128
 innodb_file_per_table           = ON
 innodb_flush_log_at_trx_commit  = <%= p('engine_config.innodb_flush_log_at_trx_commit') %>
 innodb_flush_method             = <%= p('engine_config.innodb_flush_method') %>
@@ -234,6 +184,22 @@ max_connections                 = <%= p('engine_config.max_connections') %>
 # Event Scheduler
 event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_scheduler')) %>
 
+<%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
+jemalloc_profiling              = ON
+<%- end -%>
+
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.4' %>]
+<%# Re-enable mysql_native_password authentication plugin in MySQL v8.4 for backwards compatibility %>
+mysql_native_password           = ON
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.0' %>]
 <%- additional_entries.extract_section(section).each do |key, value| -%>
 <%= key %> = <%= value %>
 <%- end -%>

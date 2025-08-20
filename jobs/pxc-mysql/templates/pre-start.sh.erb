@@ -5,8 +5,8 @@ set -e
 set -o pipefail
 
 <%-
-  unless %w[5.7 8.0 8.4].include? p('mysql_version')
-    raise "Unsupported value '#{p('mysql_version')}' for 'mysql_version' property. Choose from '8.4', '8.0' or '5.7'"
+  unless %w[8.0 8.4].include? p('mysql_version')
+    raise "Unsupported value '#{p('mysql_version')}' for 'mysql_version' property. Choose from '8.4' or '8.0'"
   end
 -%>
 
@@ -159,27 +159,12 @@ check_bpm_pid() {
     /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
 }
 
-<%- if p('mysql_version') == "5.7" -%>
-/var/vcap/jobs/pxc-mysql/bin/mysql57_upgrade
-<%- end -%>
-
-<%- if p('mysql_version') != "5.7" -%>
 is_pxc57_datadir() {
   [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
 }
 
 is_pxc80_datadir() {
   [[ -d "/var/vcap/store/pxc-mysql/#innodb_redo" && ! -f /var/vcap/store/pxc-mysql/mysql_upgrade_history ]]
-}
-
-apply_pxc57_crash_recovery() {
-  local recovery_log=/var/vcap/sys/log/pxc-mysql/pxc-57-recovery.log
-  if /var/vcap/packages/percona-xtradb-cluster-5.7/bin/mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci --wsrep-recover --disable-log-error &> "${recovery_log}"; then
-    log "pre-start: recovered percona-xtradb-cluster 5.7 data directory prior to upgrade"
-  else
-    log "pre-start: [FAIL] unable to recover percona-xtradb-cluster 5.7 data directory prior to upgrade"
-    log "pre-start: [FAIL] see ${recovery_log} for details."
-  fi
 }
 
 apply_pxc80_crash_recovery() {
@@ -192,30 +177,16 @@ apply_pxc80_crash_recovery() {
   fi
 }
 
-# Workaround for https://bugs.mysql.com/110702
-# This applies an extra restart of the local instance to perform an early upgrade before the main mysql server startup.
-apply_mysql_bug_110702_workaround() {
-  if /var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld --wsrep-recover; then # wsrep-recover for isolated single-node upgrade
-    log "pre-start: applied initial upgrade to workaround https://bugs.mysql.com/110702"
-  else
-    local mysql_err_log_path=${LOG_DIR}/mysql.err.log
-    log "pre-start: failed to apply initial upgrade. See ${mysql_err_log_path} for details.  Proceeding with normal startup."
-  fi
-}
-
-if is_pxc57_datadir && [[ ${mysql_version} == "8.4" ]]; then
-  log "pre-start: MySQL v5.7 data directory detected, but the target MySQL version is v8.4. Upgrade unsupported."
+if is_pxc57_datadir; then
+  log "pre-start: ERROR: MySQL 5.7 data directory detected."
+  log "pre-start: MySQL 5.7 reached EOL in October 2023 and direct upgrades from MySQL v5.7 are no longer supported."
+  log "pre-start: Contact your platform vendor for upgrade assistance."
   exit 1
-elif is_pxc57_datadir; then
-  apply_pxc57_crash_recovery
-  apply_mysql_bug_110702_workaround
 fi
 
 if is_pxc80_datadir; then
   apply_pxc80_crash_recovery
 fi
-
-<%- end -%>
 
 if ! /var/vcap/jobs/bpm/bin/bpm start pxc-mysql -p galera-init; then
     log "pre-start: galera-init failed to initialize"

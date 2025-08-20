@@ -47,8 +47,18 @@ describe 'my.cnf template' do
     end
   }
 
-  it 'sets the authentication-policy' do
-    expect(rendered_template).to match(/authentication_policy\s*=\s*caching_sha2_password/)
+  it 'sets the authentication policy to what is provided in the job spec' do
+      expect(parsed_mycnf).to include("mysqld" => hash_including("authentication_policy" => "caching_sha2_password"))
+  end
+
+  context 'when the authentication_policy is not set' do
+      before do
+        spec["engine_config"].delete('user_authentication_policy')
+      end
+
+      it 'defaults to the legacy mysql_native_password for maximum client compatibility' do
+        expect(parsed_mycnf).to include("mysqld" => hash_including("authentication_policy" => "mysql_native_password"))
+      end
   end
 
   context 'when no explicit collation is set' do
@@ -63,12 +73,18 @@ describe 'my.cnf template' do
       expect(rendered_template).to match(/collation_server\s+=\s+armscii8_general_ci/)
     end
 
-    # pxc-5.7 does not understand all the collations in PXC 8.0
-    # since we use pxc-5.7 for crash recovery and would like to generally read _other_ options pxc-8.0 specific changes
-    # are in the [mysqld-8.0] config section
-    it 'supports pxc-5.7 still reading this config by putting charset/collation options in the [mysqld] section' do
-      expect(rendered_template).to match(/\[mysqld\]\ncharacter_set_server\s+=\s+armscii8\ncollation_server\s+=\s+armscii8_general_ci/m)
+    it 'configures the default server character set and collation' do
+      expect(parsed_mycnf).to include("mysqld" => hash_including(
+        "character_set_server" => "armscii8",
+        "collation_server" => "armscii8_general_ci",
+      ))
     end
+  end
+
+  it 'suppresses warnings about deprecated features to mitigate excessive logging' do
+      expect(parsed_mycnf).to include("mysqld" => hash_including(
+        "log_error_suppression_list" => "ER_SERVER_WARN_DEPRECATED",
+      ))
   end
 
   context 'binlog_expire_logs_seconds' do
@@ -110,22 +126,6 @@ describe 'my.cnf template' do
       expect(rendered_template).not_to include("require-secure-transport")
     end
   end
-
-  context 'mysql 8.0' do
-    it 'suppresses warnings about deprecated features to mitigate excessive logging' do
-      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log_error_suppression_list" => "ER_SERVER_WARN_DEPRECATED"))
-    end
-
-    it 'sets the authentication policy to what is provided in the job spec' do
-        expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("authentication_policy" => "caching_sha2_password"))
-    end
-  end
-
-  context 'mysql 8.4' do
-      it 'sets the authentication policy to what is provided in the job spec' do
-          expect(parsed_mycnf).to include("mysqld-8.4" => hash_including("authentication_policy" => "caching_sha2_password"))
-      end
-    end
 
   context 'when galera is not enabled' do
     let(:spec) { {
@@ -190,10 +190,6 @@ describe 'my.cnf template' do
         }
       }
     } }
-
-    it 'sets wsrep_sst_auth for 5.7' do
-      expect(rendered_template).to match(/\[mysqld-5\.7\]\nwsrep_sst_auth/m)
-    end
 
     context 'when audit logs are disabled (default)' do
       it 'has no audit log format' do
@@ -286,16 +282,8 @@ describe 'my.cnf template' do
       end
     end
 
-    it 'defaults to no wsrep_applier_threads for mysql 8.0' do
+    it 'defaults to no wsrep_applier_threads' do
       expect(rendered_template).not_to include("wsrep_applier_threads")
-    end
-
-    it 'defaults to no wsrep_slave_threads for mysql 5.7' do
-      expect(rendered_template).not_to include("wsrep_slave_threads")
-    end
-
-    it 'does not specify innodb-doublewrite-pages by default for MySQL v5.7 compatibility' do
-      expect(parsed_mycnf).not_to include("mysqld" => hash_including("innodb-doublewrite-pages"))
     end
 
     context 'engine_config.galera.wsrep_applier_threads is explicitly configured' do
@@ -311,11 +299,7 @@ describe 'my.cnf template' do
       } }
 
       it 'configures wsrep_applier_threads to that value' do
-        expect(rendered_template).to match(/wsrep_applier_threads\s+= 32/)
-      end
-
-      it 'configures wsrep_slave_threads to that value' do
-        expect(rendered_template).to match(/wsrep_slave_threads\s+= 32/)
+        expect(parsed_mycnf).to include("mysqld" => hash_including("wsrep_applier_threads" => 32))
       end
     end
   end
@@ -342,14 +326,8 @@ describe 'my.cnf template' do
   context 'when jemalloc profiling is enabled' do
     before { spec["engine_config"] = { "jemalloc" => { "enabled" => true, "profiling" => true } } }
 
-    it 'enables the Percona jemalloc-profiling option for mysql-8.0' do
-      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("jemalloc_profiling" => "ON"))
-    end
-
-    # The jemalloc-profiling feature is only supported in Percona v8.0.25+
-    it 'does not attempt to enable jemalloc-profiling for mysql-5.7' do
-      expect(parsed_mycnf).to_not include("mysqld" => hash_including("jemalloc-profiling" => "ON"))
-      expect(parsed_mycnf).to_not include("mysqld-5.7" => hash_including("jemalloc-profiling" => "ON"))
+    it 'enables the Percona jemalloc-profiling option' do
+      expect(parsed_mycnf).to include("mysqld" => hash_including("jemalloc_profiling" => "ON"))
     end
   end
 
@@ -374,7 +352,6 @@ describe 'my.cnf template' do
   end
 
   context 'when config provides additional mysql "raw entry" properties' do
-
     let(:spec) { {
       "engine_config" => {
         "additional_raw_entries" => {
@@ -387,9 +364,6 @@ describe 'my.cnf template' do
           },
           "mysql-8.0" => {
             "additional-mysql-8.0-property" => "additional-mysql-8.0-value"
-          },
-          "mysql-5.7" => {
-            "additional-mysql-5.7-property" => "additional-mysql-5.7-value"
           },
           "mysqld" => {
             "additional-mysqld-property" => "additional-mysqld-value"
@@ -423,9 +397,6 @@ describe 'my.cnf template' do
     end
     it 'adds additional provided mysql-8.0 properties' do
       expect(parsed_mycnf).to include("mysql-8.0" => hash_including("additional-mysql-8.0-property" => "additional-mysql-8.0-value"))
-    end
-    it 'adds additional provided mysql-5.7 properties' do
-      expect(parsed_mycnf).to include("mysql-5.7" => hash_including("additional-mysql-5.7-property" => "additional-mysql-5.7-value"))
     end
     it 'adds additional provided mysqld properties' do
       expect(parsed_mycnf).to include("mysqld" => hash_including("additional-mysqld-property" => "additional-mysqld-value"))

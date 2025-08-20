@@ -9,11 +9,6 @@ path = [
   "/bin",
   "/var/vcap/packages/percona-xtradb-cluster-#{p('mysql_version')}/bin",
 ]
-
-if p('mysql_version') == '5.7'
-  path << '/var/vcap/packages/percona-xtrabackup-2.4/bin'
-end
-
 -%>
 ---
 processes:

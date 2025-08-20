@@ -1,0 +1,13 @@
+2025-09-30T19:42:18.846068Z 0 [System] [MY-015015] [Server] MySQL Server - start.
+2025-09-30T19:42:19.000046Z 0 [Warning] [MY-011070] [Server] 'binlog_format' is deprecated and will be removed in a future release.
+2025-09-30T19:42:19.000061Z 0 [Warning] [MY-011068] [Server] The syntax 'wsrep_slave_threads' is deprecated and will be removed in a future release. Please use wsrep_applier_threads instead.
+2025-09-30T19:42:19.000549Z 0 [Warning] [MY-010097] [Server] Insecure configuration for --secure-log-path: Current value does not restrict location of generated files. Consider setting it to a valid, non-empty path.
+2025-09-30T19:42:19.001040Z 0 [System] [MY-010116] [Server] /usr/sbin/mysqld (mysqld 8.4.5-5.1) starting as process 238
+2025-09-30T19:42:19.004485Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2025-09-30T19:42:19.085489Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2025-09-30T19:42:19.135930Z 1 [Note] [MY-000000] [WSREP] wsrep_init_schema_and_SR (nil)
+2025-09-30T19:42:19.141980Z 1 [System] [MY-000000] [WSREP] PXC upgrade completed successfully
+2025-09-30T19:42:19.158880Z 0 [Warning] [MY-011825] [InnoDB] Skipping buffer pool dump/restore during wsrep recovery.
+2025-09-30T19:42:19.215975Z 0 [Note] [MY-000000] [WSREP] Recovered position: 870e11cf-5be9-11ee-8754-b28c6414bbfe:3
+2025-09-30T19:42:20.702195Z 0 [System] [MY-010910] [Server] /usr/sbin/mysqld: Shutdown complete (mysqld 8.4.5-5.1)  Percona XtraDB Cluster (GPL), Release rel5, Revision 3203bbf, WSREP version 26.1.4.3.
+2025-09-30T19:42:20.702217Z 0 [System] [MY-015016] [Server] MySQL Server - end.

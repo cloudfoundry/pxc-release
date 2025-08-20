@@ -27,10 +27,8 @@ DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
 ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= password %>';
 GRANT RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
-<%- if p('mysql_version') != "5.7" -%>
 GRANT SELECT on performance_schema.keyring_component_status to '<%= p('mysql_backup_username') %>'@'localhost';
 GRANT SELECT ON performance_schema.log_status TO '<%= p('mysql_backup_username') %>'@'localhost';
-<%- end -%>
 
 <%- end -%>
 <%- hosts.each do |host| -%>

@@ -28,14 +28,4 @@ describe 'galera-agent-config template' do
     expect(hash_from_yaml).to include("MysqldPath")
     expect(hash_from_yaml["MysqldPath"]).to match('/var/vcap/packages/percona-xtradb-cluster-8.0/bin/mysqld')
   end
-
-  it 'sets MysqldPath based on job configuration' do
-    links[0].properties["mysql_version"] = "5.7"
-
-    tpl_output = template.render(spec, consumes: links)
-    hash_from_yaml = YAML.load(tpl_output)
-
-    expect(hash_from_yaml).to include("MysqldPath")
-    expect(hash_from_yaml["MysqldPath"]).to match('/var/vcap/packages/percona-xtradb-cluster-5.7/bin/mysqld')
-  end
 end
