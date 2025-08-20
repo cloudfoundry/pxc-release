@@ -13,10 +13,7 @@ import (
 
 var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrade"), Ordered, func() {
 	var previousVersion string
-	switch expectedMysqlVersion {
-	case "8.0":
-		previousVersion = "5.7"
-	case "8.4":
+	if expectedMysqlVersion == "8.4" {
 		previousVersion = "8.0"
 	}
 
@@ -85,12 +82,9 @@ var _ = Describe("MySQL Version Upgrades in pxc v1", Label("mysql-version-upgrad
 			To(Succeed())
 
 		By("upgrading from mysql_version=" + previousVersion + " to mysql_version=" + expectedMysqlVersion)
-
-		By("Using a collation-server not compatible with mysql-5.7")
 		Expect(bosh.DeployPXC(deploymentName,
 			bosh.Operation("use-clustered.yml"),
 			bosh.Operation(`iaas/cluster.yml`),
-			bosh.Operation("test/collation-server.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
 		)).To(Succeed())
 

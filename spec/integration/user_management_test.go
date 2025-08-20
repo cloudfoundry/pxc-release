@@ -222,13 +222,9 @@ var _ = Describe("UserManagement", Ordered, func() {
 		defer db.Close()
 
 		var expectedPrivileges []string
-		if mysqlVersionTag == "5.7" {
-			expectedPrivileges = []string{"GRANT OPTION", "ALL PRIVILEGES", "PROXY", "USAGE"}
-		} else {
-			// MySQL 8.0 always enumerates specific privileges and does not emit "ALL PRIVILEGES"
-			expectedPrivileges, err = queryAvailablePrivileges(db)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		// MySQL 8.0 and later versions always enumerate specific privileges and does not emit "ALL PRIVILEGES"
+		expectedPrivileges, err = queryAvailablePrivileges(db)
+		Expect(err).NotTo(HaveOccurred())
 
 		grantedPrivileges, err := queryGrantedPrivileges(db, username)
 		Expect(err).NotTo(HaveOccurred())
@@ -378,122 +374,6 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT BACKUP_ADMIN ON *.* TO `mysql-backup`@`localhost`",
 				"GRANT SELECT ON `performance_schema`.`keyring_component_status` TO `mysql-backup`@`localhost`",
 				"GRANT SELECT ON `performance_schema`.`log_status` TO `mysql-backup`@`localhost`",
-			})
-			verifyMaxUserConnections("mysql-backup", "localhost", 0)
-		})
-	})
-
-	When("the mysql job is configured with user properties AND mysql_version=5.7", func() {
-		BeforeEach(func() {
-			mysqlVersionTag = "5.7"
-			dbUsers = MySQLJobSpec{
-				MySQLVersion:        "5.7",
-				MySQLBackupPassword: uuid.NewString(),
-				SeededDatabases: []SeededDatabaseEntry{
-					{
-						Schema:   "cloud_controller",
-						Username: "ccdb",
-						Password: uuid.NewString(),
-					},
-					// SeededUsers take precedence over SeededDatabases so this entry should be ignored
-					{
-						Schema:   "ignored",
-						Username: "app-user1",
-						Password: "ignored",
-					},
-				},
-				SeededUsers: map[string]UserRole{
-					"app-user1": {
-						Role:     "schema-admin",
-						Password: uuid.NewString(),
-						Schema:   "app_user_db1",
-						Host:     "any",
-					},
-					"app-user2": {
-						Role:               "schema-admin",
-						Password:           uuid.NewString(),
-						Schema:             "app_user_db2",
-						Host:               "any",
-						MaxUserConnections: 42,
-					},
-					"healthcheck-user": {
-						Role:     "minimal",
-						Password: uuid.NewString(),
-						Host:     "any",
-					},
-					"admin-user": {
-						Role:     "admin",
-						Password: uuid.NewString(),
-						Host:     "localhost",
-					},
-					"mysql-metrics": {
-						Role:               "mysql-metrics",
-						Password:           uuid.NewString(),
-						Host:               "any",
-						Schema:             "metrics_db",
-						MaxUserConnections: 3,
-					},
-					"mysql-metrics-no-schema": {
-						Role:               "mysql-metrics",
-						Password:           uuid.NewString(),
-						Host:               "any",
-						MaxUserConnections: 3,
-					},
-					"multi-db-user": {
-						Role:     "multi-schema-admin",
-						Password: uuid.NewString(),
-						Host:     "any",
-						Schema:   `some\_db\_prefix\_%`,
-					},
-				},
-			}
-		})
-
-		It("initializes the users successfully", func() {
-			verifyUser("multi-db-user", dbUsers.SeededUsers["multi-db-user"].Password, "", []string{
-				"GRANT USAGE ON *.* TO 'multi-db-user'@'%'",
-				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `some\\_db\\_prefix\\_%`.* TO 'multi-db-user'@'%'",
-			})
-
-			verifyUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, dbUsers.SeededUsers["mysql-metrics"].Schema, []string{
-				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'mysql-metrics'@'%'",
-			})
-			verifyMaxUserConnections("mysql-metrics", "%", 3)
-			verifySchemasForLocalUser("mysql-metrics", dbUsers.SeededUsers["mysql-metrics"].Password, []string{"metrics_db"})
-
-			verifyUser("mysql-metrics-no-schema", dbUsers.SeededUsers["mysql-metrics-no-schema"].Password, dbUsers.SeededUsers["mysql-metrics-no-schema"].Schema, []string{
-				"GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'mysql-metrics-no-schema'@'%'",
-			})
-			verifyMaxUserConnections("mysql-metrics-no-schema", "%", 3)
-
-			verifyUser("ccdb", dbUsers.SeededDatabases[0].Password, dbUsers.SeededDatabases[0].Schema, []string{
-				"GRANT USAGE ON *.* TO 'ccdb'@'%'",
-				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `cloud\\_controller`.* TO 'ccdb'@'%'",
-			})
-			verifyMaxUserConnections("ccdb", "%", 0)
-
-			verifyUser("app-user1", dbUsers.SeededUsers["app-user1"].Password, dbUsers.SeededUsers["app-user1"].Schema, []string{
-				"GRANT USAGE ON *.* TO 'app-user1'@'%'",
-				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db1`.* TO 'app-user1'@'%'",
-			})
-			verifyMaxUserConnections("app-user1", "%", 0)
-
-			verifyUser("app-user2", dbUsers.SeededUsers["app-user2"].Password, dbUsers.SeededUsers["app-user2"].Schema, []string{
-				"GRANT USAGE ON *.* TO 'app-user2'@'%'",
-				"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `app\\_user\\_db2`.* TO 'app-user2'@'%'",
-			})
-			verifyMaxUserConnections("app-user2", "%", 42)
-
-			verifyUser("healthcheck-user", dbUsers.SeededUsers["healthcheck-user"].Password, "", []string{
-				"GRANT USAGE ON *.* TO 'healthcheck-user'@'%'",
-			})
-			verifyMaxUserConnections("healthcheck-user", "%", 0)
-
-			verifyLocalAdminUser("admin-user", dbUsers.SeededUsers["admin-user"].Password)
-
-			verifyLocalUser("mysql-backup", dbUsers.MySQLBackupPassword)
-			verifyGrantsForLocalUser("mysql-backup", dbUsers.MySQLBackupPassword, []string{
-				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'mysql-backup'@'localhost'",
 			})
 			verifyMaxUserConnections("mysql-backup", "localhost", 0)
 		})

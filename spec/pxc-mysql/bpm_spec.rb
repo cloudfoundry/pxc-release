@@ -29,13 +29,6 @@ describe 'galera-agent-config template' do
     end
   end
 
-  context 'when mysql_version is set to 5.7' do
-    before { spec["mysql_version"] = "5.7" }
-    it 'set PATH for Percona XtraDB Cluster 5.7' do
-      expect(parsed_bpm_yaml["processes"][0]["env"]["PATH"]).to eq('/usr/bin:/bin:/var/vcap/packages/percona-xtradb-cluster-5.7/bin:/var/vcap/packages/percona-xtrabackup-2.4/bin')
-    end
-  end
-
   context 'when jemalloc is enabled' do
     before { spec["engine_config"] = { "jemalloc" => { "enabled" => true } } }
 

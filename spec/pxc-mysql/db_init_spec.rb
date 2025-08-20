@@ -147,16 +147,6 @@ describe 'db_init template' do
       expect(rendered_template).to eq File.read(File.join(dir, "db_init_all_features"))
     end
 
-    context 'when mysql_version is set to "5.7"' do
-      before {
-        spec["mysql_version"] = "5.7"
-        spec["engine_config"] =  { "user_authentication_policy" => "mysql_native_password" }
-      }
-      it 'still generates generates a valid db_init file' do
-        expect(rendered_template).to eq File.read(File.join(dir, "db_init_all_features_mysql57"))
-      end
-    end
-
     context 'when a galera-agent link is present' do
       let(:links) {
         [

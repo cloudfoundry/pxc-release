@@ -38,8 +38,6 @@ max_binlog_size = {{.maxBinlogSize}}
 wsrep_applier_threads = {{.numCPUs}}
 [mysqld-8.0]
 wsrep_applier_threads = {{.numCPUs}}
-[mysqld-5.7]
-wsrep_slave_threads = {{.numCPUs}}
 `))
 
 	data := map[string]any{

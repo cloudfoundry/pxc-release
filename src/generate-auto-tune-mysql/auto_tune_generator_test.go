@@ -20,8 +20,6 @@ max_binlog_size = 71581696
 wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
-[mysqld-5.7]
-wsrep_slave_threads = 3
 `
 
 var sampleConfig2 = `
@@ -33,8 +31,6 @@ max_binlog_size = 716378112
 wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
-[mysqld-5.7]
-wsrep_slave_threads = 3
 `
 
 var sampleConfig3 = `
@@ -46,8 +42,6 @@ max_binlog_size = 1073741824
 wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
-[mysqld-5.7]
-wsrep_slave_threads = 3
 `
 
 var sampleConfig4 = `
@@ -57,8 +51,6 @@ innodb_buffer_pool_size = 84
 wsrep_applier_threads = 3
 [mysqld-8.0]
 wsrep_applier_threads = 3
-[mysqld-5.7]
-wsrep_slave_threads = 3
 `
 
 var _ = Describe("AutoTuneGenerator", func() {

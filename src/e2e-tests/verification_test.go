@@ -29,10 +29,9 @@ import (
 
 var _ = Describe("Feature Verification", Ordered, Label("verification"), func() {
 	var (
-		db                 *sql.DB
-		deploymentName     string
-		proxyHost          string
-		expectedAuthPlugin string
+		db             *sql.DB
+		deploymentName string
+		proxyHost      string
 	)
 
 	var innodbBufferPoolSizePercent int64 = 14
@@ -43,12 +42,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			var err error
 			innodbBufferPoolSizePercent, err = strconv.ParseInt(os.Getenv("INNODB_BUFFER_POOL_SIZE_PERCENT"), 10, 64)
 			Expect(err).NotTo(HaveOccurred(), `Failed to parse INNODB_BUFFER_POOL_SIZE_PERCENT as an integer value`)
-		}
-
-		if os.Getenv("MYSQL_VERSION") != "5.7" {
-			expectedAuthPlugin = "caching_sha2_password"
-		} else {
-			expectedAuthPlugin = "mysql_native_password"
 		}
 
 		Expect(bosh.DeployPXC(deploymentName,
@@ -70,7 +63,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/sysbench-user-set-auth-plugin.yml`),
 			bosh.Operation(`test/smoke-tests-use-legacy-auth.yml`),
 			bosh.Operation("default-auth-plugin.yml"),
-			bosh.Var("auth_plugin", expectedAuthPlugin),
+			bosh.Var("auth_plugin", "caching_sha2_password"),
 			bosh.Var(`innodb_buffer_pool_size_percent`, strconv.FormatInt(innodbBufferPoolSizePercent, 10)),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
@@ -165,10 +158,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 		// https://bugs.mysql.com/bug.php?id=111353
 		It("sets innodb_doublewrite_pages to 128 for performance", func() {
-			if expectedMysqlVersion == "5.7" {
-				Skip("innodb_doublewrite_pages is not supported on MySQL v5.7")
-			}
-
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
 			for _, i := range instances {
@@ -331,7 +320,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			// https://github.com/percona/percona-xtradb-cluster/blob/8b47b86f3f4e815b2eee7efa0f524b8665d3e3d1/storage/innobase/handler/ha_innodb.cc#L5030
 			// Effectively: Round up to the nearest innodb chunk size
 			//       Where: InnoDB chunk size = `innodb_buffer_pool_chunk_size` * `innodb_buffer_pool_instances`
-			// Note: [MySQl v5.7,v8.0] innodb_buffer_pool_instances defaults to 8 (innodb_buffer_pool_size >= 1GiB) or 1 (innodb_buffer_pool_size < 1GiB)
+			// Note: [MySQl v8.0] innodb_buffer_pool_instances defaults to 8 (innodb_buffer_pool_size >= 1GiB) or 1 (innodb_buffer_pool_size < 1GiB)
 			//       [MySQL v8.4] innodb_buffer_pool_instances is autosized per docs:
 			//                    https://dev.mysql.com/doc/refman/8.4/en/innodb-parameters.html#sysvar_innodb_buffer_pool_instances
 			var (
@@ -398,8 +387,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=preferred&interpolateParams=true")
 				Expect(err).NotTo(HaveOccurred())
 				var wsrepApplierThreads int64
-				// Change to @@global.wsrep_applier_threads once MySQL v5.7 support is no longer required.
-				Expect(db.QueryRow("SELECT @@global.wsrep_slave_threads").Scan(&wsrepApplierThreads)).
+				Expect(db.QueryRow("SELECT @@global.wsrep_applier_threads").Scan(&wsrepApplierThreads)).
 					To(Succeed())
 				Expect(wsrepApplierThreads).To(Equal(numberOfVCPUs))
 				Expect(db.Close()).To(Succeed())
@@ -468,9 +456,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("accepts TLSv1.3 for connections", func() {
-			if expectedMysqlVersion == "5.7" {
-				Skip("Skipping TLSv1.3 assertion because MySQL 5.7 does not support TLSv1.3.")
-			}
 			dsn := "test-admin:integration-tests@tcp(" + proxyHost + ":3306)/?tls=tls13"
 			db, err := sql.Open("mysql", dsn)
 			Expect(err).NotTo(HaveOccurred())
@@ -904,15 +889,9 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 	Context("jemalloc", Label("jemalloc"), func() {
 		It("uses jemalloc", func() {
-
 			_, err := bosh.RemoteCommand(deploymentName, "mysql/0", "sudo grep -q jemalloc /proc/$(pidof mysqld)/maps")
 			Expect(err).NotTo(HaveOccurred(),
 				`Expected to see jemalloc in the memory map of the mysqld process, but it was not`)
-
-			if expectedMysqlVersion == "5.7" {
-				// MySQL v5.7 does not support the performance_schema.malloc_* tables present in MySQL v8.0
-				return
-			}
 
 			var jemallocAllocated uint64
 			Expect(db.QueryRow(`SELECT ALLOCATED FROM performance_schema.malloc_stats_totals`).
@@ -925,10 +904,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 	When("redeploying with additional feature flags", func() {
 		BeforeAll(func() {
-			if expectedMysqlVersion == "5.7" {
-				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") < v8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
-			}
-
 			By("enabling jemalloc profiling")
 			By("enabling O_DIRECT")
 			By("disabling sync_binlog")
@@ -1031,12 +1006,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 	DescribeTableSubtree("caching_sha2_password plugin support",
 		func(dbUser, credhubRef string) {
-			BeforeEach(func() {
-				if os.Getenv("MYSQL_VERSION") == "5.7" {
-					Skip(`MYSQL_VERSION == "5.7"; Skipping caching_sha2_password test as MySQL v5.7 does not support this plugin`)
-				}
-			})
-
 			It("configures the expected authentication method to the database", func() {
 				dbPassword, err := credhub.GetCredhubPassword(path.Join(deploymentName, credhubRef))
 				Expect(err).NotTo(HaveOccurred())
@@ -1069,14 +1038,14 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "SELECT user, plugin FROM mysql.user WHERE user = 'galera-agent'\G"`)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(ContainSubstring("user: galera-agent"))
-			Expect(out).To(ContainSubstring("plugin: " + expectedAuthPlugin))
+			Expect(out).To(ContainSubstring("plugin: caching_sha2_password"))
 		})
 
 		It("creates cluster-health-logger user with default user_authentication_policy", func() {
 			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "SELECT user, plugin FROM mysql.user WHERE user = 'cluster-health-logger'\G"`)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(ContainSubstring("user: cluster-health-logger"))
-			Expect(out).To(ContainSubstring("plugin: " + expectedAuthPlugin))
+			Expect(out).To(ContainSubstring("plugin: caching_sha2_password"))
 		})
 	})
 })
