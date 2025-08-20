@@ -306,16 +306,6 @@ func (fake *FakeDBHelper) StopMysqldCalls(stub func()) {
 func (fake *FakeDBHelper) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.isDatabaseReachableMutex.RLock()
-	defer fake.isDatabaseReachableMutex.RUnlock()
-	fake.isProcessRunningMutex.RLock()
-	defer fake.isProcessRunningMutex.RUnlock()
-	fake.startMysqldInBootstrapMutex.RLock()
-	defer fake.startMysqldInBootstrapMutex.RUnlock()
-	fake.startMysqldInJoinMutex.RLock()
-	defer fake.startMysqldInJoinMutex.RUnlock()
-	fake.stopMysqldMutex.RLock()
-	defer fake.stopMysqldMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
