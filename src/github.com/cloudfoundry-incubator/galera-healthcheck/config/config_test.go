@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
+	"strconv"
 
 	"code.cloudfoundry.org/tlsconfig/certtest"
 	. "github.com/onsi/ginkgo/v2"
@@ -150,11 +151,11 @@ var _ = Describe("Config", func() {
 					errCh <- err
 				}()
 
-				address := fmt.Sprintf("%s:%d", rootConfig.Host, rootConfig.Port)
+				address := net.JoinHostPort(rootConfig.Host, strconv.Itoa(rootConfig.Port))
 				conn, err := net.Dial("tcp", address)
 				Expect(err).NotTo(HaveOccurred())
 
-				msg, err := ioutil.ReadAll(conn)
+				msg, err := io.ReadAll(conn)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(msg)).To(Equal("foo"))
 				Expect(conn.Close()).To(Succeed())
