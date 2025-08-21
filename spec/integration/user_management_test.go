@@ -374,7 +374,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 
 			verifyLocalUser("mysql-backup", dbUsers.MySQLBackupPassword)
 			verifyGrantsForLocalUser("mysql-backup", dbUsers.MySQLBackupPassword, []string{
-				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT ON *.* TO `mysql-backup`@`localhost`",
+				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `mysql-backup`@`localhost`",
 				"GRANT BACKUP_ADMIN ON *.* TO `mysql-backup`@`localhost`",
 				"GRANT SELECT ON `performance_schema`.`keyring_component_status` TO `mysql-backup`@`localhost`",
 				"GRANT SELECT ON `performance_schema`.`log_status` TO `mysql-backup`@`localhost`",
@@ -493,7 +493,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 
 			verifyLocalUser("mysql-backup", dbUsers.MySQLBackupPassword)
 			verifyGrantsForLocalUser("mysql-backup", dbUsers.MySQLBackupPassword, []string{
-				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT ON *.* TO 'mysql-backup'@'localhost'",
+				"GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'mysql-backup'@'localhost'",
 			})
 			verifyMaxUserConnections("mysql-backup", "localhost", 0)
 		})
