@@ -1,7 +1,7 @@
 package test_helpers
 
 import (
-	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-bootstrap/fakes"
@@ -26,7 +26,7 @@ func (h *EndpointHandler) StubEndpointWithStatus(endpoint string, statusCode int
 	fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(statusCode)
 		if len(responseText) > 0 {
-			fmt.Fprintf(w, responseText[0])
+			_, _ = io.WriteString(w, responseText[0])
 		}
 	}
 	h.handlers[endpoint] = fakeHandler

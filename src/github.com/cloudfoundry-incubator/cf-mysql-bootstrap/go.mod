@@ -1,8 +1,6 @@
 module github.com/cloudfoundry-incubator/cf-mysql-bootstrap
 
-go 1.23.0
-
-toolchain go1.23.3
+go 1.25.0
 
 require (
 	code.cloudfoundry.org/lager/v3 v3.43.0
