@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -405,7 +406,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "stopped"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusOK)
@@ -427,7 +428,7 @@ var _ = Describe("Bootstrap", func() {
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
 					responseText = "pending"
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusInternalServerError)
@@ -452,7 +453,7 @@ var _ = Describe("Bootstrap", func() {
 				fakeHandler.ServeHTTPStub = func(w http.ResponseWriter, req *http.Request) {
 					var responseText string
 					responseText = "pending"
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/stop_mysql", http.StatusOK)
@@ -539,7 +540,7 @@ var _ = Describe("Bootstrap", func() {
 							responseText = "stopped"
 						}
 						currCallCount++
-						fmt.Fprintf(w, responseText)
+						_, _ = io.WriteString(w, responseText)
 					}
 					endpointHandlers[i].StubEndpoint("/mysql_status", fakeHandler)
 				}
@@ -692,7 +693,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "running"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
@@ -724,7 +725,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "failing"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_bootstrap", http.StatusOK)
@@ -777,7 +778,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "running"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
@@ -812,7 +813,7 @@ var _ = Describe("Bootstrap", func() {
 						responseText = "failing"
 					}
 					currCallCount++
-					fmt.Fprintf(w, responseText)
+					_, _ = io.WriteString(w, responseText)
 				}
 				endpointHandlers[0].StubEndpoint("/mysql_status", fakeHandler)
 				endpointHandlers[0].StubEndpointWithStatus("/start_mysql_join", http.StatusOK)
