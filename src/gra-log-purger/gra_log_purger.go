@@ -52,7 +52,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM)
 
-	logWithTimestamp("Will purge old GRA logs once every hour\n", timeFormat)
+	logWithTimestamp("Will purge old GRA logs once every hour", timeFormat)
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
@@ -62,10 +62,10 @@ func main() {
 		if err != nil {
 			logErrorWithTimestamp(err, timeFormat)
 		} else {
-			logWithTimestamp(fmt.Sprintf("Deleted %v files, failed to delete %v files\n", deleted, failed), timeFormat)
+			logWithTimestamp(fmt.Sprintf("Deleted %v files, failed to delete %v files", deleted, failed), timeFormat)
 		}
 
-		logWithTimestamp("Sleeping for one hour\n", timeFormat)
+		logWithTimestamp("Sleeping for one hour", timeFormat)
 	}
 
 	cleanup()
@@ -73,7 +73,7 @@ func main() {
 	for {
 		select {
 		case sig := <-sigCh:
-			logWithTimestamp("%s", timeFormat, sig)
+			logWithTimestamp(sig.String(), timeFormat)
 			os.Exit(0)
 		case <-ticker.C:
 			cleanup()
@@ -127,28 +127,29 @@ func PurgeGraLogs(dir string, timeFormat string, ageCutoff time.Duration) (int, 
 }
 
 func logErrorWithTimestamp(err error, timeFormat string) {
-	if timeFormat == "rfc3339" {
-		fmt.Fprintf(os.Stderr, "[%s] - ", time.Now().Format(time.RFC3339Nano))
-	} else if timeFormat == "unix-epoch" {
-		fmt.Fprintf(os.Stderr, "[%d] - ", time.Now().Unix())
-	} else {
-		fmt.Fprintf(os.Stderr, "[%s] - ", time.Now().Local())
+	var ts string
+	switch timeFormat {
+	case "rfc3339":
+		ts = time.Now().Format(time.RFC3339)
+	case "unix-epoch":
+		ts = fmt.Sprintf("%d", time.Now().Unix())
+	default:
+		ts = time.Now().Local().String()
 	}
-	fmt.Fprintf(os.Stderr, err.Error()+"\n")
+
+	_, _ = fmt.Fprintf(os.Stderr, "[%s] - %s\n", ts, err)
 }
 
-func logWithTimestamp(format string, timeFormat string, args ...interface{}) {
-	if timeFormat == "rfc3339" {
-		fmt.Printf("[%s] - ", time.Now().Format(time.RFC3339Nano))
-	} else if timeFormat == "unix-epoch" {
-		fmt.Printf("[%d] - ", time.Now().Unix())
-	} else {
-		fmt.Printf("[%s] - ", time.Now().Local())
+func logWithTimestamp(msg string, timeFormat string) {
+	var ts string
+	switch timeFormat {
+	case "rfc3339":
+		ts = time.Now().UTC().Format(time.RFC3339)
+	case "unix-epoch":
+		ts = fmt.Sprintf("%d", time.Now().Unix())
+	default:
+		ts = time.Now().Local().String()
 	}
 
-	if nil == args {
-		fmt.Printf(format)
-	} else {
-		fmt.Printf(format, args...)
-	}
+	_, _ = fmt.Printf("[%s] - %s\n", ts, msg)
 }
