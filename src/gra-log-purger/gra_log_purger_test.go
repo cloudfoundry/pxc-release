@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,12 +24,11 @@ var _ = Describe("gra-log-purger", func() {
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = ioutil.TempDir("", "gra-log-test")
+		tempDir, err = os.MkdirTemp("", "gra-log-test")
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		os.Remove(tempDir)
+		DeferCleanup(func() {
+			Expect(os.RemoveAll(tempDir)).To(Succeed())
+		})
 	})
 
 	It("requires a graLogDir option", func() {
@@ -59,7 +57,7 @@ var _ = Describe("gra-log-purger", func() {
 		Expect(session.Err).To(gbytes.Say(`graLogDaysToKeep should be >= 0`))
 	})
 
-	Context("when GRA log files exist in a directory", func() {
+	When("GRA log files exist in a directory", func() {
 		var (
 			expectedRetainedFiles []string
 		)
@@ -72,6 +70,7 @@ var _ = Describe("gra-log-purger", func() {
 				graLogPurgerBinPath,
 				"-graLogDir="+tempDir,
 				"-graLogDaysToKeep=1",
+				"-timeFormat=rfc3339",
 			)
 			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -114,6 +113,10 @@ var _ = Describe("gra-log-purger", func() {
 
 				return names, nil
 			}, "1s").Should(ConsistOf(expectedRetainedFiles))
+
+			Eventually(session.Out).Should(gbytes.Say(`\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z] - Deleted 2048 files, failed to delete 0 files`))
+			Eventually(session.Out).Should(gbytes.Say(`\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z] - Sleeping for one hour`))
+			Eventually(session.Out).Should(gbytes.Say(`\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z] - terminated`))
 		})
 	})
 })
@@ -126,16 +129,16 @@ var _ = Describe("PurgeGraLogs", func() {
 	)
 
 	BeforeEach(func() {
-		tempDir, err = ioutil.TempDir("", "gra-log-test")
 		timeFormat = "rfc3339"
+
+		tempDir, err = os.MkdirTemp("", "gra-log-test")
 		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() {
+			Expect(os.RemoveAll(tempDir)).To(Succeed())
+		})
 	})
 
-	AfterEach(func() {
-		os.Remove(tempDir)
-	})
-
-	Context("When an empty directory is passed in", func() {
+	When("an empty directory is passed in", func() {
 		It("returns an empty list and succeeds", func() {
 			succeeded, failed, err := PurgeGraLogs(tempDir, timeFormat, time.Hour*24*2)
 
@@ -145,7 +148,7 @@ var _ = Describe("PurgeGraLogs", func() {
 		})
 	})
 
-	Context("when a directory matches a GRAlog file name", func() {
+	When("a directory matches a GRAlog filename", func() {
 		BeforeEach(func() {
 			Expect(os.Mkdir(filepath.Join(tempDir, "GRA_something.log"), 0755)).To(Succeed())
 		})
@@ -156,10 +159,9 @@ var _ = Describe("PurgeGraLogs", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(filepath.Join(tempDir, "GRA_something.log")).Should(BeADirectory())
 		})
-
 	})
 
-	Context("When a file that is not a directory is passed in", func() {
+	When("a file that is not a directory is passed in", func() {
 		var (
 			tempFileFd *os.File
 			tempFile   string
@@ -177,6 +179,7 @@ var _ = Describe("PurgeGraLogs", func() {
 
 		It("returns an error", func() {
 			_, _, err := PurgeGraLogs(tempFile, timeFormat, time.Hour*24*2)
+			Expect(err).To(HaveOccurred())
 
 			var pathError *fs.PathError
 			Expect(errors.As(err, &pathError)).To(BeTrue(), "should return fs.PathError, but got %#v", err)
@@ -195,7 +198,7 @@ func setupGraLogFiles(path string, numberOfGraLogs int) (pathsToRetain []string)
 	}
 
 	for _, name := range mysqlFixtures {
-		Expect(ioutil.WriteFile(name, nil, 0640)).
+		Expect(os.WriteFile(name, nil, 0640)).
 			To(Succeed())
 
 		fiveDaysAgo := time.Now().Add(-time.Hour * 24 * 5)
@@ -211,7 +214,7 @@ func setupGraLogFiles(path string, numberOfGraLogs int) (pathsToRetain []string)
 	for i := 0; i < numberOfGraLogs; i++ {
 		graLogPath := filepath.Join(path, fmt.Sprintf("GRA_OLD_%d.log", i))
 
-		Expect(ioutil.WriteFile(graLogPath, nil, 0640)).
+		Expect(os.WriteFile(graLogPath, nil, 0640)).
 			To(Succeed())
 
 		fiveDaysAgo := time.Now().Add(-time.Hour * 24 * 5)
@@ -223,7 +226,7 @@ func setupGraLogFiles(path string, numberOfGraLogs int) (pathsToRetain []string)
 	for i := 0; i < 100; i++ {
 		graLogPath := filepath.Join(path, fmt.Sprintf("GRA_NEW_%d.log", i))
 
-		Expect(ioutil.WriteFile(graLogPath, nil, 0640)).
+		Expect(os.WriteFile(graLogPath, nil, 0640)).
 			To(Succeed())
 
 		oneHourAgo := time.Now().Add(-time.Hour)
@@ -238,7 +241,7 @@ func setupGraLogFiles(path string, numberOfGraLogs int) (pathsToRetain []string)
 
 		graLogPath := filepath.Join(path, fmt.Sprintf("NOT_A_GRA_%d.log", i))
 
-		Expect(ioutil.WriteFile(graLogPath, nil, 0640)).
+		Expect(os.WriteFile(graLogPath, nil, 0640)).
 			To(Succeed())
 
 		fiveDaysAgo := time.Now().Add(-time.Hour * 24 * 5)
