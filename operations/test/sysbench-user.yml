@@ -5,6 +5,7 @@
     name: sbtest
     username: sbtest
     password: ((sysbench_db_password))
+    auth_plugin: caching_sha2_password
 
 - type: replace
   path: /variables/name=sysbench_db_password?
