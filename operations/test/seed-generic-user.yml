@@ -1,0 +1,15 @@
+---
+- path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/generic-user?
+  type: replace
+  value:
+    role: schema-admin
+    schema: generic_db
+    host: any
+    password: ((generic_user_password))
+    auth_plugin: caching_sha2_password
+
+- type: replace
+  path: /variables/name=generic_user_password?
+  value:
+    name: generic_user_password
+    type: password

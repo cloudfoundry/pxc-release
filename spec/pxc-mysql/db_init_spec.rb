@@ -108,6 +108,7 @@ describe 'db_init template' do
             "name" => "cloud_controller",
             "username" => "cloud_controller",
             "password" => "secret-ccdb-pw",
+            "auth_plugin" => "caching_sha2_password",
           }
         ],
         "seeded_users" => {
@@ -120,6 +121,7 @@ describe 'db_init template' do
             "role" => "admin",
             "password" => "secret-seeded-admin-pw",
             "host" => "any",
+            "auth_plugin" => "caching_sha2_password",
           },
           "mysql-metrics" => {
             "role" => "mysql-metrics",
@@ -134,7 +136,8 @@ describe 'db_init template' do
             "host" => "any",
             "schema" => "multi_schemas_%",
           },
-        }
+        },
+        "engine_config" =>  { "user_authentication_policy" => "caching_sha2_password" }
       }
     }
     let(:links) { [] }
@@ -145,7 +148,10 @@ describe 'db_init template' do
     end
 
     context 'when mysql_version is set to "5.7"' do
-      before { spec["mysql_version"] = "5.7" }
+      before {
+        spec["mysql_version"] = "5.7"
+        spec["engine_config"] =  { "user_authentication_policy" => "mysql_native_password" }
+      }
       it 'still generates generates a valid db_init file' do
         expect(rendered_template).to eq File.read(File.join(dir, "db_init_all_features_mysql57"))
       end
@@ -304,6 +310,16 @@ describe 'db_init template' do
 
       it 'fails' do
         expect { template.render(spec) }.to raise_error(RuntimeError, "user 'invalid-schema-admin-user' with multi-schema-admin role specified with an empty schema")
+      end
+    end
+
+    context 'when seeded_users specifies an unsupported auth_plugin' do
+      before(:each) do
+        spec["seeded_users"]["invalid-auth-plugin"] = { "role" => "admin", "password" => "secret", "host" => "any", "auth_plugin" => "mysql_clear_password" }
+      end
+
+      it 'fails' do
+        expect { template.render(spec) }.to raise_error(RuntimeError, "seeded_users property specifies unsupported authentication plugin 'mysql_clear_password' for user 'invalid-auth-plugin'")
       end
     end
   end

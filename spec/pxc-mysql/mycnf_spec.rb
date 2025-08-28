@@ -25,7 +25,9 @@ describe 'my.cnf template' do
     )
   ] }
   let(:template) { job.template('config/my.cnf') }
-  let(:spec) { {} }
+  let(:spec) { {
+    "engine_config" => { "user_authentication_policy" => 'caching_sha2_password' }
+  } }
   let(:rendered_template) { template.render(spec, consumes: links) }
   let(:parsed_mycnf) {
     # Comment out my.cnf !include* directives to avoid parsing failures
@@ -46,7 +48,7 @@ describe 'my.cnf template' do
   }
 
   it 'sets the authentication-policy' do
-    expect(rendered_template).to match(/authentication-policy\s*=\s*mysql_native_password/)
+    expect(rendered_template).to match(/authentication-policy\s*=\s*caching_sha2_password/)
   end
 
   context 'when no explicit collation is set' do
@@ -113,7 +115,17 @@ describe 'my.cnf template' do
     it 'suppresses warnings about deprecated features to mitigate excessive logging' do
       expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log-error-suppression-list" => "ER_SERVER_WARN_DEPRECATED"))
     end
+
+    it 'sets the authentication policy to what is provided in the job spec' do
+        expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("authentication-policy" => "caching_sha2_password"))
+    end
   end
+
+  context 'mysql 8.4' do
+      it 'sets the authentication policy to what is provided in the job spec' do
+          expect(parsed_mycnf).to include("mysqld-8.4" => hash_including("authentication-policy" => "caching_sha2_password"))
+      end
+    end
 
   context 'when galera is not enabled' do
     let(:spec) { {

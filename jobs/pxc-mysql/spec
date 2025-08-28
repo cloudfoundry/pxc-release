@@ -147,6 +147,7 @@ properties:
           host: any
           role: schema-admin
           schema: "app-db"
+          auth_plugin: caching_sha2_password
         app-user-with-wildcard-db-access:
           password: "((wildcard_app_user_password))"
           host: any
@@ -367,6 +368,9 @@ properties:
           early-plugin-load: keyring_file.so
           keyring_file_data: /var/vcap/store/pxc-mysql/keyring
 
+  engine_config.user_authentication_policy:
+    description: Authentication plugin for identifying all created users
+    default: 'mysql_native_password'
   logging.format.timestamp:
     description: |
       Format for timestamp in component logs. Valid values are 'rfc3339', 'unix-epoch'. 'rfc3339' is the recommended

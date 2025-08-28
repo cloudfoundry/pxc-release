@@ -25,7 +25,7 @@ DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 <%- end -%>
 <%- if_p('mysql_backup_password') do |password| -%>
 CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
-ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED WITH mysql_native_password BY '<%= password %>';
+ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= password %>';
 GRANT RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
 <%- if p('mysql_version') != "5.7" -%>
 GRANT SELECT on performance_schema.keyring_component_status to '<%= p('mysql_backup_username') %>'@'localhost';
@@ -34,13 +34,13 @@ GRANT SELECT ON performance_schema.log_status TO '<%= p('mysql_backup_username')
 
 <%- end -%>
 <%- hosts.each do |host| -%>
-CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
-ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('admin_password') %>';
+CREATE USER IF NOT EXISTS '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= p('admin_password') %>';
+ALTER USER '<%= p('admin_username') %>'@'<%= host %>' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= p('admin_password') %>';
 GRANT ALL PRIVILEGES ON *.* TO '<%= p('admin_username') %>'@'<%= host %>' WITH GRANT OPTION;
   <%- if p('roadmin_enabled') -%>
 
-CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('roadmin_password') %>';
-ALTER USER 'roadmin'@'<%= host %>' IDENTIFIED WITH mysql_native_password BY '<%= p('roadmin_password') %>';
+CREATE USER IF NOT EXISTS 'roadmin'@'<%= host %>' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= p('roadmin_password') %>';
+ALTER USER 'roadmin'@'<%= host %>' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= p('roadmin_password') %>';
 GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
   <%- end -%>
 
@@ -53,10 +53,10 @@ GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'<%= host %>';
     end
     %{
 CREATE USER IF NOT EXISTS #{user['username']}@#{user['host']}
-  IDENTIFIED WITH mysql_native_password BY #{user['password']}
+  IDENTIFIED WITH #{user['auth_plugin']} BY #{user['password']}
   #{max_user_clause}/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER #{user['username']}@#{user['host']}
-  IDENTIFIED WITH mysql_native_password BY #{user['password']}
+  IDENTIFIED WITH #{user['auth_plugin']} BY #{user['password']}
   #{max_user_clause}/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 }.strip
   end
@@ -142,6 +142,13 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
     if cfg['role'].nil? || cfg['role'].empty?
       raise("seeded_users property specifies an empty allowed 'role' for username #{username}")
     end
+    if cfg['auth_plugin'].nil? || cfg['auth_plugin'].empty?
+      cfg['auth_plugin'] = p('engine_config.user_authentication_policy')
+    else
+      unless %w[mysql_native_password caching_sha2_password].include? cfg['auth_plugin']
+        raise "seeded_users property specifies unsupported authentication plugin '#{cfg['auth_plugin']}' for user '#{username}'"
+      end
+    end
 
     mysql_host = case cfg['host']
                  when "localhost" then "localhost"
@@ -157,6 +164,7 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
       "password" => escape(cfg['password']),
       "schema" => cfg['schema'],
       "role" => cfg["role"],
+      "auth_plugin" => cfg["auth_plugin"],
       "max_user_connections" => cfg["max_user_connections"],
     }.compact
   end
@@ -189,7 +197,8 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
       "role" => "schema-admin",
       "password" => e["password"],
       "host" => "any",
-      "schema" => e["name"]
+      "schema" => e["name"],
+      "auth_plugin" => e["auth_plugin"],
     }]
   }.to_h.merge(p('seeded_users')).sort.to_h
 
@@ -198,6 +207,7 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
       "role" => "minimal",
       "password" => link.p('db_password'),
       "host" => "localhost",
+      "auth_plugin" => p('engine_config.user_authentication_policy'),
     }
   end
 
@@ -206,6 +216,7 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
       "role" => "minimal",
       "password" => link.p('db_password'),
       "host" => "localhost",
+      "auth_plugin" => p('engine_config.user_authentication_policy'),
     }
   end
 

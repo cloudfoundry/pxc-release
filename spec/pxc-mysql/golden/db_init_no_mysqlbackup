@@ -12,33 +12,33 @@ DROP USER IF EXISTS 'roadmin'@'::1';
 DROP USER IF EXISTS 'root'@'%';
 DROP USER IF EXISTS 'roadmin'@'%';
 
-CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'secret-admin-pw';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'secret-admin-pw';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 
-CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
-ALTER USER 'root'@'127.0.0.1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED WITH caching_sha2_password BY 'secret-admin-pw';
+ALTER USER 'root'@'127.0.0.1' IDENTIFIED WITH caching_sha2_password BY 'secret-admin-pw';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;
 
-CREATE USER IF NOT EXISTS 'root'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
-ALTER USER 'root'@'::1' IDENTIFIED WITH mysql_native_password BY 'secret-admin-pw';
+CREATE USER IF NOT EXISTS 'root'@'::1' IDENTIFIED WITH caching_sha2_password BY 'secret-admin-pw';
+ALTER USER 'root'@'::1' IDENTIFIED WITH caching_sha2_password BY 'secret-admin-pw';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'::1' WITH GRANT OPTION;
 
 -- user: 'basic-user'@'localhost' role: minimal
 CREATE USER IF NOT EXISTS 'basic-user'@'localhost'
-  IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-basic-user-db-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'basic-user'@'localhost'
-  IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-basic-user-db-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'basic-user'@'localhost';
 
 -- user: 'cloud_controller'@'%' role: schema-admin
 CREATE USER IF NOT EXISTS 'cloud_controller'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-ccdb-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'cloud_controller'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-ccdb-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-ccdb-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
 GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
@@ -51,10 +51,10 @@ DROP PREPARE stmt;
 
 -- user: 'multi-schema-admin-user'@'%' role: multi-schema-admin
 CREATE USER IF NOT EXISTS 'multi-schema-admin-user'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-multi-schema-admin-db-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-multi-schema-admin-db-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'multi-schema-admin-user'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-multi-schema-admin-db-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-multi-schema-admin-db-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'multi-schema-admin-user'@'%';
 GRANT ALL PRIVILEGES ON `multi_schemas_%`.* TO 'multi-schema-admin-user'@'%';
@@ -62,10 +62,10 @@ REVOKE LOCK TABLES ON `multi_schemas_%`.* FROM 'multi-schema-admin-user'@'%';
 
 -- user: 'mysql-metrics'@'%' role: mysql-metrics
 CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-mysql-metrics-db-pw'
   WITH MAX_USER_CONNECTIONS 3/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'mysql-metrics'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-mysql-metrics-db-pw'
   WITH MAX_USER_CONNECTIONS 3/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
 GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysql-metrics'@'%';
@@ -77,10 +77,10 @@ DROP PREPARE stmt;
 
 -- user: 'special-admin-user'@'%' role: admin
 CREATE USER IF NOT EXISTS 'special-admin-user'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-seeded-admin-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-seeded-admin-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 ALTER USER 'special-admin-user'@'%'
-  IDENTIFIED WITH mysql_native_password BY 'secret-seeded-admin-pw'
+  IDENTIFIED WITH caching_sha2_password BY 'secret-seeded-admin-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
 GRANT ALL PRIVILEGES ON *.* TO 'special-admin-user'@'%' WITH GRANT OPTION;
 GRANT PROXY ON ''@'' TO 'special-admin-user'@'%' WITH GRANT OPTION;
