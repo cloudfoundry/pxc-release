@@ -108,6 +108,7 @@ describe 'db_init template' do
             "name" => "cloud_controller",
             "username" => "cloud_controller",
             "password" => "secret-ccdb-pw",
+            "plugin" => "caching_sha2_password",
           }
         ],
         "seeded_users" => {
@@ -120,6 +121,7 @@ describe 'db_init template' do
             "role" => "admin",
             "password" => "secret-seeded-admin-pw",
             "host" => "any",
+            "plugin" => "caching_sha2_password",
           },
           "mysql-metrics" => {
             "role" => "mysql-metrics",

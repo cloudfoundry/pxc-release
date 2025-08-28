@@ -34,6 +34,7 @@ instance_groups:
           schema: pxc_release_test_db
           password: ((smoke_tests_db_password))
           host: any
+          plugin: caching_sha2_password
   - name: smoke-tests
     release: pxc
     properties:
