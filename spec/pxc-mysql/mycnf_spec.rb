@@ -25,7 +25,9 @@ describe 'my.cnf template' do
     )
   ] }
   let(:template) { job.template('config/my.cnf') }
-  let(:spec) { {} }
+  let(:spec) { {
+    "user_auth_plugin" => 'caching_sha2_password',
+  } }
   let(:rendered_template) { template.render(spec, consumes: links) }
   let(:parsed_mycnf) {
     # Comment out my.cnf !include* directives to avoid parsing failures
@@ -46,7 +48,7 @@ describe 'my.cnf template' do
   }
 
   it 'sets the authentication-policy' do
-    expect(rendered_template).to match(/authentication-policy\s*=\s*mysql_native_password/)
+    expect(rendered_template).to match(/authentication-policy\s*=\s*caching_sha2_password/)
   end
 
   context 'when no explicit collation is set' do

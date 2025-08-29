@@ -34,4 +34,32 @@ describe 'galera-agent-config template' do
       expect(rendered_template).to_not match(/^check_mysql_disk_persistence$/)
     end
   end
+
+  supported_plugins = [
+    { plugin: 'mysql_native_password' },
+    { plugin: 'caching_sha2_password' }
+  ]
+  supported_plugins.each do |tc|
+    context 'valid user_auth_plugin configuration' do
+      before { spec["user_auth_plugin"] = tc[:plugin] }
+      it "supports the #{tc[:plugin]} plugin" do
+        expect { template.render(spec) }.not_to raise_error
+      end
+    end
+  end
+
+  unsupported_plugins = [
+     { plugin: 'authentication_ldap_sasl' },
+     { plugin: 'mysql_clear_password' },
+     { plugin: 'something_that_doesnt_exist' }
+   ]
+  unsupported_plugins.each do |tc|
+    context 'unsupported user_auth_plugin configuration' do
+      before { spec["user_auth_plugin"] = tc[:plugin] }
+      it "raises an error for #{tc[:plugin]}" do
+        expect { template.render(spec) }.to raise_error(RuntimeError, "Unsupported value '#{tc[:plugin]}' for 'user_auth_plugin' property. Choose from 'mysql_native_password' or 'caching_sha2_password'")
+      end
+    end
+  end
 end
+

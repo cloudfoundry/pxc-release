@@ -152,6 +152,9 @@ properties:
           host: any
           role: multi-schema-admin
           schema: "some\_db\_prefix\_%"
+  user_auth_plugin:
+    description: Authentication plugin for identifying all created users
+    default: 'mysql_native_password'
 
   # TLS Config
   tls.galera:
