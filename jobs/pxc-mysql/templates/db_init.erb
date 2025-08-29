@@ -143,7 +143,7 @@ REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
       raise("seeded_users property specifies an empty allowed 'role' for username #{username}")
     end
     if cfg['plugin'].nil? || cfg['plugin'].empty?
-      cfg['plugin'] = 'mysql_native_password'
+      cfg['plugin'] = p('engine_config.user_authentication_policy')
     end
 
     mysql_host = case cfg['host']

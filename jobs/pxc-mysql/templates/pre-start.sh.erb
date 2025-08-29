@@ -10,6 +10,12 @@ set -o pipefail
   end
 -%>
 
+<%-
+  unless %w[mysql_native_password caching_sha2_password].include? p('engine_config.user_authentication_policy')
+    raise "Unsupported value '#{p('engine_config.user_authentication_policy')}' for 'engine_config.user_authentication_policy' property. Choose from 'mysql_native_password' or 'caching_sha2_password'"
+  end
+-%>
+
 mysql_version="<%=p('mysql_version')%>"
 
 ## NOTE: This script MUST ALWAYS run as root user.
