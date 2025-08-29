@@ -79,8 +79,8 @@ describe 'db_init template' do
 
       def roadmin_user_for_host(host)
         <<~SQL
-          CREATE USER IF NOT EXISTS 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
-          ALTER USER 'roadmin'@'#{host}' IDENTIFIED WITH mysql_native_password BY 'secret-roadmin-pw';
+          CREATE USER IF NOT EXISTS 'roadmin'@'#{host}' IDENTIFIED WITH caching_sha2_password BY 'secret-roadmin-pw';
+          ALTER USER 'roadmin'@'#{host}' IDENTIFIED WITH caching_sha2_password BY 'secret-roadmin-pw';
           GRANT SELECT, PROCESS, REPLICATION CLIENT ON *.* TO 'roadmin'@'#{host}';
         SQL
       end
@@ -108,6 +108,7 @@ describe 'db_init template' do
             "name" => "cloud_controller",
             "username" => "cloud_controller",
             "password" => "secret-ccdb-pw",
+            "plugin" => "caching_sha2_password",
           }
         ],
         "seeded_users" => {
@@ -120,6 +121,7 @@ describe 'db_init template' do
             "role" => "admin",
             "password" => "secret-seeded-admin-pw",
             "host" => "any",
+            "plugin" => "caching_sha2_password",
           },
           "mysql-metrics" => {
             "role" => "mysql-metrics",
