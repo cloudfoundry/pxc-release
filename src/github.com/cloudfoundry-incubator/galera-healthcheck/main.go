@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -48,6 +49,7 @@ func main() {
 		})
 	}
 
+	var mysqlProcessMutex sync.Mutex
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
 	serviceManager := &node_manager.NodeManager{
 		ServiceName:   rootConfig.Monit.ServiceName,
@@ -60,10 +62,11 @@ func main() {
 		),
 		GaleraInitAddress: rootConfig.Monit.GaleraInitStatusServerAddress,
 		Logger:            logger,
+		Mutex:             &mysqlProcessMutex,
 	}
 
 	healthchecker := healthcheck.New(db, *rootConfig, logger)
-	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger)
+	sequenceNumberchecker := sequence_number.New(db, mysqldCmd, *rootConfig, logger, &mysqlProcessMutex)
 	stateSnapshotter := &healthcheck.DBStateSnapshotter{DB: db}
 
 	router, err := api.NewRouter(
