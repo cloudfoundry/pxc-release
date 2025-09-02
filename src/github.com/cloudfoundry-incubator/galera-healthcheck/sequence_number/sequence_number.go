@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
-	"strconv"
-
 	"net/http"
+	"strconv"
+	"sync"
 
 	"code.cloudfoundry.org/lager/v3"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 )
@@ -19,18 +19,16 @@ type SequenceNumberChecker struct {
 	config    config.Config
 	logger    lager.Logger
 	mysqldCmd mysqld_cmd.MysqldCmd
+	m         *sync.Mutex
 }
 
-func New(db *sql.DB,
-	mysqldCmd mysqld_cmd.MysqldCmd,
-	config config.Config,
-	logger lager.Logger,
-) *SequenceNumberChecker {
+func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logger lager.Logger, mutex *sync.Mutex) *SequenceNumberChecker {
 	return &SequenceNumberChecker{
 		db:        db,
 		config:    config,
 		logger:    logger,
 		mysqldCmd: mysqldCmd,
+		m:         mutex,
 	}
 }
 
@@ -42,6 +40,8 @@ func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
 	} else if s.dbReachable() {
 		return "", errors.New("can't determine sequence number when database is running")
 	} else {
+		s.m.Lock()
+		defer s.m.Unlock()
 		returnedSeqNo, err := s.readSeqNoFromRecoverCmd()
 		if err != nil {
 			return "", err

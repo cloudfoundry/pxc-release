@@ -4,14 +4,15 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"net/http"
+	"sync"
 
 	"github.com/erikstmartin/go-testdb"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"net/http"
-
 	"code.cloudfoundry.org/lager/v3/lagertest"
+
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd/fakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
@@ -42,7 +43,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 	})
 
 	JustBeforeEach(func() {
-		sequenceChecker = sequence_number.New(db, mysqldCmd, rootConfig, logger)
+		sequenceChecker = sequence_number.New(db, mysqldCmd, rootConfig, logger, &sync.Mutex{})
 	})
 
 	AfterEach(func() {
