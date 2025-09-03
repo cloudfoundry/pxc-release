@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -57,6 +58,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/optimize-vm-swappiness.yml`),
 			bosh.Operation(`enable-jemalloc.yml`),
 			bosh.Operation(`iaas/cluster.yml`),
+			bosh.Operation(`test/sysbench-user.yml`),
 			bosh.Var(`innodb_buffer_pool_size_percent`, strconv.FormatInt(innodbBufferPoolSizePercent, 10)),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
@@ -997,6 +999,43 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Expect(err).NotTo(HaveOccurred()) // note "xtrabackup --help ..." returns 1
 				Expect(xtrabackupOptions).To(MatchRegexp(`target-dir\s*\/var\/vcap\/store\/custom-backup-dir\/`), "dynamic my.cnf failed to configure xtrabackup with the expected target-dir parameter")
 			})
+		})
+	})
+
+	Context("Authentication", Label("authentication"), func() {
+		DescribeTable("creates users with caching_sha2_password", func(dbUser, credhubRef string) {
+			dbPassword, err := credhub.GetCredhubPassword(path.Join(deploymentName, credhubRef))
+			Expect(err).NotTo(HaveOccurred())
+			cfg := mysql.Config{
+				User:                 dbUser,
+				Passwd:               dbPassword,
+				Net:                  "tcp",
+				Addr:                 proxyHost,
+				TLSConfig:            "preferred",
+				AllowNativePasswords: false, // <- Explicitly show disabling mysql_native_password support
+			}
+			connector, err := mysql.NewConnector(&cfg)
+			Expect(err).NotTo(HaveOccurred())
+			db := sql.OpenDB(connector)
+			defer db.Close()
+			Expect(db.Ping()).To(Succeed())
+		},
+			Entry("seeded user", "smoke-tests-user", "smoke_tests_db_password"),
+			Entry("seeded database user", "sbtest", "sysbench_db_password"),
+		)
+
+		It("creates galera-agent user with caching_sha2_password", func() {
+			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "SELECT user, plugin FROM mysql.user WHERE user = 'galera-agent'\G"`)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(ContainSubstring("user: galera-agent"))
+			Expect(out).To(ContainSubstring("plugin: caching_sha2_password"))
+		})
+
+		It("creates cluster-health-logger user with caching_sha2_password", func() {
+			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "SELECT user, plugin FROM mysql.user WHERE user = 'cluster-health-logger'\G"`)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out).To(ContainSubstring("user: cluster-health-logger"))
+			Expect(out).To(ContainSubstring("plugin: caching_sha2_password"))
 		})
 	})
 })
