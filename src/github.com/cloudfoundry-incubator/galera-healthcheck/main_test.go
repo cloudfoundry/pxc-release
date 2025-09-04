@@ -3,7 +3,7 @@ package main_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -92,7 +92,7 @@ var _ = Describe("Galera Agent", func() {
 				return nil
 			}
 
-			body, _ := ioutil.ReadAll(res.Body)
+			body, _ := io.ReadAll(res.Body)
 			trimmedBody := strings.TrimSpace(string(body))
 			return fmt.Errorf("received status code: %d, with body: %s", res.StatusCode, trimmedBody)
 		}, "10s", "1s").Should(MatchError(`received status code: 400, with body: Client sent an HTTP request to an HTTPS server.`))
@@ -124,9 +124,10 @@ var _ = Describe("Galera Agent", func() {
 				return nil
 			}
 
-			body, _ := ioutil.ReadAll(res.Body)
+			body, _ := io.ReadAll(res.Body)
 			trimmedBody := strings.TrimSpace(string(body))
 			return fmt.Errorf("received status code: %d, with body: %s", res.StatusCode, trimmedBody)
 		}, "10s", "1s").ShouldNot(HaveOccurred())
 	})
+
 })
