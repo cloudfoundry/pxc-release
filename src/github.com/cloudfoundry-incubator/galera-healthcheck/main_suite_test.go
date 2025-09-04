@@ -24,9 +24,8 @@ var _ = BeforeSuite(func() {
 
 	binaryPath, err = gexec.Build("github.com/cloudfoundry-incubator/galera-healthcheck", "-race")
 	Expect(err).ToNot(HaveOccurred())
+	DeferCleanup(func() {
+		gexec.CleanupBuildArtifacts()
+	})
 	Expect(binaryPath).To(BeAnExistingFile())
-})
-
-var _ = AfterSuite(func() {
-	gexec.CleanupBuildArtifacts()
 })
