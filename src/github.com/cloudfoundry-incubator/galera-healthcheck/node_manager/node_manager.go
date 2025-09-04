@@ -1,12 +1,13 @@
 package node_manager
 
 import (
-	"io/ioutil"
+	"fmt"
 	"net/http"
+	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/pkg/errors"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 )
@@ -24,15 +25,19 @@ type NodeManager struct {
 	MonitClient       MonitClient
 	GaleraInitAddress string
 	Logger            lager.Logger
+	Mutex             *sync.Mutex
 }
 
 func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
 	if m.ServiceName == "garbd" {
-		return "", errors.New("bootstrapping arbitrator not allowed")
+		return "", fmt.Errorf("bootstrapping arbitrator not allowed")
 	}
 
-	if err := ioutil.WriteFile(m.StateFilePath, []byte("NEEDS_BOOTSTRAP"), 0777); err != nil {
-		return "", errors.Wrap(err, "failed to initialize state file")
+	if err := os.WriteFile(m.StateFilePath, []byte("NEEDS_BOOTSTRAP"), 0777); err != nil {
+		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
 	if err := m.MonitClient.Start(m.ServiceName); err != nil {
@@ -47,8 +52,11 @@ func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
 }
 
 func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
-	if err := ioutil.WriteFile(m.StateFilePath, []byte("CLUSTERED"), 0777); err != nil {
-		return "", errors.Wrap(err, "failed to initialize state file")
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	if err := os.WriteFile(m.StateFilePath, []byte("CLUSTERED"), 0777); err != nil {
+		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
 	if err := m.MonitClient.Start(m.ServiceName); err != nil {
@@ -63,8 +71,11 @@ func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
 }
 
 func (m *NodeManager) StartServiceSingleNode(_ *http.Request) (string, error) {
-	if err := ioutil.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
-		return "", errors.Wrap(err, "failed to initialize state file")
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	if err := os.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
+		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
 	if err := m.MonitClient.Start(m.ServiceName); err != nil {
@@ -79,6 +90,13 @@ func (m *NodeManager) StartServiceSingleNode(_ *http.Request) (string, error) {
 }
 
 func (m *NodeManager) StopService(_ *http.Request) (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	if err := os.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
+		return "", fmt.Errorf("failed to initialize state file: %w", err)
+	}
+
 	if err := m.MonitClient.Stop(m.ServiceName); err != nil {
 		return "", err
 	}
@@ -101,7 +119,7 @@ func (m *NodeManager) waitForGaleraInit() error {
 		case <-ticker.C:
 			status, err := m.MonitClient.Status(m.ServiceName)
 			if err != nil {
-				return errors.Errorf("error fetching status for service %q", m.ServiceName)
+				return fmt.Errorf("error fetching status for service %q", m.ServiceName)
 			}
 
 			m.Logger.Info("check-monit-state", lager.Data{
@@ -110,7 +128,7 @@ func (m *NodeManager) waitForGaleraInit() error {
 			})
 
 			if status != monit_client.ServiceRunning {
-				return errors.New("job failed during startup")
+				return fmt.Errorf("job failed during startup")
 			}
 
 			m.Logger.Info("check-galera-init")
@@ -125,7 +143,7 @@ func (m *NodeManager) waitForGaleraInit() error {
 			})
 
 			if res.StatusCode != http.StatusOK {
-				return errors.Errorf("unexpected response from node: %v", res.Status)
+				return fmt.Errorf("unexpected response from node: %v", res.Status)
 			}
 
 			return nil
