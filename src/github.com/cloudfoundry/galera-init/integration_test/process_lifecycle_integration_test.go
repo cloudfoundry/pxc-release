@@ -2,23 +2,29 @@ package integration_test
 
 import (
 	"database/sql"
+	"os"
 	"strings"
-	"syscall"
+	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry/galera-init/config"
-	. "github.com/cloudfoundry/galera-init/integration_test/test_helpers"
+	"github.com/cloudfoundry/galera-init/internal/testing/docker"
 )
 
 var _ = Describe("galera-init integration", func() {
 	var (
-		baseCfg config.Config
+		baseCfg    config.Config
+		scratchDir string
 	)
 
 	BeforeEach(func() {
+		var err error
+		scratchDir, err = os.MkdirTemp("", "galera-init")
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() { _ = os.RemoveAll(scratchDir) })
+
 		baseCfg = config.Config{
 			LogFileLocation: "/tmp/galera-init.log",
 			Db: config.DBHelper{
@@ -26,7 +32,7 @@ var _ = Describe("galera-init integration", func() {
 				Socket: "/var/lib/mysql/mysql.sock",
 			},
 			Manager: config.StartManager{
-				GaleraInitStatusServerAddress: "0.0.0.0:" + galeraInitStatusPort.Port(),
+				GaleraInitStatusServerAddress: "0.0.0.0:8114",
 				StateFileLocation:             "/var/lib/mysql/node_state.txt",
 				GrastateFileLocation:          "/var/lib/mysql/grastate.dat",
 				ClusterIps: []string{
@@ -40,28 +46,18 @@ var _ = Describe("galera-init integration", func() {
 
 	When("Starting a single node", func() {
 		var (
-			galeraNode *docker.Container
+			galeraNode string
 			db         *sql.DB
 		)
 
 		BeforeEach(func() {
+			galeraNode = createGaleraContainer("mysql0", baseCfg)
+			DeferCleanup(func() { _ = docker.RemoveContainer(galeraNode) })
+
 			var err error
-
-			galeraNode, err = createGaleraContainer("mysql0", baseCfg)
+			db, err = docker.MySQLDB(galeraNode)
 			Expect(err).NotTo(HaveOccurred())
-
-			db, err = ContainerDBConnection(galeraNode, pxcMySQLPort)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			if db != nil {
-				_ = db.Close()
-			}
-
-			if galeraNode != nil {
-				Expect(RemoveContainer(dockerClient, galeraNode)).To(Succeed())
-			}
+			DeferCleanup(func() { _ = db.Close() })
 		})
 
 		It("will allow MySQL to cleanly shutdown on SIGTERM", func() {
@@ -73,26 +69,15 @@ var _ = Describe("galera-init integration", func() {
 				`Expected MySQL instance to be reachable, but it was not`,
 			)
 
-			Expect(dockerClient.KillContainer(docker.KillContainerOptions{
-				ID:     galeraNode.ID,
-				Signal: docker.SIGTERM,
-			})).To(Succeed())
+			Expect(docker.Kill(galeraNode, "TERM")).To(Succeed())
+			Expect(docker.WaitExited(galeraNode, 3*time.Minute)).To(Succeed())
+			Expect(docker.Copy(galeraNode+":/var/log/mysql/mysql.err.log", scratchDir)).To(Succeed())
 
-			Eventually(func() (isNotRunning bool, err error) {
-				container, err := dockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{ID: galeraNode.ID})
-				if err != nil {
-					return false, err
-				}
-				return !container.State.Running, err
-			}, "3m", "1s").Should(BeTrue())
+			Expect(scratchDir + "/mysql.err.log").To(BeAnExistingFile())
 
-			Expect(
-				FetchContainerFileContents(
-					dockerClient,
-					galeraNode,
-					"/var/log/mysql/mysql.err.log",
-				),
-			).To(MatchRegexp(`mysqld: Shutdown complete.*$`))
+			contents, err := os.ReadFile(scratchDir + "/mysql.err.log")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(contents)).To(ContainSubstring("mysqld: Shutdown complete"))
 		})
 
 		It("will terminate with an error when mysql terminates ungracefully", func() {
@@ -103,24 +88,21 @@ var _ = Describe("galera-init integration", func() {
 
 			Expect(db.Ping()).To(Succeed())
 
-			_, err := HardKillMySQL(dockerClient, galeraNode)
+			Expect(docker.Kill(galeraNode, "KILL")).To(Succeed())
+
+			exitCode, err := docker.ExitCode(galeraNode)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(func() (exitCode int, err error) {
-				container, err := dockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{
-					ID: galeraNode.ID,
-				})
-				if err != nil {
-					return 0, err
-				}
-				return container.State.ExitCode, err
-			}, "30s", "1s").Should(Equal(int(syscall.SIGKILL)))
+			// exit due to signal will get exit code 128 + signum
+			// 128 + 9 (SIGKILL) = 137
+			const sigKillExitCode = "137"
+			Expect(exitCode).To(Equal(sigKillExitCode))
 		})
 	})
 
 	When("galera-init fails to bootstrap", func() {
 		var (
-			galeraNode *docker.Container
+			galeraNode string
 		)
 
 		BeforeEach(func() {
@@ -130,54 +112,33 @@ var _ = Describe("galera-init integration", func() {
 			}
 			baseCfg.Manager.BootstrapNode = false
 
-			var err error
-			galeraNode, err = createGaleraContainer("mysql0", baseCfg,
+			galeraNode = createGaleraContainer("mysql0", baseCfg,
 				AddEnvVars("INITIAL_CLUSTER_STATE=CLUSTERED"),
 			)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			if galeraNode != nil {
-				Expect(RemoveContainer(dockerClient, galeraNode)).To(Succeed())
-			}
 		})
 
 		It("exits with a non-zero status code", func() {
-			var container *docker.Container
-			Eventually(func() (bool, error) {
-				var err error
-				container, err = dockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{
-					ID: galeraNode.ID,
-				})
-				if err != nil {
-					return true, err
-				}
-				return container.State.Running, nil
-			}, "3m", "1s").ShouldNot(BeTrue())
+			Expect(docker.WaitExited(galeraNode, 3*time.Minute)).To(Succeed())
 
-			Expect(container.State.ExitCode).ToNot(BeZero())
-
-			mysqlErrLogContents, err := FetchContainerFileContents(
-				dockerClient,
-				galeraNode,
-				"/var/log/mysql/mysql.err.log",
-			)
+			exitCode, err := docker.ExitCode(galeraNode)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(exitCode).To(Equal("1"),
+				`Expected galera-init to exit with non-zero status, but it did not`)
 
-			Expect(mysqlErrLogContents).To(
-				ContainSubstring(
-					`[WSREP] Provider/Node (gcomm://mysql0.%s) failed to establish connection with cluster`,
-					sessionID,
-				),
-			)
+			Expect(docker.Copy(galeraNode+":/var/log/mysql/mysql.err.log", scratchDir)).To(Succeed())
+
+			Expect(scratchDir + "/mysql.err.log").To(BeAnExistingFile())
+
+			contents, err := os.ReadFile(scratchDir + "/mysql.err.log")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(contents)).To(ContainSubstring("[WSREP] Provider/Node (gcomm://mysql0.%s) failed to establish connection with cluster", sessionID))
 		})
 	})
 
 	When("galera-init orchestrates mysql joining an existing cluster", func() {
 		var (
-			galeraNode0 *docker.Container
-			galeraNode1 *docker.Container
+			galeraNode0 string
+			galeraNode1 string
 		)
 
 		BeforeEach(func() {
@@ -187,15 +148,13 @@ var _ = Describe("galera-init integration", func() {
 			}
 			wsrepClusterAddr := "gcomm://" + strings.Join(baseCfg.Manager.ClusterIps, ",")
 
-			var err error
-
 			node0Cfg := baseCfg
 			node0Cfg.Manager.BootstrapNode = true
 
-			galeraNode0, err = createGaleraContainer("mysql0", node0Cfg,
+			galeraNode0 = createGaleraContainer("mysql0", node0Cfg,
 				AddEnvVars("WSREP_CLUSTER_ADDRESS="+wsrepClusterAddr),
 			)
-			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() { _ = docker.RemoveContainer(galeraNode0) })
 			Eventually(
 				func() error {
 					return serviceStatus(galeraNode0)
@@ -204,20 +163,12 @@ var _ = Describe("galera-init integration", func() {
 			node1Cfg := baseCfg
 			node1Cfg.Manager.BootstrapNode = false
 
-			galeraNode1, err = createGaleraContainer("mysql1", node1Cfg,
+			galeraNode1 = createGaleraContainer("mysql1", node1Cfg,
 				AddEnvVars("WSREP_CLUSTER_ADDRESS="+wsrepClusterAddr),
 			)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			if galeraNode0 != nil {
-				Expect(RemoveContainer(dockerClient, galeraNode0)).To(Succeed())
-			}
-
-			if galeraNode1 != nil {
-				Expect(RemoveContainer(dockerClient, galeraNode1)).To(Succeed())
-			}
+			DeferCleanup(func() {
+				_ = docker.RemoveContainer(galeraNode1)
+			})
 		})
 
 		It("should successfully join a second node to the cluster", func() {
@@ -226,7 +177,7 @@ var _ = Describe("galera-init integration", func() {
 					return serviceStatus(galeraNode1)
 				}, "3m", "1s").Should(Succeed())
 
-			db, err := ContainerDBConnection(galeraNode1, pxcMySQLPort)
+			db, err := docker.MySQLDB(galeraNode1)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(db.Ping()).To(Succeed())
