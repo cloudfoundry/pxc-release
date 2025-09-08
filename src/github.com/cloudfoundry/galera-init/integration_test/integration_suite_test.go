@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -19,7 +17,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 
 	"github.com/cloudfoundry/galera-init/config"
-	. "github.com/cloudfoundry/galera-init/integration_test/test_helpers"
+	"github.com/cloudfoundry/galera-init/integration_test/docker"
 )
 
 func TestIntegration(t *testing.T) {
@@ -29,14 +27,12 @@ func TestIntegration(t *testing.T) {
 }
 
 const (
-	pxcDockerImage                   = "percona/percona-xtradb-cluster:8.0"
-	pxcMySQLPort         docker.Port = "3306/tcp"
-	galeraInitStatusPort docker.Port = "8114/tcp"
+	pxcMySQLPort         string = "3306/tcp"
+	galeraInitStatusPort string = "8114/tcp"
 )
 
 var (
-	dockerClient   *docker.Client
-	dockerNetwork  *docker.Network
+	dockerNetwork  string
 	sessionID      string
 	sessionTmpdir  string
 	galeraInitPath string
@@ -47,10 +43,6 @@ var _ = BeforeSuite(func() {
 	mysql.SetLogger(log.New(GinkgoWriter, "[mysql] ", log.Ldate|log.Ltime|log.Lshortfile))
 
 	var err error
-	dockerClient, err = docker.NewClientFromEnv()
-	Expect(err).NotTo(HaveOccurred())
-
-	Expect(PullImage(dockerClient, pxcDockerImage)).To(Succeed())
 
 	galeraInitPath, err = gexec.BuildWithEnvironment(
 		"github.com/cloudfoundry/galera-init/cmd/start/",
@@ -70,21 +62,21 @@ var _ = AfterSuite(func() {
 var _ = BeforeEach(func() {
 	sessionID = uuid.New().String()
 	var err error
-	sessionTmpdir, err = ioutil.TempDir(os.TempDir(), "_galera_init_integration")
+	sessionTmpdir, err = os.MkdirTemp(os.TempDir(), "_galera_init_integration")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(os.Chmod(sessionTmpdir, 0777)).To(Succeed())
 
-	dockerNetwork, err = CreateNetwork(dockerClient, "mysql-net."+sessionID)
+	dockerNetwork = "mysql-net." + sessionID
+	err = docker.CreateNetwork(dockerNetwork)
 	Expect(err).NotTo(HaveOccurred())
 })
 
 var _ = AfterEach(func() {
 	if sessionTmpdir != "" {
-		os.RemoveAll(sessionTmpdir)
+		_ = os.RemoveAll(sessionTmpdir)
 	}
 
-	Expect(dockerClient.RemoveNetwork(dockerNetwork.ID)).To(Succeed())
-
+	Expect(docker.RemoveNetwork(dockerNetwork)).To(Succeed())
 })
 
 func mustAbsPath(path string) string {
@@ -96,43 +88,53 @@ func mustAbsPath(path string) string {
 func createGaleraContainer(
 	name string,
 	cfg config.Config,
-	options ...ContainerOption,
-) (*docker.Container, error) {
+	envVars ...string,
+) (string, error) {
+	GinkgoHelper()
+
 	marshalledConfig, err := json.Marshal(&cfg)
 	if err != nil {
-		return nil, errors.New("failed to marshal configuration")
+		return "", errors.New("failed to marshal configuration")
 	}
 
-	defaultOptions := []ContainerOption{
-		AddExposedPorts(pxcMySQLPort, galeraInitStatusPort),
-		AddBinds(
-			galeraInitPath+":/usr/local/bin/galera-init",
-			// galera-init currently embeds this /var/vcap path internally
-			sessionTmpdir+":"+"/var/vcap/jobs/pxc-mysql/config/",
+	env := []string{
+		"MYSQL_ALLOW_EMPTY_PASSWORD=1",
+		"PXC_CLUSTER_NAME=galera",
+		"CONFIG=" + string(marshalledConfig),
+		"WSREP_CLUSTER_ADDRESS=gcomm://" + name + "." + sessionID,
+		"WSREP_NODE_ADDRESS=" + name + "." + sessionID + ":4567",
+		"WSREP_NODE_NAME=" + name,
+	}
+	env = append(env, envVars...)
+
+	container, err := docker.RunContainer(docker.ContainerSpec{
+		Image:          "percona/percona-xtradb-cluster:8.0",
+		Env:            env,
+		HealthCmd:      "mysqladmin -u root --host=127.0.0.1 ping",
+		HealthInterval: "2s",
+		Ports:          []string{pxcMySQLPort, galeraInitStatusPort},
+		Volumes: []string{
+			galeraInitPath + ":/usr/local/bin/galera-init",
+			sessionTmpdir + ":" + "/var/vcap/jobs/pxc-mysql/config/",
 			mustAbsPath("fixtures/docker_entrypoint.sh:/usr/local/bin/docker_entrypoint.sh"),
 			mustAbsPath("fixtures/init.sql:/usr/local/etc/init.sql"),
 			mustAbsPath("fixtures/my.cnf.template:/usr/local/etc/my.cnf.template"),
-		),
-		AddEnvVars(
-			"CONFIG="+string(marshalledConfig),
-			"WSREP_CLUSTER_ADDRESS=gcomm://"+name+"."+sessionID,
-			"WSREP_NODE_ADDRESS="+name+"."+sessionID+":4567",
-			"WSREP_NODE_NAME="+name,
-		),
-		WithEntrypoint("docker_entrypoint.sh"),
-		WithImage(pxcDockerImage),
-		WithNetwork(dockerNetwork),
-	}
+		},
+		Entrypoint: "docker_entrypoint.sh",
+		Network:    dockerNetwork,
+		Name:       name + "." + sessionID,
+	})
+	Expect(err).NotTo(HaveOccurred(), `Failed to initialize MySQL Container`)
 
-	return RunContainer(
-		dockerClient,
-		name+"."+sessionID,
-		append(defaultOptions, options...)...,
-	)
+	return container, nil
+
 }
 
-func serviceStatus(container *docker.Container) error {
-	serviceHealthyPort := HostPort(galeraInitStatusPort, container)
+func serviceStatus(container string) error {
+	GinkgoHelper()
+	serviceHealthyPort, err := docker.ContainerPort(container, galeraInitStatusPort)
+	Expect(err).NotTo(HaveOccurred())
+
 	res, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s", serviceHealthyPort))
 	if err != nil || res.StatusCode != http.StatusOK {
 		return errors.New("galera-init not healthy")
