@@ -1,6 +1,6 @@
 module github.com/cloudfoundry-incubator/galera-healthcheck
 
-go 1.24.0
+go 1.25.0
 
 require (
 	code.cloudfoundry.org/lager/v3 v3.46.0
