@@ -29,9 +29,10 @@ import (
 
 var _ = Describe("Feature Verification", Ordered, Label("verification"), func() {
 	var (
-		db             *sql.DB
-		deploymentName string
-		proxyHost      string
+		db                 *sql.DB
+		deploymentName     string
+		proxyHost          string
+		expectedAuthPlugin string
 	)
 
 	var innodbBufferPoolSizePercent int64 = 14
@@ -42,6 +43,12 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			var err error
 			innodbBufferPoolSizePercent, err = strconv.ParseInt(os.Getenv("INNODB_BUFFER_POOL_SIZE_PERCENT"), 10, 64)
 			Expect(err).NotTo(HaveOccurred(), `Failed to parse INNODB_BUFFER_POOL_SIZE_PERCENT as an integer value`)
+		}
+
+		if os.Getenv("MYSQL_VERSION") != "5.7" {
+			expectedAuthPlugin = "caching_sha2_password"
+		} else {
+			expectedAuthPlugin = "mysql_native_password"
 		}
 
 		Expect(bosh.DeployPXC(deploymentName,
@@ -60,6 +67,10 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`enable-jemalloc.yml`),
 			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation(`test/sysbench-user.yml`),
+			bosh.Operation(`test/sysbench-user-set-auth-plugin.yml`),
+			bosh.Operation(`test/smoke-tests-use-legacy-auth.yml`),
+			bosh.Operation("default-auth-plugin.yml"),
+			bosh.Var("auth_plugin", expectedAuthPlugin),
 			bosh.Var(`innodb_buffer_pool_size_percent`, strconv.FormatInt(innodbBufferPoolSizePercent, 10)),
 			bosh.Var(`binlog_space_percent`, `20`),
 		)).To(Succeed())
@@ -916,7 +927,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		BeforeAll(func() {
 			if expectedMysqlVersion == "5.7" {
 				Skip("MYSQL_VERSION(" + expectedMysqlVersion + ") < v8.0. Skipping Percona v8.0+ jemalloc profiling feature test.")
-
 			}
 
 			By("enabling jemalloc profiling")
@@ -1003,40 +1013,70 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		})
 	})
 
+	connectAsUser := func(dbUser, dbPassword string, allowNativePassword bool) (*sql.DB, error) {
+		cfg := mysql.Config{
+			User:                 dbUser,
+			Passwd:               dbPassword,
+			Net:                  "tcp",
+			Addr:                 proxyHost,
+			TLSConfig:            "preferred",
+			AllowNativePasswords: allowNativePassword,
+		}
+		connector, err := mysql.NewConnector(&cfg)
+		if err != nil {
+			return nil, err
+		}
+		return sql.OpenDB(connector), nil
+	}
+
+	DescribeTableSubtree("caching_sha2_password plugin support",
+		func(dbUser, credhubRef string) {
+			BeforeEach(func() {
+				if os.Getenv("MYSQL_VERSION") == "5.7" {
+					Skip(`MYSQL_VERSION == "5.7"; Skipping caching_sha2_password test as MySQL v5.7 does not support this plugin`)
+				}
+			})
+
+			It("configures the expected authentication method to the database", func() {
+				dbPassword, err := credhub.GetCredhubPassword(path.Join(deploymentName, credhubRef))
+				Expect(err).NotTo(HaveOccurred())
+
+				// disable legacy password auth to validate the expected auth method was used
+				const allowNativePassword = false
+				db, err := connectAsUser(dbUser, dbPassword, allowNativePassword)
+				Expect(err).NotTo(HaveOccurred())
+				defer db.Close()
+				Expect(db.Ping()).To(Succeed())
+			})
+		},
+		Entry("seeded user", "generic-user", "generic_user_password"),
+		Entry("seeded database user", "sbtest", "sysbench_db_password"),
+	)
+
 	Context("Authentication", Label("authentication"), func() {
-		DescribeTable("creates users that explicitly set caching_sha2_password", func(dbUser, credhubRef string) {
-			dbPassword, err := credhub.GetCredhubPassword(path.Join(deploymentName, credhubRef))
+		It("still allows connecting as a legacy user", func() {
+			dbPassword, err := credhub.GetCredhubPassword(path.Join(deploymentName, "smoke_tests_db_password"))
 			Expect(err).NotTo(HaveOccurred())
-			cfg := mysql.Config{
-				User:                 dbUser,
-				Passwd:               dbPassword,
-				Net:                  "tcp",
-				Addr:                 proxyHost,
-				TLSConfig:            "preferred",
-				AllowNativePasswords: false, // <- Explicitly show disabling mysql_native_password support
-			}
-			connector, err := mysql.NewConnector(&cfg)
+
+			const allowNativePassword = true
+			db, err := connectAsUser("smoke-tests-user", dbPassword, allowNativePassword)
 			Expect(err).NotTo(HaveOccurred())
-			db := sql.OpenDB(connector)
 			defer db.Close()
 			Expect(db.Ping()).To(Succeed())
-		},
-			Entry("seeded user", "generic-user", "generic_user_password"),
-			Entry("seeded database user", "sbtest", "sysbench_db_password"),
-		)
+		})
 
 		It("creates galera-agent user with default user_authentication_policy", func() {
 			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "SELECT user, plugin FROM mysql.user WHERE user = 'galera-agent'\G"`)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(ContainSubstring("user: galera-agent"))
-			Expect(out).To(ContainSubstring("plugin: mysql_native_password"))
+			Expect(out).To(ContainSubstring("plugin: " + expectedAuthPlugin))
 		})
 
 		It("creates cluster-health-logger user with default user_authentication_policy", func() {
 			out, err := bosh.RemoteCommand(deploymentName, "mysql/0", `sudo mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf --silent --silent --execute "SELECT user, plugin FROM mysql.user WHERE user = 'cluster-health-logger'\G"`)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out).To(ContainSubstring("user: cluster-health-logger"))
-			Expect(out).To(ContainSubstring("plugin: mysql_native_password"))
+			Expect(out).To(ContainSubstring("plugin: " + expectedAuthPlugin))
 		})
 	})
 })

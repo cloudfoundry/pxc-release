@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/user_authentication_policy?
+  value: ((auth_plugin))
