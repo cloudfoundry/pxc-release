@@ -2,6 +2,7 @@ package e2e_tests
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"database/sql"
 	"encoding/json"
@@ -692,12 +693,12 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		const (
 			databaseName      = "pxc_release_test_db"
 			auditLogDirectory = "/var/vcap/store/mysql_audit_logs"
-			auditLogPath      = "/var/vcap/store/mysql_audit_logs/mysql_server_audit.log"
 		)
 
 		var (
-			activeBackend string
-			tmpdir        string
+			activeBackend  string
+			tmpdir         string
+			auditLogReader AuditLogReader
 		)
 
 		cleanupUsers := func(db *sql.DB, mysqlUsername string) {
@@ -714,20 +715,16 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Error().NotTo(HaveOccurred())
 		}
 
-		readAndWriteFromDB := func(db *sql.DB) {
-			Expect(db.Query("REPLACE INTO pxc_release_test_db.audit_logging_test_table VALUES('writing data')")).
+		readAndWriteFromDB := func(db *sql.DB, data string) {
+			Expect(db.Query("REPLACE INTO pxc_release_test_db.audit_logging_test_table VALUES(?)", data)).
 				Error().NotTo(HaveOccurred())
 			Expect(db.Query(`SELECT * FROM pxc_release_test_db.audit_logging_test_table`)).
 				Error().NotTo(HaveOccurred())
 		}
 
-		readAndWriteDataAndGetAuditLogContents := func(db *sql.DB, activeBackend string) string {
-			readAndWriteFromDB(db)
-			Expect(bosh.Scp(deploymentName, activeBackend+":"+auditLogPath, tmpdir)).
-				To(Succeed())
-			auditLogContents, err := os.ReadFile(filepath.Join(tmpdir, "mysql_server_audit.log"))
-			Expect(err).NotTo(HaveOccurred())
-			return string(auditLogContents)
+		readAndWriteDataAndGetAuditLogContents := func(db *sql.DB, data string) string {
+			readAndWriteFromDB(db, data)
+			return auditLogReader.Contents()
 		}
 
 		enableAccessToAuditLogs := func(backend string) {
@@ -751,10 +748,21 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 				Error().NotTo(HaveOccurred())
 
 			enableAccessToAuditLogs(activeBackend)
+
+			auditLogReader = AuditLogReaderFactory(AuditLogConfig{
+				DeploymentName: deploymentName,
+				ActiveBackend:  activeBackend,
+				TmpDir:         tmpdir,
+				Db:             db,
+			})
 		})
 
 		AfterAll(func() {
 			Expect(os.RemoveAll(tmpdir)).To(Succeed())
+		})
+
+		It("configures the Percona audit log", func() {
+			auditLogReader.Validate()
 		})
 
 		When("reading and writing data as an excluded user", func() {
@@ -774,8 +782,11 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 					dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", excludedUser, excludedUserPassword, proxyHost, 3306)
 					db, err := sql.Open("mysql", dsn)
 					Expect(err).NotTo(HaveOccurred())
-					auditLogContents := readAndWriteDataAndGetAuditLogContents(db, activeBackend)
-					Expect(auditLogContents).ToNot(ContainSubstring("\"user\":\"excludeDBAudit1[excludeDBAudit1]"))
+
+					data := uuid.NewString()
+					auditLogContents := readAndWriteDataAndGetAuditLogContents(db, data)
+					Expect(auditLogContents).ToNot(ContainSubstring(`[excludeDBAudit1]`))
+					Expect(auditLogContents).ToNot(ContainSubstring(data))
 				})
 			})
 
@@ -791,8 +802,11 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 					dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", excludedUser, excludedUserPassword, proxyHost, 3306)
 					db, err := sql.Open("mysql", dsn)
 					Expect(err).NotTo(HaveOccurred())
-					auditLogContents := readAndWriteDataAndGetAuditLogContents(db, activeBackend)
-					Expect(auditLogContents).ToNot(ContainSubstring("\"user\":\"excludeDBAudit2[excludeDBAudit2]"))
+
+					data := uuid.NewString()
+					auditLogContents := readAndWriteDataAndGetAuditLogContents(db, data)
+					Expect(auditLogContents).ToNot(ContainSubstring(`[excludeDBAudit2]`))
+					Expect(auditLogContents).ToNot(ContainSubstring(data))
 				})
 			})
 		})
@@ -811,21 +825,13 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 
 			It("does log all of the included user's activity in the audit log", func() {
 				dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", includedUser, includedUserPassword, proxyHost, 3306)
-
 				db, err := sql.Open("mysql", dsn)
 				Expect(err).NotTo(HaveOccurred())
-				auditLogContents := readAndWriteDataAndGetAuditLogContents(db, activeBackend)
-				Expect(auditLogContents).To(ContainSubstring("\"user\":\"included_user[included_user]"))
-			})
 
-			It("does NOT log the user's LOGIN event in the audit log", func() {
-				dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?tls=skip-verify", includedUser, includedUserPassword, proxyHost, 3306)
-
-				db, err := sql.Open("mysql", dsn)
-				Expect(err).NotTo(HaveOccurred())
-				auditLogContents := readAndWriteDataAndGetAuditLogContents(db, activeBackend)
-				Expect(auditLogContents).To(ContainSubstring("\"user\":\"included_user[included_user]"))
-				Expect(auditLogContents).ToNot(ContainSubstring("{\"audit_record\":{\"name\":\"Connect\""))
+				data := uuid.NewString()
+				auditLogContents := readAndWriteDataAndGetAuditLogContents(db, data)
+				Expect(auditLogContents).To(ContainSubstring(`[included_user]`))
+				Expect(auditLogContents).To(ContainSubstring(data))
 			})
 		})
 	})
@@ -1080,3 +1086,110 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		})
 	})
 })
+
+type AuditLogReader interface {
+	Contents() string
+	Validate()
+}
+
+type AuditLogConfig struct {
+	DeploymentName string // i.e. "pxc-deployment-name"
+	ActiveBackend  string // i.e. "mysql/0"
+	TmpDir         string // scratch dir for downloading files to
+	Db             *sql.DB
+}
+
+func AuditLogReaderFactory(cfg AuditLogConfig) AuditLogReader {
+	switch os.Getenv("MYSQL_VERSION") {
+	case "8.0", "5.7":
+		return LegacyAuditPluginReader{AuditLogConfig: cfg}
+	default:
+		return AuditFilterReader{AuditLogConfig: cfg}
+	}
+}
+
+type AuditFilterReader struct {
+	AuditLogConfig
+}
+
+func (r AuditFilterReader) Contents() string {
+	GinkgoHelper()
+
+	// Force a rotation to ensure latest logs are available and read the rotated log
+	var auditLogFilename string
+	Expect(r.Db.QueryRow(`SELECT audit_log_rotate()`).Scan(&auditLogFilename)).To(Succeed())
+
+	expectedPath := path.Join("/var/vcap/store/mysql_audit_logs", auditLogFilename)
+	Expect(bosh.Scp(r.DeploymentName, r.ActiveBackend+":"+expectedPath, r.TmpDir)).
+		To(Succeed(), `Failed to bosh scp audit log to tmpdir`)
+
+	return r.readGzipCompressedFile(filepath.Join(r.TmpDir, auditLogFilename))
+}
+
+func (AuditFilterReader) readGzipCompressedFile(path string) string {
+	GinkgoHelper()
+
+	f, err := os.Open(path)
+	Expect(err).NotTo(HaveOccurred(), `Failed to open rotated audit log file %q`, path)
+	defer f.Close()
+
+	gzipReader, err := gzip.NewReader(f)
+	Expect(err).NotTo(HaveOccurred(), `Failed to read gzip-compressed audit log`, path)
+	defer gzipReader.Close()
+
+	data, err := io.ReadAll(gzipReader)
+	Expect(err).NotTo(HaveOccurred(), `Failed to decompress audit log content`)
+
+	return string(data)
+}
+
+func (r AuditFilterReader) Validate() {
+	GinkgoHelper()
+
+	var (
+		auditLogDisabled bool
+		auditLogFormat   string
+	)
+
+	Expect(r.Db.QueryRow(`SELECT @@global.audit_log_filter.disable, @@global.audit_log_filter.format`).Scan(&auditLogDisabled, &auditLogFormat)).
+		To(Succeed(), `Failed to query audit log configuration`)
+
+	Expect(auditLogDisabled).To(BeFalse(), `Expected audit logs to NOT be disabled, but global.audit_log_filter.disabled is set!`)
+	Expect(auditLogFormat).To(Equal("JSON"),
+		`Unexpected audit_log_filter.format = %q, expected "JSON"`, auditLogFormat)
+
+}
+
+type LegacyAuditPluginReader struct {
+	AuditLogConfig
+}
+
+func (r LegacyAuditPluginReader) Contents() string {
+	GinkgoHelper()
+
+	const expectedPath = "/var/vcap/store/mysql_audit_logs/mysql_server_audit.log"
+	Expect(bosh.Scp(r.DeploymentName, r.ActiveBackend+":"+expectedPath, r.TmpDir)).
+		To(Succeed(), `Failed to bosh scp audit log to tmpdir`)
+	auditLogContents, err := os.ReadFile(filepath.Join(r.TmpDir, filepath.Base(expectedPath)))
+	Expect(err).NotTo(HaveOccurred(), `Failed to read audit log contents`)
+
+	return string(auditLogContents)
+}
+
+func (r LegacyAuditPluginReader) Validate() {
+	GinkgoHelper()
+
+	var (
+		auditLogPolicy string
+		auditLogFormat string
+	)
+
+	Expect(r.Db.QueryRow(`SELECT @@global.audit_log_policy, @@global.audit_log_format`).
+		Scan(&auditLogPolicy, &auditLogFormat)).
+		To(Succeed(), `Failed to query @@global.audit_log_filter.disabled`)
+
+	Expect(auditLogPolicy).To(Equal("QUERIES"),
+		`Expected audit logs to be active and configured to log only queries, but @@global.audit_log_policy was %q`, auditLogPolicy)
+	Expect(auditLogFormat).To(Equal("JSON"),
+		`Unexpected audit_log_format = %q`, auditLogFormat)
+}
