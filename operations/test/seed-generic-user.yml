@@ -6,7 +6,7 @@
     schema: generic_db
     host: any
     password: ((generic_user_password))
-    auth_plugin: caching_sha2_password
+    auth_plugin: ((auth_plugin))
 
 - type: replace
   path: /variables/name=generic_user_password?
