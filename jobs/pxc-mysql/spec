@@ -21,6 +21,7 @@ templates:
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
   pre-start.sh.erb: bin/pre-start
+  post-start.sh.erb: bin/post-start
   pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
@@ -200,6 +201,33 @@ properties:
   engine_config.audit_logs.rotate_size_in_mb:
     description: 'Size in MB of each audit log file'
     default: 100
+  engine_config.audit_logs.default_filter:
+    description: >
+      Default audit log filter definition.
+      See: https://docs.percona.com/percona-server/8.4/write-filter-definitions.html
+    default: |
+      {
+        "filter": {
+          "class": [
+            {
+              "name": "general",
+              "event": {"name": "log"}
+            },
+            {
+              "name": "table_access"
+            },
+            {
+              "name": "query"
+            },
+            { "name": "connection" }
+          ]
+        }
+      }
+  engine_config.audit_logs.enable_compression:
+    description: >
+      Enable audit log compression.
+      Only applies when mysql_verison = 8.4 and later
+    default: true
   engine_config.log_queries_not_using_indexes:
     description: 'Queries that do not use an index, or that perform a full index scan where the index does not limit the number of rows, will be logged to the slow query log.'
     default: false
