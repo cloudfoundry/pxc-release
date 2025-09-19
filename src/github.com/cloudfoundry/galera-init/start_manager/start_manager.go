@@ -152,15 +152,6 @@ func (m *startManager) getCurrentNodeState() (string, error) {
 		return node_starter.NeedsBootstrap, nil
 	}
 
-	// If the previous state was CLUSTERED but the cluster is not healthy,
-	// and we're not the bootstrap node, try HALTED state for sequence recovery
-	if state == node_starter.Clustered && !m.config.BootstrapNode {
-		if !m.healthChecker.HealthyCluster() {
-			m.logger.Info("Cluster not healthy and node was previously clustered - attempting HALTED recovery")
-			return node_starter.Halted, nil
-		}
-	}
-
 	return state, nil
 }
 

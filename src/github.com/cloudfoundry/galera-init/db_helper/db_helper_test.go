@@ -478,4 +478,71 @@ var _ = Describe("GaleraDBHelper", func() {
 		})
 
 	})
+
+	Describe("StartThenHaltMysqld", func() {
+		It("starts mysqld with wsrep-recover option", func() {
+			fakeOs.StartCommandStub = func(_ string, executable string, args ...string) (*exec.Cmd, error) {
+				return exec.Command(executable, args...), nil
+			}
+
+			cmd, err := helper.StartThenHaltMysqld()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmd).ToNot(BeNil())
+
+			Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
+
+			logPath, executable, args := fakeOs.StartCommandArgsForCall(0)
+			Expect(logPath).To(Equal("/log-file.log"))
+			Expect(executable).To(Equal("mysqld"))
+			Expect(args).To(Equal([]string{
+				"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
+				"--defaults-group-suffix=_plugin",
+				"--wsrep-recover",
+			}))
+		})
+
+		Context("when an error occurs", func() {
+			BeforeEach(func() {
+				fakeOs.StartCommandReturns(nil, fmt.Errorf("injected StartCommand error"))
+			})
+			
+			It("returns an error", func() {
+				cmd, err := helper.StartThenHaltMysqld()
+				Expect(err).To(MatchError(`injected StartCommand error`))
+				Expect(cmd).To(BeNil())
+			})
+		})
+
+		It("logs the correct message", func() {
+			fakeOs.StartCommandStub = func(_ string, executable string, args ...string) (*exec.Cmd, error) {
+				return exec.Command(executable, args...), nil
+			}
+
+			_, err := helper.StartThenHaltMysqld()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify the correct log message was written
+			logs := testLogger.Logs()
+			Expect(logs).To(HaveLen(1))
+			Expect(logs[0].Message).To(Equal("db_helper.Starting then immediately halting mysqld."))
+		})
+
+		Context("when StartCommand fails with error", func() {
+			BeforeEach(func() {
+				fakeOs.StartCommandReturns(nil, fmt.Errorf("command failed"))
+			})
+
+			It("logs the error and returns it", func() {
+				cmd, err := helper.StartThenHaltMysqld()
+				Expect(err).To(MatchError("command failed"))
+				Expect(cmd).To(BeNil())
+
+				// Verify both the starting message and error message were logged
+				logs := testLogger.Logs()
+				Expect(logs).To(HaveLen(2))
+				Expect(logs[0].Message).To(Equal("db_helper.Starting then immediately halting mysqld."))
+				Expect(logs[1].Message).To(Equal("db_helper.Error starting mysqld: command failed"))
+			})
+		})
+	})
 })

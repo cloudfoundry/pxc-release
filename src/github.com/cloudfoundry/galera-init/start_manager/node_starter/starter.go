@@ -4,10 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
-	"path"
-	"regexp"
 	"strings"
 	"time"
 
@@ -78,7 +75,7 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		mysqldChan, err = s.joinCluster()
 		newNodeState = Clustered
 	case Halted:
-		mysqldChan, err = s.startMysqldWithRecovery()
+		mysqldChan, err = s.startThenHalt()
 		newNodeState = Clustered
 	default:
 		err = fmt.Errorf("Unsupported state file contents: %s", state)
@@ -90,9 +87,11 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		return "", nil, errors.New("Starting mysql failed, no channel created - exiting")
 	}
 
-	err = s.waitForDatabaseToAcceptConnections(mysqldChan)
-	if err != nil {
-		return "", nil, err
+	if state != Halted {
+		err = s.waitForDatabaseToAcceptConnections(mysqldChan)
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
 	return newNodeState, mysqldChan, nil
@@ -119,7 +118,7 @@ func (s *starter) bootstrapNode() (chan error, error) {
 		return nil, err
 	}
 	s.mysqlCmd = cmd
-	s.logger.Info("Issusing a non-blocking Wait for mysqld in bootstrapping mode")
+	s.logger.Info("Issuing a non-blocking Wait for mysqld in bootstrapping mode")
 	errorChan := s.osHelper.WaitForCommand(cmd)
 	return errorChan, nil
 }
@@ -133,93 +132,25 @@ func (s *starter) joinCluster() (chan error, error) {
 	}
 
 	s.mysqlCmd = cmd
-	s.logger.Info("Issueing a non-blocking Wait for mysqld in join cluster mode")
+	s.logger.Info("Issuing a non-blocking Wait for mysqld in join cluster mode")
 	mysqldChan := s.osHelper.WaitForCommand(cmd)
 
 	return mysqldChan, nil
 }
 
-func (s *starter) recoverSeqno() (string, error) {
-	s.logger.Info("Recovering sequence number using mysqld --wsrep-recover")
-	
-	errorLogFile := path.Join(os.TempDir(), "galera-init-mysqld-log.err")
-	os.RemoveAll(errorLogFile) // ensure log is empty
+func (s *starter) startThenHalt() (chan error, error) {
+	s.logger.Info("Starting then halting")
+	cmd, err := s.dbHelper.StartThenHaltMysqld()
 
-	cmd := exec.Command("mysqld",
-		"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-		"--wsrep-recover",
-		fmt.Sprintf("--log-error=%s", errorLogFile))
-
-	stdout, cmdErr := cmd.CombinedOutput()
-	stderr, readingLogErr := ioutil.ReadFile(errorLogFile)
-	if readingLogErr != nil {
-		stderr = []byte("failed to read stderr")
-	}
-
-	if cmdErr != nil {
-		s.logger.Error("Error running mysqld recovery", cmdErr, lager.Data{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		})
-		return "", cmdErr
-	} else {
-		s.logger.Debug(string(stdout))
-	}
-
-	seqNoRegex := `WSREP. Recovered position:.*:(-?\d+)`
-	re := regexp.MustCompile(seqNoRegex)
-	sequenceNumberLogLine := re.FindStringSubmatch(string(stderr))
-
-	if len(sequenceNumberLogLine) < 2 {
-		// First match is the whole string, second match is the seq no
-		err := errors.New(fmt.Sprintf("Couldn't find regex: %s Log Line: %s", seqNoRegex, sequenceNumberLogLine))
-		s.logger.Error("Failed to parse seqno from logs", err)
-		return "", err
-	}
-
-	sequenceNumber := sequenceNumberLogLine[1]
-	s.logger.Info(fmt.Sprintf("Recovered sequence number: %s", sequenceNumber))
-	return sequenceNumber, nil
-}
-
-func (s *starter) startMysqldWithRecovery() (chan error, error) {
-	s.logger.Info("Starting mysqld with sequence number recovery (HALTED mode)")
-	
-	// Recover sequence number first
-	seqno, err := s.recoverSeqno()
 	if err != nil {
-		s.logger.Error("Failed to recover sequence number", err)
 		return nil, err
 	}
 
-	// Start MySQL in join mode with recovered sequence position
-	var mysqldArgs []string
-	if seqno != "" && seqno != "-1" {
-		// Use the recovered sequence number to set wsrep start position
-		// Format as UUID:seqno - we'll use a placeholder UUID since we only have seqno
-		mysqldArgs = append(mysqldArgs, "--wsrep-start-position=00000000-0000-0000-0000-000000000000:"+seqno)
-	}
-
-	cmd, err := s.startMysqldAsChildProcess(mysqldArgs...)
-	if err != nil {
-		s.logger.Info(fmt.Sprintf("Error starting mysqld with recovery: %s", err.Error()))
-		return nil, err
-	}
 	s.mysqlCmd = cmd
-	s.logger.Info("Issuing a non-blocking Wait for mysqld in recovery mode")
-	errorChan := s.osHelper.WaitForCommand(cmd)
-	return errorChan, nil
-}
+	s.logger.Info("Issuing a non-blocking Wait for mysqld in exit in Halt mode")
+	mysqldChan := s.osHelper.WaitForCommand(cmd)
 
-func (s *starter) startMysqldAsChildProcess(mysqlArgs ...string) (*exec.Cmd, error) {
-	args := append(
-		[]string{
-			"--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf",
-			"--defaults-group-suffix=_plugin",
-		},
-		mysqlArgs...,
-	)
-	return s.osHelper.StartCommand(s.config.LogFileLocation, "mysqld", args...)
+	return mysqldChan, nil
 }
 
 func (s *starter) waitForDatabaseToAcceptConnections(mysqldChan chan error) error {

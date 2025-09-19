@@ -17,6 +17,7 @@ import (
 type DBHelper interface {
 	StartMysqldInJoin() (*exec.Cmd, error)
 	StartMysqldInBootstrap() (*exec.Cmd, error)
+	StartThenHaltMysqld() (*exec.Cmd, error)
 	StopMysqld()
 	IsDatabaseReachable() bool
 	IsProcessRunning() bool
@@ -115,6 +116,20 @@ func (m GaleraDBHelper) StartMysqldInBootstrap() (*exec.Cmd, error) {
 
 	if err != nil {
 		m.logger.Info(fmt.Sprintf("Error starting node with 'bootstrap': %s", err.Error()))
+		return nil, err
+	}
+	return cmd, nil
+}
+
+func (m GaleraDBHelper) StartThenHaltMysqld() (*exec.Cmd, error) {
+	m.logger.Info("Starting then immediately halting mysqld.")
+
+	var mysqldArgs []string
+	mysqldArgs = append(mysqldArgs, "--wsrep-recover")
+
+	cmd, err := m.startMysqldAsChildProcess(mysqldArgs...)
+	if err != nil {
+		m.logger.Info(fmt.Sprintf("Error starting mysqld: %s", err.Error()))
 		return nil, err
 	}
 	return cmd, nil
