@@ -53,6 +53,18 @@ type FakeDBHelper struct {
 		result1 *exec.Cmd
 		result2 error
 	}
+	StartThenHaltMysqldStub        func() (*exec.Cmd, error)
+	startThenHaltMysqldMutex       sync.RWMutex
+	startThenHaltMysqldArgsForCall []struct {
+	}
+	startThenHaltMysqldReturns struct {
+		result1 *exec.Cmd
+		result2 error
+	}
+	startThenHaltMysqldReturnsOnCall map[int]struct {
+		result1 *exec.Cmd
+		result2 error
+	}
 	StopMysqldStub        func()
 	stopMysqldMutex       sync.RWMutex
 	stopMysqldArgsForCall []struct {
@@ -274,6 +286,62 @@ func (fake *FakeDBHelper) StartMysqldInJoinReturnsOnCall(i int, result1 *exec.Cm
 		})
 	}
 	fake.startMysqldInJoinReturnsOnCall[i] = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartThenHaltMysqld() (*exec.Cmd, error) {
+	fake.startThenHaltMysqldMutex.Lock()
+	ret, specificReturn := fake.startThenHaltMysqldReturnsOnCall[len(fake.startThenHaltMysqldArgsForCall)]
+	fake.startThenHaltMysqldArgsForCall = append(fake.startThenHaltMysqldArgsForCall, struct {
+	}{})
+	stub := fake.StartThenHaltMysqldStub
+	fakeReturns := fake.startThenHaltMysqldReturns
+	fake.recordInvocation("StartThenHaltMysqld", []interface{}{})
+	fake.startThenHaltMysqldMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeDBHelper) StartThenHaltMysqldCallCount() int {
+	fake.startThenHaltMysqldMutex.RLock()
+	defer fake.startThenHaltMysqldMutex.RUnlock()
+	return len(fake.startThenHaltMysqldArgsForCall)
+}
+
+func (fake *FakeDBHelper) StartThenHaltMysqldCalls(stub func() (*exec.Cmd, error)) {
+	fake.startThenHaltMysqldMutex.Lock()
+	defer fake.startThenHaltMysqldMutex.Unlock()
+	fake.StartThenHaltMysqldStub = stub
+}
+
+func (fake *FakeDBHelper) StartThenHaltMysqldReturns(result1 *exec.Cmd, result2 error) {
+	fake.startThenHaltMysqldMutex.Lock()
+	defer fake.startThenHaltMysqldMutex.Unlock()
+	fake.StartThenHaltMysqldStub = nil
+	fake.startThenHaltMysqldReturns = struct {
+		result1 *exec.Cmd
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDBHelper) StartThenHaltMysqldReturnsOnCall(i int, result1 *exec.Cmd, result2 error) {
+	fake.startThenHaltMysqldMutex.Lock()
+	defer fake.startThenHaltMysqldMutex.Unlock()
+	fake.StartThenHaltMysqldStub = nil
+	if fake.startThenHaltMysqldReturnsOnCall == nil {
+		fake.startThenHaltMysqldReturnsOnCall = make(map[int]struct {
+			result1 *exec.Cmd
+			result2 error
+		})
+	}
+	fake.startThenHaltMysqldReturnsOnCall[i] = struct {
 		result1 *exec.Cmd
 		result2 error
 	}{result1, result2}

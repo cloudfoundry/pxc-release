@@ -201,59 +201,29 @@ var _ = Describe("Starter", func() {
 			BeforeEach(func() {
 				fakeCommandHaltedStr = "fake-command-halted"
 				fakeCommandHalted = exec.Command(fakeCommandHaltedStr)
-				fakeOs.StartCommandReturns(fakeCommandHalted, nil)
-				fakeOs.RunCommandReturns("WSREP: Recovered position: 00000000-0000-0000-0000-000000000000:123", nil)
+				fakeDBHelper.StartThenHaltMysqldReturns(fakeCommandHalted, nil)
 			})
 
-			It("starts mysqld with sequence recovery", func() {
+			It("calls StartThenHaltMysqld and transitions to CLUSTERED", func() {
 				newNodeState, mysqlErrChan, err := starter.StartNodeFromState("HALTED")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				Expect(mysqlErrChan).NotTo(BeNil())
-				
-				// Verify that StartCommand was called for mysqld with recovery
-				Expect(fakeOs.StartCommandCallCount()).To(Equal(1))
-				logFile, command, args := fakeOs.StartCommandArgsForCall(0)
-				Expect(command).To(Equal("mysqld"))
-				Expect(args).To(ContainElement("--defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf"))
-				Expect(args).To(ContainElement("--wsrep-start-position=00000000-0000-0000-0000-000000000000:123"))
-				
+
+				// Verify that StartThenHaltMysqld was called
+				Expect(fakeDBHelper.StartThenHaltMysqldCallCount()).To(Equal(1))
 				ensureMysqlCmdMatches(fakeCommandHaltedStr)
 			})
 
-			Context("when sequence recovery fails", func() {
+			Context("when StartThenHaltMysqld fails", func() {
 				BeforeEach(func() {
-					fakeOs.RunCommandReturns("", errors.New("recovery failed"))
+					fakeDBHelper.StartThenHaltMysqldReturns(nil, errors.New("start then halt failed"))
 				})
 
 				It("returns an error", func() {
 					_, _, err := starter.StartNodeFromState("HALTED")
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("recovery failed"))
-				})
-			})
-
-			Context("when sequence number is not found in logs", func() {
-				BeforeEach(func() {
-					fakeOs.RunCommandReturns("No WSREP recovery info", nil)
-				})
-
-				It("returns an error", func() {
-					_, _, err := starter.StartNodeFromState("HALTED")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Couldn't find regex"))
-				})
-			})
-
-			Context("when StartCommand fails", func() {
-				BeforeEach(func() {
-					fakeOs.StartCommandReturns(nil, errors.New("start command failed"))
-				})
-
-				It("returns an error", func() {
-					_, _, err := starter.StartNodeFromState("HALTED")
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("start command failed"))
+					Expect(err.Error()).To(ContainSubstring("start then halt failed"))
 				})
 			})
 		})
