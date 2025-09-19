@@ -383,6 +383,66 @@ var _ = Describe("StartManager", func() {
 					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(0))
 				})
 			})
+
+			Context("And contains CLUSTERED state but cluster is not healthy", func() {
+				BeforeEach(func() {
+					mgr = createManager(managerArgs{
+						NodeCount:     3,
+						BootstrapNode: false,
+					})
+					fakeOs.ReadFileReturns(node_starter.Clustered, nil)
+					fakeHealthChecker.HealthyClusterReturns(false)
+					startNodeReturn = node_starter.Clustered
+				})
+
+				It("transitions to HALTED state for recovery", func() {
+					err := mgr.Execute(context.TODO())
+					Expect(err).ToNot(HaveOccurred())
+					ensureStartNodeWithMode(node_starter.Halted)
+					ensureStateFileContentIs(node_starter.Clustered)
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("And contains CLUSTERED state but cluster is healthy", func() {
+				BeforeEach(func() {
+					mgr = createManager(managerArgs{
+						NodeCount:     3,
+						BootstrapNode: false,
+					})
+					fakeOs.ReadFileReturns(node_starter.Clustered, nil)
+					fakeHealthChecker.HealthyClusterReturns(true)
+					startNodeReturn = node_starter.Clustered
+				})
+
+				It("remains in CLUSTERED state", func() {
+					err := mgr.Execute(context.TODO())
+					Expect(err).ToNot(HaveOccurred())
+					ensureStartNodeWithMode(node_starter.Clustered)
+					ensureStateFileContentIs(node_starter.Clustered)
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("And contains CLUSTERED state but is bootstrap node", func() {
+				BeforeEach(func() {
+					mgr = createManager(managerArgs{
+						NodeCount:     3,
+						BootstrapNode: true,
+					})
+					fakeOs.ReadFileReturns(node_starter.Clustered, nil)
+					fakeHealthChecker.HealthyClusterReturns(false)
+					startNodeReturn = node_starter.Clustered
+				})
+
+				It("remains in CLUSTERED state (no HALTED transition)", func() {
+					err := mgr.Execute(context.TODO())
+					Expect(err).ToNot(HaveOccurred())
+					ensureStartNodeWithMode(node_starter.Clustered)
+					ensureStateFileContentIs(node_starter.Clustered)
+					Expect(fakeserviceStatusServer.StartCallCount()).To(Equal(1))
+				})
+			})
 		})
 	})
 
