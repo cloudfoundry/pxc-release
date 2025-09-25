@@ -239,6 +239,11 @@ event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_sche
 <%- end -%>
 
 [<%= section = 'mysqld_plugin' %>]
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+  <%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-5.7_plugin' %>]
 <%- if p('engine_config.audit_logs.enabled') -%>
 plugin-load-add                 = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
@@ -248,6 +253,38 @@ audit_log_rotations             = 1
 audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
 audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
 <%- end -%>
+
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.0_plugin' %>]
+<%- if p('engine_config.audit_logs.enabled') -%>
+plugin-load-add                 = audit_log=audit_log.so
+audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
+audit_log_format                = JSON
+audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
+audit_log_rotations             = 1
+audit_log_rotate_on_size        = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>MB
+audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_policy') %>
+<%- end -%>
+<%- additional_entries.extract_section(section).each do |key, value| -%>
+<%= key %> = <%= value %>
+<%- end -%>
+
+[<%= section = 'mysqld-8.4_plugin' %>]
+# "loose" used here because the component may not yet be loaded when mysqld first starts
+# Audit log component will read this configuration on first try
+# "loose" tells mysql to not treat "unknown option" as a fatal error
+loose-audit_log_filter.disable        = <%= ! p('engine_config.audit_logs.enabled') %>
+loose-audit_log_filter.compression    = <%= p('engine_config.audit_logs.enable_compression')? 'GZIP' : 'NONE' %>
+loose-audit_log_filter.database       = mysql
+loose-audit_log_filter.file           = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
+loose-audit_log_filter.format         = JSON
+loose-audit_log_filter.rotate_on_size = <%= p('engine_config.audit_logs.rotate_size_in_mb') %>M
+loose-audit_log_filter.max_size       = <%= (p('engine_config.audit_logs.file_rotations') + 1) * p('engine_config.audit_logs.rotate_size_in_mb') %>M
+# Note: Users and policy filters are controlled via SQL commands
+# See: https://docs.percona.com/percona-server/8.4/audit-log-filter-overview.html
 <%- additional_entries.extract_section(section).each do |key, value| -%>
 <%= key %> = <%= value %>
 <%- end -%>
