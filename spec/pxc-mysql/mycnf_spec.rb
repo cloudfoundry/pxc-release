@@ -48,7 +48,7 @@ describe 'my.cnf template' do
   }
 
   it 'sets the authentication-policy' do
-    expect(rendered_template).to match(/authentication-policy\s*=\s*caching_sha2_password/)
+    expect(rendered_template).to match(/authentication_policy\s*=\s*caching_sha2_password/)
   end
 
   context 'when no explicit collation is set' do
@@ -89,7 +89,7 @@ describe 'my.cnf template' do
     end
 
     it 'enables require-secure-transport' do
-      expect(rendered_template).to include("require-secure-transport        = ON")
+      expect(rendered_template).to include("require_secure_transport        = ON")
     end
   end
   context 'tls.required is disabled' do
@@ -113,17 +113,17 @@ describe 'my.cnf template' do
 
   context 'mysql 8.0' do
     it 'suppresses warnings about deprecated features to mitigate excessive logging' do
-      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log-error-suppression-list" => "ER_SERVER_WARN_DEPRECATED"))
+      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("log_error_suppression_list" => "ER_SERVER_WARN_DEPRECATED"))
     end
 
     it 'sets the authentication policy to what is provided in the job spec' do
-        expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("authentication-policy" => "caching_sha2_password"))
+        expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("authentication_policy" => "caching_sha2_password"))
     end
   end
 
   context 'mysql 8.4' do
       it 'sets the authentication policy to what is provided in the job spec' do
-          expect(parsed_mycnf).to include("mysqld-8.4" => hash_including("authentication-policy" => "caching_sha2_password"))
+          expect(parsed_mycnf).to include("mysqld-8.4" => hash_including("authentication_policy" => "caching_sha2_password"))
       end
     end
 
@@ -334,7 +334,7 @@ describe 'my.cnf template' do
   context 'when engine_config.binlog.enabled is false' do
     it 'disables binary logs' do
       spec["engine_config"] = { "binlog" => { "enabled" => false } }
-      expect(parsed_mycnf).to include("mysqld" => hash_including("skip-log-bin" => true))
+      expect(parsed_mycnf).to include("mysqld" => hash_including("skip_log_bin" => true))
     end
   end
 
@@ -343,7 +343,7 @@ describe 'my.cnf template' do
     before { spec["engine_config"] = { "jemalloc" => { "enabled" => true, "profiling" => true } } }
 
     it 'enables the Percona jemalloc-profiling option for mysql-8.0' do
-      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("jemalloc-profiling" => "ON"))
+      expect(parsed_mycnf).to include("mysqld-8.0" => hash_including("jemalloc_profiling" => "ON"))
     end
 
     # The jemalloc-profiling feature is only supported in Percona v8.0.25+

@@ -57,9 +57,9 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 <%# TODO: Dedup mysqld-8.0 and mysqld-8.4 options; Possibly move the common options to [mysqld] and dropping [mysqld-5.7] support %>
 [<%= section = 'mysqld-8.4' %>]
 <%# Re-enable mysql_native_password authentication plugin for backwards compatibility %>
-mysql-native-password           = ON
+mysql_native_password           = ON
 
-authentication-policy           = <%= p('engine_config.user_authentication_policy') %>
+authentication_policy           = <%= p('engine_config.user_authentication_policy') %>
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 log_replica_updates             = ON
 binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
@@ -70,14 +70,14 @@ wsrep_applier_threads           = <%= wsrep_applier_threads %>
 <%- end -%>
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.4/lib/libgalera_smm.so
 <%- end -%>
-log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
+log_error_suppression_list      = ER_SERVER_WARN_DEPRECATED
 <%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
-jemalloc-profiling              = ON
+jemalloc_profiling              = ON
 <%- end -%>
 
 [<%= section = 'mysqld-8.0' %>]
-innodb-doublewrite-pages        = 128
-authentication-policy           = <%= p('engine_config.user_authentication_policy') %>
+innodb_doublewrite_pages        = 128
+authentication_policy           = <%= p('engine_config.user_authentication_policy') %>
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 log_replica_updates             = ON
 binlog_expire_logs_seconds      = <%= p('engine_config.binlog.expire_logs_days')*24*60*60 %>
@@ -88,9 +88,9 @@ wsrep_applier_threads           = <%= wsrep_applier_threads %>
 <%- end -%>
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-8.0/lib/libgalera_smm.so
 <%- end -%>
-log-error-suppression-list      = ER_SERVER_WARN_DEPRECATED
+log_error_suppression_list      = ER_SERVER_WARN_DEPRECATED
 <%- if p('engine_config.jemalloc.enabled') && p('engine_config.jemalloc.profiling') -%>
-jemalloc-profiling              = ON
+jemalloc_profiling              = ON
 <%- end -%>
 
 <%- additional_entries.extract_section(section).each do |key, value| -%>
@@ -108,7 +108,7 @@ wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-5.7/
 log_slave_updates               = ON
 expire_logs_days                = <%= p('engine_config.binlog.expire_logs_days') %>
 master_verify_checksum          = ON
-symbolic-links                  = OFF
+symbolic_links                  = OFF
 
 <%- additional_entries.extract_section(section).each do |key, value| -%>
 <%= key %> = <%= value %>
@@ -119,19 +119,19 @@ character_set_server            = <%= p('engine_config.character_set_server') %>
 <%- if p('engine_config.collation_server') != 'use_default' -%>
 collation_server                = <%= p('engine_config.collation_server') %>
 <%- end -%>
-server-id                       = <%= p('engine_config.server_id') %>
+server_id                       = <%= p('engine_config.server_id') %>
 <%- if_p('tls.client.ca') do -%>
-ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
+ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
 <%- end -%>
-ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
-ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
+ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/server-cert.pem
+ssl_key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 <%- if p('tls.required') -%>
-require-secure-transport        = ON
+require_secure_transport        = ON
 <%- end -%>
 
 <%- if p('engine_config.galera.enabled') -%>
 # GALERA options:
-pxc-strict-mode                 = MASTER
+pxc_strict_mode                 = MASTER
 pxc_maint_transition_period     = 0
 wsrep_cluster_address           = gcomm://<%= instance_addresses.join(",") %>
 wsrep_cluster_name              = <%= p('engine_config.galera.cluster_name') %>
@@ -145,7 +145,7 @@ wsrep_on                        = ON
 wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2
-pxc-encrypt-cluster-traffic     = OFF
+pxc_encrypt_cluster_traffic     = OFF
 <%- end -%>
 
 <%- case p('engine_config.read_write_permissions') -%>
@@ -165,7 +165,7 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 port                            = <%= p('port') %>
 datadir                         = /var/vcap/store/pxc-mysql
 tmpdir                          = /var/vcap/data/pxc-mysql/tmp
-pid-file                        = /var/vcap/store/pxc-mysql/mysql.pid
+pid_file                        = /var/vcap/store/pxc-mysql/mysql.pid
 log_error                       = /var/vcap/sys/log/pxc-mysql/mysql.err.log
 init_file                       = /var/vcap/jobs/pxc-mysql/config/db_init
 skip_external_locking           = TRUE
@@ -180,13 +180,13 @@ local_infile                    = <%= bool_to_on_off(p('engine_config.local_infi
 log_bin                         = mysql-bin
 sync_binlog                     = <%= p('engine_config.binlog.sync') %>
 <%- else -%>
-skip-log-bin
+skip_log_bin
 <%- end -%>
 relay_log                       = mysql-relay
 relay_log_recovery              = OFF
 
 <%- if_p("engine_config.wait_timeout") do |timeout| -%>
-wait-timeout = <%= timeout %>
+wait_timeout = <%= timeout %>
 <% end %>
 <% if_p("engine_config.innodb_ft_min_token_size") do |token_size| %>
 innodb_ft_min_token_size = <%= token_size %>
@@ -240,7 +240,7 @@ event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_sche
 
 [<%= section = 'mysqld_plugin' %>]
 <%- if p('engine_config.audit_logs.enabled') -%>
-plugin-load-add                 = audit_log=audit_log.so
+plugin_load_add                 = audit_log=audit_log.so
 audit_log_file                  = /var/vcap/store/mysql_audit_logs/mysql_server_audit.log
 audit_log_format                = JSON
 audit_log_exclude_accounts      = "<%= excluded_audit_users.join(',') %>"
@@ -254,9 +254,9 @@ audit_log_policy                = <%= p('engine_config.audit_logs.audit_log_poli
 
 [<%= section = 'sst' %>]
 encrypt=4
-ssl-ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem
-ssl-cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem
-ssl-key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
+ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem
+ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem
+ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem
 sockopt="cipher=ECDHE-RSA-AES256-GCM-SHA384"
 
 <%- additional_entries.extract_section(section).each do |key, value| -%>
