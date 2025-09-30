@@ -3,7 +3,7 @@ module github.com/cloudfoundry-incubator/cf-mysql-bootstrap
 go 1.25.0
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.49.0
+	code.cloudfoundry.org/lager/v3 v3.50.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
