@@ -14,16 +14,30 @@ concurrency:
 jobs:
   pxc-unit-tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version: [ oldstable, stable ]
-    name: go "${{ matrix.version }}" version
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.version }}
-          cache-dependency-path: "**/*.sum"
-      - uses: actions/setup-ruby@v1
-      - run: go version
-      - run: scripts/test-unit
+    - name: Retrieve code
+      uses: actions/checkout@v5
+
+    - name: Set up go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+        cache-dependency-path: "**/*.sum"
+
+    - name: Set up ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+
+    - name: Display runtime versions
+      run: |
+        echo "=== Runtime Environment ==="
+        echo "Go: $(go version)"
+        echo "Ruby: $(ruby --version)"
+        echo "Bundler: $(bundler --version)"
+        echo "=========================="
+
+    - name: Run test suite
+      run: scripts/test-unit
