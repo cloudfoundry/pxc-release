@@ -1,0 +1,71 @@
+---
+name: ((deployment_name))
+
+addons:
+- jobs:
+  - name: bpm
+    release: bpm
+  name: bpm
+
+instance_groups:
+- name: mysql
+  instances: 1
+  azs: ((azs))
+  networks: [{name: ((network))}]
+  vm_type: ((vm_type))
+  persistent_disk: 10000
+  stemcell: default
+  jobs:
+  - name: pxc-mysql
+    release: pxc
+    properties:
+      admin_password: ((mysql_admin_password))
+      mysql_version: "5.7"
+      tls:
+        galera: ((galera_server_certificate))
+        server: ((mysql_server_certificate))
+
+releases:
+- name: pxc
+  version: 1.1.5
+- name: bpm
+  version: latest
+
+stemcells:
+- alias: default
+  os: ubuntu-jammy
+  version: latest
+
+update:
+  canaries: 1
+  canary_watch_time: 10000-600000
+  max_in_flight: 1
+  serial: false
+  update_watch_time: 10000-600000
+
+variables:
+- name: mysql_admin_password
+  type: password
+
+- name: instance_ca
+  type: certificate
+  options:
+    common_name: instance_ca
+    is_ca: true
+
+- name: galera_server_certificate
+  type: certificate
+  options:
+    ca: instance_ca
+    common_name: galera_server_certificate
+    extended_key_usage:
+    - server_auth
+    - client_auth
+
+- name: mysql_server_certificate
+  type: certificate
+  options:
+    ca: instance_ca
+    common_name: mysql_server_certificate
+    alternative_names:
+    - localhost
