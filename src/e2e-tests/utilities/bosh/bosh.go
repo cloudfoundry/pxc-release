@@ -68,13 +68,14 @@ func Deploy(deploymentName, manifestPath string, options ...DeployOptionFunc) er
 		"--tty",
 		"--deployment=" + deploymentName,
 		"deploy", manifestPath,
+		"--no-redact",
 	}
 
 	for _, o := range options {
 		o(&args)
 	}
 
-	return cmd.Run("bosh", args...)
+	return cmd.RunCustom(cmd.WithCwd("../.."), "bosh", args...)
 }
 
 func RedeployPXC(deploymentName string, options ...DeployOptionFunc) error {
