@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -o errexit -o nounset -o pipefail
+# <%- if p('pxc_enabled') -%>
+# start: pxc_enabled
+
+source /var/vcap/packages/pxc-utils/logging.sh
+
+check_bpm_pid() {
+  /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
+}
+
+while ! curl -s -f -m 5 http://127.0.0.1:8114 > /dev/null && check_bpm_pid; do
+  sleep 1
+done
+
+if ! check_bpm_pid; then
+  log "pre-start: galera-init process for pxc-mysql job failed to start"
+
+  # if p('automate_cluster_recovery') => log "continuing anyway" && exit 0
+  exit 1
+fi
+
+log "pre-start: galera-init started successfully"
+
+# end: pxc_enabled
+# <%- end -%>
+
