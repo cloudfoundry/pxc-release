@@ -1,0 +1,9 @@
+---
+name: cluster-recovery
+
+templates:
+  post-start.sh.erb: bin/post-start
+
+packages: []
+
+properties: {}

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Generate a random string so this job always looks like it changed and will run on redeploy
+# Avoids skipping this job because bosh is trying to optimize
+# <%= (0...8).map { (65 + rand(26)).chr }.join %>
+
+set -o errexit -o nounset -o pipefail
+
+/var/vcap/jobs/bootstrap/bin/run

@@ -14,14 +14,21 @@ while ! curl -s -f -m 5 http://127.0.0.1:8114 > /dev/null && check_bpm_pid; do
   sleep 1
 done
 
+# Eventually we should detect that the pxc-mysql failed and hit this branch
+# This is a little racy since monit is restarting pxc-mysql in the background
+# Future: Actually wait for MySQL to be online, accept a client connections and reach a Galera "Synced" state (or be configured with Galera disabled)
 if ! check_bpm_pid; then
-  log "pre-start: galera-init process for pxc-mysql job failed to start"
+  log "post-start: galera-init process for pxc-mysql job failed to start"
 
-  # if p('automate_cluster_recovery') => log "continuing anyway" && exit 0
+  # <% unless p('automate_cluster_recovery') %>
   exit 1
+  # <% else %>
+  log "post-start: Ignore post-start failure due to automate_cluster_recovery option"
+  # <% end %>
+else
+  log "post-start: galera-init started successfully"
 fi
 
-log "pre-start: galera-init started successfully"
 
 # end: pxc_enabled
 # <%- end -%>

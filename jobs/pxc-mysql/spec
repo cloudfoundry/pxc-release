@@ -389,3 +389,7 @@ properties:
     description: "Configure Linux vm.swappiness"
     # https://docs.kernel.org/admin-guide/sysctl/vm.html#swappiness
     # https://www.percona.com/blog/mysql-101-linux-tuning-for-mysql/
+
+  automate_cluster_recovery:
+    description: Ignore normal MySQL failures and attempt to recovery the cluster in a separate job
+    default: false

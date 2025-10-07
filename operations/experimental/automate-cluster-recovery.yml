@@ -1,0 +1,25 @@
+---
+# Flag pxc-mysql to startup and ignore failures
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/automate_cluster_recovery?
+  value: true
+
+# Add separate instance group after the mysql instance group to rebootstrap the cluster
+# The experimental cluster-recovery job simply runs the bootstrap errand or fails trying.
+- type: replace
+  path: /instance_groups/name=mysql:after
+  value:
+    name: mysql_monitor
+    instances: 1
+    azs: [z1,z2,z3]
+    networks: [{name: default}]
+    vm_type: default
+    stemcell: default
+    persistent_disk: 10000
+    update:
+      serial: true
+    jobs:
+    - name: cluster-recovery
+      release: pxc
+    - name: bootstrap
+      release: pxc
