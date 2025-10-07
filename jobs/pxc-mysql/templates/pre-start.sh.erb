@@ -155,9 +155,6 @@ chown -R vcap:vcap ${datadir}
 
 rm -f /etc/my.cnf
 
-check_bpm_pid() {
-    /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
-}
 
 is_pxc57_datadir() {
   [[ -f /var/vcap/store/pxc-mysql/mysql/user.frm ]]
@@ -188,19 +185,4 @@ if is_pxc80_datadir; then
   apply_pxc80_crash_recovery
 fi
 
-if ! /var/vcap/jobs/bpm/bin/bpm start pxc-mysql -p galera-init; then
-    log "pre-start: galera-init failed to initialize"
-    exit 1
-fi
-
-while ! curl -s -f -m 5 http://127.0.0.1:8114 > /dev/null && check_bpm_pid; do
-    sleep 1
-done
-
-if ! check_bpm_pid; then
-    log "pre-start: galera-init failed to start"
-    exit 1
-fi
-
-log "pre-start: galera-init started successfully"
 <% end %>

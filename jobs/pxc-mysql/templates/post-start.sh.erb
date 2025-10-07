@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -o errexit -o nounset -o pipefail
+# <%- if p('pxc_enabled') -%>
+# start: pxc_enabled
+
+source /var/vcap/packages/pxc-utils/logging.sh
+
+check_bpm_pid() {
+  /var/vcap/jobs/bpm/bin/bpm pid pxc-mysql -p galera-init >/dev/null 2>&1
+}
+
+log "post-start: waiting for galera-init to become healthy on port 8114"
+elapsed=0
+while ! curl -s -f -m 5 http://127.0.0.1:8114 > /dev/null && check_bpm_pid; do
+  sleep 1
+  elapsed=$((elapsed + 1))
+  if [[ $((elapsed % 30)) == 0 ]]; then
+    log "post-start: still waiting for galera-init after ${elapsed} seconds"
+  fi
+done
+
+if ! check_bpm_pid; then
+  log "post-start: galera-init process for pxc-mysql job failed to start"
+  log "post-start: this is expected if cluster has lost quorum"
+  log "post-start: run the bootstrap errand to restore cluster quorum"
+  exit 1
+fi
+
+log "post-start: galera-init started successfully"
+
+# end: pxc_enabled
+# <%- end -%>
+
