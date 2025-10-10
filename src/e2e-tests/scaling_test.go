@@ -64,6 +64,21 @@ var _ = Describe("Scaling", Ordered, Label("scaling"), func() {
 		Expect(clusterSize).To(Equal("3"))
 	})
 
+	It("sets the default innodb_redo_log_capacity value", Label("innodb_redo_log_capacity"), func() {
+		instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+		Expect(err).NotTo(HaveOccurred())
+		for _, i := range instances {
+			db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+			Expect(err).NotTo(HaveOccurred())
+
+			var redoLogCapacity int
+			Expect(db.QueryRow("SELECT @@global.innodb_redo_log_capacity").Scan(&redoLogCapacity)).
+				To(Succeed())
+			Expect(redoLogCapacity).To(Equal(2147483648), "Expected redo_log_capacity to be default value 2147483648 bytes = 2048M, but it was not")
+			Expect(db.Close()).To(Succeed())
+		}
+	})
+
 	It("disables the binary log given the disable-binlog ops-file", func() {
 		_, err := db.Exec(`SHOW BINARY LOGS`)
 		Expect(err).To(MatchError(ContainSubstring(`You are not using binary logging`)))
