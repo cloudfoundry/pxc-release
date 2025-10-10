@@ -63,6 +63,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`test/sysbench-user-set-auth-plugin.yml`),
 			bosh.Operation(`test/smoke-tests-use-legacy-auth.yml`),
 			bosh.Operation("default-auth-plugin.yml"),
+			bosh.Operation(`test/with-explicit-redo-log-capacity.yml`),
 			bosh.Var("auth_plugin", "caching_sha2_password"),
 			bosh.Var(`innodb_buffer_pool_size_percent`, strconv.FormatInt(innodbBufferPoolSizePercent, 10)),
 			bosh.Var(`binlog_space_percent`, `20`),
@@ -126,6 +127,21 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	})
 
 	Context("MySQL Configuration", Label("configuration"), func() {
+		It("sets the default innodb_redo_log_capacity value", Label("innodb_redo_log_capacity"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var redoLogCapacity int
+				Expect(db.QueryRow("SELECT @@global.innodb_redo_log_capacity").Scan(&redoLogCapacity)).
+					To(Succeed())
+				Expect(redoLogCapacity).To(Equal(4294967296), "Expected redo_log_capacity to be explicit value 4294967296 bytes = 4096M, but it was not")
+				Expect(db.Close()).To(Succeed())
+			}
+		})
+
 		It("sets the default sync_binlog value", Label("sync_binlog"), func() {
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
