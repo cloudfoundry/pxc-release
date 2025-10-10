@@ -126,6 +126,21 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	})
 
 	Context("MySQL Configuration", Label("configuration"), func() {
+		It("sets the default innodb_redo_log_capacity value", Label("innodb_redo_log_capacity"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			for _, i := range instances {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+
+				var redoLogCapacity string
+				Expect(db.QueryRow("SELECT @@global.innodb_redo_log_capacity").Scan(&redoLogCapacity)).
+					To(Succeed())
+				Expect(redoLogCapacity).To(Equal(`2147483648`))
+				Expect(db.Close()).To(Succeed())
+			}
+		})
+
 		It("sets the default sync_binlog value", Label("sync_binlog"), func() {
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
