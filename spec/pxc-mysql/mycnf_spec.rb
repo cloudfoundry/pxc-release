@@ -93,6 +93,24 @@ describe 'my.cnf template' do
     end
   end
 
+  context 'when the innodb_redo_log_capacity is not set' do
+    it 'uses the default value to match what was set previously by innodb_log_file_size * innodb_log_files_in_group (2)' do
+      expect(parsed_mycnf).to include("mysqld" => hash_including(
+         "innodb_redo_log_capacity" => "2048MB",
+      ))
+    end
+  end
+
+  context 'when the innodb_redo_log_capacity is explicitly set' do
+    let(:spec) { { "engine_config" => { "innodb_redo_log_capacity" => "4096" } } }
+
+    it 'sets the explicit value' do
+      expect(parsed_mycnf).to include("mysqld" => hash_including(
+         "innodb_redo_log_capacity" => "4096MB",
+      ))
+    end
+  end
+
   context 'global properties are as expected ' do
     it 'sets max-connections' do
       expect(rendered_template).to match(/max_connections\s*=\s*5000/)
