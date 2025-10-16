@@ -48,6 +48,7 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 			bosh.Operation(`use-clustered.yml`),
 			bosh.Operation(`enable-mysql-gtid.yml`),
 			bosh.Operation(`enable-mysql-backup-user.yml`),
+			bosh.Operation(`enable-proxy-status-logging.yml`),
 			bosh.Operation(`test/seed-test-user.yml`),
 			bosh.Operation(`test/seed-generic-user.yml`),
 			bosh.Operation(`require-tls.yml`),
@@ -869,6 +870,20 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 						"Name": Equal(name),
 					})))
 				}
+			})
+		})
+
+		Context("periodic status update logging", Label("status-logging"), func() {
+			It("writes periodic status updates to the logs", func() {
+				output, err := bosh.Logs(deploymentName, "proxy/0", "proxy/proxy.stdout.log")
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(output.String()).To(ContainSubstring("Status update"),
+					"Expected to find status update logs from the proxy")
+				Expect(output.String()).To(MatchRegexp(`"active_backend":"mysql/`),
+					"Expected status logs to include active_backend field")
+				Expect(output.String()).To(MatchRegexp(`"healthy_backends":\d+`),
+					"Expected status logs to include healthy_backends count")
 			})
 		})
 	})

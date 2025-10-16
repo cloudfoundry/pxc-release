@@ -98,6 +98,12 @@ properties:
     default: {}
   metrics.server_name:
     description: Required for HTTPS targets. Prom scraper uses this to set the server name for cert verification despite using localhost to resolve the request.
+  status_log.enabled:
+    description: Enable logging proxy status every status_log.interval
+    default: false
+  status_log.interval:
+    description: How often to log proxy status.  Should be a valid positive interval in Go duration format
+    default: "60s"
   startup_delay:
     description: |
       If using a load balancer above the proxies,
