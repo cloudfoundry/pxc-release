@@ -313,5 +313,61 @@ var _ = Describe("Config", func() {
 				Expect(rootConfig.Metrics.Port).To(Equal(uint(9999)))
 			})
 		})
+
+		It("defaults to not enabling status logging", func() {
+			osArgs := []string{
+				"switchboard",
+				`-config={}`,
+			}
+			rootConfig, err := NewConfig(osArgs)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rootConfig.StatusLog.Enabled).To(BeFalse(), `Expected the status log to be disabled, but it was not`)
+		})
+
+		When("enabling status logging", func() {
+			It("defaults to logging every 60 seconds", func() {
+				osArgs := []string{
+					"switchboard",
+					`-config={"StatusLog":{"Enabled": true}}`,
+				}
+				rootConfig, err := NewConfig(osArgs)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rootConfig.StatusLog.Enabled).To(BeTrue(), `Expected the status log to be enabled based on configuration, but it was not`)
+				Expect(rootConfig.StatusLogInterval()).To(Equal(time.Minute), `Expected the status log to be enabled and log every 60 seconds`)
+			})
+
+			It("allows custom configuration of the logging interval", func() {
+				osArgs := []string{
+					"switchboard",
+					`-config={"StatusLog":{"Enabled": true, Interval: "47m"}}`,
+				}
+				rootConfig, err := NewConfig(osArgs)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rootConfig.StatusLog.Enabled).To(BeTrue(), `Expected the status log to be enabled based on configuration, but it was not`)
+				Expect(rootConfig.StatusLogInterval()).To(Equal(47*time.Minute), `Expected the status log to be enabled and log every 47 minutes per config, but found an unexpected value`)
+			})
+
+			It("sets negative duration to 60 seconds", func() {
+				osArgs := []string{
+					"switchboard",
+					`-config={"StatusLog":{"Enabled": true, Interval: "-1234m"}}`,
+				}
+				rootConfig, err := NewConfig(osArgs)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rootConfig.StatusLog.Enabled).To(BeTrue(), `Expected the status log to be enabled based on configuration, but it was not`)
+				Expect(rootConfig.StatusLogInterval()).To(Equal(time.Minute), `Expected the status log to be enabled and log every 60 seconds`)
+			})
+
+			It("sets zero intervals to 60 seconds", func() {
+				osArgs := []string{
+					"switchboard",
+					`-config={"StatusLog":{"Enabled": true, Interval: "0s"}}`,
+				}
+				rootConfig, err := NewConfig(osArgs)
+				Expect(err).ToNot(HaveOccurred())
+				GinkgoWriter.Printf("Interval = %s [raw=%q]", rootConfig.StatusLogInterval(), rootConfig.StatusLog.Interval)
+				Expect(rootConfig.StatusLogInterval()).To(Equal(time.Minute), `Expected the status log to be enabled and log every 60 seconds`)
+			})
+		})
 	})
 })

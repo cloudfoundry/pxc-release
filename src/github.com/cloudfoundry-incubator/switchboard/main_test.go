@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/types"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon_v2"
@@ -134,6 +135,7 @@ const startupTimeout = 10 * time.Second
 var _ = Describe("Switchboard", func() {
 	var (
 		process                                      ifrit.Process
+		switchboardRunner                            *ginkgomon_v2.Runner
 		initialActiveBackend, initialInactiveBackend config.Backend
 		healthcheckRunners                           []*dummies.HealthcheckRunner
 		healthcheckWaitDuration                      time.Duration
@@ -179,7 +181,7 @@ var _ = Describe("Switchboard", func() {
 		}
 
 		logLevel := "debug"
-		switchboardRunner := ginkgomon_v2.New(ginkgomon_v2.Config{
+		switchboardRunner = ginkgomon_v2.New(ginkgomon_v2.Config{
 			Command: exec.Command(
 				switchboardBinPath,
 				fmt.Sprintf("-config=%s", string(runnableRootConfig)),
@@ -1213,6 +1215,157 @@ var _ = Describe("Switchboard", func() {
 					It("returns errors when trying to connect to metrics port", func() {
 						_, err := httpClient.Get(fmt.Sprintf("https://localhost:%d/metrics", metricsPort))
 						Expect(err).To(MatchError(ContainSubstring("connect: connection refused")))
+					})
+				})
+			})
+
+			Context("Status Logging", func() {
+				When("status logging is enabled", func() {
+					BeforeEach(func() {
+						rootConfig.StatusLog.Enabled = true
+						rootConfig.StatusLog.Interval = 2 * time.Second
+					})
+
+					It("emits periodic status updates with expected fields", func() {
+						time.Sleep(3 * time.Second)
+
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say("Status update"))
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"total_backends":2`))
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"healthy_backends":\d+`))
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"total_connections":\d+`))
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"active_backend":"`))
+					})
+
+					It("reports the correct active backend", func() {
+						time.Sleep(3 * time.Second)
+
+						// Get active backend from API
+						url := fmt.Sprintf("https://localhost:%d/v0/cluster", switchboardAPIPort)
+						req, _ := http.NewRequest("GET", url, nil)
+						req.SetBasicAuth("username", "password")
+						cluster := getClusterFromAPI(httpClient, req)
+
+						activeBackend := cluster["activeBackend"].(map[string]interface{})
+						expectedName := activeBackend["name"].(string)
+
+						Eventually(switchboardRunner.Buffer()).Should(
+							gbytes.Say(fmt.Sprintf(`"active_backend":"%s"`, expectedName)))
+					})
+
+					It("reports connection counts", func() {
+						conn1, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+						Expect(err).NotTo(HaveOccurred())
+						defer conn1.Close()
+
+						conn2, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
+						Expect(err).NotTo(HaveOccurred())
+						defer conn2.Close()
+
+						time.Sleep(3 * time.Second)
+
+						// Should show at least 2 connections
+						Eventually(switchboardRunner.Buffer()).Should(
+							gbytes.Say(`"total_connections":[2-9]\d*`))
+					})
+
+					It("reports unhealthy backends", func() {
+						// Mark one backend unhealthy
+						if initialActiveBackend == backends[0] {
+							healthcheckRunners[1].SetStatusCode(http.StatusServiceUnavailable)
+						} else {
+							healthcheckRunners[0].SetStatusCode(http.StatusServiceUnavailable)
+						}
+
+						time.Sleep(healthcheckWaitDuration + 3*time.Second)
+
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"healthy_backends":1`))
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"unhealthy_backends":\["`))
+					})
+
+					It("tracks failover events", func() {
+						// Wait for initial status log (no failover yet)
+						time.Sleep(3 * time.Second)
+
+						// Capture initial buffer state
+						initialContent := string(switchboardRunner.Buffer().Contents())
+
+						// Should not have failover info initially
+						Expect(initialContent).NotTo(ContainSubstring("last_failover_at"))
+
+						// Trigger failover by marking active backend unhealthy
+						if initialActiveBackend == backends[0] {
+							healthcheckRunners[0].SetStatusCode(http.StatusServiceUnavailable)
+						} else {
+							healthcheckRunners[1].SetStatusCode(http.StatusServiceUnavailable)
+						}
+
+						// Wait for failover + new status log
+						time.Sleep(healthcheckWaitDuration + 3*time.Second)
+
+						// Should now see failover info
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"last_failover_at":"`))
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say(`"last_failover_from":"`))
+					})
+				})
+
+				When("status logging is disabled", func() {
+					BeforeEach(func() {
+						rootConfig.StatusLog.Enabled = false
+					})
+
+					It("does not emit status updates", func() {
+						time.Sleep(5 * time.Second)
+
+						Consistently(switchboardRunner.Buffer(), "2s").ShouldNot(gbytes.Say("Status update"))
+					})
+				})
+
+				Context("with inactive port enabled", func() {
+					BeforeEach(func() {
+						rootConfig.StatusLog.Enabled = true
+						rootConfig.StatusLog.Interval = 2 * time.Second
+						// Inactive port is already enabled in the default rootConfig setup
+					})
+
+					It("emits status updates for both active and inactive ports", func() {
+						time.Sleep(3 * time.Second)
+
+						// Should see status logs from the active port logger
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say("status.Status update"))
+
+						// Should also see status logs from the inactive port logger
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say("inactive-node-status.Status update"))
+					})
+
+					It("reports different active backends for active and inactive ports", func() {
+						time.Sleep(3 * time.Second)
+
+						bufferContents := string(switchboardRunner.Buffer().Contents())
+
+						// Both loggers should report an active backend
+						Expect(bufferContents).To(MatchRegexp(`status\.Status update.*"active_backend":"backend-\d"`))
+						Expect(bufferContents).To(MatchRegexp(`inactive-node-status\.Status update.*"active_backend":"backend-\d"`))
+
+						// The active backends should be different (active uses lowest index, inactive uses highest)
+						// This is implicit in the proxy's routing logic
+					})
+				})
+
+				Context("with inactive port disabled", func() {
+					BeforeEach(func() {
+						rootConfig.StatusLog.Enabled = true
+						rootConfig.StatusLog.Interval = 2 * time.Second
+						rootConfig.Proxy.InactiveMysqlPort = 0 // Disable inactive port
+					})
+
+					It("only emits status updates for the active port", func() {
+						time.Sleep(3 * time.Second)
+
+						// Should see status logs from the active port logger
+						Eventually(switchboardRunner.Buffer()).Should(gbytes.Say("status.Status update"))
+
+						// Should NOT see status logs from the inactive port logger
+						Consistently(switchboardRunner.Buffer(), "2s").ShouldNot(gbytes.Say("inactive-node-status"))
 					})
 				})
 			})

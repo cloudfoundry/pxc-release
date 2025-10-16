@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -22,11 +23,16 @@ type Config struct {
 	API            API            `yaml:"API" validate:"nonzero"`
 	StaticDir      string         `yaml:"StaticDir" validate:"nonzero"`
 	HealthPort     uint           `yaml:"HealthPort" validate:"nonzero"`
+	StatusLog      StatusLog      `yaml:"StatusLog"`
 	GaleraAgentTLS GaleraAgentTLS `yaml:"GaleraAgentTLS"`
 	Logger         lager.Logger   `yaml:"-"`
 	Metrics        Metrics        `yaml:"Metrics"`
 }
 
+type StatusLog struct {
+	Enabled  bool          `yaml:"Enabled"`
+	Interval time.Duration `yaml:"Interval" validate:"nonzero"`
+}
 type Metrics struct {
 	Enabled bool `yaml:"Enabled"`
 	Port    uint `yaml:"Port" validate:"nonzero"`
@@ -78,10 +84,22 @@ func (p Proxy) ShutdownDelay() time.Duration {
 	return time.Duration(p.ShutdownDelaySeconds) * time.Second
 }
 
+func (c Config) StatusLogInterval() time.Duration {
+	if !c.StatusLog.Enabled {
+		return 0
+	}
+
+	if c.StatusLog.Interval <= 0 {
+		return time.Minute
+	}
+
+	return c.StatusLog.Interval
+}
+
 func NewConfig(osArgs []string) (*Config, error) {
 	var rootConfig Config
 
-	binaryName := osArgs[0]
+	binaryName := filepath.Base(osArgs[0])
 	configurationOptions := osArgs[1:]
 
 	serviceConfig := service_config.New()
@@ -89,7 +107,10 @@ func NewConfig(osArgs []string) (*Config, error) {
 
 	lagerflags.AddFlags(flags)
 
-	serviceConfig.AddDefaults(&Config{Metrics: Metrics{Port: 9999}})
+	serviceConfig.AddDefaults(&Config{
+		Metrics:   Metrics{Port: 9999},
+		StatusLog: StatusLog{Interval: time.Minute},
+	})
 	serviceConfig.AddFlags(flags)
 	flags.Parse(configurationOptions)
 

@@ -57,6 +57,13 @@
     }
   end
 
+  if p('status_log.enabled')
+    config[:StatusLog] = {
+        Enabled: true,
+        Interval: p('status_log.interval'),
+    }
+  end
+
   if_p('inactive_mysql_port') do |inactive_mysql_port|
     config[:Proxy][:InactiveMysqlPort] = inactive_mysql_port
   end

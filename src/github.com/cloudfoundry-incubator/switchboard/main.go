@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/v3"
-
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -20,6 +19,7 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/runner/bridge"
 	httprunner "github.com/cloudfoundry-incubator/switchboard/runner/http"
 	"github.com/cloudfoundry-incubator/switchboard/runner/monitor"
+	"github.com/cloudfoundry-incubator/switchboard/runner/statuslogger"
 )
 
 func main() {
@@ -100,6 +100,19 @@ func main() {
 		})
 	}
 
+	if rootConfig.StatusLog.Enabled {
+		activeStatusLogger := statuslogger.NewStatusLogger(
+			backends,
+			activeNodeClusterMonitor,
+			rootConfig.StatusLogInterval(),
+			logger.Session("status"),
+		)
+		members = append(members, grouper.Member{
+			Name:   "status-logger",
+			Runner: activeStatusLogger,
+		})
+	}
+
 	if rootConfig.HealthPort != rootConfig.API.Port {
 		members = append(members, grouper.Member{
 			Name: "health",
@@ -134,6 +147,19 @@ func main() {
 				Runner: monitor.NewRunner(inactiveNodeClusterMonitor, logger),
 			},
 		)
+
+		if rootConfig.StatusLog.Enabled {
+			inactiveStatusLogger := statuslogger.NewStatusLogger(
+				backends,
+				inactiveNodeClusterMonitor,
+				rootConfig.StatusLogInterval(),
+				logger.Session("inactive-node-status"),
+			)
+			members = append(members, grouper.Member{
+				Name:   "inactive-node-status-logger",
+				Runner: inactiveStatusLogger,
+			})
+		}
 	}
 
 	group := grouper.NewOrdered(os.Interrupt, members)
