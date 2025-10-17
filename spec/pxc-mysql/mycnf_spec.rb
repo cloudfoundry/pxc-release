@@ -94,19 +94,19 @@ describe 'my.cnf template' do
   end
 
   context 'when the innodb_redo_log_capacity is not set' do
-    it 'uses the default value to match what was set previously by innodb_log_file_size * innodb_log_files_in_group (2)' do
+    it 'defaults to 2048MB' do
       expect(parsed_mycnf).to include("mysqld" => hash_including(
-         "innodb_redo_log_capacity" => "2048MB",
+         "innodb_redo_log_capacity" => "2048M",
       ))
     end
   end
 
   context 'when the innodb_redo_log_capacity is explicitly set' do
-    let(:spec) { { "engine_config" => { "innodb_redo_log_capacity" => "4096" } } }
+    let(:spec) { { "engine_config" => { "innodb_redo_log_capacity" => "4096M" } } }
 
     it 'sets the explicit value' do
       expect(parsed_mycnf).to include("mysqld" => hash_including(
-         "innodb_redo_log_capacity" => "4096MB",
+         "innodb_redo_log_capacity" => "4096M",
       ))
     end
   end
