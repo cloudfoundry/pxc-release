@@ -173,7 +173,7 @@ innodb_flush_log_at_trx_commit  = <%= p('engine_config.innodb_flush_log_at_trx_c
 innodb_flush_method             = <%= p('engine_config.innodb_flush_method') %>
 innodb_lock_wait_timeout        = <%= p('engine_config.innodb_lock_wait_timeout') %>
 innodb_log_buffer_size          = <%= p('engine_config.innodb_log_buffer_size') %>
-innodb_log_file_size            = <%= p('engine_config.innodb_log_file_size')%>MB
+innodb_redo_log_capacity        = <%= p('engine_config.innodb_redo_log_capacity')%>
 # These are required to make the quota enforcer work
 innodb_stats_on_metadata        = ON
 innodb_stats_persistent         = OFF

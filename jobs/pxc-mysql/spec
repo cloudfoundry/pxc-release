@@ -268,9 +268,9 @@ properties:
   engine_config.innodb_log_buffer_size:
     description: 'Size in bytes of the buffer for writing log files to disk. Increasing this means larger transactions can run without needing to perform disk I/O before committing.'
     default: 32M
-  engine_config.innodb_log_file_size:
-    description: 'Size of the ib_log_file used by innodb, in MB'
-    default: 1024
+  engine_config.innodb_redo_log_capacity:
+    description: 'Defines the amount of disk space occupied by redo log files'
+    default: 2048M
   engine_config.innodb_strict_mode:
     description: 'Whether innodb_strict_mode is enabled'
     default: false
