@@ -31,6 +31,9 @@ provides:
   - api_port
   - api_aggregator_port
   - port
+  - api_tls.enabled
+  - api_tls.ca
+  - api_tls.server_name
 - name: mysql-database
   type: database
   properties:
@@ -58,6 +61,13 @@ properties:
     default: false
   api_tls.certificate:
     description: PEM-encoded certificate for securing TLS communication to the proxy API
+    default: ""
+  api_tls.ca:
+    description: PEM-encoded certificate authority (CA) for securing TLS communication to the proxy API
+    default: ""
+  api_tls.server_name:
+    description: >
+      The host name a client should accept on the endpoint_tls.certificate when communicating to the proxy API
     default: ""
   api_tls.private_key:
     description: PEM-encoded key for securing TLS communication to the proxy API
