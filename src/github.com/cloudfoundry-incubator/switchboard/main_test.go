@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -16,8 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/types"
 	"github.com/tedsuo/ifrit"
@@ -29,6 +26,9 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/dummies"
 	"github.com/cloudfoundry-incubator/switchboard/testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 type Response struct {
@@ -82,7 +82,7 @@ func sendData(conn net.Conn, data string) (Response, error) {
 	buffer := make([]byte, 1024)
 	n, err := conn.Read(buffer)
 	if err != nil {
-		return Response{}, err.(error)
+		return Response{}, err
 	} else {
 		response := Response{}
 		err := json.Unmarshal(buffer[:n], &response)
@@ -160,7 +160,8 @@ var _ = Describe("Switchboard", func() {
 
 	var acceptsAndClosesTCPConnections = func(address string) {
 		Eventually(func() error {
-			req, _ := http.NewRequest(http.MethodGet, address, nil)
+			req, err := http.NewRequest(http.MethodGet, address, nil)
+			Expect(err).NotTo(HaveOccurred())
 			req.SetBasicAuth(rootConfig.API.Username, rootConfig.API.Password)
 			if res, err := httpClient.Do(req); err != nil {
 				return err
@@ -187,7 +188,7 @@ var _ = Describe("Switchboard", func() {
 				fmt.Sprintf("-config=%s", string(runnableRootConfig)),
 				fmt.Sprintf("-logLevel=%s", logLevel),
 			),
-			Name:              fmt.Sprintf("switchboard"),
+			Name:              "switchboard",
 			StartCheck:        "started",
 			StartCheckTimeout: startupTimeout,
 		})
@@ -265,7 +266,7 @@ var _ = Describe("Switchboard", func() {
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			response, err = sendData(conn, "detect active")
 			return err
@@ -384,7 +385,7 @@ var _ = Describe("Switchboard", func() {
 						})
 					})
 
-					Context("Healthchecks", func() {
+					Context("Health checks", func() {
 						It("makes a successful HTTP request", func() {
 							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardHealthPort))
 						})
@@ -422,7 +423,7 @@ var _ = Describe("Switchboard", func() {
 						})
 					})
 
-					Context("Healthchecks", func() {
+					Context("Health checks", func() {
 						It("makes a successful HTTP request", func() {
 							acceptsAndClosesTCPConnections(fmt.Sprintf("http://127.0.0.1:%d", switchboardHealthPort))
 						})
@@ -487,23 +488,28 @@ var _ = Describe("Switchboard", func() {
 
 					It("does not accept bad Basic Auth creds", func() {
 						req, err := http.NewRequest("GET", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+
 						req.SetBasicAuth("bad_username", "bad_password")
 						resp, err := httpClient.Do(req)
-
 						Expect(err).NotTo(HaveOccurred())
 						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 
 					It("responds with 200 and contains proxy URIs when authorized", func() {
 						req, err := http.NewRequest("GET", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+
 						req.SetBasicAuth("username", "password")
 						resp, err := httpClient.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 						Expect(resp.Body).ToNot(BeNil())
-						defer resp.Body.Close()
-						body, err := ioutil.ReadAll(resp.Body)
+						defer func() { _ = resp.Body.Close() }()
+
+						body, err := io.ReadAll(resp.Body)
+						Expect(err).NotTo(HaveOccurred())
 						Expect(len(body)).To(BeNumerically(">", 0), "Expected body to not be empty")
 
 						Expect(string(body)).To(ContainSubstring(apiConfig.ProxyURIs[0]))
@@ -529,22 +535,27 @@ var _ = Describe("Switchboard", func() {
 
 					It("does not accept bad Basic Auth creds", func() {
 						req, err := http.NewRequest("GET", url, nil)
-						resp, err := httpClient.Do(req)
+						Expect(err).NotTo(HaveOccurred())
 
+						resp, err := httpClient.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 
 					It("responds with 200 and contains non-zero body when authorized", func() {
 						req, err := http.NewRequest("GET", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+
 						req.SetBasicAuth("username", "password")
 						resp, err := httpClient.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 						Expect(resp.Body).ToNot(BeNil())
-						defer resp.Body.Close()
-						body, err := ioutil.ReadAll(resp.Body)
+						defer func() { _ = resp.Body.Close() }()
+
+						body, err := io.ReadAll(resp.Body)
+						Expect(err).NotTo(HaveOccurred())
 						Expect(len(body)).To(BeNumerically(">", 0), "Expected body to not be empty")
 					})
 				})
@@ -567,9 +578,10 @@ var _ = Describe("Switchboard", func() {
 
 					It("does not accept bad Basic Auth creds", func() {
 						req, err := http.NewRequest("GET", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+
 						req.SetBasicAuth("bad_username", "bad_password")
 						resp, err := httpClient.Do(req)
-
 						Expect(err).NotTo(HaveOccurred())
 						Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
@@ -635,7 +647,7 @@ var _ = Describe("Switchboard", func() {
 								return nil
 
 							}, startupTimeout).Should(Succeed())
-							defer conn.Close()
+							defer func() { _ = conn.Close() }()
 
 							connData, err := sendData(conn, "success")
 							Expect(err).ToNot(HaveOccurred())
@@ -889,7 +901,7 @@ var _ = Describe("Switchboard", func() {
 								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
 								return err
 							}, startupTimeout).Should(Succeed())
-							defer conn.Close()
+							defer func() { _ = conn.Close() }()
 
 							dataWhileHealthy, err := sendData(conn, "data while healthy")
 							Expect(err).ToNot(HaveOccurred())
@@ -910,7 +922,8 @@ var _ = Describe("Switchboard", func() {
 								if err != nil {
 									return err
 								}
-								defer conn.Close()
+								defer func() { _ = conn.Close() }()
+
 								_, err = sendData(conn, "write that should fail")
 
 								return err
@@ -1126,7 +1139,7 @@ var _ = Describe("Switchboard", func() {
 								conn, err = net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyInactiveNodePort))
 								return err
 							}, startupTimeout).Should(Succeed())
-							defer conn.Close()
+							defer func() { _ = conn.Close() }()
 
 							dataWhileHealthy, err := sendData(conn, "data while healthy")
 							Expect(err).ToNot(HaveOccurred())
@@ -1147,7 +1160,8 @@ var _ = Describe("Switchboard", func() {
 								if err != nil {
 									return err
 								}
-								defer conn.Close()
+								defer func() { _ = conn.Close() }()
+
 								_, err = sendData(conn, "write that should fail")
 
 								return err
@@ -1194,11 +1208,13 @@ var _ = Describe("Switchboard", func() {
 					It("responds with backend session metrics", func() {
 						resp, err := httpClient.Get(fmt.Sprintf("https://localhost:%d/metrics", metricsPort))
 						Expect(err).NotTo(HaveOccurred())
+						defer func() { _ = resp.Body.Close() }()
 						Expect(resp.StatusCode).To(Equal(http.StatusOK))
 						Expect(resp.Body).ToNot(BeNil())
 
-						defer resp.Body.Close()
 						bodyBytes, err := io.ReadAll(resp.Body)
+						Expect(err).NotTo(HaveOccurred())
+
 						body := strings.Split(string(bodyBytes), "\n")
 						Expect(body).To(ContainElement("# HELP backend_sessions_total Gauge of the current sessions from this proxy to a mysql backend"))
 						Expect(body).To(ContainElement("# TYPE backend_sessions_total gauge"))
@@ -1241,7 +1257,9 @@ var _ = Describe("Switchboard", func() {
 
 						// Get active backend from API
 						url := fmt.Sprintf("https://localhost:%d/v0/cluster", switchboardAPIPort)
-						req, _ := http.NewRequest("GET", url, nil)
+						req, err := http.NewRequest("GET", url, nil)
+						Expect(err).NotTo(HaveOccurred())
+
 						req.SetBasicAuth("username", "password")
 						cluster := getClusterFromAPI(httpClient, req)
 
@@ -1255,11 +1273,11 @@ var _ = Describe("Switchboard", func() {
 					It("reports connection counts", func() {
 						conn1, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
 						Expect(err).NotTo(HaveOccurred())
-						defer conn1.Close()
+						defer func() { _ = conn1.Close() }()
 
 						conn2, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", proxyPort))
 						Expect(err).NotTo(HaveOccurred())
-						defer conn2.Close()
+						defer func() { _ = conn2.Close() }()
 
 						time.Sleep(3 * time.Second)
 
