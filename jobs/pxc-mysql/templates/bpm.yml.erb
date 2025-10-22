@@ -37,3 +37,7 @@ processes:
     writable: true
   - path: /var/vcap/store/mysql_audit_logs
     writable: true
+<%- if p('engine_config.tde.enabled') -%>
+  - path: /var/vcap/store/mysql-keyring
+    writable: true
+<%- end -%>

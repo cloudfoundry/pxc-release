@@ -188,6 +188,23 @@ event_scheduler                 = <%= bool_to_on_off(p('engine_config.event_sche
 jemalloc_profiling              = ON
 <%- end -%>
 
+<%- if p('engine_config.tde.enabled') -%>
+# Transparent Data Encryption (TDE) Configuration
+binlog_encryption              = ON
+default_table_encryption       = ON
+encrypt_tmp_files              = ON
+innodb_encrypt_online_alter_logs = ON
+innodb_redo_log_encrypt        = ON
+innodb_sys_tablespace_encrypt  = ON
+innodb_temp_tablespace_encrypt = ON
+innodb_undo_log_encrypt        = ON
+table_encryption_privilege_check = ON
+<%- if p('engine_config.galera.enabled') -%>
+wsrep_disk_pages_encrypt       = ON
+wsrep_gcache_encrypt           = ON
+<%- end -%>
+<%- end -%>
+
 <%- additional_entries.extract_section(section).each do |key, value| -%>
 <%= key %> = <%= value %>
 <%- end -%>

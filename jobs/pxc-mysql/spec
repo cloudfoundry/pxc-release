@@ -365,6 +365,10 @@ properties:
           early-plugin-load: keyring_file.so
           keyring_file_data: /var/vcap/store/pxc-mysql/keyring
 
+  engine_config.tde.enabled:
+    description: 'Enable Transparent Data Encryption (TDE) using component_keyring_file. Proof-of-concept only - not for production use.'
+    default: false
+
   engine_config.user_authentication_policy:
     description: Authentication plugin for identifying all created users
     default: 'mysql_native_password'

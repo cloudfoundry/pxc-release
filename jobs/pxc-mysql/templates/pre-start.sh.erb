@@ -101,6 +101,44 @@ ln -sf "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysql" /u
     -P "<%= p('engine_config.innodb_buffer_pool_size_percent') %>" \
     -D "<%= p('engine_config.binlog.space_limit_percent') %>"
 
+<%- if p('engine_config.tde.enabled') -%>
+log "pre-start: Setting up TDE keyring component"
+
+# Create keyring directory (outside datadir to avoid initialization issues)
+KEYRING_DIR=/var/vcap/store/mysql-keyring
+if [[ ! -d "${KEYRING_DIR}" ]]; then
+  mkdir -p ${KEYRING_DIR}
+fi
+chown vcap:vcap ${KEYRING_DIR}
+chmod 0750 ${KEYRING_DIR}
+
+# Create manifest file for keyring component
+MANIFEST_FILE="/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysqld.my"
+cat > ${MANIFEST_FILE} << 'EOF'
+{
+  "components": "file://component_keyring_file"
+}
+EOF
+chmod 0644 ${MANIFEST_FILE}
+
+# Create keyring component configuration
+KEYRING_CONFIG="/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/lib/plugin/component_keyring_file.cnf"
+cat > ${KEYRING_CONFIG} << 'EOF'
+{
+  "path": "/var/vcap/store/mysql-keyring/component_keyring_file",
+  "read_only": false
+}
+EOF
+chmod 0644 ${KEYRING_CONFIG}
+
+log "pre-start: TDE keyring component configured"
+<%- else -%>
+# Remove TDE files if TDE is disabled
+rm -f "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysqld.my" 2>/dev/null || true
+rm -f "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/lib/plugin/component_keyring_file.cnf" 2>/dev/null || true
+log "pre-start: TDE is disabled"
+<%- end -%>
+
 ln -sf ${PXC_JOB_DIR}/config/pxc-sudoers /etc/sudoers.d/pxc-sudoers
 chmod 440 /etc/sudoers.d/pxc-sudoers
 
@@ -146,8 +184,10 @@ fi
 
 if [ ! -d "${datadir}" ]; then
   log "pre-start setup script: making ${datadir} and running /var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysqld"
-  mkdir -p ${datadir}
-  "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysqld" \
+  # Run as vcap user to ensure keyring is initialized correctly
+  mkdir -p "${datadir}"
+  chown vcap:vcap "${datadir}"
+  runuser -u vcap -- "/var/vcap/packages/percona-xtradb-cluster-${mysql_version}/bin/mysqld" \
          --defaults-file=/var/vcap/jobs/pxc-mysql/config/my.cnf \
          --initialize
 fi
