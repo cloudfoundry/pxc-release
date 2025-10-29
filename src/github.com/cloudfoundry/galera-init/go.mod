@@ -39,3 +39,5 @@ require (
 )
 
 replace gopkg.in/fsnotify.v1 v1.4.7 => gopkg.in/fsnotify/fsnotify.v1 v1.4.7
+
+exclude golang.org/x/tools v0.38.0
