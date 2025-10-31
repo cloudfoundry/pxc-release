@@ -31,7 +31,7 @@ In the event the first proxy fails, the second proxy will still be able to route
 
 The proxies both will route traffic to the lowest-indexed healthy galera node, according to the galera index (not bosh index).
 
-Traffic to the MySQL cluster is routed through one or more proxy nodes. The current proxy implementation is [Switchboard](https://github.com/cloudfoundry-incubator/switchboard). This proxy acts as an intermediary between the client and the MySQL server, providing failover between MySQL nodes. The number of nodes is configured by the proxy job instance count in the deployment manifest.
+Traffic to the MySQL cluster is routed through one or more proxy nodes. The current proxy implementation is [Switchboard](src/github.com/cloudfoundry-incubator/switchboard). This proxy acts as an intermediary between the client and the MySQL server, providing failover between MySQL nodes. The number of nodes is configured by the proxy job instance count in the deployment manifest.
 
 **NOTE:** If the number of proxy nodes is set to zero, apps will be bound to the IP address of the first MySQL node in the cluster. If that IP address should change for any reason (e.g. loss of a VM) or a proxy was subsequently added, one would need to re-bind all apps to the IP address of the new node.
 
@@ -75,7 +75,7 @@ bosh -d <deployment> deploy pxc-deployment.yml -o operations/mysql-version.yml -
 ```
 
 Upgrades from a deployment using "mysql_version='8.0'" to a deployment using "mysql_version='8.4'" is supported.  You are
-encourage to validate application compatibility and backing up your existing Percona XtraDB Cluster 8.0 data before
+encouraged to validate application compatibility and backing up your existing Percona XtraDB Cluster 8.0 data before
 undertaking a major database upgrade to a production deployment.
 
 **Important** Percona XtraDB Cluster 8.4 does not support in-place downgrades to Percona XtraDB Cluster 8.0.  If you
