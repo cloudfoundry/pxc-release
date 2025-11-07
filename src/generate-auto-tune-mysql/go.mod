@@ -3,7 +3,7 @@ module github.com/cloudfoundry/generate-auto-tune-mysql
 go 1.24.0
 
 require (
-	github.com/cloudfoundry/gosigar v1.3.107
+	github.com/cloudfoundry/gosigar v1.3.109
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 )
