@@ -3,7 +3,7 @@ module github.com/cloudfoundry/generate-auto-tune-mysql
 go 1.24.0
 
 require (
-	github.com/cloudfoundry/gosigar v1.3.107
+	github.com/cloudfoundry/gosigar v1.3.109
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 )
@@ -17,8 +17,8 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 )
