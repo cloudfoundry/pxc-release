@@ -1,0 +1,6 @@
+---
+name: db-ping
+dependencies:
+  - golang-1-linux
+files:
+  - db-ping/**
