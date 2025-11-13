@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+: "${MYSQL_USERNAME:?Error: MYSQL_USERNAME environment variable is required}"
+: "${MYSQL_PASSWORD:?Error: MYSQL_PASSWORD environment variable is required}"
+: "${TIMEOUT:?Error: TIMEOUT environment variable is required}"
+
+# export MYSQL_USERNAME="<%= p('db_username') %>"
+# export MYSQL_PASSWORD="<%= p('db_password') %>"
+# export TIMEOUT=5
+
+# TODO: Rethink the necessity of this...
+export MYSQL_HOST=localhost
+
+/var/vcap/packages/proxy/bin/db-ping

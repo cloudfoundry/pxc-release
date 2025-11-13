@@ -8,6 +8,7 @@ templates:
   drain.erb: bin/drain
   healthcheck.erb: bin/healthcheck
   prom_scraper_config.yml.erb: config/prom_scraper_config.yml
+  dns_healthcheck.erb: bin/dns_healthcheck
 
 consumes:
 - name: proxy
