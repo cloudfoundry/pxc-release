@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-set -eux
-
-source /var/vcap/packages/golang-1-linux/bosh/compile.env
-
-cd db-ping
-  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}"/bin/db-ping
-cd -

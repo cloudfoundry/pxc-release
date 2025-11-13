@@ -40,7 +40,6 @@ provides:
 packages:
 - proxy
 - pxc-utils
-- db-ping
 
 properties:
   type:

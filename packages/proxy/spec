@@ -4,3 +4,4 @@ dependencies:
   - golang-1-linux
 files:
   - github.com/cloudfoundry-incubator/switchboard/**
+  - db-ping/**
