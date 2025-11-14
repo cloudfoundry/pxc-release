@@ -2,13 +2,6 @@
 
 set -eu
 
-: "${MYSQL_USERNAME:?Error: MYSQL_USERNAME environment variable is required}"
-: "${MYSQL_PASSWORD:?Error: MYSQL_PASSWORD environment variable is required}"
-: "${TIMEOUT:?Error: TIMEOUT environment variable is required}"
-
-: "${MYSQL_USERNAME:=<%= p('connection_test_user') %>}"k
-
-
 export MYSQL_USERNAME="<%= p('connection_test_user') %>"
 export MYSQL_PASSWORD="<%= p('connection_test_password') %>"
 

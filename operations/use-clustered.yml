@@ -29,6 +29,14 @@
       release: pxc
       properties:
         api_password: ((cf_mysql_proxy_api_password))
+        connection_test_password: ((cf_mysql_proxy_contest_password))
+
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/connection_test_user?
+  value:
+    role: minimal
+    host: any
+    password: ((cf_mysql_proxy_contest_password))
 
 - type: replace
   path: /instance_groups/name=mysql/jobs/name=galera-agent?
@@ -61,6 +69,12 @@
   path: /variables/name=cf_mysql_proxy_api_password?
   value:
     name: cf_mysql_proxy_api_password
+    type: password
+
+- type: replace
+  path: /variables/name=cf_mysql_proxy_contest_password?
+  value:
+    name: cf_mysql_proxy_contest_password
     type: password
 
 - type: replace

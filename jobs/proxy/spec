@@ -32,6 +32,8 @@ provides:
   - api_port
   - api_aggregator_port
   - port
+  - connection_test_user
+  - connection_test_password
 - name: mysql-database
   type: database
   properties:
@@ -129,3 +131,9 @@ properties:
       This format is different for different logs. We do not recommend using this flag unless you have scripts that
       expect a particular timestamp format.
     default: "rfc3339"
+
+  connection_test_user:
+    description: mysql login to exercise test connections
+    default: 'proxy-contest'
+  connection_test_password:
+    description: password for connection_test_user
