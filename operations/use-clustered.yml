@@ -29,10 +29,11 @@
       release: pxc
       properties:
         api_password: ((cf_mysql_proxy_api_password))
+        connection_test_user: connection-test-user
         connection_test_password: ((cf_mysql_proxy_contest_password))
 
 - type: replace
-  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/connection_test_user?
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/seeded_users?/connection-test-user?
   value:
     role: minimal
     host: any

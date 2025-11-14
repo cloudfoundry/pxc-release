@@ -134,6 +134,5 @@ properties:
 
   connection_test_user:
     description: mysql login to exercise test connections
-    default: 'proxy-contest'
   connection_test_password:
     description: password for connection_test_user
