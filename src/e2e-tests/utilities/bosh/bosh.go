@@ -1,6 +1,7 @@
 package bosh
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -333,4 +334,98 @@ func Scp(deploymentName, sourcePath, destPath string) error {
 		sourcePath,
 		destPath,
 	)
+}
+
+type DnsHealth int
+
+const (
+	DnsAnyHealth DnsHealth = iota
+	DnsHealthy
+	DnsUnhealthy
+)
+
+// From sourceInstance, interrogate bosh DNS for targetHosts with a the passed DnsHealth.
+// Note DNS reports unchecked instances as "healthy".
+func InterrogateDNS(deploymentName, sourceInstance, targetHosts string, dnsStatus DnsHealth) ([]string, error) {
+
+	var queryHead, dnsQuery string
+	// ASSUMPTION: All our bosh test envs' networks are "default"
+	var networkName = "default"
+
+	switch dnsStatus {
+	case DnsAnyHealth:
+		queryHead = "q-s4"
+	case DnsHealthy:
+		queryHead = "q-s3"
+	case DnsUnhealthy:
+		queryHead = "q-s1"
+	default:
+		err := fmt.Errorf("unrecognized DNS status %d", dnsStatus)
+		return nil, err
+	}
+
+	dnsQuery = fmt.Sprintf("%s.%s.%s.%s.bosh", queryHead,
+		targetHosts, networkName, deploymentName)
+
+	var output bytes.Buffer
+	if err := cmd.RunWithoutOutput(io.MultiWriter(&output, GinkgoWriter),
+		"bosh",
+		"--deployment="+deploymentName,
+		"ssh",
+		sourceInstance,
+		"--results",
+		"--command=dig "+dnsQuery,
+	); err != nil {
+		return []string{}, fmt.Errorf("remote dig lookup %s failed: %w\n output: %s", dnsQuery, err, output.String())
+	}
+
+	if !bytes.Contains(output.Bytes(), []byte("status: NOERROR")) {
+		return []string{}, fmt.Errorf("unrecognized status from remote dig query %s:\n output: %s", dnsQuery, output.String())
+	}
+
+	resultIPs := extractDigAnswerIPs(&output)
+	return resultIPs, nil
+}
+
+// Extract IPs from dig ANSWER SECTION
+func extractDigAnswerIPs(buffer *bytes.Buffer) []string {
+	var ipAddresses []string
+
+	// Create a scanner directly from the buffer
+	scanner := bufio.NewScanner(buffer)
+	inAnswerSection := false
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Check if we're entering the ANSWER SECTION
+		if strings.Contains(line, ";; ANSWER SECTION:") {
+			inAnswerSection = true
+			continue
+		}
+
+		// Check if we're leaving the ANSWER SECTION (next section starts with ;;)
+		if inAnswerSection && strings.HasPrefix(line, ";;") {
+			break
+		}
+
+		// Process lines within the ANSWER SECTION
+		if inAnswerSection {
+			// Skip empty lines
+			if line == "" {
+				continue
+			}
+
+			// Split the line into fields by whitespace
+			fields := strings.Fields(line)
+
+			// Extract only the last field (IP address) if we have at least 1 field
+			if len(fields) >= 1 {
+				ipAddress := fields[len(fields)-1]
+				ipAddresses = append(ipAddresses, ipAddress)
+			}
+		}
+	}
+
+	return ipAddresses
 }
