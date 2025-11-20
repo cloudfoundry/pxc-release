@@ -52,7 +52,7 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 	It("reports all proxies as healthy", func() {
 		healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
 		Expect(err).NotTo(HaveOccurred(), "error checking dns proxy health")
-		Expect(healthyList).To(HaveLen(numProxies))
+		Expect(healthyList).To(HaveLen(numProxies), fmt.Sprintf("expected %d proxies got %d", numProxies, len(healthyList)))
 	})
 
 	When("one proxy is stopped", func() {
