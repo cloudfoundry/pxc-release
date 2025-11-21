@@ -13,6 +13,11 @@ cd "${RELEASE_DIR}/spec/"
 bundle update --bundler && bundle install
 cd -
 
+echo -e "\n>>>>>>>> Testing Pingdb..."
+pushd "${RELEASE_DIR}/src/pingdb"
+  go run github.com/onsi/ginkgo/v2/ginkgo -v
+popd
+
 cd "${RELEASE_DIR}/spec/integration/"
 go run github.com/onsi/ginkgo/v2/ginkgo run -v
 cd -
