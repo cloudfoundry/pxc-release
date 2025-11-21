@@ -102,8 +102,7 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 	When("one proxy is stopped", func() {
 		var stoppedProxyIP string
 		BeforeAll(func() {
-			err := stopProxy(deploymentName, "proxy/0")
-			Expect(err).NotTo(HaveOccurred())
+			stopProxy(deploymentName, "proxy/0")
 
 			// recover proxy/0 IP for later dns lookup checks
 			stoppedIndex := slices.IndexFunc(proxies, func(s bosh.Instance) bool { return s.Index == "0" })
@@ -111,8 +110,7 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 			stoppedProxyIP = proxies[stoppedIndex].IP
 		})
 		AfterAll(func() {
-			err := startProxy(deploymentName, "proxy/0")
-			Expect(err).NotTo(HaveOccurred())
+			resumeProxy(deploymentName, "proxy/0")
 		})
 		It("appears unhealthy to bosh DNS", func() {
 			Eventually(
@@ -182,13 +180,23 @@ func ObserveProxyMonitoring(boshDnsLogs *bytes.Buffer) (bool, error) {
 	return false, nil
 }
 
-func stopProxy(deploymentName, instance string) error {
-	_, err := bosh.RemoteCommand(deploymentName, instance,
-		"sudo monit stop proxy")
-	return err
+func stopProxy(deploymentName, instance string) {
+	GinkgoHelper()
+	pid, err := bosh.RemoteCommand(deploymentName, instance,
+		"sudo ps ax | grep proxy | grep -v grep | grep -v tini | awk '{print $1}'")
+
+	Expect(err).NotTo(HaveOccurred())
+	_, err = bosh.RemoteCommand(deploymentName, instance,
+		"sudo kill -SIGSTOP "+pid)
+	Expect(err).NotTo(HaveOccurred())
 }
-func startProxy(deploymentName, instance string) error {
-	_, err := bosh.RemoteCommand(deploymentName, instance,
-		"sudo monit start proxy")
-	return err
+func resumeProxy(deploymentName, instance string) {
+	GinkgoHelper()
+	pid, err := bosh.RemoteCommand(deploymentName, instance,
+		"sudo ps ax | grep proxy | grep -v grep | grep -v tini | awk '{print $1}'")
+
+	Expect(err).NotTo(HaveOccurred())
+	_, err = bosh.RemoteCommand(deploymentName, instance,
+		"sudo kill -SIGCONT "+pid)
+	Expect(err).NotTo(HaveOccurred())
 }
