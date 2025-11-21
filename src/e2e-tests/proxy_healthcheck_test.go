@@ -1,12 +1,15 @@
 package e2e_tests
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"e2e-tests/utilities/bosh"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -49,6 +52,47 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 		Expect(err).NotTo(HaveOccurred(), "deployment missing expected healthcheck scripts")
 	})
 
+	// bosh-dns takes up to N seconds to report its monitoring results.
+	It("begins monitoring proxy health", func() {
+		testStartTime := time.Now()
+		Eventually(
+			func() error {
+				boshDnsLogs, err := bosh.Logs(deploymentName, "proxy/0", "bosh-dns/bosh_dns_health.stdout.log")
+				if err != nil {
+					return fmt.Errorf("error recovering proxy bosh_dns_health logs: %w", err)
+				}
+
+				proxyMonitored, err := ObserveProxyMonitoring(boshDnsLogs)
+				if err != nil {
+					return fmt.Errorf("error recovering proxy monitoring logs: %w", err)
+				}
+				if !proxyMonitored {
+					return fmt.Errorf("proxy monitoring not observed")
+				}
+				return nil
+			}).WithTimeout(time.Minute * 5).WithPolling(time.Second * 5).Should(Succeed())
+
+		By(fmt.Sprintf("proxy health checks active after %s", time.Since(testStartTime)))
+	})
+
+	It("patiently waits until it can report all proxies as healthy", func() {
+		healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
+		Expect(err).NotTo(HaveOccurred(), "error checking dns proxy health")
+
+		testStartTime := time.Now()
+		Eventually(
+			func() int {
+
+				healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
+				if err != nil {
+					return -1
+				}
+				return len(healthyList)
+			}).WithTimeout(time.Minute*5).WithPolling(time.Second*2).Should(Equal(numProxies), fmt.Sprintf("expected %d healthy proxies, got %d", numProxies, len(healthyList)))
+
+		By(fmt.Sprintf("bosh dns reports proxies healthy after %s", time.Since(testStartTime)))
+	})
+
 	It("reports all proxies as healthy", func() {
 		healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
 		Expect(err).NotTo(HaveOccurred(), "error checking dns proxy health")
@@ -58,8 +102,7 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 	When("one proxy is stopped", func() {
 		var stoppedProxyIP string
 		BeforeAll(func() {
-			_, err := bosh.RemoteCommand(deploymentName, "proxy/0",
-				"sudo monit stop proxy")
+			err := stopProxy(deploymentName, "proxy/0")
 			Expect(err).NotTo(HaveOccurred())
 
 			// recover proxy/0 IP for later dns lookup checks
@@ -68,8 +111,7 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 			stoppedProxyIP = proxies[stoppedIndex].IP
 		})
 		AfterAll(func() {
-			_, err := bosh.RemoteCommand(deploymentName, "proxy/0",
-				"sudo monit start proxy")
+			err := startProxy(deploymentName, "proxy/0")
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("appears unhealthy to bosh DNS", func() {
@@ -80,6 +122,8 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 					if err != nil {
 						return err
 					}
+					By(fmt.Sprintf("*** observing %d down proxies", len(downProxyIPs)))
+
 					if len(downProxyIPs) == 1 {
 						if downProxyIPs[0] == stoppedProxyIP {
 							return nil
@@ -93,6 +137,7 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 			upProxyIPs, err := bosh.InterrogateDNS(deploymentName,
 				"mysql/0", "proxy", bosh.DnsHealthy)
 			Expect(err).NotTo(HaveOccurred())
+			By(fmt.Sprintf("*** observing %d up proxies", len(upProxyIPs)))
 			Expect(len(upProxyIPs)).To(Equal(numProxies-1), "unexpected number of healthy proxies")
 			Expect(slices.Contains(upProxyIPs, stoppedProxyIP)).To(BeFalse(), "healthy proxies unexpectedly contain stopped proxy")
 		})
@@ -102,3 +147,48 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 	})
 
 })
+
+func ObserveProxyMonitoring(boshDnsLogs *bytes.Buffer) (bool, error) {
+	pattern := `Monitored jobs:.*HealthExecutablePath:/var/vcap/jobs/proxy/bin/dns/healthy.*JobName:proxy`
+	regex, err := regexp.Compile(pattern)
+	if err != nil {
+		return false, err
+	}
+
+	// Create a scanner to read the buffer line by line
+	scanner := bufio.NewScanner(boshDnsLogs)
+
+	// Scan through each line
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Check if line contains "Monitored jobs" (case-sensitive)
+		if strings.Contains(line, "Monitored jobs") {
+			// Validate the line matches the expected regex pattern
+			if regex.MatchString(line) {
+				return true, nil
+			}
+			// If we found "Monitored jobs" but it doesn't match pattern, return false
+			return false, nil
+		}
+	}
+
+	// Check for scanner errors
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+
+	// No "Monitored jobs" line found
+	return false, nil
+}
+
+func stopProxy(deploymentName, instance string) error {
+	_, err := bosh.RemoteCommand(deploymentName, instance,
+		"sudo monit stop proxy")
+	return err
+}
+func startProxy(deploymentName, instance string) error {
+	_, err := bosh.RemoteCommand(deploymentName, instance,
+		"sudo monit start proxy")
+	return err
+}
