@@ -52,51 +52,16 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 		Expect(err).NotTo(HaveOccurred(), "deployment missing expected healthcheck scripts")
 	})
 
-	// bosh-dns takes up to N seconds to report its monitoring results.
-	It("begins monitoring proxy health", func() {
-		testStartTime := time.Now()
-		Eventually(
-			func() error {
-				boshDnsLogs, err := bosh.Logs(deploymentName, "proxy/0", "bosh-dns/bosh_dns_health.stdout.log")
-				if err != nil {
-					return fmt.Errorf("error recovering proxy bosh_dns_health logs: %w", err)
-				}
-
-				proxyMonitored, err := ObserveProxyMonitoring(boshDnsLogs)
-				if err != nil {
-					return fmt.Errorf("error recovering proxy monitoring logs: %w", err)
-				}
-				if !proxyMonitored {
-					return fmt.Errorf("proxy monitoring not observed")
-				}
-				return nil
-			}).WithTimeout(time.Minute * 5).WithPolling(time.Second * 5).Should(Succeed())
-
-		By(fmt.Sprintf("proxy health checks active after %s", time.Since(testStartTime)))
-	})
-
-	It("patiently waits until it can report all proxies as healthy", func() {
-		healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
-		Expect(err).NotTo(HaveOccurred(), "error checking dns proxy health")
-
-		testStartTime := time.Now()
+	It("reports all proxies healthy", func() {
+		var healthyProxyIPs []string
 		Eventually(
 			func() int {
-
-				healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
+				healthyProxyIPs, err = bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
 				if err != nil {
 					return -1
 				}
-				return len(healthyList)
-			}).WithTimeout(time.Minute*5).WithPolling(time.Second*2).Should(Equal(numProxies), fmt.Sprintf("expected %d healthy proxies, got %d", numProxies, len(healthyList)))
-
-		By(fmt.Sprintf("bosh dns reports proxies healthy after %s", time.Since(testStartTime)))
-	})
-
-	It("reports all proxies as healthy", func() {
-		healthyList, err := bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
-		Expect(err).NotTo(HaveOccurred(), "error checking dns proxy health")
-		Expect(healthyList).To(HaveLen(numProxies), fmt.Sprintf("expected %d proxies got %d", numProxies, len(healthyList)))
+				return len(healthyProxyIPs)
+			}).WithTimeout(time.Second*30).WithPolling(time.Second*2).Should(Equal(numProxies), fmt.Sprintf("expected %d healthy proxies, got %d", numProxies, len(healthyProxyIPs)))
 	})
 
 	When("one proxy is stopped", func() {
