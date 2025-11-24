@@ -1,8 +1,6 @@
 package main_test
 
 import (
-	"path"
-	"runtime"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,7 +9,7 @@ import (
 )
 
 const (
-	switchboardPackage = "github.com/cloudfoundry-incubator/switchboard/"
+	switchboardPackage = "github.com/cloudfoundry-incubator/switchboard/cmd/proxy"
 )
 
 func TestSwitchboard(t *testing.T) {
@@ -28,11 +26,6 @@ var _ = BeforeSuite(func() {
 	switchboardBinPath, err = gexec.Build(switchboardPackage)
 	Expect(err).NotTo(HaveOccurred())
 })
-
-func getDirOfCurrentFile() string {
-	_, filename, _, _ := runtime.Caller(1)
-	return path.Dir(filename)
-}
 
 var _ = AfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
