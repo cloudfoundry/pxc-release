@@ -1,5 +1,5 @@
-code.cloudfoundry.org/lager/v3 v3.54.0 h1:9Z/ruEQbTOUf6Rw8IqSW1dfYoUrr6xP+4pLqlCvK/cs=
-code.cloudfoundry.org/lager/v3 v3.54.0/go.mod h1:NbZTePTcvBjNBcPs/dZRsG4SOWdUVp67Vh6h/aWzrxA=
+code.cloudfoundry.org/lager/v3 v3.55.0 h1:viHGEjAl6drHqOppRXU+ZpZZUjikO5o/tI4mY//WpQg=
+code.cloudfoundry.org/lager/v3 v3.55.0/go.mod h1:1mXk1+RPluzvyusvJkrZE3KtKzmDGXoRDnVX33zthZw=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
