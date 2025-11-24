@@ -281,8 +281,8 @@ var _ = Describe("Switchboard", func() {
 			err    error
 			testCA []byte
 		)
-		testDir := getDirOfCurrentFile()
-		staticDir = filepath.Join(testDir, "static")
+		staticDir, err = filepath.Abs("../../static")
+		Expect(err).NotTo(HaveOccurred())
 
 		testCA, testCert, err = testing.GenerateSelfSignedCertificate("localhost")
 		Expect(err).NotTo(HaveOccurred())
