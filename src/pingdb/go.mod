@@ -3,6 +3,7 @@ module pingdb
 go 1.25.1
 
 require (
+	github.com/caarlos0/env/v11 v11.3.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.27.2

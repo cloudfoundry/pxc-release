@@ -2,7 +2,7 @@
 
 set -eu
 
-export TIMEOUT=3
+export TIMEOUT=3s
 export PORT="<%= p('port') %>"
 
 /var/vcap/packages/proxy/bin/pingdb
