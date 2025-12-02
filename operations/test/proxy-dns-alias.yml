@@ -1,0 +1,13 @@
+---
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=proxy/provides?/proxy-address-alias?
+  value:
+    aliases:
+    - domain: proxy.((deployment_name)).mysql.internal
+
+- type: replace
+  path: /instance_groups/name=proxy/jobs/name=proxy/custom_provider_definitions?
+  value:
+  - name: proxy-address-alias
+    type: address
+

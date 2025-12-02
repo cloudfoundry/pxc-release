@@ -1,25 +1,24 @@
 package e2e_tests
 
 import (
-	"fmt"
 	"slices"
+	"strings"
 	"time"
 
-	"e2e-tests/utilities/bosh"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"e2e-tests/utilities/bosh"
 )
 
 var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), func() {
 	var (
-		deploymentName string
-		proxyIPs       []string
-		proxies        []bosh.Instance
-		numProxies     int
-		err            error
+		deploymentName  string
+		proxyDnsAddress string
+		proxies         []bosh.Instance
+		proxyIPs        []string
 	)
-
 	BeforeAll(func() {
 		deploymentName = "pxc-proxy-healthcheck-" + uuid.New().String()
 
@@ -27,102 +26,87 @@ var _ = Describe("Proxy healthcheck", Ordered, Label("proxy", "healthchecks"), f
 			bosh.Operation(`use-clustered.yml`),
 			bosh.Operation(`iaas/cluster.yml`),
 			bosh.Operation(`require-tls.yml`),
+			bosh.Operation(`test/proxy-dns-alias.yml`),
 		)).To(Succeed())
 
+		DeferCleanup(func() {
+			if CurrentSpecReport().Failed() {
+				return
+			}
+			Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
+		})
+
+		var err error
 		proxies, err = bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("proxy"))
 		Expect(err).NotTo(HaveOccurred())
-		proxyIPs, err = bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("proxy"))
-		Expect(err).NotTo(HaveOccurred())
-		numProxies = len(proxyIPs)
-	})
 
-	AfterAll(func() {
-		if CurrentSpecReport().Failed() {
-			return
+		for _, proxy := range proxies {
+			proxyIPs = append(proxyIPs, proxy.IP)
 		}
-		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
-	})
 
-	It("deploys proxy healthcheck scripts", func() {
-		_, err := bosh.RemoteCommand(deploymentName, "proxy",
-			"ls -l /var/vcap/jobs/proxy/bin/dns/healthy")
-		Expect(err).NotTo(HaveOccurred(), "deployment missing expected healthcheck scripts")
+		proxyDnsAddress = "proxy." + deploymentName + ".mysql.internal"
 	})
 
 	It("reports all proxies healthy", func() {
 		var healthyProxyIPs []string
-		Eventually(
-			func() int {
-				healthyProxyIPs, err = bosh.InterrogateDNS(deploymentName, "mysql/0", "proxy", bosh.DnsHealthy)
-				if err != nil {
-					return -1
-				}
-				return len(healthyProxyIPs)
-			}).WithTimeout(time.Second*30).WithPolling(time.Second*2).Should(Equal(numProxies), fmt.Sprintf("expected %d healthy proxies, got %d", numProxies, len(healthyProxyIPs)))
+		Eventually(func() []string {
+			healthyProxyIPs = interrogateDNS(deploymentName, "mysql/0", proxyDnsAddress)
+			return healthyProxyIPs
+		}).WithTimeout(time.Second*30).WithPolling(time.Second*2).Should(ConsistOf(proxyIPs), "expected to discover all proxy IPS, but did not")
 	})
 
 	When("one proxy is stopped", func() {
 		var stoppedIP string
 		BeforeAll(func() {
 			pauseProxy(deploymentName, "proxy/0")
+			DeferCleanup(func() {
+				resumeProxy(deploymentName, "proxy/0")
+			})
 
 			// recover proxy/0 IP for later dns lookup checks
 			stoppedIndex := slices.IndexFunc(proxies, func(s bosh.Instance) bool { return s.Index == "0" })
 			Expect(stoppedIndex).NotTo(Equal(-1), "unable to retrieve proxy/0 IP address")
 			stoppedIP = proxies[stoppedIndex].IP
 		})
-		AfterAll(func() {
-			resumeProxy(deploymentName, "proxy/0")
-		})
 
-		It("appears unhealthy to bosh DNS", func() {
-			Eventually(
-				func() error {
-					downProxyIPs, err := bosh.InterrogateDNS(deploymentName,
-						"mysql/0", "proxy", bosh.DnsUnhealthy)
-					if err != nil {
-						return err
-					}
-					if len(downProxyIPs) != 1 {
-						return fmt.Errorf("expected single unhealthy proxy but got %d", len(downProxyIPs))
-					}
-					if downProxyIPs[0] != stoppedIP {
-						return fmt.Errorf("expected unhealthy proxy IP %s but got IP %s", stoppedIP, downProxyIPs[0])
-					}
-					return nil
-				}).WithTimeout(time.Second * 30).WithPolling(time.Second * 2).Should(Succeed())
-		})
+		It("removes the unhealthy proxy from DNS checks", func() {
+			var expectedProxyIPs []string
+			for _, proxyIP := range proxyIPs {
+				if proxyIP == stoppedIP {
+					continue
+				}
+				expectedProxyIPs = append(expectedProxyIPs, proxyIP)
+			}
 
-		It("other running proxies appear healthy to bosh DNS", func() {
-			upProxyIPs, err := bosh.InterrogateDNS(deploymentName,
-				"mysql/0", "proxy", bosh.DnsHealthy)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(upProxyIPs)).To(Equal(numProxies-1), "unexpected number of healthy proxies")
-			Expect(slices.Contains(upProxyIPs, stoppedIP)).To(BeFalse(), "healthy proxies unexpectedly contain stopped proxy")
+			var upProxyIPs []string
+			Eventually(func() []string {
+				upProxyIPs = interrogateDNS(deploymentName, "mysql/0", proxyDnsAddress)
+				return upProxyIPs
+			}).WithTimeout(time.Second*30).WithPolling(time.Second*2).Should(ConsistOf(expectedProxyIPs), "expected to discover all proxy IPS, but did not")
 		})
 	})
 })
 
-// Halt the process "proxy" running on the provided instance
+// Halt the "proxy" process running on the provided instance
 func pauseProxy(deploymentName, instance string) {
 	GinkgoHelper()
-
-	pid, err := bosh.RemoteCommand(deploymentName, instance,
-		"sudo pgrep proxy")
-	Expect(err).NotTo(HaveOccurred())
-
-	_, err = bosh.RemoteCommand(deploymentName, instance,
-		"sudo kill -SIGSTOP "+pid)
+	_, err := bosh.RemoteCommand(deploymentName, instance,
+		"sudo pkill -SIGSTOP proxy")
 	Expect(err).NotTo(HaveOccurred())
 }
+
+// Unhalt the "proxy" process running on the provided instance
 func resumeProxy(deploymentName, instance string) {
 	GinkgoHelper()
 
-	pid, err := bosh.RemoteCommand(deploymentName, instance,
-		"sudo pgrep proxy")
+	_, err := bosh.RemoteCommand(deploymentName, instance,
+		"sudo pkill -SIGCONT proxy")
 	Expect(err).NotTo(HaveOccurred())
+}
 
-	_, err = bosh.RemoteCommand(deploymentName, instance,
-		"sudo kill -SIGCONT "+pid)
-	Expect(err).NotTo(HaveOccurred())
+func interrogateDNS(deploymentName, sourceInstance, dnsQuery string) []string {
+	GinkgoHelper()
+	output, err := bosh.RemoteCommand(deploymentName, sourceInstance, "dig +short "+dnsQuery)
+	Expect(err).NotTo(HaveOccurred(), "remote dig lookup %s failed: %w\n output: %s", dnsQuery, err, output)
+	return strings.Fields(output)
 }
