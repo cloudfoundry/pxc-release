@@ -7,4 +7,4 @@ source /var/vcap/packages/golang-1-linux/bosh/compile.env
 export GOBIN=${BOSH_INSTALL_TARGET}/bin
 
 go -C github.com/cloudfoundry-incubator/switchboard install -mod=vendor ./cmd/...
-cp -r static "${BOSH_INSTALL_TARGET}/static"
+cp -r github.com/cloudfoundry-incubator/switchboard/static "${BOSH_INSTALL_TARGET}/static"
