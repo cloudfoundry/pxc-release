@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
-set -eu
+set -o errexit -o nounset -o pipefail
 
 source /var/vcap/packages/golang-1-linux/bosh/compile.env
 
-cd github.com/cloudfoundry-incubator/switchboard
-  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/proxy"
-  cp -r static "${BOSH_INSTALL_TARGET}/static"
-cd -
-cd pingdb
-  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}"/bin/pingdb
-cd -
+export GOBIN=${BOSH_INSTALL_TARGET}/bin
+
+go -C github.com/cloudfoundry-incubator/switchboard install -mod=vendor ./cmd/...
+cp -r github.com/cloudfoundry-incubator/switchboard/static "${BOSH_INSTALL_TARGET}/static"
