@@ -9,23 +9,24 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/cloudfoundry-incubator/cf-mysql-cluster-health-logger/logwriter"
 )
 
 func main() {
 	var config logwriter.Config
-	serviceConfig := service_config.New()
 
-	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	serviceConfig.AddFlags(flags)
-	flags.Parse(os.Args[1:])
-	err := serviceConfig.Read(&config)
+	// Define command line flags
+	var configData = flag.String("config", "", "json encoded configuration string")
+	var configPath = flag.String("configPath", "", "path to configuration file with json encoded content")
+	flag.Parse()
 
+	// Load configuration from command line, file, or environment
+	err := loadConfig(&config, *configData, *configPath)
 	if err != nil {
-		log.Fatal("Failed to read config", err)
+		log.Fatal("Failed to read config:", err)
 	}
 
 	err = validator.Validate(config)
@@ -53,4 +54,37 @@ func main() {
 		}
 		time.Sleep(time.Duration(config.Interval) * time.Second)
 	}
+}
+
+// Load configuration from sources in order of precedence:
+// command line data "-config" or file "-configPath", environment variables
+// for data CONFIG or file CONFIG_PATH.
+func loadConfig(config *logwriter.Config, configData, configPath string) error {
+	var yamlData []byte
+	var err error
+
+	if configData != "" {
+		yamlData = []byte(configData)
+	} else if configPath != "" {
+		yamlData, err = os.ReadFile(configPath)
+		if err != nil {
+			return fmt.Errorf("reading config file %s: %w", configPath, err)
+		}
+	} else if envConfig := os.Getenv("CONFIG"); envConfig != "" {
+		yamlData = []byte(envConfig)
+	} else if envConfigPath := os.Getenv("CONFIG_PATH"); envConfigPath != "" {
+		yamlData, err = os.ReadFile(envConfigPath)
+		if err != nil {
+			return fmt.Errorf("reading config file from CONFIG_PATH %s: %w", envConfigPath, err)
+		}
+	} else {
+		return fmt.Errorf("no configuration provided: use -config, -configPath, CONFIG, or CONFIG_PATH")
+	}
+
+	// Parse YAML
+	if err := yaml.Unmarshal(yamlData, config); err != nil {
+		return fmt.Errorf("parsing YAML config: %w", err)
+	}
+
+	return nil
 }
