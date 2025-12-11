@@ -8,3 +8,6 @@ cd github.com/cloudfoundry-incubator/switchboard
   go build -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/proxy"
   cp -r static "${BOSH_INSTALL_TARGET}/static"
 cd -
+cd github.com/cloudfoundry-incubator/switchboard/pingdb
+  go build -mod=vendor -o "${BOSH_INSTALL_TARGET}"/bin/pingdb
+cd -
