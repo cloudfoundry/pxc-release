@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/tlsconfig/certtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	. "github.com/cloudfoundry-incubator/galera-healthcheck/test_helpers"
@@ -50,7 +49,7 @@ var _ = Describe("Config", func() {
 			DB: DBConfig{
 				User:     "vcap",
 				Password: "password",
-				Socket:   "",
+				Socket:   "/var/vcap/sys/run/pxc-mysql/mysqld.sock",
 			},
 			Monit: MonitConfig{
 				Host:                          "localhost",
@@ -174,78 +173,106 @@ var _ = Describe("Config", func() {
 		})
 
 		It("returns an error if Host is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Host")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Host = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Host"))
 		})
 
 		It("returns an error if Port is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Port")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Port = 0
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Port"))
 		})
 
 		It("returns an error if AvailableWhenReadOnly is blank", func() {
-			err := test_helpers.IsOptionalField(rootConfig, "AvailableWhenReadOnly")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.AvailableWhenReadOnly = false
+			err := rootConfig.Validate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns an error if AvailableWhenDonor is blank", func() {
-			err := test_helpers.IsOptionalField(rootConfig, "AvailableWhenDonor")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.AvailableWhenDonor = false
+			err := rootConfig.Validate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns an error if DB.Socket is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "DB.Socket")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.DB.Socket = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Socket"))
 		})
 
 		It("returns an error if DB.User is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "DB.User")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.DB.User = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("User"))
 		})
 
 		It("returns an error if DB.Password is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "DB.Password")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.DB.Password = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Password"))
 		})
 
 		It("returns an error if Monit.Host is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Monit.Host")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Monit.Host = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Host"))
 		})
 
 		It("returns an error if Monit.User is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Monit.User")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Monit.User = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("User"))
 		})
 
 		It("returns an error if Monit.Port is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Monit.Port")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Monit.Port = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Port"))
 		})
 
 		It("returns an error if Monit.Password is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Monit.Password")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Monit.Password = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Password"))
 		})
 
 		It("returns an error if MysqldPath is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "MysqldPath")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.MysqldPath = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("MysqldPath"))
 		})
 
 		It("returns an error if Monit.ServiceName is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Monit.ServiceName")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Monit.ServiceName = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("ServiceName"))
 		})
 
 		It("returns an error if SidecarEndpoint.Username is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "SidecarEndpoint.Username")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.SidecarEndpoint.Username = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Username"))
 		})
 
 		It("returns an error if SidecarEndpoint.Password is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "SidecarEndpoint.Password")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.SidecarEndpoint.Password = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Password"))
 		})
 
 		It("returns a valid logger", func() {
