@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	. "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
-	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -56,23 +55,31 @@ var _ = Describe("Config", func() {
 		})
 
 		It("returns an error if HealthcheckURLs is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "HealthcheckURLs")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.HealthcheckURLs = []string{}
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("HealthcheckURLs"))
 		})
 
 		It("returns an error if Username is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Username")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Username = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Username"))
 		})
 
 		It("returns an error if Password is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Password")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Password = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Password"))
 		})
 
 		It("returns an error if RepairMode is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "RepairMode")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.RepairMode = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("RepairMode"))
 		})
 
 		It("returns an error if RepairMode is invalid", func() {
@@ -98,7 +105,7 @@ var _ = Describe("Config", func() {
 					"Enabled": true,
 					"ServerName": "backendTlsServerName",
 					"CA": "backendTlsCA",
-					"InsecureSkipVerify": false,
+					"InsecureSkipVerify": false
 				}
 			}`
 			})
@@ -119,6 +126,25 @@ var _ = Describe("Config", func() {
 				Expect(rootConfig.BackendTLS.Enabled).To(BeFalse())
 				Expect(rootConfig.BackendTLS.InsecureSkipVerify).To(BeFalse())
 			})
+		})
+	})
+
+	Describe("Default values", func() {
+		It("preserves defaults when empty config values are provided", func() {
+			osArgs := []string{
+				"bootstrap",
+				"-config={}",
+			}
+
+			resultConfig, err := NewConfig(osArgs)
+			Expect(err).NotTo(HaveOccurred())
+			
+			// Verify that defaults are preserved with empty config
+			Expect(resultConfig.ShutDownMysql).To(Equal("stop_mysql"))
+			Expect(resultConfig.MysqlStatus).To(Equal("mysql_status"))
+			Expect(resultConfig.GetSeqNumber).To(Equal("sequence_number"))
+			Expect(resultConfig.StartMysqlInJoinMode).To(Equal("start_mysql_join"))
+			Expect(resultConfig.StartMysqlInBootstrapMode).To(Equal("start_mysql_bootstrap"))
 		})
 	})
 })
