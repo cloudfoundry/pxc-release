@@ -1253,20 +1253,32 @@ var _ = Describe("Switchboard", func() {
 					})
 
 					It("reports the correct active backend", func() {
-						time.Sleep(3 * time.Second)
+						var expectedName string
+						Eventually(func() error {
+							url := fmt.Sprintf("https://localhost:%d/v0/cluster", switchboardAPIPort)
+							req, err := http.NewRequest("GET", url, nil)
+							if err != nil {
+								return err
+							}
 
-						// Get active backend from API
-						url := fmt.Sprintf("https://localhost:%d/v0/cluster", switchboardAPIPort)
-						req, err := http.NewRequest("GET", url, nil)
-						Expect(err).NotTo(HaveOccurred())
+							req.SetBasicAuth("username", "password")
+							cluster := getClusterFromAPI(httpClient, req)
 
-						req.SetBasicAuth("username", "password")
-						cluster := getClusterFromAPI(httpClient, req)
+							activeBackend, ok := cluster["activeBackend"].(map[string]interface{})
+							if !ok || activeBackend == nil {
+								return errors.New("no active backend available yet")
+							}
 
-						activeBackend := cluster["activeBackend"].(map[string]interface{})
-						expectedName := activeBackend["name"].(string)
+							name, ok := activeBackend["name"].(string)
+							if !ok {
+								return errors.New("active backend name not available")
+							}
 
-						Eventually(switchboardRunner.Buffer()).Should(
+							expectedName = name
+							return nil
+						}, "10s", "500ms").Should(Succeed())
+
+						Eventually(switchboardRunner.Buffer(), "5s", "100ms").Should(
 							gbytes.Say(fmt.Sprintf(`"active_backend":"%s"`, expectedName)))
 					})
 
