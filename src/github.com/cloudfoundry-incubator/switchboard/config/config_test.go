@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/tlsconfig/certtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf-experimental/service-config/test_helpers"
 
 	. "github.com/cloudfoundry-incubator/switchboard/config"
 )
@@ -147,73 +146,110 @@ var _ = Describe("Config", func() {
 				`Expected fixtures/validConfig.yml to unmarshal the correct API.TLS.Certificate property, but it did not.  Are the struct tags correct?`)
 		})
 		It("returns an error if API.Port is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "API.Port")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.API.Port = 0
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Port"))
 		})
 
 		It("returns an error if API.Username is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "API.Username")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.API.Username = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Username"))
 		})
 
 		It("returns an error if API.Password is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "API.Password")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.API.Password = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Password"))
 		})
 
 		It("does not return an error if API.ForceHttps is blank", func() {
-			err := test_helpers.IsOptionalField(rootConfig, "API.ForceHttps")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.API.ForceHttps = false
+			err := rootConfig.Validate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns an error if Proxy.Port is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Port")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Proxy.Port = 0
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Port"))
 		})
 
 		It("returns an error if Proxy.HealthcheckTimeoutMillis is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.HealthcheckTimeoutMillis")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Proxy.HealthcheckTimeoutMillis = 0
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("HealthcheckTimeoutMillis"))
 		})
 
 		It("returns an error if Proxy.Backends is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.Proxy.Backends = []Backend{}
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Backends"))
 		})
 
 		It("returns an error if Proxy.Backends.Host is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.Host")
-			Expect(err).ToNot(HaveOccurred())
+			if len(rootConfig.Proxy.Backends) > 0 {
+				rootConfig.Proxy.Backends[0].Host = ""
+				err := rootConfig.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Host"))
+			}
 		})
 
 		It("returns an error if Proxy.Backends.Port is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.Port")
-			Expect(err).ToNot(HaveOccurred())
+			if len(rootConfig.Proxy.Backends) > 0 {
+				rootConfig.Proxy.Backends[0].Port = 0
+				err := rootConfig.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Port"))
+			}
 		})
 
 		It("returns an error if Proxy.Backends.StatusPort is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.StatusPort")
-			Expect(err).ToNot(HaveOccurred())
+			if len(rootConfig.Proxy.Backends) > 0 {
+				rootConfig.Proxy.Backends[0].StatusPort = 0
+				err := rootConfig.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("StatusPort"))
+			}
 		})
 
 		It("returns an error if Proxy.Backends.StatusEndpoint is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.StatusEndpoint")
-			Expect(err).ToNot(HaveOccurred())
+			if len(rootConfig.Proxy.Backends) > 0 {
+				rootConfig.Proxy.Backends[0].StatusEndpoint = ""
+				err := rootConfig.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("StatusEndpoint"))
+			}
 		})
 
 		It("returns an error if Proxy.Backends.Name is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "Proxy.Backends.Name")
-			Expect(err).ToNot(HaveOccurred())
+			if len(rootConfig.Proxy.Backends) > 0 {
+				rootConfig.Proxy.Backends[0].Name = ""
+				err := rootConfig.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Name"))
+			}
 		})
 
 		It("returns an error if HealthPort is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "HealthPort")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.HealthPort = 0
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("HealthPort"))
 		})
 
 		It("returns an error if StaticDir is blank", func() {
-			err := test_helpers.IsRequiredField(rootConfig, "StaticDir")
-			Expect(err).ToNot(HaveOccurred())
+			rootConfig.StaticDir = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("StaticDir"))
 		})
 	})
 
@@ -368,6 +404,22 @@ var _ = Describe("Config", func() {
 				GinkgoWriter.Printf("Interval = %s [raw=%q]", rootConfig.StatusLogInterval(), rootConfig.StatusLog.Interval)
 				Expect(rootConfig.StatusLogInterval()).To(Equal(time.Minute), `Expected the status log to be enabled and log every 60 seconds`)
 			})
+		})
+	})
+
+	Describe("Default values", func() {
+		It("preserves defaults when empty config values are provided", func() {
+			osArgs := []string{
+				"switchboard",
+				"-config={}",
+			}
+
+			resultConfig, err := NewConfig(osArgs)
+			Expect(err).NotTo(HaveOccurred())
+			
+			// Verify that defaults are preserved with empty config
+			Expect(resultConfig.Metrics.Port).To(Equal(uint(9999)))
+			Expect(resultConfig.StatusLog.Interval).To(Equal(time.Minute))
 		})
 	})
 })
