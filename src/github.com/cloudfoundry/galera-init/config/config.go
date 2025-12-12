@@ -7,12 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerflags"
-	"github.com/pivotal-cf-experimental/service-config"
 	"gopkg.in/validator.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -58,33 +59,43 @@ type SeededUser struct {
 	Role     string `yaml:"Role" validate:"nonzero"`
 }
 
-func NewConfig(osArgs []string) (*Config, error) {
-	var c Config
-
-	binaryName := osArgs[0]
-	configurationOptions := osArgs[1:]
-
-	serviceConfig := service_config.New()
-	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
-
-	lagerflags.AddFlags(flags)
-
-	serviceConfig.AddFlags(flags)
-	serviceConfig.AddDefaults(Config{
+func defaultConfig() Config {
+	return Config{
 		Db: DBHelper{
 			User: "root",
 		},
 		Manager: StartManager{
 			GrastateFileLocation: "/var/vcap/store/pxc-mysql/grastate.dat",
 		},
-	})
+	}
+}
+
+func NewConfig(osArgs []string) (*Config, error) {
+	var c Config
+
+	binaryName := osArgs[0]
+	configurationOptions := osArgs[1:]
+
+	// Define command line flags
+	flags := flag.NewFlagSet(binaryName, flag.ExitOnError)
+	var configData = flags.String("config", "", "json encoded configuration string")
+	var configPath = flags.String("configPath", "", "path to configuration file with json encoded content")
+
+	lagerflags.AddFlags(flags)
 	flags.Parse(configurationOptions)
 
-	err := serviceConfig.Read(&c)
+	// Start with defaults
+	c = defaultConfig()
+
+	// Load configuration from command line, file, or environment
+	err := loadConfig(&c, *configData, *configPath)
+	if err != nil {
+		return nil, err
+	}
 
 	c.Logger, _ = lagerflags.NewFromConfig(binaryName, lagerflags.ConfigFromFlags())
 
-	return &c, err
+	return &c, nil
 }
 
 func (c Config) Validate() error {
@@ -138,4 +149,37 @@ func (c Config) ClusterUrls() (urls []string) {
 		urls = append(urls, "http://"+ip+":9200/", "https://"+ip+":9201/")
 	}
 	return urls
+}
+
+// Load configuration from sources in order of precedence:
+// command line data "-config" or file "-configPath", environment variables
+// for data CONFIG or file CONFIG_PATH.
+func loadConfig(config *Config, configData, configPath string) error {
+	var yamlData []byte
+	var err error
+
+	if configData != "" {
+		yamlData = []byte(configData)
+	} else if configPath != "" {
+		yamlData, err = os.ReadFile(configPath)
+		if err != nil {
+			return fmt.Errorf("reading config file %s: %w", configPath, err)
+		}
+	} else if envConfig := os.Getenv("CONFIG"); envConfig != "" {
+		yamlData = []byte(envConfig)
+	} else if envConfigPath := os.Getenv("CONFIG_PATH"); envConfigPath != "" {
+		yamlData, err = os.ReadFile(envConfigPath)
+		if err != nil {
+			return fmt.Errorf("reading config file from CONFIG_PATH %s: %w", envConfigPath, err)
+		}
+	} else {
+		return fmt.Errorf("no configuration provided: use -config, -configPath, CONFIG, or CONFIG_PATH")
+	}
+
+	// Parse YAML
+	if err := yaml.Unmarshal(yamlData, config); err != nil {
+		return fmt.Errorf("parsing YAML config: %w", err)
+	}
+
+	return nil
 }
