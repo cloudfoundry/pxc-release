@@ -84,15 +84,16 @@ func (fake *FakeMonitClient) GetStatus(arg1 *http.Request) (string, error) {
 	fake.getStatusArgsForCall = append(fake.getStatusArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.GetStatusStub
+	fakeReturns := fake.getStatusReturns
 	fake.recordInvocation("GetStatus", []interface{}{arg1})
 	fake.getStatusMutex.Unlock()
-	if fake.GetStatusStub != nil {
-		return fake.GetStatusStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getStatusReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -147,15 +148,16 @@ func (fake *FakeMonitClient) StartServiceBootstrap(arg1 *http.Request) (string, 
 	fake.startServiceBootstrapArgsForCall = append(fake.startServiceBootstrapArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.StartServiceBootstrapStub
+	fakeReturns := fake.startServiceBootstrapReturns
 	fake.recordInvocation("StartServiceBootstrap", []interface{}{arg1})
 	fake.startServiceBootstrapMutex.Unlock()
-	if fake.StartServiceBootstrapStub != nil {
-		return fake.StartServiceBootstrapStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startServiceBootstrapReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -210,15 +212,16 @@ func (fake *FakeMonitClient) StartServiceJoin(arg1 *http.Request) (string, error
 	fake.startServiceJoinArgsForCall = append(fake.startServiceJoinArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.StartServiceJoinStub
+	fakeReturns := fake.startServiceJoinReturns
 	fake.recordInvocation("StartServiceJoin", []interface{}{arg1})
 	fake.startServiceJoinMutex.Unlock()
-	if fake.StartServiceJoinStub != nil {
-		return fake.StartServiceJoinStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startServiceJoinReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -273,15 +276,16 @@ func (fake *FakeMonitClient) StartServiceSingleNode(arg1 *http.Request) (string,
 	fake.startServiceSingleNodeArgsForCall = append(fake.startServiceSingleNodeArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.StartServiceSingleNodeStub
+	fakeReturns := fake.startServiceSingleNodeReturns
 	fake.recordInvocation("StartServiceSingleNode", []interface{}{arg1})
 	fake.startServiceSingleNodeMutex.Unlock()
-	if fake.StartServiceSingleNodeStub != nil {
-		return fake.StartServiceSingleNodeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startServiceSingleNodeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -336,15 +340,16 @@ func (fake *FakeMonitClient) StopService(arg1 *http.Request) (string, error) {
 	fake.stopServiceArgsForCall = append(fake.stopServiceArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.StopServiceStub
+	fakeReturns := fake.stopServiceReturns
 	fake.recordInvocation("StopService", []interface{}{arg1})
 	fake.stopServiceMutex.Unlock()
-	if fake.StopServiceStub != nil {
-		return fake.StopServiceStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.stopServiceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -396,16 +401,6 @@ func (fake *FakeMonitClient) StopServiceReturnsOnCall(i int, result1 string, res
 func (fake *FakeMonitClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getStatusMutex.RLock()
-	defer fake.getStatusMutex.RUnlock()
-	fake.startServiceBootstrapMutex.RLock()
-	defer fake.startServiceBootstrapMutex.RUnlock()
-	fake.startServiceJoinMutex.RLock()
-	defer fake.startServiceJoinMutex.RUnlock()
-	fake.startServiceSingleNodeMutex.RLock()
-	defer fake.startServiceSingleNodeMutex.RUnlock()
-	fake.stopServiceMutex.RLock()
-	defer fake.stopServiceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

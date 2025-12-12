@@ -29,15 +29,16 @@ func (fake *FakeHealthChecker) Check() (string, error) {
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 	}{})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -82,8 +83,6 @@ func (fake *FakeHealthChecker) CheckReturnsOnCall(i int, result1 string, result2
 func (fake *FakeHealthChecker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkMutex.RLock()
-	defer fake.checkMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

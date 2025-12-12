@@ -30,15 +30,16 @@ func (fake *FakeStateSnapshotter) State() (domain.DBState, error) {
 	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
 	fake.stateArgsForCall = append(fake.stateArgsForCall, struct {
 	}{})
+	stub := fake.StateStub
+	fakeReturns := fake.stateReturns
 	fake.recordInvocation("State", []interface{}{})
 	fake.stateMutex.Unlock()
-	if fake.StateStub != nil {
-		return fake.StateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.stateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -83,8 +84,6 @@ func (fake *FakeStateSnapshotter) StateReturnsOnCall(i int, result1 domain.DBSta
 func (fake *FakeStateSnapshotter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.stateMutex.RLock()
-	defer fake.stateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

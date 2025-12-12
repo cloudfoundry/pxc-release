@@ -32,15 +32,16 @@ func (fake *FakeSequenceNumberChecker) Check(arg1 *http.Request) (string, error)
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -92,8 +93,6 @@ func (fake *FakeSequenceNumberChecker) CheckReturnsOnCall(i int, result1 string,
 func (fake *FakeSequenceNumberChecker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkMutex.RLock()
-	defer fake.checkMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
