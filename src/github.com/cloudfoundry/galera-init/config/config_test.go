@@ -2,7 +2,6 @@ package config_test
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -11,7 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/pivotal-cf-experimental/service-config"
 
 	. "github.com/cloudfoundry/galera-init/config"
 )
@@ -19,25 +17,16 @@ import (
 var _ = Describe("Config", func() {
 
 	Describe("Validate", func() {
-		var rootConfig Config
-		var serviceConfig *ServiceConfig
+		var rootConfig *Config
 
 		BeforeEach(func() {
-			serviceConfig = New()
-			flags := flag.NewFlagSet("galera-init", flag.ExitOnError)
-			serviceConfig.AddFlags(flags)
-
-			serviceConfig.AddDefaults(Config{
-				Db: DBHelper{
-					User: "root",
-				},
-			})
-
-			flags.Parse([]string{
+			osArgs := []string{
+				"galera-init",
 				"-configPath=../example-config.yml",
-			})
+			}
 
-			err := serviceConfig.Read(&rootConfig)
+			var err error
+			rootConfig, err = NewConfig(osArgs)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -68,7 +57,7 @@ var _ = Describe("Config", func() {
 		}
 
 		var setFieldToEmpty = func(fieldName string) error {
-			return setNestedFieldToEmpty(&rootConfig, strings.Split(fieldName, "."))
+			return setNestedFieldToEmpty(rootConfig, strings.Split(fieldName, "."))
 		}
 
 		var isRequiredField = func(fieldName string) func() {
