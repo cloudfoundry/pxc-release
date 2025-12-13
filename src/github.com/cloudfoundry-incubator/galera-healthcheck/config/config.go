@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/tlsconfig"
+	"dario.cat/mergo"
 	"github.com/pkg/errors"
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v3"
@@ -27,22 +28,28 @@ func loadConfig(config *Config, configData, configPath string) error {
 	} else if configPath != "" {
 		yamlData, err = os.ReadFile(configPath)
 		if err != nil {
-			return fmt.Errorf("reading config file %s: %w", configPath, err)
+			return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 		}
 	} else if envConfig := os.Getenv("CONFIG"); envConfig != "" {
 		yamlData = []byte(envConfig)
 	} else if envConfigPath := os.Getenv("CONFIG_PATH"); envConfigPath != "" {
 		yamlData, err = os.ReadFile(envConfigPath)
 		if err != nil {
-			return fmt.Errorf("reading config file from CONFIG_PATH %s: %w", envConfigPath, err)
+			return fmt.Errorf("failed to read config file from CONFIG_PATH %s: %w", envConfigPath, err)
 		}
 	} else {
 		return fmt.Errorf("no configuration provided: use -config, -configPath, CONFIG, or CONFIG_PATH")
 	}
 
-	// Parse YAML
-	if err := yaml.Unmarshal(yamlData, config); err != nil {
-		return fmt.Errorf("parsing YAML config: %w", err)
+	// since config has pre-populated defaults, unmarshal into temp userConfig
+	var userConfig Config
+	if err := yaml.Unmarshal(yamlData, &userConfig); err != nil {
+		return fmt.Errorf("failed to parse YAML config: %w", err)
+	}
+
+	// Merge userConfig into the existing defaults already in config
+	if err := mergo.Merge(config, &userConfig, mergo.WithOverride); err != nil {
+		return fmt.Errorf("merging user config with defaults: %w", err)
 	}
 
 	return nil

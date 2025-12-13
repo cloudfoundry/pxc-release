@@ -279,4 +279,27 @@ var _ = Describe("Config", func() {
 			Expect(rootConfig.Logger).ToNot(BeNil())
 		})
 	})
+	Describe("Default values", func() {
+		var emptyConfig, resultConfig *Config
+
+		emptyConfig = &Config{}
+
+		It("preserves defaults when empty config values are provided", func() {
+			var err error
+
+			emptyConfigYaml, err := json.Marshal(emptyConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			osArgs := []string{
+				"galera-healthcheck",
+				fmt.Sprintf("-config=%s", emptyConfigYaml),
+			}
+
+			resultConfig, err = NewConfig(osArgs)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resultConfig.Port).To(Equal(8080))
+			Expect(resultConfig.DB.Socket).To(Equal("/var/vcap/sys/run/pxc-mysql/mysqld.sock"))
+			Expect(resultConfig.DB.User).To(Equal("root"))
+		})
+	})
 })
