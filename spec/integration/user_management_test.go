@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -12,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+
+	"integration/internal/docker"
 )
 
 type UserRole struct {
@@ -40,7 +39,7 @@ type MySQLJobSpec struct {
 var _ = Describe("UserManagement", Ordered, func() {
 	var (
 		dbUsers         MySQLJobSpec
-		resource        *dockertest.Resource
+		resource        string
 		mysqlVersionTag string
 	)
 
@@ -66,30 +65,27 @@ var _ = Describe("UserManagement", Ordered, func() {
 		Expect(cmd.Run()).To(Succeed())
 
 		// Initialize the data volume first, so our db_init does not interfere with percona's entrypoint bootstrapping
-		resource, err = startMySQL(mysqlVersionTag, nil, nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resource.Close()).To(Succeed())
+		resource = startMySQL(mysqlVersionTag, nil, nil)
+		Expect(docker.RemoveContainer(resource)).To(Succeed())
 
-		resource, err = startMySQL(
+		resource = startMySQL(
 			mysqlVersionTag,
 			[]string{"--init-file=/db_init"},
 			[]string{f.Name() + ":/db_init"},
 		)
-		Expect(err).NotTo(HaveOccurred())
-	})
+		DeferCleanup(func() {
+			if CurrentSpecReport().Failed() {
+				return
+			}
 
-	AfterEach(func() {
-		if CurrentSpecReport().Failed() {
-			return
-		}
-		Expect(pool.Purge(resource)).To(Succeed())
-		Expect(pool.Client.RemoveVolumeWithOptions(docker.RemoveVolumeOptions{
-			Name:  volumeID,
-			Force: true,
-		})).To(Succeed())
+			Expect(docker.RemoveContainer(resource)).To(Succeed())
+			Expect(docker.RemoveVolume(volumeID)).To(Succeed())
+		})
 	})
 
 	showGrants := func(db *sql.DB, username, host string) (grants []string) {
+		GinkgoHelper()
+
 		rows, err := db.Query(`SHOW GRANTS FOR ?@?`, username, host)
 		Expect(err).NotTo(HaveOccurred())
 		for rows.Next() {
@@ -102,6 +98,8 @@ var _ = Describe("UserManagement", Ordered, func() {
 	}
 
 	showSchemas := func(db *sql.DB, username, host string) (schemas []string) {
+		GinkgoHelper()
+
 		rows, err := db.Query(`SHOW SCHEMAS`)
 		Expect(err).NotTo(HaveOccurred())
 		for rows.Next() {
@@ -115,28 +113,22 @@ var _ = Describe("UserManagement", Ordered, func() {
 
 	// verifyUser proves that a given username:password credential can connect to a given schema and has the expected permissions
 	verifyUser := func(username, password, schema string, expectedGrants []string) {
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:%s)/%s?interpolateParams=true",
-			username, password, resource.GetPort("3306/tcp"), schema))
-		Expect(err).NotTo(HaveOccurred())
+		db := docker.MySQLDB(resource, docker.WithUsernamePassword(username, password))
 		defer db.Close()
 		Expect(showGrants(db, username, "%")).To(ConsistOf(expectedGrants))
 	}
 
 	verifyGrantsForLocalUser := func(username, password string, expectedGrants []string) {
-		dsn := fmt.Sprintf("root@(localhost:%s)/?interpolateParams=true", resource.GetPort("3306/tcp"))
-		db, err := sql.Open("mysql", dsn)
-		Expect(err).NotTo(HaveOccurred())
+		db := docker.MySQLDB(resource)
 		defer db.Close()
 
 		Expect(showGrants(db, username, "localhost")).To(ConsistOf(expectedGrants))
 	}
 
 	verifySchemasForLocalUser := func(username, password string, expectedSchemas []string) {
-		dsn := fmt.Sprintf("root@(localhost:%s)/?interpolateParams=true", resource.GetPort("3306/tcp"))
-		db, err := sql.Open("mysql", dsn)
+		db := docker.MySQLDB(resource)
 		defer db.Close() // TODO: check other helpers for Close() calls.
 
-		Expect(err).NotTo(HaveOccurred())
 		Expect(showSchemas(db, username, "localhost")).To(ContainElements(expectedSchemas))
 	}
 
@@ -190,7 +182,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 	verifyLocalUser := func(username, password string) {
 		var out bytes.Buffer
 		cmd := exec.Command("docker",
-			"exec", resource.Container.ID,
+			"exec", resource,
 			"mysql",
 			"--user="+username,
 			"--password="+password,
@@ -202,9 +194,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 	}
 
 	verifyMaxUserConnections := func(username, host string, expectedValue int) {
-		db, err := sql.Open("mysql", fmt.Sprintf("root@(localhost:%s)/mysql?interpolateParams=true",
-			resource.GetPort("3306/tcp")))
-		Expect(err).NotTo(HaveOccurred())
+		db := docker.MySQLDB(resource)
 		defer db.Close()
 
 		var actualMaxUserConnections int
@@ -216,12 +206,13 @@ var _ = Describe("UserManagement", Ordered, func() {
 	}
 
 	verifyLocalAdminUser := func(username, password string) {
-		db, err := sql.Open("mysql", fmt.Sprintf("root@(localhost:%s)/mysql?interpolateParams=true",
-			resource.GetPort("3306/tcp")))
-		Expect(err).NotTo(HaveOccurred())
+		db := docker.MySQLDB(resource)
 		defer db.Close()
 
-		var expectedPrivileges []string
+		var (
+			expectedPrivileges []string
+			err                error
+		)
 		if mysqlVersionTag == "5.7" {
 			expectedPrivileges = []string{"GRANT OPTION", "ALL PRIVILEGES", "PROXY", "USAGE"}
 		} else {
@@ -237,7 +228,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 
 		// Validate the admin user can actually log in. I.e. we set credentials correctly
 		cmd := exec.Command("docker",
-			"exec", resource.Container.ID,
+			"exec", resource,
 			"mysql",
 			"--user="+username,
 			"--password="+password,
@@ -248,9 +239,7 @@ var _ = Describe("UserManagement", Ordered, func() {
 	}
 
 	verifyUserFunc := func(username, password string, cb func(db *sql.DB)) {
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:%s)/?interpolateParams=true",
-			username, password, resource.GetPort("3306/tcp")))
-		Expect(err).NotTo(HaveOccurred())
+		db := docker.MySQLDB(resource, docker.WithUsernamePassword(username, password))
 		defer db.Close()
 		cb(db)
 	}
