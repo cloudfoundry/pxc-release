@@ -32,7 +32,7 @@ var _ = Describe("Upgrade from pxc v0 to pxc v1", Label("upgrade"), Ordered, fun
 		By("deploying pxc-release 0.x based on PXC 5.7")
 		Expect(bosh.Deploy(deploymentName, "manifest/pxc-5.7.yml",
 			bosh.Var("deployment_name", deploymentName),
-			bosh.VarsEnv("PXC_TEST"),
+			bosh.VarsEnv("BOSH_VAR"),
 		)).To(Succeed())
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).To(Succeed())
