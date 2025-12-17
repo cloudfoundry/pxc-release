@@ -26,6 +26,7 @@ import (
 	"github.com/cloudfoundry-incubator/switchboard/config"
 	"github.com/cloudfoundry-incubator/switchboard/dummies"
 	"github.com/cloudfoundry-incubator/switchboard/testing"
+	"gopkg.in/yaml.v3"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -173,7 +174,7 @@ var _ = Describe("Switchboard", func() {
 	}
 
 	var startYourServers = func(rootConfig config.Config) {
-		runnableRootConfig, err := json.Marshal(rootConfig)
+		runnableRootConfig, err := yaml.Marshal(rootConfig)
 		Expect(err).NotTo(HaveOccurred())
 
 		healthcheckRunners = []*dummies.HealthcheckRunner{
