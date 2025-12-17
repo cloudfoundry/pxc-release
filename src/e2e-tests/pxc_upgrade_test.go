@@ -22,13 +22,13 @@ var _ = Describe("Legacy upgrades from existing Percona XtraDB Cluster 5.7 deplo
 		By("deploying pxc-release with mysql_version=5.7")
 		Expect(bosh.Deploy(deploymentName, "src/e2e-tests/manifest/pxc-5.7.yml",
 			bosh.Var("deployment_name", deploymentName),
-			bosh.VarsEnv("PXC_TEST"),
+			bosh.VarsEnv("BOSH_VAR"),
 		)).To(Succeed())
 
 		By("upgrading to mysql_version=" + expectedMysqlVersion)
 		Expect(bosh.Deploy(deploymentName, "src/e2e-tests/manifest/pxc-5.7.yml",
 			bosh.Var("deployment_name", deploymentName),
-			bosh.VarsEnv("PXC_TEST"),
+			bosh.VarsEnv("BOSH_VAR"),
 			bosh.Operation(`mysql-version.yml`),
 			bosh.Var("mysql_version", expectedMysqlVersion),
 			bosh.Operation("dev-release.yml"),

@@ -50,21 +50,21 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(missingEnvs).To(BeEmpty(), "Missing environment variables: %s", strings.Join(missingEnvs, ", "))
 
-	if _, ok := os.LookupEnv("PXC_TEST_azs"); !ok {
-		GinkgoT().Setenv("PXC_TEST_azs", "[z1,z2,z3]")
+	if _, ok := os.LookupEnv("BOSH_VAR_azs"); !ok {
+		GinkgoT().Setenv("BOSH_VAR_azs", "[z1,z2,z3]")
 	}
 
-	if _, ok := os.LookupEnv("PXC_TEST_network"); !ok {
-		GinkgoT().Setenv("PXC_TEST_network", "default")
+	if _, ok := os.LookupEnv("BOSH_VAR_network"); !ok {
+		GinkgoT().Setenv("BOSH_VAR_network", "default")
 	}
 
-	if _, ok := os.LookupEnv("PXC_TEST_vm_type"); !ok {
-		GinkgoT().Setenv("PXC_TEST_vm_type", "small")
+	if _, ok := os.LookupEnv("BOSH_VAR_vm_type"); !ok {
+		GinkgoT().Setenv("BOSH_VAR_vm_type", "small")
 	}
 
-	GinkgoWriter.Println("Using PXC_TEST_azs=" + os.Getenv("PXC_TEST_azs"))
-	GinkgoWriter.Println("Using PXC_TEST_network=" + os.Getenv("PXC_TEST_network"))
-	GinkgoWriter.Println("Using PXC_TEST_vm_type=" + os.Getenv("PXC_TEST_vm_type"))
+	GinkgoWriter.Println("Using BOSH_VAR_azs=" + os.Getenv("BOSH_VAR_azs"))
+	GinkgoWriter.Println("Using BOSH_VAR_network=" + os.Getenv("BOSH_VAR_network"))
+	GinkgoWriter.Println("Using BOSH_VAR_vm_type=" + os.Getenv("BOSH_VAR_vm_type"))
 
 	if proxySpec := os.Getenv("BOSH_ALL_PROXY"); proxySpec != "" {
 		var err error

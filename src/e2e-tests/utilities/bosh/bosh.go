@@ -123,7 +123,7 @@ func DeployPXC(deploymentName string, options ...DeployOptionFunc) error {
 		"pxc-deployment.yml",
 		"--ops-file=operations/deployment-name.yml",
 		"--var=deployment_name=" + deploymentName,
-		"--vars-env=PXC_TEST",
+		"--vars-env=BOSH_VAR",
 	}
 
 	if pxcVersion := os.Getenv("PXC_DEPLOY_VERSION"); pxcVersion != "" {
@@ -173,7 +173,7 @@ func Var(key, value string) DeployOptionFunc {
 
 // VarsEnv is a helper method to read bosh variables from the environment
 // Syntactic sugar for bosh deploy --vars-env=$prefix
-// Example VarsEnv("PXC_TEST") will resolve variables by looking up PXC_TEST_${var_name}
+// Example VarsEnv("BOSH_VAR") will resolve variables by looking up BOSH_VAR_${var_name}
 func VarsEnv(prefix string) DeployOptionFunc {
 	return func(args *[]string) {
 		*args = append(*args, "--vars-env="+prefix)
