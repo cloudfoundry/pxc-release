@@ -32,7 +32,7 @@ type Config struct {
 
 type StatusLog struct {
 	Enabled  bool          `yaml:"Enabled"`
-	Interval time.Duration `yaml:"Interval" validate:"nonzero"`
+	Interval time.Duration `yaml:"Interval,omitempty" validate:"nonzero"`
 }
 type Metrics struct {
 	Enabled bool `yaml:"Enabled"`

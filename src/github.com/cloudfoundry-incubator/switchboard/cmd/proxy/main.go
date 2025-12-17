@@ -24,6 +24,10 @@ import (
 
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating config: %s\n", err)
+		os.Exit(1)
+	}
 
 	logger := rootConfig.Logger
 
