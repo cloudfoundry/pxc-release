@@ -29,9 +29,9 @@ type Config struct {
 }
 
 type DBConfig struct {
-	User     string `yaml:"User" validate:"nonzero"`
+	User     string `yaml:"User,omitempty" validate:"nonzero"`
 	Password string `yaml:"Password" validate:"nonzero"`
-	Socket   string `yaml:"Socket" validate:"nonzero"`
+	Socket   string `yaml:"Socket,omitempty" validate:"nonzero"`
 }
 
 type MonitConfig struct {

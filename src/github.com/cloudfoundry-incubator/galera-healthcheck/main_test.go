@@ -1,8 +1,8 @@
 package main_test
 
 import (
-	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
 	"os/exec"
@@ -64,7 +64,7 @@ var _ = Describe("Galera Agent", func() {
 				},
 			},
 		}
-		b, err := json.Marshal(&cfg)
+		b, err := yaml.Marshal(&cfg)
 		Expect(err).NotTo(HaveOccurred())
 
 		cmd := exec.Command(
