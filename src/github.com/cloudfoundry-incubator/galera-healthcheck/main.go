@@ -23,6 +23,9 @@ import (
 
 func main() {
 	rootConfig, err := config.NewConfig(os.Args)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to parse config and build logger: %s", err.Error()))
+	}
 
 	logger := rootConfig.Logger
 

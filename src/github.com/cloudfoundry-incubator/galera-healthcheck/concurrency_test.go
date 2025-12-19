@@ -2,8 +2,8 @@ package main_test
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"net"
 	"net/http"
 	"net/url"
@@ -217,7 +217,7 @@ var _ = Describe("Galera Agent Concurrency", func() {
 			},
 		}
 
-		b, err := json.Marshal(&cfg)
+		b, err := yaml.Marshal(&cfg)
 		Expect(err).NotTo(HaveOccurred())
 
 		cmd := exec.Command(
