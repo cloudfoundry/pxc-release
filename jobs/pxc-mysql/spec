@@ -12,7 +12,6 @@ templates:
 
   db_init.erb: config/db_init
   disable_mysql_cli_history.sh.erb: config/disable_mysql_cli_history.sh
-  pre-stop.erb: bin/pre-stop
   galera-ca.pem.erb: certificates/galera-ca.pem
   galera-cert.pem.erb: certificates/galera-cert.pem
   galera-init-config.yml.erb: config/galera-init-config.yml
@@ -20,11 +19,15 @@ templates:
   get-sequence-number.sh.erb: bin/get-sequence-number
   my.cnf.erb: config/my.cnf
   mylogin.cnf.erb: config/mylogin.cnf
-  pre-start.sh.erb: bin/pre-start
   pxc-sudoers: config/pxc-sudoers
   server-ca.pem.erb: certificates/server-ca.pem
   server-cert.pem.erb: certificates/server-cert.pem
   server-key.pem.erb: certificates/server-key.pem
+
+  # bosh lifecycle scripts
+  pre-stop.erb: bin/pre-stop
+  pre-start.sh.erb: bin/pre-start
+  post-start.sh.erb: bin/post-start
 
 packages:
 - auto-tune-mysql
