@@ -21,10 +21,11 @@ type DeployOptionFunc func(args *[]string)
 type MatchInstanceFunc func(instance Instance) bool
 
 type Instance struct {
-	IP       string `json:"ips"`
-	Instance string `json:"instance"`
-	Index    string `json:"index"`
-	VMCid    string `json:"vm_cid"`
+	IP           string `json:"ips"`
+	Instance     string `json:"instance"`
+	Index        string `json:"index"`
+	VMCid        string `json:"vm_cid"`
+	ProcessState string `json:"process_state"`
 }
 
 func CloudCheck(deploymentName string) error {
@@ -269,6 +270,18 @@ func Restart(deploymentName, instanceSpec string) error {
 		"--non-interactive",
 		"--tty",
 		"restart",
+		instanceSpec,
+	)
+}
+
+func Recreate(deploymentName, instanceSpec string) error {
+	return cmd.Run(
+		"bosh",
+		"--deployment="+deploymentName,
+		"--non-interactive",
+		"--tty",
+		"recreate",
+		"--no-converge",
 		instanceSpec,
 	)
 }
