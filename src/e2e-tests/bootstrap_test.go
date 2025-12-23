@@ -32,8 +32,15 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 			bosh.Operation("use-clustered.yml"),
 			bosh.Operation("galera-agent-tls.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
-			bosh.Operation(`iaas/cluster.yml`),
+			bosh.Operation("iaas/cluster.yml"),
 		)).To(Succeed())
+		DeferCleanup(func() {
+			if CurrentSpecReport().Failed() {
+				return
+			}
+
+			Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
+		})
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).
 			To(Succeed())
@@ -46,20 +53,9 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 		Expect(err).NotTo(HaveOccurred())
 		db.SetMaxIdleConns(0)
 		db.SetMaxOpenConns(1)
-	})
 
-	BeforeAll(func() {
-		var err error
 		galeraAgentPassword, err = credhub.GetCredhubPassword("/" + deploymentName + "/cf_mysql_mysql_galera_healthcheck_endpoint_password")
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterAll(func() {
-		if CurrentSpecReport().Failed() {
-			return
-		}
-
-		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
 	})
 
 	stopMySQL := func(c *http.Client, host string) {
