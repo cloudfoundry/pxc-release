@@ -93,10 +93,6 @@ func (m *NodeManager) StopService(_ *http.Request) (string, error) {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	if err := os.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
-		return "", fmt.Errorf("failed to initialize state file: %w", err)
-	}
-
 	if err := m.MonitClient.Stop(m.ServiceName); err != nil {
 		return "", err
 	}

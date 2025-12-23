@@ -8,12 +8,13 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager/node_managerfakes"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("NodeManager", func() {
@@ -71,7 +72,7 @@ var _ = Describe("NodeManager", func() {
 		})
 
 		When("monit starts successfully", func() {
-			When("the service fails during initailization", func() {
+			When("the service fails during initialization", func() {
 				BeforeEach(func() {
 					fakeMonit.StartReturns(nil)
 					fakeMonit.StatusReturns("failing", nil)
@@ -183,8 +184,8 @@ var _ = Describe("NodeManager", func() {
 			})
 		})
 
-		When("joining an existing cluter", func() {
-			When("the service fails during initailization", func() {
+		When("joining an existing cluster", func() {
+			When("the service fails during initialization", func() {
 				BeforeEach(func() {
 					fakeMonit.StartReturns(nil)
 					fakeMonit.StatusReturns("failing", nil)
@@ -297,7 +298,7 @@ var _ = Describe("NodeManager", func() {
 		})
 
 		When("monit starts successfully", func() {
-			When("the service fails during initailization", func() {
+			When("the service fails during initialization", func() {
 				BeforeEach(func() {
 					fakeMonit.StartReturns(nil)
 					fakeMonit.StatusReturns("failing", nil)
@@ -398,6 +399,18 @@ var _ = Describe("NodeManager", func() {
 				msg, err := mgr.StopService(nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(msg).To(Equal(`stop successful`))
+			})
+
+			It("does not modify the state file", func() {
+				Expect(os.WriteFile(mgr.StateFilePath, []byte("PRE_EXISTING_CLUSTER_STATE"), 0o0644)).To(Succeed())
+
+				_, err := mgr.StopService(nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				contents, err := os.ReadFile(mgr.StateFilePath)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(string(contents)).To(Equal("PRE_EXISTING_CLUSTER_STATE"))
 			})
 		})
 	})
