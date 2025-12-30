@@ -29,12 +29,16 @@ var _ = BeforeSuite(func() {
 
 func startMySQL(tag string, mysqlOptions []string, extraMounts []string) (containerID string) {
 	GinkgoHelper()
+	var healthyCheck string = "mysqladmin -u root --host=127.0.0.1 ping"
 
 	containerArgs := append([]string{
 		"--pxc-maint-transition-period=0",
 		"--log-error-verbosity=3",
 		"--innodb-flush-method=fsync",
 	}, mysqlOptions...)
+	if tag == "5.7" {
+		healthyCheck = "mysql -u root -e \"SELECT 1;\"" // mysqladmin not on 5.7 container
+	}
 
 	containerID = docker.RunContainer(docker.ContainerSpec{
 		Image:          "percona/percona-xtradb-cluster:" + tag,
@@ -42,7 +46,7 @@ func startMySQL(tag string, mysqlOptions []string, extraMounts []string) (contai
 		Env:            []string{"PXC_CLUSTER_NAME=testcluster", "MYSQL_ALLOW_EMPTY_PASSWORD=1"},
 		Volumes:        append([]string{volumeID + ":/var/lib/mysql"}, extraMounts...),
 		Ports:          []string{"3306/tcp"},
-		HealthCmd:      "mysqladmin -u root --host=127.0.0.1 ping",
+		HealthCmd:      healthyCheck,
 		HealthInterval: "2s",
 	})
 
