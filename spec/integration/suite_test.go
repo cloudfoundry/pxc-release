@@ -42,7 +42,7 @@ func startMySQL(tag string, mysqlOptions []string, extraMounts []string) (contai
 		Env:            []string{"PXC_CLUSTER_NAME=testcluster", "MYSQL_ALLOW_EMPTY_PASSWORD=1"},
 		Volumes:        append([]string{volumeID + ":/var/lib/mysql"}, extraMounts...),
 		Ports:          []string{"3306/tcp"},
-		HealthCmd:      "mysqladmin -u root --host=127.0.0.1 ping",
+		HealthCmd:      `mysql --user=root --host=127.0.0.1 --execute="SELECT 1"`,
 		HealthInterval: "2s",
 	})
 
