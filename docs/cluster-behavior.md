@@ -1,6 +1,6 @@
 # Cluster scaling, node failure, and quorum
 
-Documented here are scenarios in which the size of a cluster may change, how the cluster behaves, and how to restore service function when impacted. The Percona XtraDB Cluster is used by pxc-release
+Documented here are scenarios in which the size of a cluster may change, how the cluster behaves, and how to restore service function when impacted.  [Percona XtraDB Cluster](https://www.percona.com/mysql/software/percona-xtradb-cluster) is packaged within pxc-release, and is the mysql distribution running on the "mysql nodes" discussed below.
 
 ### Healthy Cluster
 
@@ -8,7 +8,7 @@ Galera documentation refers to nodes in a healthy cluster as being part of a [pr
 
 If an individual node is unable to connect to the rest of the cluster (ex: network partition) it becomes non-primary (stops accepting writes and database modifications). In this case, the rest of the cluster should continue to function normally. A non-primary node may eventually regain connectivity and rejoin the primary component.
 
-If more than half of the nodes in a cluster are no longer able to connect to each other, all of the remaining nodes lose quorum and become non-primary. In this case, the cluster must be manually restarted, as documented in the [bootstrapping docs](bootstrapping.md).
+If more than half of the nodes in a cluster are no longer able to connect to each other, all of the remaining nodes lose quorum and become non-primary. In this case, the cluster must be manually restarted, as documented in the [bootstrapping docs](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/bootstrapping.md).
 
 ### Graceful removal of a node
   - Shutting down a node with monit (or decreasing cluster size by one) will cause the node to gracefully leave the cluster.
@@ -21,27 +21,27 @@ When new nodes are added to or removed from a MySQL service, a top-level propert
 ### Scaling the cluster
 
 #### Scaling up from 1 to N nodes
-When a new MariaDb node comes online, it replicates data from the existing node in the cluster. Once replication is complete, the node will join the cluster. The proxy will continue to route all incoming connections to the primary node while it remains healthy.
+When a new mysql node comes online, it replicates data from the existing node in the cluster. Once replication is complete, the node will join the cluster. The proxy will continue to route all incoming connections to the primary node while it remains healthy.
 
-If the proxy detects that this node becomes [unhealthy](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/proxy.md#unhealthy), it will sever existing connections, and route all new connections to a different, healthy node. If there are no healthy MariaDb nodes, the proxy will reject all subsequent connections.
+If the proxy detects that this node becomes [unhealthy](proxy.md#unhealthy), it will sever existing connections, and route all new connections to a different, healthy node. If there are no healthy mysql nodes, the proxy will reject all subsequent connections.
 
 While transitioning from one node to a cluster, there will be an undetermined period of performance degradation while the new node sync's all data from the original node.
 
-Note: If you are planning to scale up MariaDb nodes, it is recommended to do so in different Availability Zones to maximize cluster availability. An Availability Zone is a network-distinct section of a given Region. Further details are available in [Amazon's documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html).
+Note: If you are planning to scale up mysql nodes, it is recommended to do so in different Availability Zones to maximize cluster availability. An Availability Zone is a network-distinct section of a given Region. Further details are available in [Amazon's documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html).
 
 #### Scaling down from N to 1 node
-When scaling from multiple nodes to a single MariaDb node, the proxy will determine that the sole remaining node is the primary node (provided it remains healthy). The proxy routes incoming connections to the remaining MariaDb node.
+When scaling from multiple nodes to a single mysql node, the proxy will determine that the sole remaining node is the primary node (provided it remains healthy). The proxy routes incoming connections to the remaining mysql node.
 
 ### Rejoining the cluster (existing nodes)
 Existing nodes restarted with monit should automatically join the cluster. If an existing node fails to join the cluster, it may be because its transaction record's (`seqno`) is higher than that of the nodes in the cluster with quorum (aka the primary component).
 
   - If the node has a higher `seqno` it will be apparent in the error log `/var/vcap/sys/log/mysql/mysql.err.log`.
-  - If the healthy nodes of a cluster have a lower transaction record number than the failing node, it might be desirable to shut down the healthy nodes and bootstrap from the node with the more recent transaction record number. See the [bootstraping docs](bootstrapping.md) for more details.
+  - If the healthy nodes of a cluster have a lower transaction record number than the failing node, it might be desirable to shut down the healthy nodes and bootstrap from the node with the more recent transaction record number. See the [bootstraping docs](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/bootstrapping.md) for more details.
   - Manual recovery may be possible, but is error-prone and involves dumping transactions and applying them to the running cluster (out of scope for this doc).
   - Abandoning the data is also an option, if you're ok with losing the unsynced transactions. Follow the following steps to abandon the data (as root):
-    - Stop the process with `monit stop mariadb_ctrl`.
+    - Stop the mysql process with `monit stop galera-init`. (`galera-init` is the bosh job controlling the mysqld process.)
     - Delete the galera state (`/var/vcap/store/mysql/grastate.dat`) and cache (`/var/vcap/store/mysql/galera.cache`) files from the persistent disk.
-    - Restarting the node with `monit start mariadb_ctrl`.
+    - Restart the node with `monit start galera-init`.
 
 ### Quorum
   - In order for the cluster to continue accepting requests, a quorum must be reached by peer-to-peer communication. More than half of the nodes must be responsive to each other to maintain a quorum.
@@ -69,7 +69,7 @@ Existing nodes restarted with monit should automatically join the cluster. If an
   - There are certain situations in which a node will be running successfully but `monit`, and therefore bosh, will erroneously report the job as failing. These situations include:
     - Operator reboots the VM with `sudo reboot`
     - IAAS reboots the VM
-    - MariaDB process crashes: monit automatically restarts it
+    - mysql process crashes: monit automatically restarts it
   - In the event this happens, monit will report `Execution Failed` but the node successfully joins the cluster.
   - To validate this:
     - Observe monit status (as root) with `monit summary`
@@ -77,7 +77,7 @@ Existing nodes restarted with monit should automatically join the cluster. If an
   - To fix this, `monit reload` as root and observe that monit and bosh report the process and jobs as healthy.
 
 ### Re-bootstrapping the cluster after quorum is lost
-  - The start script will currently bootstrap node 0 only on initial deploy. If bootstrapping is necessary at a later date, it must be done manually. For more information on bootstrapping a cluster, see [Bootstrapping Galera](bootstrapping.md).
+  - The start script will currently bootstrap node 0 only on initial deploy. If bootstrapping is necessary at a later date, it must be done manually. For more information on bootstrapping a cluster, see [Bootstrapping Galera](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/bootstrapping.md).
   - If the single node is bootstrapped, it will create a new one-node cluster that other nodes can join.
 
 ### Forcing a Node to Rejoin the Cluster (Unsafe Procedure)
@@ -91,7 +91,7 @@ Existing nodes restarted with monit should automatically join the cluster. If an
 
 ### Simulating node failure
   - To simulate a temporary single node failure, use `kill -9` on the pid of the mysql process. This will only temporarily disable the node because the process is being monitored by monit, which will restart the process if it is not running.
-  - To more permenantly disable the process, execute `monit unmonitor mariadb_ctrl` before `kill -9`.
+  - To more permenantly disable the process, execute `monit unmonitor galera-init` before `kill -9`.
   - To simulate multi-node failure without killing a node process, communication can be severed by changing the iptables config to dissallow communication:
 
     ```
