@@ -19,13 +19,13 @@ However, the logic to choose a node is identical in each proxy therefore the pro
 
 The proxy queries an HTTP healthcheck process, co-located on the database node, when determining where to route traffic. 
 
-If the healthcheck process returns HTTP status code of 200, the node is added to the pool of healthy nodes. 
+If the healthcheck process returns HTTP status code of 200, the node is added to the pool of healthy nodes.
 
 ### Unhealthy
 
-If the healthcheck returns HTTP status code 503, the node is considered unhealthy. 
+If the node healthcheck returns HTTP status code 503, the node is considered unhealthy. 
 
-This happens when a node becomes non-primary, as specified by the [cluster-behavior docs](cluster-behavior.md). TODO
+This happens when a node becomes non-primary, as specified by the [cluster-behavior docs](cluster-behavior.md).
 
 The proxy will sever all existing connections to newly unhealthy nodes. Clients are expected to handle reconnecting on connection failure. The proxy will route new connections to a healthy node, assuming such a node exists.
 
@@ -36,15 +36,16 @@ If node health cannot be determined due to an unreachable or unresponsive health
 ## Proxy Health
 
 ### Healthy
-The proxy currently has no healthcheck check. Under normal operation connections can be requested from all available proxies.
+
+The proxy deploys with a bosh-dns healthcheck validating the proxy's communication with
+its targeted mysql node. If this healthcheck fails, then bosh-dns removes the proxy instance from its healthy pool of instances. More information is in [BOSH Native DNS Support](https://bosh.io/docs/dns/#healthiness) documentation.
 
 ### Unhealthy
 If the proxy becomes unresponsive for any reason the other deployed proxies are able to accept all client connections.
 
 ## State Snapshot Transfer (SST)
 
-When a new node is added to the cluster or rejoins the cluster, it synchronizes state with the primary component via a process called SST. A single node from the primary component is chosen to act as a state donor. 
-pxc-release is configured to use [Xtrabackup](https://docs.percona.com/percona-xtradb-cluster/8.4/state-snapshot-transfer.html#use-percona-xtrabackup), which allows the donor node to continue to accept reads and writes.
+When a new node is added to the cluster or rejoins the cluster, it receives state from the primary component via a process called SST. A single "doner node" from the primary component is chosen to provide state to the new node. pxc-release is configured to transfer state via [Xtrabackup](https://docs.percona.com/percona-xtradb-cluster/8.4/state-snapshot-transfer.html#use-percona-xtrabackup). Xtrabackup lets the donor node continue accepting reads and writes while concurrently providing its state to the new node.
 
 ## Proxy count
 
@@ -136,5 +137,3 @@ Response:
 The proxy also provides a Dashboard UI to view the current status of the database nodes. This is hosted at `<bosh job index>-proxy-p-mysql.<system domain>`.
 
 The Proxy Springboard page at `proxy-p-mysql.<system domain>` contains links to each of the Proxy Dashboard pages.
-
-Failure Scenarios
