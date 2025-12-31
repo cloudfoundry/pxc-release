@@ -16,10 +16,10 @@ There are several other proxies out there: Nginx, HAProxy and even MariaDB's Max
 
 Install **Go** by following the directions found [here](http://golang.org/doc/install)
 
-Running the tests requires  [Ginkgo](http://onsi.github.io/ginkgo/):
+Running the tests requires  [Ginkgo v2](http://onsi.github.io/ginkgo/):
 
 ```sh
-go get github.com/onsi/ginkgo/ginkgo
+go get github.com/onsi/ginkgo/v2/ginkgo
 ```
 
 Run the tests using the following command:
