@@ -32,8 +32,15 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 			bosh.Operation("use-clustered.yml"),
 			bosh.Operation("galera-agent-tls.yml"),
 			bosh.Operation("test/seed-test-user.yml"),
-			bosh.Operation(`iaas/cluster.yml`),
+			bosh.Operation("iaas/cluster.yml"),
 		)).To(Succeed())
+		DeferCleanup(func() {
+			if CurrentSpecReport().Failed() {
+				return
+			}
+
+			Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
+		})
 
 		Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).
 			To(Succeed())
@@ -46,20 +53,9 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 		Expect(err).NotTo(HaveOccurred())
 		db.SetMaxIdleConns(0)
 		db.SetMaxOpenConns(1)
-	})
 
-	BeforeAll(func() {
-		var err error
 		galeraAgentPassword, err = credhub.GetCredhubPassword("/" + deploymentName + "/cf_mysql_mysql_galera_healthcheck_endpoint_password")
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterAll(func() {
-		if CurrentSpecReport().Failed() {
-			return
-		}
-
-		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
 	})
 
 	stopMySQL := func(c *http.Client, host string) {
@@ -184,6 +180,64 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 			Expect(db.QueryRow(`SELECT test_data FROM pxc_release_test_db.bootstrap_test`).
 				Scan(&data)).To(Succeed())
 			Expect(data).To(Equal(deploymentName + ": data written with 3 nodes"))
+		})
+	})
+
+	When("the entire cluster goes offline and a node is recreated", Label("recreate"), Ordered, func() {
+		BeforeAll(func() {
+			By("shutting down mysql on all nodes")
+			mysqlIps, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, ip := range mysqlIps {
+				GinkgoWriter.Println("Stopping MySQL on instance=" + ip)
+				stopMySQL(httpClient, ip)
+			}
+
+			By("waiting for BOSH to detect the failing instances")
+			Eventually(func() (states []string) {
+				instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+				if err != nil {
+					return nil
+				}
+				for _, instance := range instances {
+					states = append(states, instance.ProcessState)
+				}
+
+				return states
+			}, "30s", "2s").Should(ConsistOf("failing", "failing", "failing"),
+				"Expected all mysql instances to be in failing state after stopping MySQL")
+
+			Expect(bosh.Recreate(deploymentName, "mysql/0")).ToNot(Succeed(),
+				`Expected recreating mysql/0 when cluster is offline to fail`)
+		})
+
+		It("can still recover an offline cluster by running the bootstrap errand", func() {
+			// Run the bootstrap errand and expect it to succeed; The cluster quorum should now be restored.
+			Expect(bosh.RunErrand(deploymentName, "bootstrap", "mysql/0")).To(Succeed())
+
+			// Observe the cluster size return to a healthy number
+			var unused, clusterSize string
+			Expect(db.QueryRow(`SHOW GLOBAL STATUS LIKE 'wsrep\_cluster\_size'`).
+				Scan(&unused, &clusterSize)).To(Succeed())
+			Expect(clusterSize).To(Equal("3"))
+
+			// Validate data is still present on all three nodes
+			mysqlIps, err := bosh.InstanceIPs(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mysqlIps).To(HaveLen(3))
+			for _, host := range mysqlIps {
+				db, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+host+")/pxc_release_test_db?tls=skip-verify")
+				Expect(err).NotTo(HaveOccurred())
+				var data string
+				Expect(db.QueryRow(`SELECT test_data FROM pxc_release_test_db.bootstrap_test`).
+					Scan(&data)).To(Succeed())
+				Expect(data).To(Equal(deploymentName + ": data written with 3 nodes"))
+			}
+
+			// Validate data can still be written through the proxy
+			Expect(bosh.RunErrand(deploymentName, "smoke-tests", "mysql/first")).
+				To(Succeed())
 		})
 	})
 })
