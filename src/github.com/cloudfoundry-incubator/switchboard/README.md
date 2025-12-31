@@ -3,7 +3,7 @@ switchboard
 
 A TCP router written on Golang.
 
-Developed to replace HAProxy as the proxy tier enabling high availability for the [MySQL dbaas for Cloud Foundry](https://github.com/cloudfoundry/cf-mysql-release). Responsible for routing of client connections to a one node at a time of a backend cluster, and failover on cluster node failure. For more information, see [pxc-release/docs/proxy.md](https://github.com/cloudfoundry/pxc-release/blob/main/docs/proxy.md).
+Developed to replace HAProxy as the proxy tier enabling high availability for the pxc database used by open source [cloudfoundry deployment](https://github.com/cloudfoundry/cf-deployment). Responsible for routing client connections to one node at a time of a backend cluster, and failover on cluster node failure. For more information, see [pxc-release/docs/proxy.md](../../../../docs/proxy.md).
 
 ### Why switchboard?
 
@@ -16,10 +16,10 @@ There are several other proxies out there: Nginx, HAProxy and even MariaDB's Max
 
 Install **Go** by following the directions found [here](http://golang.org/doc/install)
 
-Running the tests requires  [Ginkgo](http://onsi.github.io/ginkgo/):
+Running the tests requires  [Ginkgo v2](http://onsi.github.io/ginkgo/):
 
 ```sh
-go get github.com/onsi/ginkgo/ginkgo
+go get github.com/onsi/ginkgo/v2/ginkgo
 ```
 
 Run the tests using the following command:
