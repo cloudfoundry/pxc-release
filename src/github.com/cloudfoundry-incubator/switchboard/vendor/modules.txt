@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.56.0
+# code.cloudfoundry.org/lager/v3 v3.57.0
 ## explicit; go 1.24.9
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -41,7 +41,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20251213031049-b05bdaca462f
+# github.com/google/pprof v0.0.0-20260106004452-d7df1bf2cac7
 ## explicit; go 1.24.9
 github.com/google/pprof/profile
 # github.com/google/uuid v1.6.0
@@ -114,7 +114,7 @@ github.com/prometheus/client_golang/prometheus/promhttp/internal
 # github.com/prometheus/client_model v0.6.2
 ## explicit; go 1.22.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.67.4
+# github.com/prometheus/common v0.67.5
 ## explicit; go 1.24.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
