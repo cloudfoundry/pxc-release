@@ -1,6 +1,6 @@
 # Proxy
 
-In pxc-release, [Switchboard](https://github.com/cloudfoundry/pxc-release/tree/main/src/github.com/cloudfoundry-incubator/switchboard) is used to proxy TCP connections to healthy Percona XtraDB Cluster nodes.
+In pxc-release, [Switchboard](../src/github.com/cloudfoundry-incubator/switchboard) is used to proxy TCP connections to healthy Percona XtraDB Cluster nodes.
 
 A proxy is used to gracefully handle failure of Percona XtraDB Cluster nodes. Use of a proxy permits very fast, unambiguous failover to other nodes within the cluster in the event of a node failure.
 
@@ -23,7 +23,7 @@ If the healthcheck process returns HTTP status code of 200, the node is added to
 
 ### Unhealthy
 
-If the node healthcheck returns HTTP status code 503, the node is considered unhealthy. 
+If the node healthcheck returns HTTP status code 503, the node is considered unhealthy.
 
 This happens when a node becomes non-primary, as specified by the [cluster-behavior docs](cluster-behavior.md).
 
@@ -45,7 +45,7 @@ If the proxy becomes unresponsive for any reason the other deployed proxies are 
 
 ## State Snapshot Transfer (SST)
 
-When a new node is added to the cluster or rejoins the cluster, it receives state from the primary component via a process called SST. A single "doner node" from the primary component is chosen to provide state to the new node. pxc-release is configured to transfer state via [Xtrabackup](https://docs.percona.com/percona-xtradb-cluster/8.4/state-snapshot-transfer.html#use-percona-xtrabackup). Xtrabackup lets the donor node continue accepting reads and writes while concurrently providing its state to the new node.
+When a new node is added to the cluster or rejoins the cluster, it receives state from the primary component via a process called SST. A single "donor node" from the primary component is chosen to provide state to the new node. pxc-release is configured to transfer state via [Xtrabackup](https://docs.percona.com/percona-xtradb-cluster/8.4/state-snapshot-transfer.html#use-percona-xtrabackup). Xtrabackup lets the donor node continue accepting reads and writes while concurrently providing its state to the new node.
 
 ## Proxy count
 
@@ -74,24 +74,6 @@ By default, the health port is 1936 to maintain backwards compatibility with pre
 
 Use the operations file operations/add-proxy-load-balancer.yml to add a load balancer to the proxies.
 
-### Configuring pxc-release to give applications the address of the load balancer
-To ensure that bound applications will use the load balancer to reach bound databases, set `cf_mysql.host` in the cf-mysql-broker job to your load balancer's IP.
-
-### AWS Route 53
-
-To set up a Round Robin DNS across multiple proxy IPs using AWS Route 53,
-follow the following instructions:
-
-1. Log in to AWS.
-2. Click Route 53.
-3. Click Hosted Zones.
-4. Select the hosted zone that contains the domain name to apply round robin routing to.
-5. Click 'Go to Record Sets'.
-6. Select the record set containing the desired domain name.
-7. In the value input, enter the IP addresses of each proxy VM, separated by a newline.
-
-Finally, update the manifest property `properties.mysql_node.host` for the cf-mysql-broker job, as described above.
-
 ## API
 
 The proxy hosts a JSON API at `<bosh job index>-proxy-p-mysql.<system domain>/v0/`.
@@ -106,28 +88,34 @@ Request:
 
 Response:
 
-```
+```json
 [
   {
-    "name": "mysql-0",
-    "ip": "1.2.3.4",
+    "host": "10.10.0.13",
+    "port": 3306,
     "healthy": true,
+    "name": "mysql/26bf09bb-1c65-4de3-8b37-3138adf88e93",
+    "currentSessionCount": 0,
+    "active": false,
+    "trafficEnabled": true
+  },
+  {
+    "host": "10.10.0.14",
+    "port": 3306,
+    "healthy": true,
+    "name": "mysql/1b5d0dba-e5b7-4c13-9b05-8c8c493dc7af",
+    "currentSessionCount": 0,
     "active": true,
-    "currentSessionCount": 2
+    "trafficEnabled": true
   },
   {
-    "name": "mysql-1",
-    "ip": "5.6.7.8",
-    "healthy": false,
-    "active": false,
-    "currentSessionCount": 0
-  },
-  {
-    "name": "mysql-2",
-    "ip": "9.9.9.9",
+    "host": "10.10.0.15",
+    "port": 3306,
     "healthy": true,
+    "name": "mysql/7964d5c3-c2a5-4be1-9493-9cf06ec2ac46",
+    "currentSessionCount": 0,
     "active": false,
-    "currentSessionCount": 0
+    "trafficEnabled": true
   }
 ]
 ```

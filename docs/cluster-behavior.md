@@ -8,7 +8,7 @@ Galera documentation refers to nodes in a healthy cluster as being part of a [pr
 
 If an individual node is unable to connect to the rest of the cluster (ex: network partition) it becomes non-primary (stops accepting writes and database modifications). In this case, the rest of the cluster should continue to function normally. A non-primary node may eventually regain connectivity and rejoin the primary component.
 
-If more than half of the nodes in a cluster are no longer able to connect to each other, all of the remaining nodes lose quorum and become non-primary. In this case, the cluster must be manually restarted, as documented in the [bootstrapping docs](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/bootstrapping.md).
+If more than half of the nodes in a cluster are no longer able to connect to each other, all of the remaining nodes lose quorum and become non-primary. In this case, the cluster must be manually restarted, as documented in the [bootstrapping docs](bootstrapping.md).
 
 ### Graceful removal of a node
   - Shutting down a node with monit (or decreasing cluster size by one) will cause the node to gracefully leave the cluster.
@@ -36,7 +36,7 @@ When scaling from multiple nodes to a single mysql node, the proxy will determin
 Existing nodes restarted with monit should automatically join the cluster. If an existing node fails to join the cluster, it may be because its transaction record's (`seqno`) is higher than that of the nodes in the cluster with quorum (aka the primary component).
 
   - If the node has a higher `seqno` it will be apparent in the error log `/var/vcap/sys/log/mysql/mysql.err.log`.
-  - If the healthy nodes of a cluster have a lower transaction record number than the failing node, it might be desirable to shut down the healthy nodes and bootstrap from the node with the more recent transaction record number. See the [bootstraping docs](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/bootstrapping.md) for more details.
+  - If the healthy nodes of a cluster have a lower transaction record number than the failing node, it might be desirable to shut down the healthy nodes and bootstrap from the node with the more recent transaction record number. See the [bootstrapping docs](bootstrapping.md) for more details.
   - Manual recovery may be possible, but is error-prone and involves dumping transactions and applying them to the running cluster (out of scope for this doc).
   - Abandoning the data is also an option, if you're ok with losing the unsynced transactions. Follow the following steps to abandon the data (as root):
     - Stop the mysql process with `monit stop galera-init`. (`galera-init` is the bosh job controlling the mysqld process.)
@@ -58,7 +58,7 @@ Existing nodes restarted with monit should automatically join the cluster. If an
     - firewall rule changes
     - vm failure
   - Unresponsive nodes will stop responding to queries and, after timeout, leave the cluster.
-  - Nodes will be marked as unresponsive (innactive) either:
+  - Nodes will be marked as unresponsive (inactive) either:
     - If they fail to respond to one node within 15 seconds
     - OR If they fail to respond to all other nodes within 5 seconds
   - Unresponsive nodes that become responsive again will rejoin the cluster, as long as they are on the same IP which is pre-configured in the gcomm address on all the other running nodes, and a quorum was held by the remaining nodes.
@@ -77,7 +77,7 @@ Existing nodes restarted with monit should automatically join the cluster. If an
   - To fix this, `monit reload` as root and observe that monit and bosh report the process and jobs as healthy.
 
 ### Re-bootstrapping the cluster after quorum is lost
-  - The start script will currently bootstrap node 0 only on initial deploy. If bootstrapping is necessary at a later date, it must be done manually. For more information on bootstrapping a cluster, see [Bootstrapping Galera](https://github.com/cloudfoundry/cf-mysql-release/blob/release-candidate/docs/bootstrapping.md).
+  - The start script will currently bootstrap node 0 only on initial deploy. If bootstrapping is necessary at a later date, it must be done manually. For more information on bootstrapping a cluster, see [Bootstrapping Galera](./bootstrapping.md).
   - If the single node is bootstrapped, it will create a new one-node cluster that other nodes can join.
 
 ### Forcing a Node to Rejoin the Cluster (Unsafe Procedure)
@@ -91,8 +91,8 @@ Existing nodes restarted with monit should automatically join the cluster. If an
 
 ### Simulating node failure
   - To simulate a temporary single node failure, use `kill -9` on the pid of the mysql process. This will only temporarily disable the node because the process is being monitored by monit, which will restart the process if it is not running.
-  - To more permenantly disable the process, execute `monit unmonitor galera-init` before `kill -9`.
-  - To simulate multi-node failure without killing a node process, communication can be severed by changing the iptables config to dissallow communication:
+  - To more permanently disable the process, execute `monit unmonitor galera-init` before `kill -9`.
+  - To simulate multi-node failure without killing a node process, communication can be severed by changing the iptables config to disallow communication:
 
     ```
     iptables -F && # optional - flush existing rules \
