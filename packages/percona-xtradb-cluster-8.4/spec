@@ -10,4 +10,3 @@ files:
 - libaio_*.orig.tar.xz
 - pkg-config_*.tar.gz
 - socat-*.tar.gz
-- patches/mysql-8.4/*.patch
