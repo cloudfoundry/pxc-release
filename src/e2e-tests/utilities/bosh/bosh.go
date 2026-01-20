@@ -28,15 +28,14 @@ type Instance struct {
 	ProcessState string `json:"process_state"`
 }
 
-func CloudCheck(deploymentName string) error {
-	return cmd.Run(
-		"bosh",
-		"--deployment="+deploymentName,
+func CloudCheck(deploymentName string, args ...string) error {
+	cloudCheckArgs := append([]string{
+		"--deployment=" + deploymentName,
 		"--non-interactive",
 		"--tty",
 		"cloud-check",
-		"--auto",
-	)
+	}, args...)
+	return cmd.Run("bosh", cloudCheckArgs...)
 }
 
 func DeleteDeployment(deploymentName string) error {

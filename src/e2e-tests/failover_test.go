@@ -111,7 +111,8 @@ var _ = Describe("Failover", Ordered, Label("failover"), func() {
 
 		When("the failed VM is restored", func() {
 			BeforeAll(func() {
-				Expect(bosh.CloudCheck(deploymentName)).To(Succeed())
+				_ = bosh.CloudCheck(deploymentName, "--resolution=recreate_vm")
+				Expect(bosh.CloudCheck(deploymentName, "--report")).To(Succeed())
 			})
 
 			It("observes the cluster eventually fully recovers", func() {
