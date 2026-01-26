@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.58.0
+# code.cloudfoundry.org/lager/v3 v3.59.0
 ## explicit; go 1.24.9
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -140,7 +140,7 @@ github.com/tedsuo/ifrit/ginkgomon_v2
 github.com/tedsuo/ifrit/grouper
 github.com/tedsuo/ifrit/http_server
 github.com/tedsuo/ifrit/sigmon
-# go.step.sm/crypto v0.75.0
+# go.step.sm/crypto v0.76.0
 ## explicit; go 1.24.0
 go.step.sm/crypto/fingerprint
 go.step.sm/crypto/internal/bcrypt_pbkdf

@@ -3,7 +3,7 @@ module github.com/cloudfoundry/galera-init
 go 1.25
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.58.0
+	code.cloudfoundry.org/lager/v3 v3.59.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/renameio/v2 v2.0.2
