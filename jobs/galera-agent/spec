@@ -9,6 +9,7 @@ templates:
 
 packages:
 - galera-agent
+- bosh-monit-access
 
 provides:
 - name: galera-agent
