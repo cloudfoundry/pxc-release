@@ -6,9 +6,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
+	"github.com/google/nftables/userdata"
 	"golang.org/x/sys/unix"
 )
 
@@ -62,7 +64,8 @@ func jobsChainExists() bool {
 
 // addCgroupRule adds a cgroup-based firewall rule to the monit_access_jobs chain.
 // Uses the cgroup inode ID for matching (required by nftables kernel).
-func addCgroupRule(inodeID uint64) error {
+// Tags the rule with the job name extracted from cgroupPath to enable cleanup of stale rules.
+func addCgroupRule(inodeID uint64, cgroupPath string) error {
 	conn, err := nftables.New()
 	if err != nil {
 		return fmt.Errorf("creating nftables connection: %w", err)
@@ -79,7 +82,22 @@ func addCgroupRule(inodeID uint64) error {
 		Table: table,
 	}
 
+	// Extract job name from cgroup path for tagging
+	jobName := extractJobNameFromCgroup(cgroupPath)
+	if jobName == "" {
+		return fmt.Errorf("could not extract job name from cgroup path: %s", cgroupPath)
+	}
+
+	// Clean up any stale cgroup rules for this job before adding new one.
+	// This prevents accumulation of rules when cgroups are recreated with new inode IDs.
+	// NOTE: cleanupStaleJobRules flushes deletes immediately so subsequent rule checks see the cleaned state.
+	if err := cleanupStaleJobRules(conn, table, chain, jobName); err != nil {
+		fmt.Printf("bosh-monit-access: Warning: failed to cleanup stale rules: %v\n", err)
+		// Continue anyway - we'll still add the new rule
+	}
+
 	// Check if rule already exists (idempotency)
+	// This check happens AFTER cleanup is flushed to ensure we see the current state
 	rules, err := conn.GetRules(table, chain)
 	if err == nil {
 		for _, rule := range rules {
@@ -98,16 +116,23 @@ func addCgroupRule(inodeID uint64) error {
 	exprs = append(exprs, buildLogExpr(LogPrefix+"cgroup match: ")...)
 	exprs = append(exprs, &expr.Verdict{Kind: expr.VerdictAccept})
 
+	// Tag the rule with job name using nftables userdata comment
+	// Format: "bosh-monit-access:<job-name>"
+	ruleTag := fmt.Sprintf("bosh-monit-access:%s", jobName)
+	ruleUserData := userdata.AppendString(nil, userdata.TypeComment, ruleTag)
+
 	conn.AddRule(&nftables.Rule{
-		Table: table,
-		Chain: chain,
-		Exprs: exprs,
+		Table:    table,
+		Chain:    chain,
+		Exprs:    exprs,
+		UserData: ruleUserData,
 	})
 
 	if err := conn.Flush(); err != nil {
 		return fmt.Errorf("flushing nftables rules: %w", err)
 	}
 
+	fmt.Printf("bosh-monit-access: Added cgroup rule tagged with job '%s'\n", jobName)
 	return nil
 }
 
@@ -314,4 +339,69 @@ func ruleMatchesUID(rule *nftables.Rule, uid uint32) bool {
 	}
 
 	return hasMetaSKUID && hasUIDMatch
+}
+
+// extractJobNameFromCgroup extracts the job name from a BPM cgroup path.
+// Example: "system.slice/runc-bpm-galera-agent.scope" -> "galera-agent"
+func extractJobNameFromCgroup(cgroupPath string) string {
+	// BPM cgroups follow pattern: system.slice/runc-bpm-<job-name>.scope
+	parts := strings.Split(cgroupPath, "/")
+	for _, part := range parts {
+		if strings.HasPrefix(part, "runc-bpm-") && strings.HasSuffix(part, ".scope") {
+			// Extract job name from "runc-bpm-galera-agent.scope"
+			jobName := strings.TrimPrefix(part, "runc-bpm-")
+			jobName = strings.TrimSuffix(jobName, ".scope")
+			return jobName
+		}
+	}
+	return ""
+}
+
+// getRuleJobTag retrieves the job name tag from a rule's userdata comment.
+func getRuleJobTag(rule *nftables.Rule) string {
+	if rule.UserData == nil {
+		return ""
+	}
+	comment, ok := userdata.GetString(rule.UserData, userdata.TypeComment)
+	if !ok {
+		return ""
+	}
+	// Our tag format: "bosh-monit-access:<job-name>"
+	prefix := "bosh-monit-access:"
+	if strings.HasPrefix(comment, prefix) {
+		return strings.TrimPrefix(comment, prefix)
+	}
+	return ""
+}
+
+// cleanupStaleJobRules removes all existing rules tagged with the given job name.
+// This prevents accumulation of stale rules when cgroups are recreated with new inode IDs.
+// Flushes deletes immediately to ensure subsequent rule checks see the cleaned state.
+func cleanupStaleJobRules(conn *nftables.Conn, table *nftables.Table, chain *nftables.Chain, jobName string) error {
+	rules, err := conn.GetRules(table, chain)
+	if err != nil {
+		return fmt.Errorf("getting rules for cleanup: %w", err)
+	}
+
+	removedCount := 0
+	for _, rule := range rules {
+		tag := getRuleJobTag(rule)
+		// Delete any rule tagged with our job name
+		if tag == jobName {
+			if err := conn.DelRule(rule); err != nil {
+				return fmt.Errorf("deleting stale rule: %w", err)
+			}
+			removedCount++
+		}
+	}
+
+	if removedCount > 0 {
+		// Flush deletes immediately so subsequent checks see the cleaned state
+		if err := conn.Flush(); err != nil {
+			return fmt.Errorf("flushing rule deletions: %w", err)
+		}
+		fmt.Printf("bosh-monit-access: Cleaned up %d stale rule(s) for job '%s'\n", removedCount, jobName)
+	}
+
+	return nil
 }
