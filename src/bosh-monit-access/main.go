@@ -42,7 +42,7 @@ func main() {
 		if err == nil {
 			fmt.Printf("bosh-monit-access: Using cgroup rule for: %s (inode: %d)\n", cgroupPath, inodeID)
 
-			if err := addCgroupRule(inodeID); err == nil {
+			if err := addCgroupRule(inodeID, cgroupPath); err == nil {
 				fmt.Println("bosh-monit-access: Successfully added cgroup-based rule")
 				os.Exit(0)
 			} else {
