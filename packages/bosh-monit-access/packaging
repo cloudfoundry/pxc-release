@@ -1,8 +1,0 @@
-#!/bin/bash
-set -e -x
-
-source /var/vcap/packages/golang-1-linux/bosh/compile.env
-
-pushd bosh-monit-access
-  go build -o "${BOSH_INSTALL_TARGET}/bin/bosh-monit-access" .
-popd
