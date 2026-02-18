@@ -1,8 +1,0 @@
----
-name: bosh-monit-access
-
-dependencies:
-  - golang-1-linux
-
-files:
-  - bosh-monit-access/**/*
