@@ -4,10 +4,13 @@ set -o nounset
 
 # Setup firewall rule to allow monit access from this job.
 # Try new nftables firewall approach first (bosh-agent with monit_access_jobs chain).
-if /var/vcap/packages/bosh-monit-access/bin/bosh-monit-access --check; then
-  # New firewall with jobs chain exists - use bosh-monit-access helper
-  /var/vcap/packages/bosh-monit-access/bin/bosh-monit-access 1>&2
-else
+set +e
+/var/vcap/bosh/etc/bosh-enable-monit-access
+exit_status=$?
+set -e
+
+if [[ $exit_status -ne 0 ]]; then
+  # Failed to enable monit access using bosh-agent.
   # Fallback to old approaches for backward compatibility with older stemcells
   if type -f -p nft >/dev/null && nft list ruleset | grep -q monit_output; then
     rule_handle=$(nft -a list ruleset | awk '/galera-agent/ { print $NF }')
