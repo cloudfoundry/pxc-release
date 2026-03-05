@@ -20,6 +20,7 @@ processes:
     writable: false
   - path: /var/vcap/bosh/etc
     mount_only: true
+    allow_executions: true
     writable: false
   - path: /var/vcap/store
     writable: true
