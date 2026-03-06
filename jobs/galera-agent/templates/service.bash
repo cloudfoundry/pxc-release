@@ -2,7 +2,15 @@
 
 set -o nounset
 
-if type -f -p nft >/dev/null && nft list ruleset | grep -q monit_output; then
+if [[ -x /var/vcap/bosh/etc/bosh-enable-monit-access ]]; then
+  # Ubuntu-noble stemcell v1.267 and later require calling an explicit bosh command
+  /var/vcap/bosh/etc/bosh-enable-monit-access
+elif [[ -f /var/vcap/bosh/etc/monit-access-helper.sh ]]; then
+  # Ubuntu-jammy stemcells provide a monit access helper
+  source /var/vcap/bosh/etc/monit-access-helper.sh
+  permit_monit_access
+elif type -f -p nft >/dev/null && nft list ruleset | grep -q monit_output; then
+  # Ubuntu-noble prior to v1.267 require direct nft chain manipulation
   rule_handle=$(nft -a list ruleset | awk '/galera-agent/ { print $NF }')
   if [[ -n $rule_handle ]]; then
     nft delete rule inet filter monit_output handle "${rule_handle}"
@@ -12,9 +20,6 @@ if type -f -p nft >/dev/null && nft list ruleset | grep -q monit_output; then
     ip daddr 127.0.0.1 tcp dport 2822 \
     log prefix '"Matched cgroup galera-agent monit access rule: "' \
     accept
-elif [[ -f /var/vcap/bosh/etc/monit-access-helper.sh ]]; then
-  source /var/vcap/bosh/etc/monit-access-helper.sh
-  permit_monit_access
 fi
 
 # unmount fails under newer Ubuntu kernels without using the "--make-rslave" option
