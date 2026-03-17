@@ -54,6 +54,7 @@ var _ = Describe("Galera Agent", func() {
 			Port:       galeraAgentPort,
 			MysqldPath: "mysqld",
 			MyCnfPath:  "my.cnf",
+			DataDir:    GinkgoT().TempDir(),
 			SidecarEndpoint: config.SidecarEndpointConfig{
 				Username: "basic-auth-username",
 				Password: "basic-auth-password",

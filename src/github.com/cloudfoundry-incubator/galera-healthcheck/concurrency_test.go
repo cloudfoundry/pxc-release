@@ -206,6 +206,7 @@ var _ = Describe("Galera Agent Concurrency", func() {
 			Port:       galeraAgentPort,
 			MysqldPath: stubMysqldScript,
 			MyCnfPath:  "/tmp/my.cnf",
+			DataDir:    GinkgoT().TempDir(),
 			SidecarEndpoint: config.SidecarEndpointConfig{
 				Username: "basic-auth-username",
 				Password: "basic-auth-password",
