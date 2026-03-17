@@ -4,6 +4,7 @@ config = {
   "AvailableWhenReadOnly" => p('available_when_read_only'),
   "MysqldPath" => "/var/vcap/packages/percona-xtradb-cluster-#{link('mysql').p('mysql_version')}/bin/mysqld",
   "MyCnfPath" => '/var/vcap/jobs/pxc-mysql/config/my.cnf',
+  "DataDir" => '/var/vcap/store/pxc-mysql',
   "DB" => {
     "User" => 'galera-agent',
     "Password" => p('db_password'),
