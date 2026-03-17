@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/erikstmartin/go-testdb"
@@ -97,6 +99,33 @@ var _ = Describe("GaleraSequenceChecker", func() {
 				It("returns an unsuccessful Check", func() {
 					_, err := sequenceChecker.Check(createReq())
 					Expect(err).To(MatchError("something went wrong"))
+				})
+			})
+
+			Context("and sst_in_progress is present in DataDir", func() {
+				BeforeEach(func() {
+					dataDir := GinkgoT().TempDir()
+					Expect(os.WriteFile(filepath.Join(dataDir, "sst_in_progress"), []byte{}, 0644)).To(Succeed())
+					rootConfig.DataDir = dataDir
+				})
+
+				It("returns an error and does not invoke mysqld --wsrep-recover", func() {
+					_, err := sequenceChecker.Check(createReq())
+					Expect(err).To(MatchError("SST is in progress: refusing to run mysqld --wsrep-recover"))
+					Expect(mysqldCmd.RecoverSeqnoCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("and sst_in_progress is absent from DataDir", func() {
+				BeforeEach(func() {
+					rootConfig.DataDir = GinkgoT().TempDir()
+				})
+
+				It("invokes mysqld --wsrep-recover and returns the sequence number", func() {
+					seq, err := sequenceChecker.Check(createReq())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(seq).To(Equal(expectedSeqNumber))
+					Expect(mysqldCmd.RecoverSeqnoCallCount()).To(Equal(1))
 				})
 			})
 		})
