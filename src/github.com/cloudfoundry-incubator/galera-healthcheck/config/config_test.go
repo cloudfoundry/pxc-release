@@ -66,6 +66,7 @@ var _ = Describe("Config", func() {
 			AvailableWhenReadOnly: false,
 			MysqldPath:            "/var/vcap/packages/mariadb/bin/mysqld",
 			MyCnfPath:             "/path/to/my.cnf",
+			DataDir:               "/var/vcap/store/pxc-mysql",
 			SidecarEndpoint: SidecarEndpointConfig{
 				Username: "username",
 				Password: "password",
@@ -252,6 +253,17 @@ var _ = Describe("Config", func() {
 			err := rootConfig.Validate()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("MysqldPath"))
+		})
+
+		It("defaults DataDir to /var/vcap/store/pxc-mysql", func() {
+			Expect(rootConfig.DataDir).To(Equal("/var/vcap/store/pxc-mysql"))
+		})
+
+		It("returns an error if DataDir is blank", func() {
+			rootConfig.DataDir = ""
+			err := rootConfig.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("DataDir"))
 		})
 
 		It("returns an error if Monit.ServiceName is blank", func() {

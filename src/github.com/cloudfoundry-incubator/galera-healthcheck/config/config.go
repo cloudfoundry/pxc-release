@@ -24,6 +24,7 @@ type Config struct {
 	AvailableWhenReadOnly bool                  `yaml:"AvailableWhenReadOnly"`
 	MysqldPath            string                `yaml:"MysqldPath" validate:"nonzero"`
 	MyCnfPath             string                `yaml:"MyCnfPath" validate:"nonzero"`
+	DataDir               string                `yaml:"DataDir" validate:"nonzero"`
 	SidecarEndpoint       SidecarEndpointConfig `yaml:"SidecarEndpoint" validate:"nonzero"`
 	Logger                lager.Logger          `yaml:"-"`
 }
@@ -67,6 +68,7 @@ func defaultConfig() Config {
 		},
 		AvailableWhenDonor:    true,
 		AvailableWhenReadOnly: false,
+		DataDir:               "/var/vcap/store/pxc-mysql",
 	}
 }
 
