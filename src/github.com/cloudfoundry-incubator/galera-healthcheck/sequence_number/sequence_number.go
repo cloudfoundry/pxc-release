@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -39,6 +41,8 @@ func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
 		return "no sequence number - running on arbitrator node", nil
 	} else if s.dbReachable() {
 		return "", errors.New("can't determine sequence number when database is running")
+	} else if s.sstInProgress() {
+		return "", errors.New("SST is in progress: refusing to run mysqld --wsrep-recover")
 	} else {
 		s.m.Lock()
 		defer s.m.Unlock()
@@ -69,6 +73,15 @@ func (s *SequenceNumberChecker) readSeqNoFromRecoverCmd() (string, error) {
 	}
 
 	return seqno, nil
+}
+
+// sstInProgress reports whether a State Snapshot Transfer is currently active.
+// Galera writes sst_in_progress to DataDir when it invokes the SST script and
+// removes it only after the transfer completes. Running mysqld --wsrep-recover
+// while this file is present would corrupt the in-flight transfer.
+func (s *SequenceNumberChecker) sstInProgress() bool {
+	_, err := os.Stat(filepath.Join(s.config.DataDir, "sst_in_progress"))
+	return err == nil
 }
 
 func (s *SequenceNumberChecker) dbReachable() bool {
