@@ -1,11 +1,11 @@
-# code.cloudfoundry.org/lager/v3 v3.63.0
+# code.cloudfoundry.org/lager/v3 v3.64.0
 ## explicit; go 1.25.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
 code.cloudfoundry.org/lager/v3/lagerctx
 code.cloudfoundry.org/lager/v3/lagerflags
 code.cloudfoundry.org/lager/v3/lagertest
-# code.cloudfoundry.org/tlsconfig v0.47.0
+# code.cloudfoundry.org/tlsconfig v0.48.0
 ## explicit; go 1.25.0
 code.cloudfoundry.org/tlsconfig
 code.cloudfoundry.org/tlsconfig/certtest
@@ -115,8 +115,8 @@ github.com/square/certstrap/pkix
 # github.com/tedsuo/rata v1.0.0
 ## explicit
 github.com/tedsuo/rata
-# go.step.sm/crypto v0.76.2
-## explicit; go 1.24.0
+# go.step.sm/crypto v0.77.1
+## explicit; go 1.25.0
 go.step.sm/crypto/fingerprint
 go.step.sm/crypto/internal/bcrypt_pbkdf
 go.step.sm/crypto/internal/emoji
