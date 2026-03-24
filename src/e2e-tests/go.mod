@@ -3,7 +3,7 @@ module e2e-tests
 go 1.25.0
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.48.0
+	code.cloudfoundry.org/tlsconfig v0.49.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0

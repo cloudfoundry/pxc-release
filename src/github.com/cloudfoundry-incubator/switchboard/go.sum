@@ -594,8 +594,8 @@ cloud.google.com/go/workflows v1.9.0/go.mod h1:ZGkj1aFIOd9c8Gerkjjq7OW7I5+l6cSvT
 cloud.google.com/go/workflows v1.10.0/go.mod h1:fZ8LmRmZQWacon9UCX1r/g/DfAXx5VcPALq2CxzdePw=
 code.cloudfoundry.org/lager/v3 v3.64.0 h1:h+wI/FYDp9H702C/AuxOsrGc6nOVA4xCq3FeMtS5y40=
 code.cloudfoundry.org/lager/v3 v3.64.0/go.mod h1:kbKfKoR3YFCG1GFmpehwecitntPmIWqGF3MjgelUt8Q=
-code.cloudfoundry.org/tlsconfig v0.48.0 h1:pXgD+Ctes+K4lLpXmobDzn47OthNSM/T6q6M2x/FImI=
-code.cloudfoundry.org/tlsconfig v0.48.0/go.mod h1:Y6e79JPXDXlky4pwaSTJd4qa84GyCW+U09XxSPQiuj4=
+code.cloudfoundry.org/tlsconfig v0.49.0 h1:ponDsxilO6+N1evL7fyGJFH+PJXIriKAsvNI/5QUAn0=
+code.cloudfoundry.org/tlsconfig v0.49.0/go.mod h1:ghAEm7G6wcxlQ9ZihAqzPYde2VaQ44bP3Ud4ewDwuUE=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=

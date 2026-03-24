@@ -1,5 +1,5 @@
-code.cloudfoundry.org/tlsconfig v0.48.0 h1:pXgD+Ctes+K4lLpXmobDzn47OthNSM/T6q6M2x/FImI=
-code.cloudfoundry.org/tlsconfig v0.48.0/go.mod h1:Y6e79JPXDXlky4pwaSTJd4qa84GyCW+U09XxSPQiuj4=
+code.cloudfoundry.org/tlsconfig v0.49.0 h1:ponDsxilO6+N1evL7fyGJFH+PJXIriKAsvNI/5QUAn0=
+code.cloudfoundry.org/tlsconfig v0.49.0/go.mod h1:ghAEm7G6wcxlQ9ZihAqzPYde2VaQ44bP3Ud4ewDwuUE=
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=
 github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=

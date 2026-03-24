@@ -1,7 +1,7 @@
 code.cloudfoundry.org/lager/v3 v3.64.0 h1:h+wI/FYDp9H702C/AuxOsrGc6nOVA4xCq3FeMtS5y40=
 code.cloudfoundry.org/lager/v3 v3.64.0/go.mod h1:kbKfKoR3YFCG1GFmpehwecitntPmIWqGF3MjgelUt8Q=
-code.cloudfoundry.org/tlsconfig v0.48.0 h1:pXgD+Ctes+K4lLpXmobDzn47OthNSM/T6q6M2x/FImI=
-code.cloudfoundry.org/tlsconfig v0.48.0/go.mod h1:Y6e79JPXDXlky4pwaSTJd4qa84GyCW+U09XxSPQiuj4=
+code.cloudfoundry.org/tlsconfig v0.49.0 h1:ponDsxilO6+N1evL7fyGJFH+PJXIriKAsvNI/5QUAn0=
+code.cloudfoundry.org/tlsconfig v0.49.0/go.mod h1:ghAEm7G6wcxlQ9ZihAqzPYde2VaQ44bP3Ud4ewDwuUE=
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
@@ -102,8 +102,8 @@ github.com/tidwall/pretty v1.2.1/go.mod h1:ITEVvHYasfjBbM0u2Pg8T2nJnzm8xPwvNhhso
 github.com/tidwall/sjson v1.2.5 h1:kLy8mja+1c9jlljvWTlSazM7cKDRfJuR/bOJhcY5NcY=
 github.com/tidwall/sjson v1.2.5/go.mod h1:Fvgq9kS/6ociJEDnK0Fk1cpYF4FIW6ZF7LAe+6jwd28=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-go.step.sm/crypto v0.76.2 h1:JJ/yMcs/rmcCAwlo+afrHjq74XBFRTJw5B2y4Q4Z4c4=
-go.step.sm/crypto v0.76.2/go.mod h1:m6KlB/HzIuGFep0UWI5e0SYi38UxpoKeCg6qUaHV6/Q=
+go.step.sm/crypto v0.77.1 h1:4EEqfKdv0egQ1lqz2RhnU8Jv6QgXZfrgoxWMqJF9aDs=
+go.step.sm/crypto v0.77.1/go.mod h1:U/SsmEm80mNnfD5WIkbhuW/B1eFp3fgFvdXyDLpU1AQ=
 go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
