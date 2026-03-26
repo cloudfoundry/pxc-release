@@ -3,6 +3,16 @@
 set -o errexit
 set -o nounset
 
+# Workaround for uutils coreutils 0.7.0 (ubuntu-resolute): its `install -D`
+# replaces symlink path components with real directories instead of following
+# them. Resolve the real path so libaio's `make install` (which uses
+# `install -D`) writes to the correct location on persistent disk.
+# See https://github.com/uutils/coreutils/issues/11469
+REAL_INSTALL_TARGET="${BOSH_INSTALL_TARGET}"
+if [ -L "${BOSH_INSTALL_TARGET}" ]; then
+  REAL_INSTALL_TARGET=$(readlink -f "${BOSH_INSTALL_TARGET}")
+fi
+
 main() {
   install_build_dependencies
   unpack_source
@@ -10,17 +20,17 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkg-config_*.tar.gz
-  cd pkg-config-*/
-  ./configure --prefix=/usr \
-    --with-internal-glib \
-    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  tar -xf pkgconf/pkgconf-*.tar.gz
+  cd pkgconf-pkgconf-*/
+  ./autogen.sh
+  ./configure --prefix=/usr
   make -j "$(nproc)" install
+  ln -sf pkgconf /usr/bin/pkg-config
   cd -
 
   tar -xf libaio_*.tar.xz
   cd libaio-*/
-  make -j "$(nproc)" install prefix="${BOSH_INSTALL_TARGET}"
+  make -j "$(nproc)" install prefix="${REAL_INSTALL_TARGET}"
   cd -
 
   tar -xf libev-*.tar.gz
@@ -68,6 +78,10 @@ build_and_install() {
   export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
   export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
   export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
+  export OPENSSL_ROOT_DIR=/usr
+
+  local ssl_lib_dir
+  ssl_lib_dir=$(pkg-config --variable=libdir openssl 2>/dev/null || echo /usr/lib/x86_64-linux-gnu)
 
   # shellcheck disable=SC2016
   cmake .. \
@@ -78,6 +92,9 @@ build_and_install() {
     -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
     -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
     -DINSTALL_MYSQLTESTDIR= \
+    -DOPENSSL_ROOT_DIR=/usr \
+    -DOPENSSL_CRYPTO_LIBRARY="${ssl_lib_dir}/libcrypto.so" \
+    -DOPENSSL_SSL_LIBRARY="${ssl_lib_dir}/libssl.so" \
     -DWITH_BOOST="${boost_dir}" \
     -DWITH_MAN_PAGES=OFF \
     -DWITH_SSL=system \
