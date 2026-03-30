@@ -3,9 +3,4 @@ name: percona-xtrabackup-2.4
 
 dependencies: []
 
-files:
-- boost_1_59_0.tar.bz2
-- percona-xtrabackup-2.4*.tar.gz
-- libev-*.tar.gz
-- libaio_*.tar.xz
-- percona-xtrabackup-2.4-patches/cmake42-compat.patch
+files: []

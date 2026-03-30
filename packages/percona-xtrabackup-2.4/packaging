@@ -1,74 +1,20 @@
 #!/usr/bin/env bash
 
-set -o errexit
-set -o nounset
+set -o errexit -o nounset
 
-# Workaround for uutils coreutils 0.7.0 (ubuntu-resolute): its `install -D`
-# replaces symlink path components with real directories instead of following
-# them. Resolve the real path so libaio's `make install` (which uses
-# `install -D`) writes to the correct location on persistent disk.
-# See https://github.com/uutils/coreutils/issues/11469
-REAL_INSTALL_TARGET="${BOSH_INSTALL_TARGET}"
-if [ -L "${BOSH_INSTALL_TARGET}" ]; then
-  REAL_INSTALL_TARGET=$(readlink -f "${BOSH_INSTALL_TARGET}")
-fi
+mkdir -p "${BOSH_INSTALL_TARGET}/bin"
+script="${BOSH_INSTALL_TARGET}/bin/xtrabackup"
+cat >"$script" <<'EOF'
+#!/bin/bash
 
-main() {
-  install_build_dependencies
-  unpack_source
-  build_and_install
-}
+for arg in "$@";do
+  if [[ $arg == "--version" ]]; then
+    echo "xtrabackup version 2.4.29"
+    exit 0
+  fi
+done
 
-install_build_dependencies() {
-  tar -xf libaio_*.tar.xz
-  cd libaio-*/
-  make -j "$(nproc)" install prefix="${REAL_INSTALL_TARGET}"
-  cd -
-
-  tar -xf libev-*.tar.gz
-  cd libev-*/
-  ./configure --prefix=/usr/local --disable-static
-  make -j "$(nproc)" install
-  ./configure --prefix="${BOSH_INSTALL_TARGET}" --libdir="${BOSH_INSTALL_TARGET}/lib/private" --disable-static
-  make -j "$(nproc)" install-exec
-  cd -
-}
-
-unpack_source() {
-  tar -xf boost_1_59_0.tar.bz2
-  tar -xf percona-xtrabackup-*.tar.gz
-}
-
-build_and_install() {
-  cd percona-xtrabackup-2.4.*/
-
-  # Fix deprecated cmake policies, strict-prototype errors (GCC 14+), and
-  # non-existent target lookups for compatibility with modern CMake and toolchains.
-  patch -p1 < ../percona-xtrabackup-2.4-patches/cmake42-compat.patch
-
-  mkdir bld && cd bld
-
-  export LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib:${BOSH_INSTALL_TARGET}/lib/private"
-  export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
-  export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
-  export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
-
-  # shellcheck disable=SC2016
-  cmake .. \
-    -DBUILD_CONFIG=xtrabackup_release \
-    -DCMAKE_CXX_COMPILER=g++ \
-    -DCMAKE_C_COMPILER=gcc \
-    -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-    -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    -DINSTALL_MYSQLTESTDIR= \
-    -DWITH_BOOST=../../boost_1_59_0 \
-    -DWITH_MAN_PAGES=OFF \
-    -DWITH_SSL=system \
-    -DWITH_ZLIB=bundled
-
-  make -j "$(nproc)" install/strip
-  rm -fr "${BOSH_INSTALL_TARGET}/man/"
-}
-
-main
+echo >&2 "MySQL v5.7 is not supported under this configuration."
+exit 1
+EOF
+chmod 0755 "${script}"
