@@ -21,9 +21,8 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkgconf/pkgconf-*.tar.gz
-  cd pkgconf-pkgconf-*/
-  ./autogen.sh
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
   ./configure --prefix=/usr
   make -j "$(nproc)" install
   ln -sf pkgconf /usr/bin/pkg-config
@@ -37,7 +36,9 @@ install_build_dependencies() {
   tar -xf boost_*.tar.bz2
   cd boost_*/
   ./bootstrap.sh --with-libraries=program_options,system
-  ./b2 -j "$(nproc)" link=static
+  ./b2 -j "$(nproc)" cxxstd=17 cxxflags="-fPIC" cflags="-fPIC"
+  mkdir -p "${REAL_INSTALL_TARGET}/lib/private/"
+  cp --preserve=all ./stage/lib/libboost_program_options.so.* "${REAL_INSTALL_TARGET}/lib/private/"
   cd -
 
   tar -xf check_*.tar.gz
@@ -70,7 +71,6 @@ build() {
 
   (
     cd Percona-XtraDB-Cluster-*/
-
     source MYSQL_VERSION
     mysql_version="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}${MYSQL_VERSION_EXTRA}"
     wsrep_version="$(grep WSREP_INTERFACE_VERSION wsrep-lib/wsrep-API/v26/wsrep_api.h | cut -d '"' -f2).$(grep 'SET(WSREP_PATCH_VERSION' "cmake/wsrep-lib.cmake" | cut -d '"' -f2)"
@@ -86,99 +86,50 @@ build() {
     export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
     export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
     export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
-    export OPENSSL_ROOT_DIR=/usr
-    export BOOST_ROOT="${boost_dir}"
-    # Fix bundled libtirpc for GCC 14+: K&R-style empty parens mean (void) in C23,
-    # causing conflicts with proper prototypes. Force C17 for the tirpc sub-build.
-    sed -i '/^SET(TIRPC_C_FLAGS/a STRING_APPEND(TIRPC_C_FLAGS " -std=gnu17")' ../extra/tirpc/CMakeLists.txt
 
-    cat > "${boost_dir}/BoostConfig.cmake" <<BOOST_CMAKE
-set(Boost_FOUND TRUE)
-set(Boost_INCLUDE_DIRS "${boost_dir}")
-set(Boost_INCLUDE_DIR "${boost_dir}")
-set(Boost_VERSION_STRING "1.77.0")
-set(Boost_VERSION_MAJOR 1)
-set(Boost_VERSION_MINOR 77)
-set(Boost_VERSION_PATCH 0)
-set(PACKAGE_VERSION "1.77.0")
-set(PACKAGE_VERSION_COMPATIBLE TRUE)
-set(PACKAGE_VERSION_EXACT FALSE)
-
-set(Boost_LIBRARY_DIRS "${boost_dir}/stage/lib")
-set(Boost_PROGRAM_OPTIONS_FOUND TRUE)
-set(Boost_PROGRAM_OPTIONS_LIBRARY "${boost_dir}/stage/lib/libboost_program_options.a")
-set(Boost_SYSTEM_FOUND TRUE)
-set(Boost_SYSTEM_LIBRARY "${boost_dir}/stage/lib/libboost_system.a")
-set(Boost_LIBRARIES "\${Boost_PROGRAM_OPTIONS_LIBRARY};\${Boost_SYSTEM_LIBRARY}")
-
-if(NOT TARGET Boost::program_options)
-  add_library(Boost::program_options STATIC IMPORTED)
-  set_target_properties(Boost::program_options PROPERTIES
-    IMPORTED_LOCATION "${boost_dir}/stage/lib/libboost_program_options.a"
-    INTERFACE_INCLUDE_DIRECTORIES "${boost_dir}")
-endif()
-if(NOT TARGET Boost::system)
-  add_library(Boost::system STATIC IMPORTED)
-  set_target_properties(Boost::system PROPERTIES
-    IMPORTED_LOCATION "${boost_dir}/stage/lib/libboost_system.a"
-    INTERFACE_INCLUDE_DIRECTORIES "${boost_dir}")
-endif()
-BOOST_CMAKE
-    cat > "${boost_dir}/BoostConfigVersion.cmake" <<'BOOST_VER'
-set(PACKAGE_VERSION "1.77.0")
-if("${PACKAGE_FIND_VERSION}" VERSION_GREATER "1.77.0")
-  set(PACKAGE_VERSION_COMPATIBLE FALSE)
-else()
-  set(PACKAGE_VERSION_COMPATIBLE TRUE)
-  if("${PACKAGE_FIND_VERSION}" VERSION_EQUAL "1.77.0")
-    set(PACKAGE_VERSION_EXACT TRUE)
-  endif()
-endif()
-BOOST_VER
-
-    local ssl_lib_dir
-    ssl_lib_dir=$(pkg-config --variable=libdir openssl 2>/dev/null || echo /usr/lib/x86_64-linux-gnu)
-
-    cmake .. \
-      -DBUILD_CONFIG=mysql_release \
-      -DBOOST_ROOT="${boost_dir}" \
-      -DBoost_INCLUDE_DIR="${boost_dir}" \
-      -DBoost_NO_BOOST_CMAKE=ON \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DMINIMAL_RELWITHDEBINFO=OFF \
-      -DCMAKE_CXX_COMPILER=g++ \
-      -DCMAKE_C_COMPILER=gcc \
-      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
-      -DCMAKE_PREFIX_PATH="${boost_dir}" \
-      -DCOMPILATION_COMMENT="${compilation_comment}" \
-      -DENABLED_LOCAL_INFILE=OFF \
-      -DINSTALL_MYSQLTESTDIR= \
-      -DINSTALL_SECURE_FILE_PRIVDIR=NULL \
-      -DINSTALL_STATIC_LIBRARIES=OFF \
-      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqlx.sock \
-      -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql \
-      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqld.sock \
-      -DOPENSSL_ROOT_DIR=/usr \
-      -DOPENSSL_CRYPTO_LIBRARY="${ssl_lib_dir}/libcrypto.so" \
-      -DOPENSSL_SSL_LIBRARY="${ssl_lib_dir}/libssl.so" \
-      -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config \
-      -DWITH_AUTHENTICATION_LDAP=OFF \
-      -DWITH_AUTHENTICATION_FIDO=OFF \
-      -DWITH_AUTHENTICATION_KERBEROS=OFF \
-      -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF \
-      -DWITH_BOOST="${boost_dir}" \
-      -DWITH_ICU=bundled \
-      -DWITH_READLINE=system \
-      -DWITH_ROUTER=OFF \
-      -DWITH_GROUP_REPLICATION=OFF \
-      -DWITH_NDB=OFF \
-      -DWITH_SSL=system \
-      -DWITH_TIRPC=bundled \
-      -DWITH_UNIT_TESTS=OFF \
-      -DWITH_WSREP=ON \
+    local mysql_cmake_args=(
+      -DBUILD_CONFIG=mysql_release
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      # Workaround libtirpc legacy code on modern compilers
+      -DCMAKE_C_FLAGS="-std=gnu17"
+      -DMINIMAL_RELWITHDEBINFO=OFF
+      -DCMAKE_CXX_COMPILER=g++
+      -DCMAKE_C_COMPILER=gcc
+      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}"
+      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib'
+      -DCOMPILATION_COMMENT="${compilation_comment}"
+      -DENABLED_LOCAL_INFILE=OFF
+      -DINSTALL_MYSQLTESTDIR=
+      -DINSTALL_SECURE_FILE_PRIVDIR=NULL
+      -DINSTALL_STATIC_LIBRARIES=OFF
+      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqlx.sock
+      -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql
+      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqld.sock
+      -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config
+      -DWITH_AUTHENTICATION_LDAP=OFF
+      -DWITH_AUTHENTICATION_FIDO=OFF
+      -DWITH_AUTHENTICATION_KERBEROS=OFF
+      -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF
+      -DWITH_BOOST="${boost_dir}"
+      -DWITH_ICU=bundled
+      -DWITH_READLINE=system
+      -DWITH_ROUTER=OFF
+      -DWITH_GROUP_REPLICATION=OFF
+      -DWITH_NDB=OFF
+      -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF
+      -DWITH_SSL=system
+      -DWITH_TIRPC=bundled
+      -DWITH_UNIT_TESTS=OFF
+      -DWITH_WSREP=ON
       -DWITH_ZLIB=bundled
+    )
 
+    local galera_cmake_args=(
+      -DBOOST_ROOT="${boost_dir}"
+      -DBoost_DIR="$(readlink -f "${boost_dir}"/stage/lib/cmake/Boost-*/)"
+    )
+
+    cmake .. "${mysql_cmake_args[@]}" "${galera_cmake_args[@]}"
     make -j "$(nproc)" install/strip
   )
 

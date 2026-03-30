@@ -42,13 +42,15 @@ percona-xtrabackup-8.4.0-5.tar.gz:
   size: 432646274
   object_id: edf66c32-e051-4a55-561a-bd67bb8a13bb
   sha: sha256:fadcf27efd2a2596f689388659e2ff5c36debcc051a55974ac8bb4a83c015f57
-pkgconf/pkgconf-2.5.1.tar.gz:
-  size: 133113
-  sha: sha256:79721badcad1987dead9c3609eb4877ab9b58821c06bdacb824f2c8897c11f2a
+pkgconf-2.5.1.tar.xz:
+  size: 328064
+  object_id: 74152211-babf-41d2-794a-2f1abcd5f998
+  sha: sha256:cd05c9589b9f86ecf044c10a2269822bc9eb001eced2582cfffd658b0a50c243
 procps-ng-4.0.5.tar.xz:
   size: 1517672
   object_id: e196e815-f7be-462d-64f0-feaac1caffe0
   sha: sha256:c2e6d193cc78f84cd6ddb72aaf6d5c6a9162f0470e5992092057f5ff518562fa
 socat-1.8.1.1.tar.gz:
   size: 766524
+  object_id: e2338643-ec07-4c94-6418-9760adee6ab5
   sha: sha256:f68b602c80e94b4b7498d74ec408785536fe33534b39467977a82ab2f7f01ddb

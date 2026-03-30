@@ -20,9 +20,8 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkgconf/pkgconf-*.tar.gz
-  cd pkgconf-pkgconf-*/
-  ./autogen.sh
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
   ./configure --prefix=/usr
   make -j "$(nproc)" install
   ln -sf pkgconf /usr/bin/pkg-config

@@ -20,9 +20,8 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkgconf/pkgconf-*.tar.gz
-  cd pkgconf-pkgconf-*/
-  ./autogen.sh
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
   ./configure --prefix=/usr
   make -j "$(nproc)" install
   ln -sf pkgconf /usr/bin/pkg-config
@@ -78,10 +77,6 @@ build_and_install() {
   export LD_LIBRARY_PATH="${BOSH_INSTALL_TARGET}/lib"
   export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
   export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
-  export OPENSSL_ROOT_DIR=/usr
-
-  local ssl_lib_dir
-  ssl_lib_dir=$(pkg-config --variable=libdir openssl 2>/dev/null || echo /usr/lib/x86_64-linux-gnu)
 
   # shellcheck disable=SC2016
   cmake .. \
@@ -92,9 +87,6 @@ build_and_install() {
     -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
     -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
     -DINSTALL_MYSQLTESTDIR= \
-    -DOPENSSL_ROOT_DIR=/usr \
-    -DOPENSSL_CRYPTO_LIBRARY="${ssl_lib_dir}/libcrypto.so" \
-    -DOPENSSL_SSL_LIBRARY="${ssl_lib_dir}/libssl.so" \
     -DWITH_BOOST="${boost_dir}" \
     -DWITH_MAN_PAGES=OFF \
     -DWITH_SSL=system \
