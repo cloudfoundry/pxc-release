@@ -1,0 +1,71 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,25 +30,6 @@ ELSE()
+   CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
+ ENDIF()
+ 
+-# We use CMAKE_SHARED_LIBRARY_<Lang>_FLAGS. See cmake --help-policy CMP0018
+-IF(CMAKE_VERSION VERSION_GREATER "2.8.8")
+-  CMAKE_POLICY(SET CMP0018 OLD)
+-ENDIF()
+-
+-# We use PROPERTIES LINK_INTERFACE_LIBRARIES. See cmake --help-policy CMP0022
+-IF(CMAKE_VERSION VERSION_EQUAL "2.8.12" OR
+-   CMAKE_VERSION VERSION_GREATER "2.8.12")
+- CMAKE_POLICY(SET CMP0022 OLD)
+-ENDIF()
+-
+-# We use get_target_property() for non-existent targets (CMP0045)
+-# and INSTALL_NAME_DIR (CMP0042)
+-IF(CMAKE_VERSION VERSION_EQUAL "3.0.0" OR
+-   CMAKE_VERSION VERSION_GREATER "3.0.0")
+- CMAKE_POLICY(SET CMP0045 OLD)
+- CMAKE_POLICY(SET CMP0042 OLD)
+-ENDIF()
+-
+ # In CMake 3.12 and above, the
+ #
+ # * ``check_include_file`` macro in the ``CheckIncludeFile`` module, the
+diff --git a/cmake/install_macros.cmake b/cmake/install_macros.cmake
+--- a/cmake/install_macros.cmake
++++ b/cmake/install_macros.cmake
+@@ -128,6 +128,10 @@ FUNCTION(INSTALL_DEBUG_TARGET target)
+     ${ARGN}
+     )
+ 
++  IF(NOT TARGET ${target})
++    RETURN()
++  ENDIF()
++
+   # Relevant only for RelWithDebInfo builds
+   IF(BUILD_IS_SINGLE_CONFIG AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+     RETURN()
+diff --git a/cmake/libutils.cmake b/cmake/libutils.cmake
+--- a/cmake/libutils.cmake
++++ b/cmake/libutils.cmake
+@@ -253,7 +253,11 @@ MACRO(MERGE_CONVENIENCE_LIBRARIES)
+   SET(OSLIBS)
+   SET(MYLIBS)
+   FOREACH(LIB ${LIBS})
+-    GET_TARGET_PROPERTY(LIB_TYPE ${LIB} TYPE)
++    IF(TARGET ${LIB})
++      GET_TARGET_PROPERTY(LIB_TYPE ${LIB} TYPE)
++    ELSE()
++      SET(LIB_TYPE "UNKNOWN")
++    ENDIF()
+     IF(LIB_TYPE STREQUAL "STATIC_LIBRARY")
+       LIST(FIND KNOWN_CONVENIENCE_LIBRARIES ${LIB} FOUNDIT)
+       IF(FOUNDIT LESS 0)
+diff --git a/include/my_global.h b/include/my_global.h
+--- a/include/my_global.h
++++ b/include/my_global.h
+@@ -213,7 +213,7 @@ typedef int	my_socket;	/* File descriptor for sockets */
+ #define INVALID_SOCKET -1
+ #endif
+ C_MODE_START
+-typedef void	(*sig_return)();/* Returns type from signal */
++typedef void	(*sig_return)(int);/* Returns type from signal */
+ C_MODE_END
+ #if defined(__GNUC__)
+ typedef char	pchar;		/* Mixed prototypes can take char */
