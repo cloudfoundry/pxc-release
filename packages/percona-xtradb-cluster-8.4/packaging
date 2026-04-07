@@ -4,6 +4,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Workaround for uutils coreutils 0.7.0 (ubuntu-resolute): its `install -D`
+# replaces symlink path components with real directories instead of following
+# them. Resolve the real path so libaio's `make install` (which uses
+# `install -D`) writes to the correct location on persistent disk.
+# See https://github.com/uutils/coreutils/issues/11469
+REAL_INSTALL_TARGET="${BOSH_INSTALL_TARGET}"
+if [ -L "${BOSH_INSTALL_TARGET}" ]; then
+  REAL_INSTALL_TARGET=$(readlink -f "${BOSH_INSTALL_TARGET}")
+fi
+
 main() {
   install_build_dependencies
   install_runtime_dependencies
@@ -11,24 +21,24 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkg-config_*.tar.gz
-  cd pkg-config-*/
-  ./configure \
-    --prefix=/usr \
-    --with-internal-glib \
-    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
+  ./configure --prefix=/usr
   make -j "$(nproc)" install
+  ln -sf pkgconf /usr/bin/pkg-config
   cd -
 
   tar -xf libaio_*.orig.tar.xz
   cd libaio-*/
-  make install prefix="${BOSH_INSTALL_TARGET}"
+  make install prefix="${REAL_INSTALL_TARGET}"
   cd -
 
   tar -xf boost_*.tar.bz2
   cd boost_*/
   ./bootstrap.sh --with-libraries=program_options,system
-  ./b2 -j "$(nproc)" link=static
+  ./b2 -j "$(nproc)" cxxstd=17 cxxflags="-fPIC" cflags="-fPIC"
+  mkdir -p "${REAL_INSTALL_TARGET}/lib/private/"
+  cp --preserve=all ./stage/lib/libboost_program_options.so.* "${REAL_INSTALL_TARGET}/lib/private/"
   cd -
 
   tar -xf check_*.tar.gz
@@ -77,39 +87,48 @@ build() {
     export CPLUS_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
     export C_INCLUDE_PATH="${BOSH_INSTALL_TARGET}/include"
 
-    cmake .. \
-      -DBUILD_CONFIG=mysql_release \
-      -DBOOST_ROOT="${boost_dir}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DMINIMAL_RELWITHDEBINFO=OFF \
-      -DCMAKE_CXX_COMPILER=g++ \
-      -DCMAKE_C_COMPILER=gcc \
-      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}" \
-      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib' \
-      -DCOMPILATION_COMMENT="${compilation_comment}" \
-      -DENABLED_LOCAL_INFILE=OFF \
-      -DINSTALL_MYSQLTESTDIR= \
-      -DINSTALL_SECURE_FILE_PRIVDIR=NULL \
-      -DINSTALL_STATIC_LIBRARIES=OFF \
-      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqlx.sock \
-      -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql \
-      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqld.sock \
-      -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config \
-      -DWITH_AUTHENTICATION_LDAP=OFF \
-      -DWITH_AUTHENTICATION_FIDO=OFF \
-      -DWITH_AUTHENTICATION_KERBEROS=OFF \
-      -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF \
-      -DWITH_ICU=system \
-      -DWITH_READLINE=system \
-      -DWITH_ROUTER=OFF \
-      -DWITH_GROUP_REPLICATION=OFF \
-      -DWITH_NDB=OFF \
-      -DWITH_SSL=system \
-      -DWITH_TIRPC=bundled \
-      -DWITH_UNIT_TESTS=OFF \
-      -DWITH_WSREP=ON \
+    local mysql_cmake_args=(
+      -DBUILD_CONFIG=mysql_release
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      # Workaround libtirpc legacy code on modern compilers
+      -DCMAKE_C_FLAGS="-std=gnu17"
+      -DMINIMAL_RELWITHDEBINFO=OFF
+      -DCMAKE_CXX_COMPILER=g++
+      -DCMAKE_C_COMPILER=gcc
+      -DCMAKE_INSTALL_PREFIX="${BOSH_INSTALL_TARGET}"
+      -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib/private;$ORIGIN/../lib'
+      -DCOMPILATION_COMMENT="${compilation_comment}"
+      -DENABLED_LOCAL_INFILE=OFF
+      -DINSTALL_MYSQLTESTDIR=
+      -DINSTALL_SECURE_FILE_PRIVDIR=NULL
+      -DINSTALL_STATIC_LIBRARIES=OFF
+      -DMYSQLX_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqlx.sock
+      -DMYSQL_DATADIR=/var/vcap/store/pxc-mysql
+      -DMYSQL_UNIX_ADDR=/var/vcap/sys/run/pxc-mysql/mysqld.sock
+      -DSYSCONFDIR=/var/vcap/jobs/pxc-mysql/config
+      -DWITH_AUTHENTICATION_LDAP=OFF
+      -DWITH_AUTHENTICATION_FIDO=OFF
+      -DWITH_AUTHENTICATION_KERBEROS=OFF
+      -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF
+      -DWITH_ICU=bundled
+      -DWITH_READLINE=system
+      -DWITH_ROUTER=OFF
+      -DWITH_GROUP_REPLICATION=OFF
+      -DWITH_NDB=OFF
+      -DWITH_NDBCLUSTER_STORAGE_ENGINE=OFF
+      -DWITH_SSL=system
+      -DWITH_TIRPC=bundled
+      -DWITH_UNIT_TESTS=OFF
+      -DWITH_WSREP=ON
       -DWITH_ZLIB=bundled
+    )
 
+    local galera_cmake_args=(
+      -DBOOST_ROOT="${boost_dir}"
+      -DBoost_DIR="$(readlink -f "${boost_dir}"/stage/lib/cmake/Boost-*/)"
+    )
+
+    cmake .. "${mysql_cmake_args[@]}" "${galera_cmake_args[@]}"
     make -j "$(nproc)" install/strip
   )
 
