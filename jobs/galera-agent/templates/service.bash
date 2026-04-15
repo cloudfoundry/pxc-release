@@ -27,6 +27,6 @@ fi
 mount --make-rslave /sys/fs/cgroup
 umount --recursive /sys/fs/cgroup
 umount /var/vcap/bosh/etc
-exec chpst -u vcap -- /var/vcap/packages/galera-agent/bin/galera-agent \
+exec runuser -u vcap -g vcap -- /var/vcap/packages/galera-agent/bin/galera-agent \
   --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml \
   --timeFormat="<%= p('logging.format.timestamp') %>"

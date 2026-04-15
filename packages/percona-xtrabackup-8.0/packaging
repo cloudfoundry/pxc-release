@@ -3,6 +3,13 @@
 set -o errexit
 set -o nounset
 
+# Workaround for uutils coreutils 0.7.0 (ubuntu-resolute): its `install -D`
+# replaces symlink path components with real directories instead of following
+# them. Resolve the real path so libaio's `make install` (which uses
+# `install -D`) writes to the correct location on persistent disk.
+# See https://github.com/uutils/coreutils/issues/11469
+BOSH_INSTALL_TARGET=$(readlink -f "${BOSH_INSTALL_TARGET}")
+
 main() {
   install_build_dependencies
   unpack_source
