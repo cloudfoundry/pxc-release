@@ -6,10 +6,6 @@ Percona-XtraDB-Cluster-8.4.7-7.tar.gz:
   size: 506738352
   object_id: 46238cf5-2ca3-4619-47d2-e54bf1d2f418
   sha: sha256:5b8e7c4d4cb422d018ec668d9cc69f6f403e4974ea71a6d7405a8b2194aa14a9
-boost_1_59_0.tar.bz2:
-  size: 70389425
-  object_id: 7344fc77-b911-45c2-5467-c6d5fcab6d29
-  sha: sha256:727a932322d94287b62abb1bd2d41723eec4356a7728909e38adb65ca25241ca
 boost_1_77_0.tar.bz2:
   size: 110361537
   object_id: d962752f-1ab7-4896-41d9-8deed29397ca
@@ -30,10 +26,6 @@ libev-4.33.tar.gz:
   size: 569527
   object_id: 0ea3b0f6-7b83-4fe5-7ff8-966bcc56ab73
   sha: sha256:507eb7b8d1015fbec5b935f34ebed15bf346bed04a11ab82b8eee848c4205aea
-percona-xtrabackup-2.4.29.tar.gz:
-  size: 64667518
-  object_id: f196e2a0-e2ba-43ef-7d91-4319f8e6b927
-  sha: sha256:c59f0d612ec6a0f530ca3645546fb8af690f62d3ecbd70d33f30d3f56d9e842e
 percona-xtrabackup-8.0.35-35.tar.gz:
   size: 447852862
   object_id: cfe465d2-d13b-46a9-64f1-8ebb44bd7e08
