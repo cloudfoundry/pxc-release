@@ -46,7 +46,7 @@ install_runtime_dependencies() {
     ln -sf "/var/vcap/packages/percona-xtrabackup-${version}" "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}"
   done
 
-  tar -xf socat-*.tar.gz
+  tar -xf socat-*.tar.bz2
   cd socat-*/
   ./configure "--prefix=${BOSH_INSTALL_TARGET}"
   make -j "$(nproc)" install
