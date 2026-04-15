@@ -11,13 +11,11 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkg-config_*.tar.gz
-  cd pkg-config-*/
-  ./configure \
-    --prefix=/usr \
-    --with-internal-glib \
-    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
+  ./configure --prefix=/usr
   make -j "$(nproc)" install
+  ln -sf pkgconf /usr/bin/pkg-config
   cd -
 
   tar -xf libaio_*.orig.tar.xz
