@@ -3,8 +3,8 @@ module github.com/cloudfoundry-incubator/switchboard
 go 1.25.0
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.65.0
-	code.cloudfoundry.org/tlsconfig v0.50.0
+	code.cloudfoundry.org/lager/v3 v3.66.0
+	code.cloudfoundry.org/tlsconfig v0.51.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.2
