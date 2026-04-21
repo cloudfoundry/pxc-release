@@ -11,7 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/prometheus/client_golang v1.23.2
-	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
+	github.com/tedsuo/ifrit v0.0.0-20260418191334-846868129986
 	gopkg.in/validator.v2 v2.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
