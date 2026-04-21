@@ -4,6 +4,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Workaround for uutils coreutils 0.7.0 (ubuntu-resolute): its `install -D`
+# replaces symlink path components with real directories instead of following
+# them. Resolve the real path so libaio's `make install` (which uses
+# `install -D`) writes to the correct location on persistent disk.
+# See https://github.com/uutils/coreutils/issues/11469
+BOSH_INSTALL_TARGET=$(readlink -f "${BOSH_INSTALL_TARGET}")
+
 main() {
   install_build_dependencies
   install_runtime_dependencies
@@ -11,13 +18,11 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkg-config_*.tar.gz
-  cd pkg-config-*/
-  ./configure \
-    --prefix=/usr \
-    --with-internal-glib \
-    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
+  ./configure --prefix=/usr
   make -j "$(nproc)" install
+  ln -sf pkgconf /usr/bin/pkg-config
   cd -
 
   tar -xf libaio_*.orig.tar.xz
@@ -28,7 +33,9 @@ install_build_dependencies() {
   tar -xf boost_*.tar.bz2
   cd boost_*/
   ./bootstrap.sh --with-libraries=program_options,system
-  ./b2 -j "$(nproc)" link=static
+  ./b2 -j "$(nproc)" cxxstd=17 cxxflags="-fPIC" cflags="-fPIC"
+  mkdir -p "${BOSH_INSTALL_TARGET}/lib/private"
+  cp --preserve=all ./stage/lib/libboost_program_options.so.* "${BOSH_INSTALL_TARGET}/lib/private/"
   cd -
 
   tar -xf check_*.tar.gz
@@ -46,7 +53,7 @@ install_runtime_dependencies() {
     ln -sf "/var/vcap/packages/percona-xtrabackup-${version}" "${BOSH_INSTALL_TARGET}/bin/pxc_extra/pxb-${version}"
   done
 
-  tar -xf socat-*.tar.gz
+  tar -xf socat-*.tar.bz2
   cd socat-*/
   ./configure "--prefix=${BOSH_INSTALL_TARGET}"
   make -j "$(nproc)" install
@@ -80,7 +87,9 @@ build() {
     cmake .. \
       -DBUILD_CONFIG=mysql_release \
       -DBOOST_ROOT="${boost_dir}" \
+      -DBoost_DIR="$(readlink -f "${boost_dir}"/stage/lib/cmake/Boost-*/)" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_C_FLAGS="-std=gnu17" \
       -DMINIMAL_RELWITHDEBINFO=OFF \
       -DCMAKE_CXX_COMPILER=g++ \
       -DCMAKE_C_COMPILER=gcc \
@@ -100,7 +109,7 @@ build() {
       -DWITH_AUTHENTICATION_KERBEROS=OFF \
       -DWITH_PERCONA_AUTHENTICATION_LDAP=OFF \
       -DWITH_BOOST="${boost_dir}" \
-      -DWITH_ICU=system \
+      -DWITH_ICU=bundled \
       -DWITH_READLINE=system \
       -DWITH_ROUTER=OFF \
       -DWITH_GROUP_REPLICATION=OFF \
