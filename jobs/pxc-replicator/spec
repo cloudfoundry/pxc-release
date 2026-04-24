@@ -1,0 +1,57 @@
+---
+name: pxc-replicator
+
+templates:
+  bpm.yml.erb: config/bpm.yml
+  bin/setup.erb: bin/setup
+  source.mysql.cnf.erb: config/source.mysql.cnf
+
+packages:
+- percona-xtradb-cluster-8.0
+- percona-xtradb-cluster-8.4
+- percona-xtrabackup-2.4
+- percona-xtrabackup-8.0
+- percona-xtrabackup-8.4
+- pxc-utils
+
+consumes:
+- name: replica
+  type: conn
+  properties:
+  - port
+  - mysql_version
+  - mysql_backup_username
+  - mysql_backup_password
+  - tls
+
+properties:
+  monit_startup_timeout:
+    description: 'How long to wait for monit to show running for the process'
+    default: 5
+  mysql_version:
+    description: 'deployed version'
+    default: 8.0
+  logging.format.timestamp:
+    default: rfc3339
+  replicator_enabled:
+    description: 'Whether to enable the job ( skips writing monit file if set to false )'
+    default: true
+  config.source.tls:
+    description: 'TLS certificates to use for connections'
+    example: {
+      "ca": "...",
+      "certificate": "...",
+      "private_key": "..."
+    }
+    default: {}
+  config.source.tls:
+    description: 'TLS certificates to use for connections'
+    example: {
+      "ca": "...",
+      "certificate": "...",
+      "private_key": "..."
+    }
+    default: {}
+  config.tls.enabled:
+    description: 'Use TLS for connections & authentication'
+    default: false

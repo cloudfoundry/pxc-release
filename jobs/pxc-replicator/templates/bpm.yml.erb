@@ -1,0 +1,36 @@
+<%-
+if !['rfc3339', 'unix-epoch'].include?(p('logging.format.timestamp'))
+  raise "'#{p('logging.format.timestamp')}' is not a valid timestamp format for the property 'logging.format.timestamp'." +
+        " Valid options are: 'rfc3339' and 'unix-epoch'."
+end
+path = [
+  "/usr/bin",
+  "/bin",
+  "/var/vcap/packages/percona-xtradb-cluster-#{p('mysql_version')}/bin",
+]
+-%>
+---
+processes:
+- name: pxc-replicator
+  executable: /var/vcap/jobs/pxc-replicator/bin/setup
+  args: []
+  #hooks:
+    #pre_start: "" #max 30s runtime
+  env:
+    PATH: <%= path.join(":") %>
+    SOURCE_USER: <%= link('replica').p('mysql_backup_username') %>
+    SOURCE_PASS: <%= link('replica').p('mysql_backup_password') %>
+    SOURCE_ADDR: <%= link('replica').address %>
+    self_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf'
+    source_dump: 'mysqldump --defaults-file=--defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf'
+    source_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf'
+
+  persistent_disk: true
+  ephemeral_disk: true
+  additional_volumes:
+  - path: /var/vcap/packages/pxc-utils
+    writeable: false
+  - path: /var/vcap/sys/run/pxc-mysql
+    writeable: false
+  - path: /var/vcap/jobs/pxc-mysql/config
+  - path: /var/vcap/jobs/pxc-mysql/certificates

@@ -1,0 +1,7 @@
+<% if p('replicator_enabled') == true %>
+check process pxc-replicator
+  with pidfile /var/vcap/sys/run/bpm/pxc-replicator/pxc-replicator.pid
+  start program "/var/vcap/jobs/bpm/bin/bpm start pxc-replicator" with timeout <%= p('monit_startup_timeout') %> seconds
+  stop program "/var/vcap/jobs/bpm/bin/bpm stop pxc-replicator"
+  group vcap
+<% end %>
