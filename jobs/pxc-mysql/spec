@@ -51,6 +51,14 @@ consumes:
   optional: true
 
 provides:
+- name: replica
+  type: conn
+  properties:
+  - port
+  - mysql_version
+  - mysql_backup_username
+  - mysql_backup_password
+
 - name: mysql
   type: mysql
   properties:
@@ -67,14 +75,12 @@ provides:
   - mysql_socket
 
 properties:
-
   pxc_enabled:
     description: 'Used for disabling the job. Useful if co-locating the cf-mysql release mysql job and migrating'
     default: true
   disable_persistent_storage_safety_check:
     description: 'pre-start checks that /var/vcap/store is a persistent volume to prevent accidentally running the database on an ephemeral disk. This can be used to disable this check for test or bosh-lite situations'
     default: false
-
 
   # Admin Users
   admin_username:
@@ -309,6 +315,12 @@ properties:
   engine_config.read_write_permissions:
     description: "Specify the database server's read/write setting. For single-node deployments, valid options are `read_write`, `read_only`, or `super_read_only`. The setting must be `read_write` for Galera clusters."
     default: read_write
+  engine_config.enable_replication_target:
+    description: 'When configuring a replica, this will use spec.index to populate server_id on each node starting at the highest possible index. Any value set for server_id will be discarded by enabling this setting'
+    default: false
+  engine_config.enable_replication_source:
+    description: 'When configuring a replica, this will use spec.index to populate server_id on each node starting at the lowest possible index. Any value set for server_id will be discarded by enabling this setting'
+    default: false
   engine_config.server_id:
     description: 'In leader-follower topology, this value must be unique. In other words, the leader must have a different value than the follower and vice versa. If this is set to 0, then the server refuses any replication connections.'
     default: 0

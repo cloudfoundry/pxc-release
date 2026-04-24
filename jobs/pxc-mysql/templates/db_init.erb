@@ -23,12 +23,19 @@ DROP USER IF EXISTS '<%= p('admin_username') %>'@'<%= host %>';
 DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 
 <%- end -%>
-<%- if_p('mysql_backup_password') do |password| -%>
-CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'localhost';
-ALTER USER '<%= p('mysql_backup_username') %>'@'localhost' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= password %>';
-GRANT RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'localhost';
-GRANT SELECT on performance_schema.keyring_component_status to '<%= p('mysql_backup_username') %>'@'localhost';
-GRANT SELECT ON performance_schema.log_status TO '<%= p('mysql_backup_username') %>'@'localhost';
+<%-
+allowed_remote_backup_hosts='localhost'
+
+if p('engine_config.enable_replication_source')
+  allowed_remote_backup_hosts='%'
+end
+
+if_p('mysql_backup_password') do |password| %>
+CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>';
+ALTER USER '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= password %>';
+GRANT RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>';
+GRANT SELECT on performance_schema.keyring_component_status to '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>';
+GRANT SELECT ON performance_schema.log_status TO '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>';
 
 <%- end -%>
 <%- hosts.each do |host| -%>
