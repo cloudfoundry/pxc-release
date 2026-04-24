@@ -12,6 +12,14 @@ import (
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ProcessClient
+type ProcessClient interface {
+	Start(serviceName string) error
+	Stop(serviceName string) error
+	Status(serviceName string) (string, error)
+}
+
+// MonitClient maintains backward compatibility
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . MonitClient
 type MonitClient interface {
 	Start(serviceName string) error
@@ -22,7 +30,7 @@ type MonitClient interface {
 type NodeManager struct {
 	ServiceName       string
 	StateFilePath     string
-	MonitClient       MonitClient
+	ProcessClient     ProcessClient
 	GaleraInitAddress string
 	Logger            lager.Logger
 	Mutex             *sync.Mutex
@@ -40,7 +48,7 @@ func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
 		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
-	if err := m.MonitClient.Start(m.ServiceName); err != nil {
+	if err := m.ProcessClient.Start(m.ServiceName); err != nil {
 		return "", err
 	}
 
@@ -59,7 +67,7 @@ func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
 		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
-	if err := m.MonitClient.Start(m.ServiceName); err != nil {
+	if err := m.ProcessClient.Start(m.ServiceName); err != nil {
 		return "", err
 	}
 
@@ -78,7 +86,7 @@ func (m *NodeManager) StartServiceSingleNode(_ *http.Request) (string, error) {
 		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
-	if err := m.MonitClient.Start(m.ServiceName); err != nil {
+	if err := m.ProcessClient.Start(m.ServiceName); err != nil {
 		return "", err
 	}
 
@@ -93,7 +101,7 @@ func (m *NodeManager) StopService(_ *http.Request) (string, error) {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	if err := m.MonitClient.Stop(m.ServiceName); err != nil {
+	if err := m.ProcessClient.Stop(m.ServiceName); err != nil {
 		return "", err
 	}
 
@@ -101,7 +109,7 @@ func (m *NodeManager) StopService(_ *http.Request) (string, error) {
 }
 
 func (m *NodeManager) GetStatus(_ *http.Request) (string, error) {
-	return m.MonitClient.Status(m.ServiceName)
+	return m.ProcessClient.Status(m.ServiceName)
 }
 
 func (m *NodeManager) waitForGaleraInit() error {
@@ -113,7 +121,7 @@ func (m *NodeManager) waitForGaleraInit() error {
 	for {
 		select {
 		case <-ticker.C:
-			status, err := m.MonitClient.Status(m.ServiceName)
+			status, err := m.ProcessClient.Status(m.ServiceName)
 			if err != nil {
 				return fmt.Errorf("error fetching status for service %q", m.ServiceName)
 			}

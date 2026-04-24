@@ -9,7 +9,12 @@ import (
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/bpm_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/bpm_client/bpm_clientfakes"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager"
 )
+
+// Compile-time interface compliance checks
+var _ node_manager.ProcessClient = (*bpm_client.BpmClient)(nil)
+var _ node_manager.MonitClient = (*bpm_client.BpmClient)(nil)
 
 var _ = Describe("BpmClient", func() {
 	var (

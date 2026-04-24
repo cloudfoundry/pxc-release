@@ -6,10 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/onsi/gomega/ghttp"
 
+	"github.com/cloudfoundry-incubator/galera-healthcheck/bpm_client"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/bpm_client/bpm_clientfakes"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager/node_managerfakes"
 
@@ -36,7 +39,7 @@ var _ = Describe("NodeManager", func() {
 
 		mgr = &node_manager.NodeManager{
 			ServiceName:   "galera-init",
-			MonitClient:   fakeMonit,
+			ProcessClient: fakeMonit,
 			StateFilePath: filepath.Join(tempDir, "state.txt"),
 			Logger:        lagertest.NewTestLogger("monit_client"),
 			Mutex:         &sync.Mutex{},
@@ -437,6 +440,65 @@ var _ = Describe("NodeManager", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(status).To(Equal(`some monit status`))
 			})
+		})
+	})
+
+	Describe("ProcessClient interface compatibility", func() {
+		var (
+			bpmClient     *bpm_client.BpmClient
+			fakeRunner    *bpm_clientfakes.FakeCommandRunner
+			mgr           *node_manager.NodeManager
+			tempDir       string
+		)
+
+		BeforeEach(func() {
+			var err error
+			tempDir, err = os.MkdirTemp(os.TempDir(), "bpm-test")
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				Expect(os.RemoveAll(tempDir)).To(Succeed())
+			})
+
+			fakeRunner = &bpm_clientfakes.FakeCommandRunner{}
+			bpmClient = bpm_client.NewClient("/usr/bin/bpm", "test-job", "test-process", 30*time.Second, fakeRunner)
+
+			mgr = &node_manager.NodeManager{
+				ServiceName:   "galera-init",
+				ProcessClient: bpmClient,
+				StateFilePath: filepath.Join(tempDir, "state.txt"),
+				Logger:        lagertest.NewTestLogger("test"),
+				Mutex:         &sync.Mutex{},
+			}
+		})
+
+		It("can use BpmClient as ProcessClient implementation", func() {
+			fakeRunner.RunReturns([]byte("12345"), nil)
+
+			status, err := mgr.GetStatus(&http.Request{})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal("running"))
+			Expect(fakeRunner.RunCallCount()).To(Equal(1))
+		})
+
+		It("can start service using BpmClient", func() {
+			// First call is Start, second call is Status from waitForGaleraInit
+			fakeRunner.RunReturnsOnCall(0, []byte(""), nil)  // bpm start
+			fakeRunner.RunReturnsOnCall(1, []byte(""), nil)  // bpm pid returns empty (stopped)
+
+			_, err := mgr.StartServiceBootstrap(&http.Request{})
+
+			Expect(err).To(HaveOccurred()) // Will fail at waitForGaleraInit since service appears stopped
+			Expect(fakeRunner.RunCallCount()).To(BeNumerically(">=", 2))
+			
+			command, args := fakeRunner.RunArgsForCall(0)
+			Expect(command).To(Equal("/usr/bin/bpm"))
+			Expect(args).To(Equal([]string{"start", "test-job", "-p", "test-process"}))
+
+			// Verify state file was written
+			stateContent, err := os.ReadFile(mgr.StateFilePath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(stateContent)).To(Equal("NEEDS_BOOTSTRAP"))
 		})
 	})
 })

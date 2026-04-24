@@ -57,7 +57,7 @@ func main() {
 	serviceManager := &node_manager.NodeManager{
 		ServiceName:   rootConfig.Monit.ServiceName,
 		StateFilePath: rootConfig.Monit.MysqlStateFilePath,
-		MonitClient: monit_client.NewClient(
+		ProcessClient: monit_client.NewClient(
 			net.JoinHostPort(rootConfig.Monit.Host, rootConfig.Monit.Port),
 			rootConfig.Monit.User,
 			rootConfig.Monit.Password,
