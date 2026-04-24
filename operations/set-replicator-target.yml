@@ -1,0 +1,8 @@
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/enable_replication_target
+  value: true
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/consumes?/replica
+  value:
+    from: source
+    deployment: ((source_deployment_name))
