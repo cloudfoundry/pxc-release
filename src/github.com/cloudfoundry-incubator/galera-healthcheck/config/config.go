@@ -18,6 +18,7 @@ import (
 type Config struct {
 	DB                    DBConfig              `yaml:"DB" validate:"nonzero"`
 	Monit                 MonitConfig           `yaml:"Monit" validate:"nonzero"`
+	BPM                   BPMConfig             `yaml:"BPM"`
 	Host                  string                `yaml:"Host" validate:"nonzero"`
 	Port                  int                   `yaml:"Port" validate:"nonzero"`
 	AvailableWhenDonor    bool                  `yaml:"AvailableWhenDonor"`
@@ -45,6 +46,16 @@ type MonitConfig struct {
 	GaleraInitStatusServerAddress string `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`
 }
 
+type BPMConfig struct {
+	BinaryPath                    string `yaml:"BinaryPath"`
+	JobName                       string `yaml:"JobName"`
+	ProcessName                   string `yaml:"ProcessName"`
+	TimeoutSeconds                int    `yaml:"TimeoutSeconds"`
+	MysqlStateFilePath            string `yaml:"MysqlStateFilePath"`
+	ServiceName                   string `yaml:"ServiceName"`
+	GaleraInitStatusServerAddress string `yaml:"GaleraInitStatusServerAddress"`
+}
+
 type SidecarEndpointConfig struct {
 	Username string      `yaml:"Username" validate:"nonzero"`
 	Password string      `yaml:"Password" validate:"nonzero"`
@@ -65,6 +76,15 @@ func defaultConfig() Config {
 			Socket:   "/var/vcap/sys/run/pxc-mysql/mysqld.sock",
 			User:     "root",
 			Password: "",
+		},
+		BPM: BPMConfig{
+			BinaryPath:                    "/var/vcap/jobs/bpm/bin/bpm",
+			JobName:                       "pxc-mysql", 
+			ProcessName:                   "galera-init",
+			TimeoutSeconds:                30,
+			MysqlStateFilePath:            "/var/vcap/data/pxc-mysql/state.txt",
+			ServiceName:                   "galera-init",
+			GaleraInitStatusServerAddress: "127.0.0.1:8114",
 		},
 		AvailableWhenDonor:    true,
 		AvailableWhenReadOnly: false,

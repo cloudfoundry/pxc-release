@@ -40,6 +40,12 @@ func (c *BpmClient) Start(serviceName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to start service")
 	}
+	
+	// Wait for process to actually be running (matching MonitClient behavior)
+	if err := c.waitForStatus(serviceName, "running"); err != nil {
+		return errors.Wrapf(err, "timed out waiting for %s BPM service to start", serviceName)
+	}
+	
 	return nil
 }
 
@@ -49,6 +55,12 @@ func (c *BpmClient) Stop(serviceName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to stop service")
 	}
+	
+	// Wait for process to actually be stopped (matching MonitClient behavior)
+	if err := c.waitForStatus(serviceName, "stopped"); err != nil {
+		return errors.Wrapf(err, "timed out waiting for %s BPM service to stop", serviceName)
+	}
+	
 	return nil
 }
 
@@ -68,4 +80,29 @@ func (c *BpmClient) Status(serviceName string) (string, error) {
 	}
 	
 	return "stopped", nil
+}
+
+func (c *BpmClient) waitForStatus(serviceName, desiredStatus string) error {
+	timer := time.NewTimer(c.Timeout)
+	ticker := time.NewTicker(time.Second)
+	defer timer.Stop()
+	defer ticker.Stop()
+
+	var lastStatus = "unknown"
+	for {
+		select {
+		case <-timer.C:
+			return errors.Errorf("service status=%v", lastStatus)
+		case <-ticker.C:
+			var err error
+			lastStatus, err = c.Status(serviceName)
+			if err != nil {
+				return err
+			}
+
+			if lastStatus == desiredStatus {
+				return nil
+			}
+		}
+	}
 }

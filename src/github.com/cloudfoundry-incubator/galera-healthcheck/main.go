@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -13,9 +12,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/bpm_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
@@ -55,15 +54,15 @@ func main() {
 	var mysqlProcessMutex sync.Mutex
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
 	serviceManager := &node_manager.NodeManager{
-		ServiceName:   rootConfig.Monit.ServiceName,
-		StateFilePath: rootConfig.Monit.MysqlStateFilePath,
-		ProcessClient: monit_client.NewClient(
-			net.JoinHostPort(rootConfig.Monit.Host, rootConfig.Monit.Port),
-			rootConfig.Monit.User,
-			rootConfig.Monit.Password,
-			2*time.Minute,
+		ServiceName:   rootConfig.BPM.ServiceName,
+		StateFilePath: rootConfig.BPM.MysqlStateFilePath,
+		ProcessClient: bpm_client.New(
+			rootConfig.BPM.BinaryPath,
+			rootConfig.BPM.JobName,
+			rootConfig.BPM.ProcessName,
+			time.Duration(rootConfig.BPM.TimeoutSeconds)*time.Second,
 		),
-		GaleraInitAddress: rootConfig.Monit.GaleraInitStatusServerAddress,
+		GaleraInitAddress: rootConfig.BPM.GaleraInitStatusServerAddress,
 		Logger:            logger,
 		Mutex:             &mysqlProcessMutex,
 	}

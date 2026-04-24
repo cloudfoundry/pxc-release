@@ -37,25 +37,34 @@ var _ = Describe("BpmClient", func() {
 
 	Describe("Start", func() {
 		Context("when bpm start succeeds", func() {
-			BeforeEach(func() {
-				fakeRunner.RunReturns([]byte(""), nil)
-			})
+		BeforeEach(func() {
+			// First call (start) returns success, subsequent calls (pid) return running PID
+			fakeRunner.RunReturnsOnCall(0, []byte(""), nil)            // bpm start
+			fakeRunner.RunReturnsOnCall(1, []byte("12345"), nil)       // bpm pid (running)
+		})
 
-			It("executes bpm start command with correct arguments", func() {
-				err := client.Start("service-name")
+		It("executes bpm start command and waits for running status", func() {
+			err := client.Start("service-name")
 
-				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeRunner.RunCallCount()).To(Equal(1))
-				
-				command, args := fakeRunner.RunArgsForCall(0)
-				Expect(command).To(Equal(bpmBinary))
-				Expect(args).To(Equal([]string{"start", jobName, "-p", processName}))
-			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeRunner.RunCallCount()).To(BeNumerically(">=", 2)) // start + at least one status check
+			
+			// First call should be start
+			command, args := fakeRunner.RunArgsForCall(0)
+			Expect(command).To(Equal(bpmBinary))
+			Expect(args).To(Equal([]string{"start", jobName, "-p", processName}))
+			
+			// Second call should be pid check
+			command, args = fakeRunner.RunArgsForCall(1)
+			Expect(command).To(Equal(bpmBinary))
+			Expect(args).To(Equal([]string{"pid", jobName, "-p", processName}))
+		})
 
 			It("ignores serviceName parameter and uses configured job/process names", func() {
 				err := client.Start("ignored-service-name")
 
 				Expect(err).NotTo(HaveOccurred())
+				// Just check the first call (start command) uses correct names
 				command, args := fakeRunner.RunArgsForCall(0)
 				Expect(command).To(Equal(bpmBinary))
 				Expect(args).To(Equal([]string{"start", jobName, "-p", processName}))
@@ -77,20 +86,28 @@ var _ = Describe("BpmClient", func() {
 	})
 
 	Describe("Stop", func() {
-		Context("when bmp stop succeeds", func() {
+		Context("when bpm stop succeeds", func() {
 			BeforeEach(func() {
-				fakeRunner.RunReturns([]byte(""), nil)
+				// First call (stop) returns success, subsequent calls (pid) return stopped (non-zero exit)
+				fakeRunner.RunReturnsOnCall(0, []byte(""), nil)                           // bpm stop
+				fakeRunner.RunReturnsOnCall(1, []byte(""), errors.New("exit status 1"))  // bpm pid (stopped)
 			})
 
-			It("executes bmp stop command with correct arguments", func() {
+			It("executes bpm stop command and waits for stopped status", func() {
 				err := client.Stop("service-name")
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeRunner.RunCallCount()).To(Equal(1))
+				Expect(fakeRunner.RunCallCount()).To(BeNumerically(">=", 2)) // stop + at least one status check
 				
+				// First call should be stop
 				command, args := fakeRunner.RunArgsForCall(0)
 				Expect(command).To(Equal(bpmBinary))
 				Expect(args).To(Equal([]string{"stop", jobName, "-p", processName}))
+				
+				// Second call should be pid check
+				command, args = fakeRunner.RunArgsForCall(1)
+				Expect(command).To(Equal(bpmBinary))
+				Expect(args).To(Equal([]string{"pid", jobName, "-p", processName}))
 			})
 		})
 

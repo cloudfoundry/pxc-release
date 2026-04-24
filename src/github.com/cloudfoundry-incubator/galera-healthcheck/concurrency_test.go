@@ -9,8 +9,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/tlsconfig"
@@ -107,6 +110,7 @@ var _ = Describe("Galera Agent Concurrency", func() {
 		monitServer      *ghttp.Server
 		callbackServer   *ghttp.Server
 		stubMysqldScript string
+		stubBpmScript    string
 		operationTracker *ConcurrencyTracker
 		galeraInitServer *ghttp.Server
 	)
@@ -168,17 +172,30 @@ var _ = Describe("Galera Agent Concurrency", func() {
 			galeraInitServer.Close()
 		})
 
-		galeraInitServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/"),
-				ghttp.RespondWith(http.StatusOK, "galera-init ready"),
-			),
-		)
+		galeraInitServer.RouteToHandler("GET", "/", ghttp.RespondWith(http.StatusOK, "galera-init ready"))
 
 		// Create stub mysqld script that calls back to our test server
 		stubMysqldScript = createMysqldStub(callbackServer.URL())
 		DeferCleanup(func() {
 			Expect(os.Remove(stubMysqldScript)).To(Succeed())
+		})
+
+		stubBpmScript = createBpmStub(operationTracker, callbackServer.URL(), stubMysqldScript)
+		DeferCleanup(func() {
+			// Clean up any spawned processes first
+			pidFiles, _ := filepath.Glob("/tmp/bpm-pid-*")
+			for _, pidFile := range pidFiles {
+				if pidData, err := os.ReadFile(pidFile); err == nil {
+					if pid, err := strconv.Atoi(strings.TrimSpace(string(pidData))); err == nil {
+						_ = syscall.Kill(pid, syscall.SIGTERM)
+						// Wait briefly then force kill if needed
+						time.Sleep(100 * time.Millisecond)
+						_ = syscall.Kill(pid, syscall.SIGKILL)
+					}
+				}
+				_ = os.Remove(pidFile)
+			}
+			Expect(os.Remove(stubBpmScript)).To(Succeed())
 		})
 
 		// Setup monit server with tracking
@@ -198,6 +215,15 @@ var _ = Describe("Galera Agent Concurrency", func() {
 				User:                          "monit-user",
 				Port:                          extractPort(monitServer.URL()),
 				Password:                      "monit-password",
+				MysqlStateFilePath:            "/tmp/mysql-state",
+				ServiceName:                   "galera-init",
+				GaleraInitStatusServerAddress: extractHostPort(galeraInitServer.URL()),
+			},
+			BPM: config.BPMConfig{
+				BinaryPath:                    stubBpmScript,
+				JobName:                       "pxc-mysql",
+				ProcessName:                   "galera-init",
+				TimeoutSeconds:                30,
 				MysqlStateFilePath:            "/tmp/mysql-state",
 				ServiceName:                   "galera-init",
 				GaleraInitStatusServerAddress: extractHostPort(galeraInitServer.URL()),
@@ -391,6 +417,17 @@ func setupCallbackHandlers(server *ghttp.Server, tracker *ConcurrencyTracker) {
 		tracker.EndOperation("sequence_number")
 		w.WriteHeader(http.StatusOK)
 	})
+
+	// Handle the default "unknown" operation from mysqld stub
+	server.RouteToHandler("POST", "/unknown_start", func(w http.ResponseWriter, r *http.Request) {
+		tracker.StartOperation("start")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	server.RouteToHandler("POST", "/unknown_end", func(w http.ResponseWriter, r *http.Request) {
+		tracker.EndOperation("start")
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 func setupMonitHandlers(server *ghttp.Server, tracker *ConcurrencyTracker) {
@@ -467,6 +504,115 @@ exit 0
 `, callbackURL, callbackURL)
 
 	scriptFile, err := os.CreateTemp("", "mysqld-stub-*.sh")
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(scriptFile.WriteString(scriptContent)).Error().NotTo(HaveOccurred())
+	Expect(scriptFile.Close()).To(Succeed())
+	Expect(os.Chmod(scriptFile.Name(), 0755)).To(Succeed())
+
+	return scriptFile.Name()
+}
+
+func createBpmStub(tracker *ConcurrencyTracker, callbackURL, stubMysqldScript string) string {
+	scriptContent := fmt.Sprintf(`#!/bin/bash
+# Enhanced stub bpm script for testing concurrency - actually starts mysqld stub
+
+# Parse arguments
+ACTION=""
+JOB=""
+PROCESS=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        start|stop|pid)
+            ACTION="$1"
+            ;;
+        -p)
+            shift
+            PROCESS="$1"
+            ;;
+        *)
+            if [[ -z "$JOB" && "$1" != -* ]]; then
+                JOB="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+# PID file location
+PIDFILE="/tmp/bpm-pid-${JOB}-${PROCESS}"
+
+# Enhanced bpm behavior - actually manages processes
+case "$ACTION" in
+    start)
+        # Check if already running
+        if [[ -f "$PIDFILE" ]] && kill -0 $(cat "$PIDFILE") 2>/dev/null; then
+            echo "Process already running"
+            exit 0
+        fi
+        
+        # Start the mysqld stub process in background
+        nohup %s > /dev/null 2>&1 &
+        STARTED_PID=$!
+        
+        # Store the PID
+        echo $STARTED_PID > "$PIDFILE"
+        
+        # Wait briefly to ensure process starts
+        sleep 0.2
+        
+        # Verify process is still running
+        if kill -0 $STARTED_PID 2>/dev/null; then
+            exit 0
+        else
+            rm -f "$PIDFILE"
+            exit 1
+        fi
+        ;;
+    stop)
+        # Stop the process if running
+        if [[ -f "$PIDFILE" ]]; then
+            PID=$(cat "$PIDFILE")
+            if kill -0 $PID 2>/dev/null; then
+                kill $PID 2>/dev/null
+                # Wait for process to terminate
+                for i in {1..10}; do
+                    if ! kill -0 $PID 2>/dev/null; then
+                        break
+                    fi
+                    sleep 0.1
+                done
+                # Force kill if still running
+                kill -9 $PID 2>/dev/null || true
+            fi
+            rm -f "$PIDFILE"
+        fi
+        exit 0
+        ;;
+    pid)
+        # Return actual PID if process is running
+        if [[ -f "$PIDFILE" ]]; then
+            PID=$(cat "$PIDFILE")
+            if kill -0 $PID 2>/dev/null; then
+                echo $PID
+                exit 0
+            else
+                # Clean up stale PID file
+                rm -f "$PIDFILE"
+            fi
+        fi
+        # Process not running
+        exit 1
+        ;;
+    *)
+        echo "Unknown action: $ACTION" >&2
+        exit 1
+        ;;
+esac
+`, stubMysqldScript)
+
+	scriptFile, err := os.CreateTemp("", "bpm-stub-*.sh")
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(scriptFile.WriteString(scriptContent)).Error().NotTo(HaveOccurred())
