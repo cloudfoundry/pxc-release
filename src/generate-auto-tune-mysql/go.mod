@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/cloudfoundry/gosigar v1.3.118
-	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.39.1
 )
 
