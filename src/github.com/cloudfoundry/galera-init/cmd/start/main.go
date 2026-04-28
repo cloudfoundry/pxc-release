@@ -15,7 +15,6 @@ import (
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
-	"github.com/cloudfoundry/galera-init/galera_init_status_server"
 	"github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/cloudfoundry/galera-init/start_manager"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
@@ -100,8 +99,6 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 		return nil, err
 	}
 
-	galeraInitStatusServer := galera_init_status_server.NewGaleraInitStatusServer(listener)
-
 	NodeStartManager := start_manager.New(
 		OsHelper,
 		cfg.Manager,
@@ -109,7 +106,7 @@ func managerSetup(cfg *config.Config) (start_manager.StartManager, error) {
 		NodeStarter,
 		cfg.Logger,
 		ClusterHealthChecker,
-		galeraInitStatusServer,
+		listener,
 	)
 
 	return NodeStartManager, nil

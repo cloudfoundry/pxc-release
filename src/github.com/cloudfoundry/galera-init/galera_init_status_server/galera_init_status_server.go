@@ -1,38 +1,60 @@
 package galera_init_status_server
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
 )
 
+// GaleraInitStatusServer runs the galera-init HTTP API on the given listener.
 type GaleraInitStatusServer struct {
 	listener net.Listener
+	handler  http.Handler
+	logger   lager.Logger
 }
 
-func NewGaleraInitStatusServer(listener net.Listener) *GaleraInitStatusServer {
+// NewGaleraInitStatusServer wires the listener to the provided handler. Logger is used for fatal serve errors.
+func NewGaleraInitStatusServer(
+	listener net.Listener,
+	handler http.Handler,
+	logger lager.Logger,
+) *GaleraInitStatusServer {
+	if handler == nil {
+		panic("galera-init: NewGaleraInitStatusServer: handler is required")
+	}
+	if logger == nil {
+		panic("galera-init: NewGaleraInitStatusServer: logger is required")
+	}
 	return &GaleraInitStatusServer{
 		listener: listener,
+		handler:  handler,
+		logger:   logger,
 	}
 }
 
-func (s GaleraInitStatusServer) Start() error {
+// Start runs the HTTP server; it does not block.
+func (s *GaleraInitStatusServer) Start() error {
 	server := &http.Server{
-		Handler:        http.HandlerFunc(s.Status),
+		Handler:        s.handler,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-
 	go func() {
-		log.Fatal(server.Serve(s.listener))
+		if err := server.Serve(s.listener); err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+			if err != http.ErrServerClosed {
+				s.logger.Fatal("galera-init-status-server", err, lager.Data{
+					"detail": fmt.Sprint(s.listener.Addr()),
+				})
+			}
+		}
 	}()
-
 	return nil
-}
-
-func (s GaleraInitStatusServer) Status(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "galera init done")
 }

@@ -3,15 +3,16 @@ package start_manager
 import (
 	"context"
 	"fmt"
-	"os/exec"
+	"net"
 	"strings"
-	"syscall"
+	"sync"
 
 	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/cloudfoundry/galera-init/cluster_health_checker"
 	"github.com/cloudfoundry/galera-init/config"
 	"github.com/cloudfoundry/galera-init/db_helper"
+	"github.com/cloudfoundry/galera-init/galera_init_status_server"
 	"github.com/cloudfoundry/galera-init/os_helper"
 	"github.com/cloudfoundry/galera-init/start_manager/node_starter"
 )
@@ -28,15 +29,22 @@ type ServiceStatus interface {
 }
 
 type startManager struct {
+	mysqldActiveGen        uint64 // must be 64-bit aligned for atomic; generation of the current mysqld child
+	lifecycleMu            sync.Mutex
+	mysqldWatchWg          sync.WaitGroup
 	osHelper               os_helper.OsHelper
 	config                 config.StartManager
 	dbHelper               db_helper.DBHelper
 	startCaller            node_starter.Starter
 	logger                 lager.Logger
 	healthChecker          cluster_health_checker.ClusterHealthChecker
-	mysqlCmd               *exec.Cmd
-	mysqldPid              int
 	galeraInitStatusServer ServiceStatus
+	readinessMu            sync.RWMutex
+	readiness              readinessData
+	intentionalMysqldStop  bool
+	shutdownInProgress     int32
+	lastAppliedMode        string
+	currentMysqldCh        <-chan error
 }
 
 func New(
@@ -46,83 +54,84 @@ func New(
 	startCaller node_starter.Starter,
 	logger lager.Logger,
 	healthChecker cluster_health_checker.ClusterHealthChecker,
+	listener net.Listener,
+) StartManager {
+	m := newStartManagerCore(
+		osHelper,
+		config,
+		dbHelper,
+		startCaller,
+		logger,
+		healthChecker,
+	)
+	m.galeraInitStatusServer = galera_init_status_server.NewGaleraInitStatusServer(
+		listener,
+		m.httpHandler(),
+		logger,
+	)
+	return m
+}
+
+// NewTest returns a [StartManager] for unit tests, using a fake or stub [ServiceStatus] instead of a real HTTP server.
+func NewTest(
+	osHelper os_helper.OsHelper,
+	config config.StartManager,
+	dbHelper db_helper.DBHelper,
+	startCaller node_starter.Starter,
+	logger lager.Logger,
+	healthChecker cluster_health_checker.ClusterHealthChecker,
 	galeraInitStatusServer ServiceStatus,
 ) StartManager {
+	m := newStartManagerCore(
+		osHelper,
+		config,
+		dbHelper,
+		startCaller,
+		logger,
+		healthChecker,
+	)
+	m.galeraInitStatusServer = galeraInitStatusServer
+	return m
+}
+
+func newStartManagerCore(
+	osHelper os_helper.OsHelper,
+	config config.StartManager,
+	dbHelper db_helper.DBHelper,
+	startCaller node_starter.Starter,
+	logger lager.Logger,
+	healthChecker cluster_health_checker.ClusterHealthChecker,
+) *startManager {
 	return &startManager{
-		osHelper:               osHelper,
-		config:                 config,
-		logger:                 logger,
-		dbHelper:               dbHelper,
-		startCaller:            startCaller,
-		healthChecker:          healthChecker,
-		galeraInitStatusServer: galeraInitStatusServer,
+		osHelper:      osHelper,
+		config:        config,
+		logger:        logger,
+		dbHelper:      dbHelper,
+		startCaller:   startCaller,
+		healthChecker: healthChecker,
 	}
 }
 
 func (m *startManager) Execute(ctx context.Context) error {
-	var newNodeState string
-	var err error
-
-	if m.dbHelper.IsProcessRunning() {
-		m.logger.Info("mysqld-already-running")
-		m.logger.Info("shutdown-old-mysql")
-		m.Shutdown()
-	}
-
-	m.logger.Info("determining-bootstrap-procedure", lager.Data{
-		"ClusterIps":    m.config.ClusterIps,
-		"BootstrapNode": m.config.BootstrapNode,
-	})
-
-	currentState, err := m.getCurrentNodeState()
-	if err != nil {
-		return err
-	}
-
-	var mysqldChan <-chan error
-
-	newNodeState, mysqldChan, err = m.startCaller.StartNodeFromState(currentState)
-	if err != nil {
-		return err
-	}
-
-	err = m.writeStringToFile(newNodeState)
-	if err != nil {
-		return err
-	}
-
-	m.logger.Info("bootstrap-complete")
-	m.logger.Info("waiting-for-mysqld")
+	m.setReadinessReset(readinessPhaseBootstrapping, "")
 
 	m.logger.Info("status-server-starting")
-	m.galeraInitStatusServer.Start()
-	m.logger.Info("status-server-started")
-
-	select {
-	case err := <-mysqldChan:
-		m.logger.Info("mysqld-exited", lager.Data{
-			"error": err,
-		})
-		return err
-	case <-ctx.Done():
-		m.logger.Info("shutdown-detected")
-
-		err := m.osHelper.KillCommand(m.startCaller.GetMysqlCmd(), syscall.SIGTERM)
-		if err != nil {
-			m.logger.Error("sigterm-mysqld-failed", err)
-			return err
-		}
-		m.logger.Info("sigterm-mysqld-ok")
-		m.logger.Info("mysqld-shutdown-started")
-
-		err = <-mysqldChan
-
-		m.logger.Info("mysqld-shutdown-complete", lager.Data{
-			"error": err,
-		})
-
+	if err := m.galeraInitStatusServer.Start(); err != nil {
 		return err
 	}
+	m.logger.Info("status-server-started")
+
+	if err := m.reconcileFirstBoot(); err != nil {
+		return err
+	}
+
+	<-ctx.Done()
+	m.logger.Info("shutdown-detected")
+	if err := m.shutdownMysqldOnContextDone(); err != nil {
+		return err
+	}
+	m.logger.Info("mysqld-shutdown-complete")
+	return nil
 }
 
 func (m *startManager) getCurrentNodeState() (string, error) {

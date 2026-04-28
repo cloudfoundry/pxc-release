@@ -1,7 +1,9 @@
 package node_manager
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -133,15 +135,37 @@ func (m *NodeManager) waitForGaleraInit() error {
 				m.Logger.Error("check-galera-init", err)
 				continue
 			}
-
 			m.Logger.Info("check-galera-init", lager.Data{
 				"status": res.Status,
 			})
-
+			if res.StatusCode == http.StatusServiceUnavailable {
+				_ = res.Body.Close()
+				continue
+			}
 			if res.StatusCode != http.StatusOK {
+				_ = res.Body.Close()
 				return fmt.Errorf("unexpected response from node: %v", res.Status)
 			}
-
+			body, err := io.ReadAll(res.Body)
+			_ = res.Body.Close()
+			if err != nil {
+				return fmt.Errorf("read galera-init body: %w", err)
+			}
+			if !json.Valid(body) {
+				return nil
+			}
+			var readiness struct {
+				Ready bool `json:"ready"`
+			}
+			if err := json.Unmarshal(body, &readiness); err != nil {
+				return nil
+			}
+			if !readiness.Ready {
+				m.Logger.Info("check-galera-init-not-ready", lager.Data{
+					"ready": false,
+				})
+				continue
+			}
 			return nil
 		}
 	}
