@@ -3,7 +3,8 @@ name: pxc-replicator
 
 templates:
   bpm.yml.erb: config/bpm.yml
-  bin/setup.erb: bin/setup
+  bin/setup: bin/setup
+  bin/post-start: bin/post-start
   source.mysql.cnf.erb: config/source.mysql.cnf
 
 packages:

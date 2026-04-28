@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -e
+
+#shellcheck disable=1091
+. /var/vcap/packages/pxc-utils/logging.sh
+
+function is_replication_configured(){
+
+  ! test "$($self_mysql <<< "SHOW REPLICA STATUS\G")" = ""
+}
+function is_replica_io_running (){
+  $self_mysql <<< "SHOW REPLICA STATUS\G" | grep 'Replica_IO_Running: Yes'
+}
+function is_replica_sql_running (){
+  $self_mysql <<< "SHOW REPLICA STATUS\G" | grep 'Replica_SQL_Running: Yes'
+}
+function enable_replication (){
+  $self_mysql <<< "STOP REPLICA;
+CHANGE REPLICATION SOURCE TO
+    SOURCE_HOST='${SOURCE_ADDR}',
+    SOURCE_USER='${SOURCE_USER}',
+    SOURCE_PASSWORD='${SOURCE_PASS}',
+    SOURCE_AUTO_POSITION=1;
+START REPLICA;"
+}
+function sync_databases(){
+  log "resyncing with full backup"
+  log $($self_mysql <<< "STOP REPLICA;")
+  log $($self_mysql <<< "RESET REPLICA;")
+  log $($self_mysql <<< "RESET MASTER;")
+  log $($source_dump --all-databases --triggers --routines  --single-transaction | $self_mysql)
+}
+function source_upcheck(){
+  $source_mysql <<< "exit"
+}
+function self_upcheck(){
+  $self_mysql <<< "exit"
+}
+
+while ! source_upcheck; do
+  log "waiting for source to be available"
+  sleep 5
+done
+
+while ! self_upcheck; do
+  log "waiting for self to be available"
+  sleep 5
+done
+
+log "starting replication setup"
+
+log "checking existing databases in source instance"
+
+log "checking replication status"
+
+if [[ ! is_replication_configured ]]; then
+  log "replication is not yet enabled"
+  sync_databases
+
+  log "replication is not configured. enabling"
+  OUT=$(enable_replication);
+  if [[ $(enable_replication) !=  "" ]]; then
+    log "failed enabling replication: '$OUT'" | sed "s/${PASS}/<REDACTED>/g"
+  else
+    log "replication enabled"
+  fi
+else
+  log "replicaton already enabled, skipping"
+fi
+
+while true; do
+  log "checking running status"
+  RUNNING_STATUS="$($self_mysql <<< "SHOW REPLICA STATUS\G" | grep 'Replica_.*_Running: ' | xargs )"
+  if is_replica_io_running && is_replica_sql_running; then
+    log "replication healthy"
+  elif ! is_replica_io_running; then
+    log "restarting replica"
+    $self_mysql <<< "START REPLICA;"
+  elif ! is_replica_sql_running ; then
+    log "replication Replica_SQL_Running marked as no. Attempting to resync"
+    sync_databases
+  else
+    log "$RUNNING_STATUS"
+    for line in $($self_mysql <<< "SHOW REPLICA STATUS\G" | grep 'Err' | tr -d '[:blank:]' ); do
+      log "${line/$SOURCE_PASS/<redacted>/}";
+    done
+  fi
+  log "$RUNNING_STATUS"
+  sleep 5
+done
