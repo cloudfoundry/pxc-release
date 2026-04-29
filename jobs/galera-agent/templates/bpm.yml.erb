@@ -7,7 +7,10 @@ end
 ---
 processes:
 - name: galera-agent
-  executable: /var/vcap/jobs/galera-agent/bin/service
+  executable: /var/vcap/packages/galera-agent/bin/galera-agent
+  args:
+  - --configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml
+  - --timeFormat=<%= p('logging.format.timestamp') %>
   limits:
     open_files: 1048576
   additional_volumes:

@@ -16,9 +16,14 @@ describe 'galera-agent bpm template' do
     expect(parsed).to_not have_key('unsafe')
   end
 
-  it 'wires the galera-agent process with expected data and job config mounts' do
+  it 'runs the packaged binary directly (no wrapper script) with config and timestamp args' do
     process = parsed['processes'].first
     expect(process['name']).to eq('galera-agent')
+    expect(process['executable']).to eq('/var/vcap/packages/galera-agent/bin/galera-agent')
+    expect(process['args']).to eq([
+      '--configPath=/var/vcap/jobs/galera-agent/config/galera-agent-config.yml',
+      '--timeFormat=rfc3339',
+    ])
     paths = process['additional_volumes'].map { |v| v['path'] }
     expect(paths).to include('/var/vcap/sys/run/pxc-mysql', '/var/vcap/jobs/pxc-mysql', '/var/vcap/store')
   end

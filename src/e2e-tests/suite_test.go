@@ -83,5 +83,15 @@ var _ = BeforeSuite(func() {
 				},
 			},
 		}
+	} else {
+		// Direct network (e.g. local bosh-lite / VPN): still need a client for galera-agent HTTPS
+		// calls in bootstrap and similar tests. Match InsecureSkipVerify used with the proxy path.
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
 	}
 })
