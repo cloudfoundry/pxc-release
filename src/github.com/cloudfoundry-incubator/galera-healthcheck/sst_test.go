@@ -103,11 +103,7 @@ exit 0
 				Socket:   filepath.Join(dataDir, "nonexistent.sock"),
 				Password: "root-password",
 			},
-			Monit: config.MonitConfig{
-				Host:                          "127.0.0.1",
-				User:                          "monit-user",
-				Port:                          "2822",
-				Password:                      "monit-password",
+			GaleraInit: config.GaleraInitConfig{
 				MysqlStateFilePath:            filepath.Join(dataDir, "state.txt"),
 				ServiceName:                   "galera-init",
 				GaleraInitStatusServerAddress: "127.0.0.1:9999",

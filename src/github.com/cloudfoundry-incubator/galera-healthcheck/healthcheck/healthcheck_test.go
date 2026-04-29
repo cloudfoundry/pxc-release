@@ -23,7 +23,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				It("returns false and joining", func() {
 					config := healthcheckTestHelperConfig{
 						wsrepStatus: healthcheck.STATE_JOINING,
-						monit: config.MonitConfig{
+						galeraInit: config.GaleraInitConfig{
 							ServiceName: "mariadb_ctrl",
 						},
 					}
@@ -37,7 +37,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 				It("returns false and joined", func() {
 					config := healthcheckTestHelperConfig{
 						wsrepStatus: healthcheck.STATE_JOINED,
-						monit: config.MonitConfig{
+						galeraInit: config.GaleraInitConfig{
 							ServiceName: "mariadb_ctrl",
 						},
 					}
@@ -52,7 +52,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					It("returns false and not-synced", func() {
 						config := healthcheckTestHelperConfig{
 							wsrepStatus: healthcheck.STATE_DONOR_DESYNCED,
-							monit: config.MonitConfig{
+							galeraInit: config.GaleraInitConfig{
 								ServiceName: "mariadb_ctrl",
 							},
 						}
@@ -115,7 +115,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 								wsrepStatus:           healthcheck.STATE_SYNCED,
 								readOnly:              true,
 								availableWhenReadOnly: true,
-								monit: config.MonitConfig{
+								galeraInit: config.GaleraInitConfig{
 									ServiceName: "mariadb_ctrl",
 								},
 							}
@@ -131,7 +131,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 							config := healthcheckTestHelperConfig{
 								wsrepStatus: healthcheck.STATE_SYNCED,
 								readOnly:    true,
-								monit: config.MonitConfig{
+								galeraInit: config.GaleraInitConfig{
 									ServiceName: "mariadb_ctrl",
 								},
 							}
@@ -145,7 +145,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					It("returns true and synced", func() {
 						config := healthcheckTestHelperConfig{
 							wsrepStatus: healthcheck.STATE_SYNCED,
-							monit: config.MonitConfig{
+							galeraInit: config.GaleraInitConfig{
 								ServiceName: "mariadb_ctrl",
 							},
 						}
@@ -167,7 +167,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					config := config.Config{
 						AvailableWhenDonor:    false,
 						AvailableWhenReadOnly: false,
-						Monit: config.MonitConfig{
+						GaleraInit: config.GaleraInitConfig{
 							ServiceName: "mariadb_ctrl",
 						},
 					}
@@ -195,7 +195,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					config := config.Config{
 						AvailableWhenDonor:    false,
 						AvailableWhenReadOnly: false,
-						Monit: config.MonitConfig{
+						GaleraInit: config.GaleraInitConfig{
 							ServiceName: "mariadb_ctrl",
 						},
 					}
@@ -217,7 +217,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 					config := config.Config{
 						AvailableWhenDonor:    false,
 						AvailableWhenReadOnly: false,
-						Monit: config.MonitConfig{
+						GaleraInit: config.GaleraInitConfig{
 							ServiceName: "mariadb_ctrl",
 						},
 					}
@@ -241,7 +241,7 @@ var _ = Describe("GaleraHealthChecker", func() {
 
 			It("returns true and a message indicating that this is arbitrator node", func() {
 				config := healthcheckTestHelperConfig{
-					monit: config.MonitConfig{
+					galeraInit: config.GaleraInitConfig{
 						ServiceName: "garbd",
 					},
 				}
@@ -259,7 +259,7 @@ type healthcheckTestHelperConfig struct {
 	readOnly              bool
 	availableWhenDonor    bool
 	availableWhenReadOnly bool
-	monit                 config.MonitConfig
+	galeraInit            config.GaleraInitConfig
 }
 
 func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, error) {
@@ -284,7 +284,7 @@ func healthcheckTestHelper(testConfig healthcheckTestHelperConfig) (string, erro
 	config := config.Config{
 		AvailableWhenDonor:    testConfig.availableWhenDonor,
 		AvailableWhenReadOnly: testConfig.availableWhenReadOnly,
-		Monit:                 testConfig.monit,
+		GaleraInit:            testConfig.galeraInit,
 	}
 
 	logger := lagertest.NewTestLogger("healthcheck test")

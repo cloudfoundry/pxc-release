@@ -41,11 +41,7 @@ var _ = Describe("Galera Agent", func() {
 			DB: config.DBConfig{
 				Password: "root-password",
 			},
-			Monit: config.MonitConfig{
-				Host:                          "foo",
-				User:                          "foo",
-				Port:                          "foo",
-				Password:                      "foo",
+			GaleraInit: config.GaleraInitConfig{
 				MysqlStateFilePath:            "foo",
 				ServiceName:                   "foo",
 				GaleraInitStatusServerAddress: "foo",

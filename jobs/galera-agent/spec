@@ -21,6 +21,9 @@ provides:
   - endpoint_tls.server_name
   - endpoint_username
   - endpoint_password
+  - mysql_state_file_path
+  - supervised_mysqld_service_name
+  - galera_init_status_server_address
 
 consumes:
 - name: mysql
@@ -68,3 +71,15 @@ properties:
         Health checks for mysql nodes which have the 'read-only' option enabled will be considered healthy. If enabled,
         the proxy job will send traffic to a read-only backend, but "write" queries will fail with an error.
     default: false
+  mysql_state_file_path:
+    description: >
+      Path to the pxc-mysql state file. Galera-agent writes bootstrap/join/single-node intent here; galera-init reads it on POST /start.
+    default: /var/vcap/store/pxc-mysql/state.txt
+  supervised_mysqld_service_name:
+    description: >
+      Name of the supervised process that runs mysqld (the galera-init BPM process in pxc-mysql). Used to detect garbd and for status.
+    default: galera-init
+  galera_init_status_server_address:
+    description: >
+      host:port of the galera-init HTTP server (readiness and lifecycle), reachable from this job (typically 127.0.0.1:8114).
+    default: 127.0.0.1:8114

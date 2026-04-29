@@ -21,6 +21,17 @@ describe 'galera-agent-config template' do
     spec["endpoint_password"] = "endpoint_password"
   end
 
+  it 'renders GaleraInit (not Monit) with defaults for galera-init HTTP and state file' do
+    tpl_output = template.render(spec, consumes: links)
+    hash_from_yaml = YAML.load(tpl_output)
+
+    expect(hash_from_yaml).to_not have_key('Monit')
+    expect(hash_from_yaml).to include('GaleraInit')
+    expect(hash_from_yaml['GaleraInit']['GaleraInitStatusServerAddress']).to eq('127.0.0.1:8114')
+    expect(hash_from_yaml['GaleraInit']['ServiceName']).to eq('galera-init')
+    expect(hash_from_yaml['GaleraInit']['MysqlStateFilePath']).to eq('/var/vcap/store/pxc-mysql/state.txt')
+  end
+
   it 'set default MysqldPath for MySQL 8.0' do
     tpl_output = template.render(spec, consumes: links)
     hash_from_yaml = YAML.load(tpl_output)

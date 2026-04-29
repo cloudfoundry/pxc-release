@@ -37,7 +37,7 @@ func New(db *sql.DB, mysqldCmd mysqld_cmd.MysqldCmd, config config.Config, logge
 func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
 	s.logger.Info("Checking sequence number of database node...")
 
-	if s.config.Monit.ServiceName == "garbd" {
+	if s.config.GaleraInit.ServiceName == "garbd" {
 		return "no sequence number - running on arbitrator node", nil
 	} else if s.dbReachable() {
 		return "", errors.New("can't determine sequence number when database is running")

@@ -180,11 +180,7 @@ var _ = Describe("Galera Agent Concurrency", func() {
 				Password: "root-password",
 			},
 			// No direct monit: Host/Port/User/Password are optional; the agent uses galera-init.
-			Monit: config.MonitConfig{
-				Host:                          "",
-				User:                          "",
-				Port:                          "",
-				Password:                      "",
+			GaleraInit: config.GaleraInitConfig{
 				MysqlStateFilePath:            "/tmp/mysql-state",
 				ServiceName:                   "galera-init",
 				GaleraInitStatusServerAddress: extractHostPort(galeraInitServer.URL()),

@@ -133,7 +133,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 		Context("running on an arbitrator node", func() {
 			BeforeEach(func() {
 				rootConfig = config.Config{
-					Monit: config.MonitConfig{
+					GaleraInit: config.GaleraInitConfig{
 						ServiceName: "garbd",
 					},
 				}

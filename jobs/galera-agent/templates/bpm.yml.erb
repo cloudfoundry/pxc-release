@@ -18,15 +18,6 @@ processes:
   - path: /var/vcap/jobs/pxc-mysql
     mount_only: true
     writable: false
-  - path: /var/vcap/bosh/etc
-    mount_only: true
-    allow_executions: true
-    writable: false
   - path: /var/vcap/store
     writable: true
     mount_only: true
-  unsafe:
-    privileged: true
-    unrestricted_volumes:
-    - path: "/sys/fs/cgroup"
-      writable: true

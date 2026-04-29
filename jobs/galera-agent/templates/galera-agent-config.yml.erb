@@ -10,15 +10,10 @@ config = {
     "Password" => p('db_password'),
   },
   "Socket" => "/var/vcap/sys/run/pxc-mysql/mysqld.sock",
-  # This is the config that bosh sets up by default for monit.
-  "Monit" => {
-    "User" => 'vcap',
-    "Password" => 'random-password',
-    "Host" => '127.0.0.1',
-    "Port" => 2822,
-    "MysqlStateFilePath" => '/var/vcap/store/pxc-mysql/state.txt',
-    "ServiceName" => 'galera-init',
-    "GaleraInitStatusServerAddress" => "127.0.0.1:8114",
+  "GaleraInit" => {
+    "MysqlStateFilePath" => p('mysql_state_file_path'),
+    "ServiceName" => p('supervised_mysqld_service_name'),
+    "GaleraInitStatusServerAddress" => p('galera_init_status_server_address'),
   },
   "SidecarEndpoint" => {
     "Username" => p('endpoint_username'),

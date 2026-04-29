@@ -33,7 +33,7 @@ func New(db *sql.DB, config config.Config, logger lager.Logger) *HealthChecker {
 }
 
 func (h *HealthChecker) Check() (string, error) {
-	if h.config.Monit.ServiceName == "garbd" {
+	if h.config.GaleraInit.ServiceName == "garbd" {
 		return "", errors.New("arbitrator node")
 	}
 

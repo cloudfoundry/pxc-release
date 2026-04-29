@@ -51,11 +51,7 @@ var _ = Describe("Config", func() {
 				Password: "password",
 				Socket:   "/var/vcap/sys/run/pxc-mysql/mysqld.sock",
 			},
-			Monit: MonitConfig{
-				Host:                          "localhost",
-				User:                          "vcap",
-				Port:                          "2822",
-				Password:                      "random-password",
+			GaleraInit: GaleraInitConfig{
 				MysqlStateFilePath:            "/var/vcap/store/mysql/state.txt",
 				ServiceName:                   "mariadb_ctrl",
 				GaleraInitStatusServerAddress: "127.0.0.1:8114",
@@ -238,8 +234,8 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("DataDir"))
 		})
 
-		It("returns an error if Monit.ServiceName is blank", func() {
-			rootConfig.Monit.ServiceName = ""
+		It("returns an error if GaleraInit.ServiceName is blank", func() {
+			rootConfig.GaleraInit.ServiceName = ""
 			err := rootConfig.Validate()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("ServiceName"))

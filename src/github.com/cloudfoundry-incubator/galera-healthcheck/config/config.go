@@ -17,7 +17,7 @@ import (
 
 type Config struct {
 	DB                    DBConfig              `yaml:"DB" validate:"nonzero"`
-	Monit                 MonitConfig           `yaml:"Monit" validate:"nonzero"`
+	GaleraInit            GaleraInitConfig      `yaml:"GaleraInit" validate:"nonzero"`
 	Host                  string                `yaml:"Host" validate:"nonzero"`
 	Port                  int                   `yaml:"Port" validate:"nonzero"`
 	AvailableWhenDonor    bool                  `yaml:"AvailableWhenDonor"`
@@ -35,11 +35,9 @@ type DBConfig struct {
 	Socket   string `yaml:"Socket,omitempty" validate:"nonzero"`
 }
 
-type MonitConfig struct {
-	Host                          string `yaml:"Host"`
-	User                          string `yaml:"User"`
-	Port                          string `yaml:"Port"`
-	Password                      string `yaml:"Password"`
+// GaleraInitConfig names the mysqld lifecycle surface exposed by the local galera-init HTTP server
+// (not monit). BOSH should render only these keys under YAML key `GaleraInit`.
+type GaleraInitConfig struct {
 	MysqlStateFilePath            string `yaml:"MysqlStateFilePath"`
 	ServiceName                   string `yaml:"ServiceName" validate:"nonzero"`
 	GaleraInitStatusServerAddress string `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`

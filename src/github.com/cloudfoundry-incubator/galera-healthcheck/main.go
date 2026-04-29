@@ -55,17 +55,17 @@ func main() {
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
 
 	initClient, err := galera_init_client.NewClientForAddress(
-		rootConfig.Monit.GaleraInitStatusServerAddress,
+		rootConfig.GaleraInit.GaleraInitStatusServerAddress,
 		2*time.Minute,
 	)
 	if err != nil {
 		logger.Fatal("galera-init-client", err, lager.Data{
-			"address": rootConfig.Monit.GaleraInitStatusServerAddress,
+			"address": rootConfig.GaleraInit.GaleraInitStatusServerAddress,
 		})
 	}
 	serviceManager := &node_manager.NodeManager{
-		ServiceName:   rootConfig.Monit.ServiceName,
-		StateFilePath: rootConfig.Monit.MysqlStateFilePath,
+		ServiceName:   rootConfig.GaleraInit.ServiceName,
+		StateFilePath: rootConfig.GaleraInit.MysqlStateFilePath,
 		MonitClient:   initClient,
 		Logger:        logger,
 		Mutex:         &mysqlProcessMutex,
