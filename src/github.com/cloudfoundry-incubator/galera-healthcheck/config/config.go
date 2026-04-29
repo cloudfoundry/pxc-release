@@ -36,10 +36,10 @@ type DBConfig struct {
 }
 
 type MonitConfig struct {
-	Host                          string `yaml:"Host" validate:"nonzero"`
-	User                          string `yaml:"User" validate:"nonzero"`
-	Port                          string `yaml:"Port" validate:"nonzero"`
-	Password                      string `yaml:"Password" validate:"nonzero"`
+	Host                          string `yaml:"Host"`
+	User                          string `yaml:"User"`
+	Port                          string `yaml:"Port"`
+	Password                      string `yaml:"Password"`
 	MysqlStateFilePath            string `yaml:"MysqlStateFilePath"`
 	ServiceName                   string `yaml:"ServiceName" validate:"nonzero"`
 	GaleraInitStatusServerAddress string `yaml:"GaleraInitStatusServerAddress" validate:"nonzero"`

@@ -220,34 +220,6 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("Password"))
 		})
 
-		It("returns an error if Monit.Host is blank", func() {
-			rootConfig.Monit.Host = ""
-			err := rootConfig.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Host"))
-		})
-
-		It("returns an error if Monit.User is blank", func() {
-			rootConfig.Monit.User = ""
-			err := rootConfig.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("User"))
-		})
-
-		It("returns an error if Monit.Port is blank", func() {
-			rootConfig.Monit.Port = ""
-			err := rootConfig.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Port"))
-		})
-
-		It("returns an error if Monit.Password is blank", func() {
-			rootConfig.Monit.Password = ""
-			err := rootConfig.Validate()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Password"))
-		})
-
 		It("returns an error if MysqldPath is blank", func() {
 			rootConfig.MysqldPath = ""
 			err := rootConfig.Validate()

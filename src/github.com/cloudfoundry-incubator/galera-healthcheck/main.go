@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/api"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
+	"github.com/cloudfoundry-incubator/galera-healthcheck/galera_init_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/healthcheck"
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/node_manager"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/sequence_number"
@@ -54,18 +53,22 @@ func main() {
 
 	var mysqlProcessMutex sync.Mutex
 	mysqldCmd := mysqld_cmd.NewMysqldCmd(logger, *rootConfig)
+
+	initClient, err := galera_init_client.NewClientForAddress(
+		rootConfig.Monit.GaleraInitStatusServerAddress,
+		2*time.Minute,
+	)
+	if err != nil {
+		logger.Fatal("galera-init-client", err, lager.Data{
+			"address": rootConfig.Monit.GaleraInitStatusServerAddress,
+		})
+	}
 	serviceManager := &node_manager.NodeManager{
 		ServiceName:   rootConfig.Monit.ServiceName,
 		StateFilePath: rootConfig.Monit.MysqlStateFilePath,
-		MonitClient: monit_client.NewClient(
-			net.JoinHostPort(rootConfig.Monit.Host, rootConfig.Monit.Port),
-			rootConfig.Monit.User,
-			rootConfig.Monit.Password,
-			2*time.Minute,
-		),
-		GaleraInitAddress: rootConfig.Monit.GaleraInitStatusServerAddress,
-		Logger:            logger,
-		Mutex:             &mysqlProcessMutex,
+		MonitClient:   initClient,
+		Logger:        logger,
+		Mutex:         &mysqlProcessMutex,
 	}
 
 	healthchecker := healthcheck.New(db, *rootConfig, logger)

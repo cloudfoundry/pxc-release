@@ -4,13 +4,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"gopkg.in/yaml.v3"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/tlsconfig"
@@ -104,11 +104,10 @@ var _ = Describe("Galera Agent Concurrency", func() {
 		serverAuthority  *certtest.Authority
 		tlsClientConfig  *tls.Config
 		galeraAgentPort  int
-		monitServer      *ghttp.Server
 		callbackServer   *ghttp.Server
+		galeraInitServer *ghttp.Server
 		stubMysqldScript string
 		operationTracker *ConcurrencyTracker
-		galeraInitServer *ghttp.Server
 	)
 
 	makeAuthenticatedRequest := func(method, path, body string) (*http.Response, error) {
@@ -162,18 +161,12 @@ var _ = Describe("Galera Agent Concurrency", func() {
 		})
 		setupCallbackHandlers(callbackServer, operationTracker)
 
-		// Setup galera-init status server (for waitForGaleraInit)
+		// Galera-init HTTP API (consumed by galera_init_client in the process under test)
 		galeraInitServer = ghttp.NewServer()
 		DeferCleanup(func() {
 			galeraInitServer.Close()
 		})
-
-		galeraInitServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/"),
-				ghttp.RespondWith(http.StatusOK, "galera-init ready"),
-			),
-		)
+		setupGaleraInitHandlers(galeraInitServer, operationTracker)
 
 		// Create stub mysqld script that calls back to our test server
 		stubMysqldScript = createMysqldStub(callbackServer.URL())
@@ -181,23 +174,17 @@ var _ = Describe("Galera Agent Concurrency", func() {
 			Expect(os.Remove(stubMysqldScript)).To(Succeed())
 		})
 
-		// Setup monit server with tracking
-		monitServer = ghttp.NewServer()
-		DeferCleanup(func() {
-			monitServer.Close()
-		})
-		setupMonitHandlers(monitServer, operationTracker)
-
 		galeraAgentPort = test_helpers.RandomPort()
 		cfg := config.Config{
 			DB: config.DBConfig{
 				Password: "root-password",
 			},
+			// No direct monit: Host/Port/User/Password are optional; the agent uses galera-init.
 			Monit: config.MonitConfig{
-				Host:                          extractHost(monitServer.URL()),
-				User:                          "monit-user",
-				Port:                          extractPort(monitServer.URL()),
-				Password:                      "monit-password",
+				Host:                          "",
+				User:                          "",
+				Port:                          "",
+				Password:                      "",
 				MysqlStateFilePath:            "/tmp/mysql-state",
 				ServiceName:                   "galera-init",
 				GaleraInitStatusServerAddress: extractHostPort(galeraInitServer.URL()),
@@ -393,45 +380,51 @@ func setupCallbackHandlers(server *ghttp.Server, tracker *ConcurrencyTracker) {
 	})
 }
 
-func setupMonitHandlers(server *ghttp.Server, tracker *ConcurrencyTracker) {
-	// Create a more flexible handler that can handle multiple requests
-	server.RouteToHandler("POST", "/galera-init", func(w http.ResponseWriter, r *http.Request) {
-		// Parse form data
-		err := r.ParseForm()
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+func setupGaleraInitHandlers(server *ghttp.Server, tracker *ConcurrencyTracker) {
+	var stopped atomic.Bool
+
+	server.RouteToHandler("POST", "/start", func(w http.ResponseWriter, r *http.Request) {
+		stopped.Store(false)
+		tracker.StartOperation("start")
+		time.Sleep(1 * time.Second)
+		tracker.EndOperation("start")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	server.RouteToHandler("POST", "/stop", func(w http.ResponseWriter, r *http.Request) {
+		tracker.StartOperation("stop")
+		time.Sleep(500 * time.Millisecond)
+		stopped.Store(true)
+		tracker.EndOperation("stop")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	readiness := func(w http.ResponseWriter) {
+		w.Header().Set("Content-Type", "application/json")
+		if stopped.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"ready":false,"phase":"stopped"}`))
 			return
 		}
-
-		action := r.FormValue("action")
-		switch action {
-		case "start":
-			tracker.StartOperation("start")
-			time.Sleep(1 * time.Second) // Simulate work
-			tracker.EndOperation("start")
-			w.WriteHeader(http.StatusOK)
-		case "stop":
-			tracker.StartOperation("stop")
-			time.Sleep(500 * time.Millisecond)
-			tracker.EndOperation("stop")
-			w.WriteHeader(http.StatusOK)
-		default:
-			w.WriteHeader(http.StatusBadRequest)
-		}
-	})
-
-	// Status handler for waitForGaleraInit
-	server.RouteToHandler("GET", "/_status", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/xml")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`<?xml version="1.0"?>
-<monit>
-  <service name="galera-init">
-    <status>0</status>
-    <monitor>1</monitor>
-    <pendingaction>0</pendingaction>
-  </service>
-</monit>`))
+		_, _ = w.Write([]byte(`{"ready":true,"phase":"running"}`))
+	}
+	server.RouteToHandler("GET", "/", func(w http.ResponseWriter, r *http.Request) {
+		readiness(w)
+	})
+	server.RouteToHandler("GET", "/status", func(w http.ResponseWriter, r *http.Request) {
+		readiness(w)
+	})
+	server.RouteToHandler("GET", "/v1/moniteq", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		if stopped.Load() {
+			_, _ = w.Write([]byte("stopped"))
+		} else {
+			_, _ = w.Write([]byte("running"))
+		}
 	})
 }
 
@@ -474,28 +467,6 @@ exit 0
 	Expect(os.Chmod(scriptFile.Name(), 0755)).To(Succeed())
 
 	return scriptFile.Name()
-}
-
-func extractHost(serverURL string) string {
-	u, err := url.Parse(serverURL)
-	Expect(err).NotTo(HaveOccurred())
-	host, _, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		// If no port, return the host as-is
-		return u.Host
-	}
-	return host
-}
-
-func extractPort(serverURL string) string {
-	u, err := url.Parse(serverURL)
-	Expect(err).NotTo(HaveOccurred())
-	_, port, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		// Default HTTP port if no port specified
-		return "80"
-	}
-	return port
 }
 
 func extractHostPort(serverURL string) string {

@@ -1,17 +1,12 @@
 package node_manager
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-
-	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . MonitClient
@@ -22,12 +17,11 @@ type MonitClient interface {
 }
 
 type NodeManager struct {
-	ServiceName       string
-	StateFilePath     string
-	MonitClient       MonitClient
-	GaleraInitAddress string
-	Logger            lager.Logger
-	Mutex             *sync.Mutex
+	ServiceName   string
+	StateFilePath string
+	MonitClient   MonitClient
+	Logger        lager.Logger
+	Mutex         *sync.Mutex
 }
 
 func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
@@ -46,10 +40,6 @@ func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
 		return "", err
 	}
 
-	if err := m.waitForGaleraInit(); err != nil {
-		return "", err
-	}
-
 	return "cluster bootstrap successful", nil
 }
 
@@ -65,10 +55,6 @@ func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
 		return "", err
 	}
 
-	if err := m.waitForGaleraInit(); err != nil {
-		return "", err
-	}
-
 	return "join cluster successful", nil
 }
 
@@ -81,10 +67,6 @@ func (m *NodeManager) StartServiceSingleNode(_ *http.Request) (string, error) {
 	}
 
 	if err := m.MonitClient.Start(m.ServiceName); err != nil {
-		return "", err
-	}
-
-	if err := m.waitForGaleraInit(); err != nil {
 		return "", err
 	}
 
@@ -104,69 +86,4 @@ func (m *NodeManager) StopService(_ *http.Request) (string, error) {
 
 func (m *NodeManager) GetStatus(_ *http.Request) (string, error) {
 	return m.MonitClient.Status(m.ServiceName)
-}
-
-func (m *NodeManager) waitForGaleraInit() error {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	httpClient := http.Client{Timeout: 1 * time.Second}
-
-	for {
-		select {
-		case <-ticker.C:
-			status, err := m.MonitClient.Status(m.ServiceName)
-			if err != nil {
-				return fmt.Errorf("error fetching status for service %q", m.ServiceName)
-			}
-
-			m.Logger.Info("check-monit-state", lager.Data{
-				"service": m.ServiceName,
-				"state":   status,
-			})
-
-			if status != monit_client.ServiceRunning {
-				return fmt.Errorf("job failed during startup")
-			}
-
-			m.Logger.Info("check-galera-init")
-			res, err := httpClient.Get("http://" + m.GaleraInitAddress)
-			if err != nil {
-				m.Logger.Error("check-galera-init", err)
-				continue
-			}
-			m.Logger.Info("check-galera-init", lager.Data{
-				"status": res.Status,
-			})
-			if res.StatusCode == http.StatusServiceUnavailable {
-				_ = res.Body.Close()
-				continue
-			}
-			if res.StatusCode != http.StatusOK {
-				_ = res.Body.Close()
-				return fmt.Errorf("unexpected response from node: %v", res.Status)
-			}
-			body, err := io.ReadAll(res.Body)
-			_ = res.Body.Close()
-			if err != nil {
-				return fmt.Errorf("read galera-init body: %w", err)
-			}
-			if !json.Valid(body) {
-				return nil
-			}
-			var readiness struct {
-				Ready bool `json:"ready"`
-			}
-			if err := json.Unmarshal(body, &readiness); err != nil {
-				return nil
-			}
-			if !readiness.Ready {
-				m.Logger.Info("check-galera-init-not-ready", lager.Data{
-					"ready": false,
-				})
-				continue
-			}
-			return nil
-		}
-	}
 }
