@@ -85,7 +85,7 @@ var _ = Describe("Starter", func() {
 			})
 
 			It("bootstraps, seeds databases and sets read only user", func() {
-				newNodeState, mysqlErrChan, err := starter.StartNodeFromState("SINGLE_NODE")
+				newNodeState, mysqlErrChan, err := starter.StartNodeFromState("SINGLE_NODE", true)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("SINGLE_NODE"))
 				Expect(mysqlErrChan).NotTo(BeNil())
@@ -101,7 +101,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("updates the grastate file's safe_to_bootstrap", func() {
-					_, _, err := starter.StartNodeFromState("SINGLE_NODE")
+					_, _, err := starter.StartNodeFromState("SINGLE_NODE", true)
 					Expect(err).ToNot(HaveOccurred())
 
 					grastateFileOutput, _ := os.ReadFile(grastateFile.Name())
@@ -114,7 +114,7 @@ var _ = Describe("Starter", func() {
 					})
 
 					It("does not create the file", func() {
-						_, _, err := starter.StartNodeFromState("SINGLE_NODE")
+						_, _, err := starter.StartNodeFromState("SINGLE_NODE", true)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(grastateFile.Name()).ShouldNot(BeAnExistingFile())
 					})
@@ -129,7 +129,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("bootstraps, seeds databases and sets read only user", func() {
-					newNodeState, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP", true)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureBootstrap()
@@ -144,7 +144,7 @@ var _ = Describe("Starter", func() {
 					})
 
 					It("updates the grastate file's safe_to_bootstrap", func() {
-						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP", true)
 						Expect(err).ToNot(HaveOccurred())
 
 						grastateFileOutput, _ := os.ReadFile(grastateFile.Name())
@@ -157,7 +157,7 @@ var _ = Describe("Starter", func() {
 						})
 
 						It("does not create the file", func() {
-							_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+							_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP", true)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(grastateFile.Name()).ShouldNot(BeAnExistingFile())
 						})
@@ -171,7 +171,7 @@ var _ = Describe("Starter", func() {
 				})
 
 				It("joins the cluster", func() {
-					newNodeState, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+					newNodeState, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP", true)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newNodeState).To(Equal("CLUSTERED"))
 					ensureJoin()
@@ -186,7 +186,7 @@ var _ = Describe("Starter", func() {
 			})
 
 			It("joins the cluster", func() {
-				newNodeState, _, err := starter.StartNodeFromState("CLUSTERED")
+				newNodeState, _, err := starter.StartNodeFromState("CLUSTERED", true)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(newNodeState).To(Equal("CLUSTERED"))
 				ensureJoin()
@@ -197,7 +197,7 @@ var _ = Describe("Starter", func() {
 		Context("error handling", func() {
 			Context("when passed a an invalid state", func() {
 				It("forwards the error", func() {
-					_, _, err := starter.StartNodeFromState("INVALID_STATE")
+					_, _, err := starter.StartNodeFromState("INVALID_STATE", true)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Unsupported state file contents"))
 				})
@@ -210,7 +210,7 @@ var _ = Describe("Starter", func() {
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
 					var err error
-					_, _, err = starter.StartNodeFromState("CLUSTERED")
+					_, _, err = starter.StartNodeFromState("CLUSTERED", true)
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(expectedErr))
 				})
@@ -220,7 +220,7 @@ var _ = Describe("Starter", func() {
 					fakeDBHelper.IsDatabaseReachableReturns(false)
 
 					var err error
-					_, _, err = starter.StartNodeFromState("CLUSTERED")
+					_, _, err = starter.StartNodeFromState("CLUSTERED", true)
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(expectedErr))
 				})
@@ -234,7 +234,7 @@ var _ = Describe("Starter", func() {
 
 				Context("SINGLE_NODE", func() {
 					It("forwards the error", func() {
-						_, _, err := starter.StartNodeFromState("SINGLE_NODE")
+						_, _, err := starter.StartNodeFromState("SINGLE_NODE", true)
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -242,7 +242,7 @@ var _ = Describe("Starter", func() {
 
 				Context("NEEDS_BOOTSTRAP", func() {
 					It("forwards the error", func() {
-						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP")
+						_, _, err := starter.StartNodeFromState("NEEDS_BOOTSTRAP", true)
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})
@@ -250,7 +250,7 @@ var _ = Describe("Starter", func() {
 
 				Context("CLUSTERED", func() {
 					It("forwards the error", func() {
-						_, _, err := starter.StartNodeFromState("CLUSTERED")
+						_, _, err := starter.StartNodeFromState("CLUSTERED", true)
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("some errors"))
 					})

@@ -27,7 +27,9 @@ const (
 // to lastAppliedMode, and is a no-op when the file matches what we already applied, mysqld is
 // up, the DB is reachable, and readiness is not in the failed phase. Otherwise it stops
 // mysqld (if needed) and runs StartNodeFromState, then writes the file with the return value
-// from the starter (e.g. NEEDS_BOOTSTRAP run may persist CLUSTERED).
+// from the starter. If waitForDB is false (HTTP POST /start), mysqld is only launched;
+// clients poll GET / for waiting_for_database then ready. If true (reconcileFirstBoot), the
+// starter blocks for DB reachability so Execute can return an error on failure.
 //
 // POST /stop (reconcileHTTPStop) stops only the mysqld child; galera-init and the HTTP
 // listener keep running. Readiness reports phase "stopped" until a later POST /start
@@ -96,7 +98,7 @@ func (m *startManager) reconcileHTTPStart() error {
 	if m.noOpReconcileOKLocked(desired) {
 		return nil
 	}
-	return m.applyMysqldStartWithDesiredStateLocked(desired)
+	return m.applyMysqldStartWithDesiredStateLocked(desired, false)
 }
 
 // reconcileHTTPStop implements POST /stop. See the HTTP lifecycle comment in this file.
@@ -145,18 +147,21 @@ func (m *startManager) noOpReconcileOKLocked(desired string) bool {
 	return true
 }
 
-// applyMysqldStartWithDesiredState is used for first boot (takes the lifecycle lock).
+// applyMysqldStartWithDesiredState is used for first boot (takes the lifecycle lock). Waits
+// for reachability in the starter so a failed first boot still fails Execute.
 func (m *startManager) applyMysqldStartWithDesiredState(desired string) error {
 	m.lifecycleMu.Lock()
 	defer m.lifecycleMu.Unlock()
-	return m.applyMysqldStartWithDesiredStateLocked(desired)
+	return m.applyMysqldStartWithDesiredStateLocked(desired, true)
 }
 
-// applyMysqldStartWithDesiredStateLocked: StartNode, write file, start watcher. Caller must hold m.lifecycleMu.
-func (m *startManager) applyMysqldStartWithDesiredStateLocked(desired string) error {
+// applyMysqldStartWithDesiredStateLocked: start mysqld via NodeStarter, write file, start
+// watcher. If waitForDB is false, SQL readiness is not part of the return. Caller must hold
+// m.lifecycleMu.
+func (m *startManager) applyMysqldStartWithDesiredStateLocked(desired string, waitForDB bool) error {
 	m.setReadinessReset(readinessPhaseBootstrapping, desired)
 
-	newNodeState, mysqldCh, err := m.startCaller.StartNodeFromState(desired)
+	newNodeState, mysqldCh, err := m.startCaller.StartNodeFromState(desired, waitForDB)
 	if err != nil {
 		m.setReadinessFailed(readinessPhaseFailed, "start", err.Error())
 		return err

@@ -19,10 +19,11 @@ type FakeStarter struct {
 	getMysqlCmdReturnsOnCall map[int]struct {
 		result1 *exec.Cmd
 	}
-	StartNodeFromStateStub        func(string) (string, <-chan error, error)
+	StartNodeFromStateStub        func(string, bool) (string, <-chan error, error)
 	startNodeFromStateMutex       sync.RWMutex
 	startNodeFromStateArgsForCall []struct {
 		arg1 string
+		arg2 bool
 	}
 	startNodeFromStateReturns struct {
 		result1 string
@@ -91,18 +92,19 @@ func (fake *FakeStarter) GetMysqlCmdReturnsOnCall(i int, result1 *exec.Cmd) {
 	}{result1}
 }
 
-func (fake *FakeStarter) StartNodeFromState(arg1 string) (string, <-chan error, error) {
+func (fake *FakeStarter) StartNodeFromState(arg1 string, arg2 bool) (string, <-chan error, error) {
 	fake.startNodeFromStateMutex.Lock()
 	ret, specificReturn := fake.startNodeFromStateReturnsOnCall[len(fake.startNodeFromStateArgsForCall)]
 	fake.startNodeFromStateArgsForCall = append(fake.startNodeFromStateArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 bool
+	}{arg1, arg2})
 	stub := fake.StartNodeFromStateStub
 	fakeReturns := fake.startNodeFromStateReturns
-	fake.recordInvocation("StartNodeFromState", []interface{}{arg1})
+	fake.recordInvocation("StartNodeFromState", []interface{}{arg1, arg2})
 	fake.startNodeFromStateMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -116,17 +118,17 @@ func (fake *FakeStarter) StartNodeFromStateCallCount() int {
 	return len(fake.startNodeFromStateArgsForCall)
 }
 
-func (fake *FakeStarter) StartNodeFromStateCalls(stub func(string) (string, <-chan error, error)) {
+func (fake *FakeStarter) StartNodeFromStateCalls(stub func(string, bool) (string, <-chan error, error)) {
 	fake.startNodeFromStateMutex.Lock()
 	defer fake.startNodeFromStateMutex.Unlock()
 	fake.StartNodeFromStateStub = stub
 }
 
-func (fake *FakeStarter) StartNodeFromStateArgsForCall(i int) string {
+func (fake *FakeStarter) StartNodeFromStateArgsForCall(i int) (string, bool) {
 	fake.startNodeFromStateMutex.RLock()
 	defer fake.startNodeFromStateMutex.RUnlock()
 	argsForCall := fake.startNodeFromStateArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeStarter) StartNodeFromStateReturns(result1 string, result2 <-chan error, result3 error) {

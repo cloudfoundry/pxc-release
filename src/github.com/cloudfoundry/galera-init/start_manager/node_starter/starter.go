@@ -25,7 +25,10 @@ const (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Starter
 type Starter interface {
-	StartNodeFromState(string) (string, <-chan error, error)
+	// If waitForReachability is true, the starter blocks until the DB accepts connections
+	// or the mysqld process exits (first boot in Execute). If false, the starter returns
+	// once mysqld is started; health is driven by the HTTP GET readiness surface (POST /start).
+	StartNodeFromState(state string, waitForReachability bool) (string, <-chan error, error)
 	GetMysqlCmd() *exec.Cmd
 }
 
@@ -54,7 +57,7 @@ func NewStarter(
 	}
 }
 
-func (s *starter) StartNodeFromState(state string) (string, <-chan error, error) {
+func (s *starter) StartNodeFromState(state string, waitForReachability bool) (string, <-chan error, error) {
 	var newNodeState string
 	var err error
 	var mysqldChan chan error
@@ -83,8 +86,12 @@ func (s *starter) StartNodeFromState(state string) (string, <-chan error, error)
 		return "", nil, errors.New("Starting mysql failed, no channel created - exiting")
 	}
 
-	err = s.waitForDatabaseToAcceptConnections(mysqldChan)
-	if err != nil {
+	if !waitForReachability {
+		return newNodeState, mysqldChan, nil
+	}
+
+	// First boot: block until the DB is reachable or mysqld exits (so Execute can fail fast).
+	if err = s.waitForDatabaseToAcceptConnections(mysqldChan); err != nil {
 		return "", nil, err
 	}
 
@@ -133,7 +140,7 @@ func (s *starter) joinCluster() (chan error, error) {
 }
 
 func (s *starter) waitForDatabaseToAcceptConnections(mysqldChan chan error) error {
-	s.logger.Info(fmt.Sprintf("Attempting to reach database."))
+	s.logger.Info("Attempting to reach database.")
 	numTries := 0
 
 	for {

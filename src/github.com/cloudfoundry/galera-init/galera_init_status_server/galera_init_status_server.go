@@ -38,11 +38,15 @@ func NewGaleraInitStatusServer(
 
 // Start runs the HTTP server; it does not block.
 func (s *GaleraInitStatusServer) Start() error {
+	// Long-lived lifecycle work can take minutes (e.g. internal stop before start, mysqld join).
+	// Readiness is polled on GET. Zero read/write timeout avoids aborting POST before the handler
+	// returns; ReadHeaderTimeout mitigates slowloris.
 	server := &http.Server{
-		Handler:        s.handler,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		Handler:           s.handler,
+		ReadHeaderTimeout: 1 * time.Minute,
+		ReadTimeout:       0,
+		WriteTimeout:      0,
+		MaxHeaderBytes:    1 << 20,
 	}
 	go func() {
 		if err := server.Serve(s.listener); err != nil {

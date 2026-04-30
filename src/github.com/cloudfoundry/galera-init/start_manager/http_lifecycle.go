@@ -132,6 +132,8 @@ func (m *startManager) handleMonitString(w http.ResponseWriter, r *http.Request)
 
 func (m *startManager) postStart(w http.ResponseWriter, r *http.Request) {
 	m.logger.Info("http-post-start-received")
+	// Reconcile may take time (e.g. stop then start), but it no longer includes waiting for
+	// the database: POST returns after mysqld is up; the healthcheck client then polls GET /.
 	if err := m.reconcileHTTPStart(); err != nil {
 		m.writeAckError(w, http.StatusInternalServerError, err)
 		return

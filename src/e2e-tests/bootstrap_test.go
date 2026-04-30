@@ -3,9 +3,11 @@ package e2e_tests
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -67,6 +69,28 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 		body, _ := io.ReadAll(res.Body)
 		Expect(res.StatusCode).To(Equal(http.StatusOK),
 			`Expected HTTP 200 from stop_mysql but got %q.  Body: %s`, res.Status, string(body))
+	}
+
+	// Exposes galera-init readiness as monit-style "stopped" | "running" | etc.
+	getMysqlStatus := func(c *http.Client, host string) (string, error) {
+		req, err := http.NewRequest(http.MethodGet, "https://"+host+":9201/mysql_status", nil)
+		if err != nil {
+			return "", err
+		}
+		req.SetBasicAuth("galera-agent", galeraAgentPassword)
+		res, err := c.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer res.Body.Close()
+		b, err := io.ReadAll(res.Body)
+		if err != nil {
+			return "", err
+		}
+		if res.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("GET mysql_status: %s, body: %q", res.Status, string(b))
+		}
+		return strings.TrimSpace(string(b)), nil
 	}
 
 	It("starts with a healthy cluster of three nodes", func() {
@@ -194,19 +218,22 @@ var _ = Describe("Bootstrapping an offline cluster", Ordered, Label("bootstrap")
 				stopMySQL(httpClient, ip)
 			}
 
-			By("waiting for BOSH to detect the failing instances")
-			Eventually(func() (states []string) {
-				instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
-				if err != nil {
-					return nil
+			// BOSH process_state tracks supervised jobs (e.g. galera-init); stopping mysqld alone
+			// does not flip the VM to failing, so we wait for galera-agent to report "stopped".
+			By("waiting for galera-agent to report MySQL as stopped on all nodes")
+			Eventually(func() error {
+				for _, ip := range mysqlIps {
+					s, err := getMysqlStatus(httpClient, ip)
+					if err != nil {
+						return err
+					}
+					if s != "stopped" {
+						return fmt.Errorf("mysql on %s: want status stopped, got %q", ip, s)
+					}
 				}
-				for _, instance := range instances {
-					states = append(states, instance.ProcessState)
-				}
-
-				return states
-			}, "30s", "2s").Should(ConsistOf("failing", "failing", "failing"),
-				"Expected all mysql instances to be in failing state after stopping MySQL")
+				return nil
+			}, "60s", "2s").Should(Succeed(),
+				"Expected all nodes to report mysql_status stopped after stop_mysql")
 
 			Expect(bosh.Recreate(deploymentName, "mysql/0")).ToNot(Succeed(),
 				`Expected recreating mysql/0 when cluster is offline to fail`)

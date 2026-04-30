@@ -72,7 +72,9 @@ var _ = Describe("StartManager", func() {
 
 	ensureStartNodeWithMode := func(state string) {
 		Expect(fakeStarter.StartNodeFromStateCallCount()).To(Equal(1))
-		Expect(fakeStarter.StartNodeFromStateArgsForCall(0)).To(Equal(state))
+		s, wait := fakeStarter.StartNodeFromStateArgsForCall(0)
+		Expect(s).To(Equal(state))
+		Expect(wait).To(BeTrue(), "reconcileFirstBoot should wait for DB in the starter")
 	}
 
 	createManager := func(args managerArgs) StartManager {
@@ -113,7 +115,7 @@ var _ = Describe("StartManager", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeStarter.StartNodeFromStateStub = func(state string) (newState string, mysqlErrCh <-chan error, e error) {
+		fakeStarter.StartNodeFromStateStub = func(state string, _ bool) (newState string, mysqlErrCh <-chan error, e error) {
 			return startNodeReturn, mysqldErrChan, startNodeReturnError
 		}
 	})
@@ -124,7 +126,7 @@ var _ = Describe("StartManager", func() {
 				NodeCount: 3,
 			})
 
-			fakeStarter.StartNodeFromStateStub = func(state string) (newState string, mysqlErrCh <-chan error, e error) {
+			fakeStarter.StartNodeFromStateStub = func(state string, _ bool) (newState string, mysqlErrCh <-chan error, e error) {
 				mysqldErrChan <- errors.New("some mysql error")
 				return startNodeReturn, mysqldErrChan, startNodeReturnError
 			}
@@ -157,7 +159,7 @@ var _ = Describe("StartManager", func() {
 			})
 
 			fakeStarter.GetMysqlCmdReturns(&exec.Cmd{})
-			fakeStarter.StartNodeFromStateStub = func(state string) (newState string, mysqlErrCh <-chan error, e error) {
+			fakeStarter.StartNodeFromStateStub = func(state string, _ bool) (newState string, mysqlErrCh <-chan error, e error) {
 				return startNodeReturn, mysqldErrChan, startNodeReturnError
 			}
 
