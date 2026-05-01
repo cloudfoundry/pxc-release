@@ -50,7 +50,7 @@ procps-ng-4.0.5.tar.xz:
   size: 1517672
   object_id: e196e815-f7be-462d-64f0-feaac1caffe0
   sha: sha256:c2e6d193cc78f84cd6ddb72aaf6d5c6a9162f0470e5992092057f5ff518562fa
-socat-1.7.4.4.tar.gz:
-  size: 662968
-  object_id: beda2a1f-82fe-4370-47c9-080352292869
-  sha: sha256:0f8f4b9d5c60b8c53d17b60d79ababc4a0f51b3bb6d2bd3ae8a6a4b9d68f195e
+socat-1.8.1.1.tar.bz2:
+  size: 606348
+  object_id: e42ede18-244d-423f-6f34-da9f0b08748e
+  sha: sha256:5ebc636b7f427053f98806696521653a614c7e06464910353cbf54e2327adc1b
