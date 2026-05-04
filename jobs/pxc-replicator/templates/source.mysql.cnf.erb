@@ -1,0 +1,11 @@
+<%-
+require 'json'
+if_link('replica') do |source| %>
+[client]
+user = <%= source.p('mysql_backup_username') %>
+password = <%= source.p('mysql_backup_password') %>
+host = <%= source.instances[0].address %>
+port = <%= source.p('port') %>
+<%- end  %>
+
+

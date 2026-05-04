@@ -60,7 +60,22 @@ character_set_server            = <%= p('engine_config.character_set_server') %>
 <%- if p('engine_config.collation_server') != 'use_default' -%>
 collation_server                = <%= p('engine_config.collation_server') %>
 <%- end -%>
-server_id                       = <%= p('engine_config.server_id') %>
+
+<%
+server_id = p('engine_config.server_id')
+# ensure we're not starting at index 0. replication is disabled when it is set to `0`
+# it just needs to be unique
+# https://dev.mysql.com/doc/refman/8.4/en/replication-options.html
+if p('engine_config.enable_replication_source')
+  server_id = spec.index + 1
+end
+# if where the replication target, count down from highest value to avoid overlaps between source and target
+if p('engine_config.enable_replication_target')
+  server_id = 4294967296 - spec.index - 1 - 1 # max value is `2^32 - 1`. spec.index can be 0.
+end
+%>
+server_id                       = <%= server_id %>
+
 <%- if_p('tls.client.ca') do -%>
 ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/client-ca.pem
 <%- end -%>

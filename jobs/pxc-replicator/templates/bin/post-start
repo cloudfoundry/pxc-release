@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+. /var/vcap/packages/pxc-utils/logging.sh
+
+#it's a bash feature.
+#https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html#index-SECONDS
+
+SECONDS=0
+
+while [[ $SECONDS -lt <%= p('monit_startup_timeout') %> ]]; do
+  if grep "$(date +%Y-%m-%dT%H:%M).*replication healthy" /var/vcap/sys/log/pxc-replicator/pxc-replicator.stdout.log > /dev/null; then
+    log "replication reported healthy within the laset minute"
+    exit 0
+  fi
+  sleep 5
+done
+
+log "timed out waiting for replication to report healthy"
+exit -1
+

@@ -1,0 +1,6 @@
+- type: replace
+  path: /releases/name=pxc
+  value:
+    name: pxc
+    version: create
+    url: file://./
