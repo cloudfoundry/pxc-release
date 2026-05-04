@@ -22,15 +22,14 @@ DROP USER IF EXISTS '<%= p('admin_username') %>'@'<%= host %>';
   <%- end -%>
 DROP USER IF EXISTS 'roadmin'@'<%= host %>';
 
-<%- end -%>
-<%-
+<%- end
 allowed_remote_backup_hosts='localhost'
 
 if p('engine_config.enable_replication_source')
   allowed_remote_backup_hosts='%'
 end
 
-if_p('mysql_backup_password') do |password| %>
+if_p('mysql_backup_password') do |password| -%>
 CREATE USER IF NOT EXISTS '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>';
 ALTER USER '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>' IDENTIFIED WITH <%= p('engine_config.user_authentication_policy') %> BY '<%= password %>';
 GRANT RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, /*!80001 BACKUP_ADMIN,*/ PROCESS ON *.* to '<%= p('mysql_backup_username') %>'@'<%= allowed_remote_backup_hosts %>';
