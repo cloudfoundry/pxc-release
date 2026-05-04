@@ -3,6 +3,13 @@
 set -o errexit
 set -o nounset
 
+# Workaround for uutils coreutils 0.7.0 (ubuntu-resolute): its `install -D`
+# replaces symlink path components with real directories instead of following
+# them. Resolve the real path so libaio's `make install` (which uses
+# `install -D`) writes to the correct location on persistent disk.
+# See https://github.com/uutils/coreutils/issues/11469
+BOSH_INSTALL_TARGET=$(readlink -f "${BOSH_INSTALL_TARGET}")
+
 main() {
   install_build_dependencies
   unpack_source
@@ -10,12 +17,11 @@ main() {
 }
 
 install_build_dependencies() {
-  tar -xf pkg-config_*.tar.gz
-  cd pkg-config-*/
-  ./configure --prefix=/usr \
-    --with-internal-glib \
-    --with-pc-path=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+  tar -xf pkgconf-*.tar.xz
+  cd pkgconf-*/
+  ./configure --prefix=/usr
   make -j "$(nproc)" install
+  ln -sf pkgconf /usr/bin/pkg-config
   cd -
 
   tar -xf libaio_*.tar.xz
