@@ -61,6 +61,7 @@ ALTER USER #{user['username']}@#{user['host']}
 
   def grant_admin_privs(user)
     %{
+#{revoke_all_privileges(user)}
 GRANT ALL PRIVILEGES ON *.* TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 }.strip
@@ -123,7 +124,8 @@ GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO #{user['username']}@#{user['
 
   def revoke_all_privileges(user)
     %{
-REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM #{user['username']}@#{user['host']};
+REVOKE IF EXISTS PROXY ON ''@'' FROM #{user['username']}@#{user['host']};
 }.strip
   end
 
