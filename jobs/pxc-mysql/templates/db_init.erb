@@ -63,6 +63,7 @@ ALTER USER #{user['username']}@#{user['host']}
 
   def grant_admin_privs(user)
     %{
+#{revoke_all_privileges(user)}
 GRANT ALL PRIVILEGES ON *.* TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 GRANT PROXY ON ''@'' TO #{user['username']}@#{user['host']} WITH GRANT OPTION;
 }.strip
@@ -125,7 +126,12 @@ GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO #{user['username']}@#{user['
 
   def revoke_all_privileges(user)
     %{
-REVOKE ALL PRIVILEGES ON *.* FROM #{user['username']}@#{user['host']};
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM #{user['username']}@#{user['host']};
+SELECT COUNT(*) INTO @_has_proxy_grant FROM mysql.proxies_priv WHERE User = #{user['username']} AND Host = #{user['host']} AND Proxied_user = '' AND Proxied_host = '';
+SET @_sql = IF(@_has_proxy_grant, 'REVOKE PROXY ON ''''@'''' FROM #{user['username'].gsub("'", "''")}@#{user['host'].gsub("'", "''")}', 'DO 1');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 }.strip
   end
 

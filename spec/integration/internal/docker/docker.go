@@ -48,10 +48,6 @@ func RunContainer(spec ContainerSpec) string {
 	Expect(err).NotTo(HaveOccurred(),
 		`Failed to create docker container: %s`, err)
 
-	DeferCleanup(func() {
-		_ = RemoveContainer(containerID)
-	})
-
 	StartContainer(containerID)
 
 	return containerID
