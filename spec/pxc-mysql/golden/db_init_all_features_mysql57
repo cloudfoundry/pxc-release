@@ -35,7 +35,12 @@ CREATE USER IF NOT EXISTS 'basic-user'@'localhost'
 ALTER USER 'basic-user'@'localhost'
   IDENTIFIED WITH mysql_native_password BY 'secret-basic-user-db-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
-REVOKE ALL PRIVILEGES ON *.* FROM 'basic-user'@'localhost';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'basic-user'@'localhost';
+SELECT COUNT(*) INTO @_has_proxy_grant FROM mysql.proxies_priv WHERE User = 'basic-user' AND Host = 'localhost' AND Proxied_user = '' AND Proxied_host = '';
+SET @_sql = IF(@_has_proxy_grant, 'REVOKE PROXY ON ''''@'''' FROM ''basic-user''@''localhost''', 'DO 1');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 
 -- user: 'cloud_controller'@'%' role: schema-admin
 CREATE USER IF NOT EXISTS 'cloud_controller'@'%'
@@ -44,7 +49,12 @@ CREATE USER IF NOT EXISTS 'cloud_controller'@'%'
 ALTER USER 'cloud_controller'@'%'
   IDENTIFIED WITH caching_sha2_password BY 'secret-ccdb-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
-REVOKE ALL PRIVILEGES ON *.* FROM 'cloud_controller'@'%';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cloud_controller'@'%';
+SELECT COUNT(*) INTO @_has_proxy_grant FROM mysql.proxies_priv WHERE User = 'cloud_controller' AND Host = '%' AND Proxied_user = '' AND Proxied_host = '';
+SET @_sql = IF(@_has_proxy_grant, 'REVOKE PROXY ON ''''@'''' FROM ''cloud_controller''@''%''', 'DO 1');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 GRANT ALL PRIVILEGES ON `cloud\_controller`.* TO 'cloud_controller'@'%';
 REVOKE LOCK TABLES ON `cloud\_controller`.* FROM 'cloud_controller'@'%';
 SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'cloud_controller';
@@ -60,7 +70,12 @@ CREATE USER IF NOT EXISTS 'multi-schema-admin-user'@'%'
 ALTER USER 'multi-schema-admin-user'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-multi-schema-admin-db-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
-REVOKE ALL PRIVILEGES ON *.* FROM 'multi-schema-admin-user'@'%';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'multi-schema-admin-user'@'%';
+SELECT COUNT(*) INTO @_has_proxy_grant FROM mysql.proxies_priv WHERE User = 'multi-schema-admin-user' AND Host = '%' AND Proxied_user = '' AND Proxied_host = '';
+SET @_sql = IF(@_has_proxy_grant, 'REVOKE PROXY ON ''''@'''' FROM ''multi-schema-admin-user''@''%''', 'DO 1');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 GRANT ALL PRIVILEGES ON `multi_schemas_%`.* TO 'multi-schema-admin-user'@'%';
 REVOKE LOCK TABLES ON `multi_schemas_%`.* FROM 'multi-schema-admin-user'@'%';
 
@@ -71,7 +86,12 @@ CREATE USER IF NOT EXISTS 'mysql-metrics'@'%'
 ALTER USER 'mysql-metrics'@'%'
   IDENTIFIED WITH mysql_native_password BY 'secret-mysql-metrics-db-pw'
   WITH MAX_USER_CONNECTIONS 3/*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
-REVOKE ALL PRIVILEGES ON *.* FROM 'mysql-metrics'@'%';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'mysql-metrics'@'%';
+SELECT COUNT(*) INTO @_has_proxy_grant FROM mysql.proxies_priv WHERE User = 'mysql-metrics' AND Host = '%' AND Proxied_user = '' AND Proxied_host = '';
+SET @_sql = IF(@_has_proxy_grant, 'REVOKE PROXY ON ''''@'''' FROM ''mysql-metrics''@''%''', 'DO 1');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysql-metrics'@'%';
 SELECT COUNT(*) INTO @_schema_exists FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'metrics_db';
 SET @_sql = IF(@_schema_exists, 'DO 1', 'CREATE SCHEMA `metrics_db` CHARACTER SET ''utf8mb4''');
@@ -86,6 +106,12 @@ CREATE USER IF NOT EXISTS 'special-admin-user'@'%'
 ALTER USER 'special-admin-user'@'%'
   IDENTIFIED WITH caching_sha2_password BY 'secret-seeded-admin-pw'
   /*!80001 ATTRIBUTE '{ "pxc-release-seeded-user": true }'*/;
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'special-admin-user'@'%';
+SELECT COUNT(*) INTO @_has_proxy_grant FROM mysql.proxies_priv WHERE User = 'special-admin-user' AND Host = '%' AND Proxied_user = '' AND Proxied_host = '';
+SET @_sql = IF(@_has_proxy_grant, 'REVOKE PROXY ON ''''@'''' FROM ''special-admin-user''@''%''', 'DO 1');
+PREPARE stmt FROM @_sql;
+EXECUTE stmt;
+DROP PREPARE stmt;
 GRANT ALL PRIVILEGES ON *.* TO 'special-admin-user'@'%' WITH GRANT OPTION;
 GRANT PROXY ON ''@'' TO 'special-admin-user'@'%' WITH GRANT OPTION;
 

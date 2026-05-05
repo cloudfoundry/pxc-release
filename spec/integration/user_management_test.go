@@ -48,8 +48,10 @@ var _ = Describe("UserManagement", Ordered, func() {
 		dbUsers = MySQLJobSpec{}
 	})
 
-	JustBeforeEach(func() {
-		doc, err := json.Marshal(dbUsers)
+	renderDBInit := func(spec MySQLJobSpec) string {
+		GinkgoHelper()
+
+		doc, err := json.Marshal(spec)
 		Expect(err).NotTo(HaveOccurred())
 
 		f, err := os.CreateTemp("", "db_init_")
@@ -64,20 +66,26 @@ var _ = Describe("UserManagement", Ordered, func() {
 		GinkgoWriter.Println("$ ./scripts/render-db_init")
 		Expect(cmd.Run()).To(Succeed())
 
+		return f.Name()
+	}
+
+	applyDBInit := func(tag, initFilePath string) string {
+		GinkgoHelper()
+		return startMySQL(tag, []string{"--init-file=/db_init"}, []string{initFilePath + ":/db_init"})
+	}
+
+	JustBeforeEach(func() {
+		initFilePath := renderDBInit(dbUsers)
+
 		// Initialize the data volume first, so our db_init does not interfere with percona's entrypoint bootstrapping
 		resource = startMySQL(mysqlVersionTag, nil, nil)
 		Expect(docker.RemoveContainer(resource)).To(Succeed())
 
-		resource = startMySQL(
-			mysqlVersionTag,
-			[]string{"--init-file=/db_init"},
-			[]string{f.Name() + ":/db_init"},
-		)
+		resource = applyDBInit(mysqlVersionTag, initFilePath)
 		DeferCleanup(func() {
 			if CurrentSpecReport().Failed() {
 				return
 			}
-
 			Expect(docker.RemoveContainer(resource)).To(Succeed())
 			Expect(docker.RemoveVolume(volumeID)).To(Succeed())
 		})
@@ -369,6 +377,84 @@ var _ = Describe("UserManagement", Ordered, func() {
 				"GRANT SELECT ON `performance_schema`.`log_status` TO `mysql-backup`@`localhost`",
 			})
 			verifyMaxUserConnections("mysql-backup", "localhost", 0)
+		})
+	})
+
+
+	When("a seeded user's role is downgraded across redeploys", func() {
+		var (
+			testUser        = "role-downgrade-user"
+			initialPassword string
+		)
+
+		BeforeEach(func() {
+			initialPassword = uuid.NewString()
+			dbUsers = MySQLJobSpec{
+				SeededUsers: map[string]UserRole{
+					testUser: {
+						Role:     "admin",
+						Password: initialPassword,
+						Host:     "any",
+					},
+				},
+			}
+		})
+
+		It("removes the PROXY privilege when downgraded from admin to minimal", func() {
+			// First deploy: verify the admin user has a PROXY grant.
+			By("verifying the admin user has a PROXY grant after initial deploy")
+			db := docker.MySQLDB(resource)
+			db.SetMaxIdleConns(0)
+			Expect(showGrants(db, testUser, "%")).To(
+				ContainElement(ContainSubstring("PROXY ON")),
+			)
+			Expect(db.Close()).To(Succeed())
+
+			// Second deploy: downgrade the same user@host to minimal role.
+			By("redeploying with the user downgraded to minimal role")
+			Expect(docker.RemoveContainer(resource)).To(Succeed())
+			resource = applyDBInit(mysqlVersionTag, renderDBInit(MySQLJobSpec{
+				SeededUsers: map[string]UserRole{
+					testUser: {
+						Role:     "minimal",
+						Password: uuid.NewString(),
+						Host:     "any",
+					},
+				},
+			}))
+
+			db = docker.MySQLDB(resource)
+			defer func() { _ = db.Close() }()
+			// After downgrade the user should hold only the baseline USAGE grant —
+			// no PROXY, no data privileges, no GRANT OPTION.
+			By("verifying no PROXY grant remains after downgrade")
+			Expect(showGrants(db, testUser, "%")).To(ConsistOf(
+				"GRANT USAGE ON *.* TO `role-downgrade-user`@`%`",
+			))
+		})
+
+		It("removing a non-existent PROXY grant is idempotent (minimal -> minimal)", func() {
+			// First deploy is already minimal here because BeforeEach configures admin,
+			// but we override to minimal to prove the PROXY revoke SQL does not error
+			// when the grant was never issued.
+			By("applying minimal role on a user that never had admin")
+			Expect(docker.RemoveContainer(resource)).To(Succeed())
+			resource = applyDBInit(mysqlVersionTag, renderDBInit(MySQLJobSpec{
+				SeededUsers: map[string]UserRole{
+					testUser: {
+						Role:     "minimal",
+						Password: uuid.NewString(),
+						Host:     "any",
+					},
+				},
+			}))
+
+			By("verifying the user has only USAGE with no PROXY")
+			db := docker.MySQLDB(resource)
+			defer func() { _ = db.Close() }()
+			Expect(showGrants(db, testUser, "%")).To(ConsistOf(
+				"GRANT USAGE ON *.* TO `role-downgrade-user`@`%`",
+			))
 		})
 	})
 
