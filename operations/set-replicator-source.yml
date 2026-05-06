@@ -2,10 +2,10 @@
   path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/enable_replication_source
   value: true
 - type: replace
-  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/provides?/replica
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/provides?/source
   value:
     shared: true
-    as: source
+    as: replica-source
 - type: replace
   path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/mysql_backup_username?
   value: ((mysql_backup_user.username))

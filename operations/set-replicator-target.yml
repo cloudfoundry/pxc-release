@@ -2,7 +2,7 @@
   path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/enable_replication_target
   value: true
 - type: replace
-  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/consumes?/replica
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/consumes?/source
   value:
-    from: source
+    from: replica-source
     deployment: ((source_deployment_name))
