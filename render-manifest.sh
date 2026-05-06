@@ -2,7 +2,6 @@
 
 GENERAL_OPS=(
   "-o operations/update-deployment-name.yml"
-  "-o operations/update-vm-type.yml"
 	"-o operations/update-persistent-disk-size.yml"
 	"-o operations/update-network.yml"
 	"-o operations/update-vm-type.yml"
