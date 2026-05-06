@@ -51,8 +51,8 @@ consumes:
   optional: true
 
 provides:
-- name: replica
-  type: conn
+- name: source
+  type: source
   properties:
   - port
   - mysql_version

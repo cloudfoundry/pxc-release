@@ -8,21 +8,31 @@ path = [
   "/bin",
   "/var/vcap/packages/percona-xtradb-cluster-#{p('mysql_version')}/bin",
 ]
+
 -%>
 ---
+<% if p('replicator_enabled') %>
 processes:
 - name: pxc-replicator
   executable: /var/vcap/jobs/pxc-replicator/bin/setup
   args: []
   env:
     PATH: <%= path.join(":") %>
-    SOURCE_USER: <%= link('replica').p('mysql_backup_username') %>
-    SOURCE_PASS: <%= link('replica').p('mysql_backup_password') %>
-    SOURCE_ADDR: <%= link('replica').address %>
+<%- if_p('mysql_backup_username', 'mysql_backup_password' ,'host', 'port') do |user,pass,host| -%>
+    SOURCE_USER:  <%= user %>
+    SOURCE_PASS:  <%= pass %>
+    SOURCE_ADDR:  <%= host %>
+<%- end.else do if_link("source") do |link| -%>
+    SOURCE_USER: <%= link.p('mysql_backup_username') %>
+    SOURCE_PASS: <%= link.p('mysql_backup_password') %>
+    SOURCE_ADDR: <%= link.address %>
+<%- end end -%>
     self_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf'
     source_dump: 'mysqldump --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf'
     source_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf'
-
+<%- if_p('source_admin_username','source_admin_password','host') do -%>
+    source_admin_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.admin.mysql.cnf'
+<%- end -%>
   persistent_disk: true
   ephemeral_disk: true
   additional_volumes:
@@ -32,3 +42,4 @@ processes:
     writeable: false
   - path: /var/vcap/jobs/pxc-mysql/config
   - path: /var/vcap/jobs/pxc-mysql/certificates
+<% end %>

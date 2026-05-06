@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-#shellcheck disable=1091
 . /var/vcap/packages/pxc-utils/logging.sh
 
 function is_replication_configured(){
@@ -23,8 +22,15 @@ CHANGE REPLICATION SOURCE TO
     SOURCE_AUTO_POSITION=1;
 START REPLICA;"
 }
+function ensure_backup_user_has_replication_slave(){
+  if [[ ! -z "${source_admin_mysql}" ]]; then
+    log "found source_admin_creds, ensuring source_replica user permissions"
+    ${source_admin_mysql} <<< "GRANT REPLICATION SLAVE ON *.* TO '${SOURCE_USER}'@'%';"
+  fi
+}
 function sync_databases(){
   log "resyncing with full backup"
+  ensure_backup_user_has_replication_slave
   log $($self_mysql <<< "STOP REPLICA;")
   log $($self_mysql <<< "RESET REPLICA;")
   log $($self_mysql <<< "RESET MASTER;")
@@ -53,7 +59,7 @@ log "checking existing databases in source instance"
 
 log "checking replication status"
 
-if [[ ! is_replication_configured ]]; then
+if ! is_replication_configured; then
   log "replication is not yet enabled"
   sync_databases
 

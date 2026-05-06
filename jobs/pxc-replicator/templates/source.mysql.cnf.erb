@@ -1,11 +1,13 @@
-<%-
-require 'json'
-if_link('replica') do |source| %>
+<% if_p('mysql_backup_username', 'mysql_backup_password' ,'host', 'port') do |user,pass,host,port| %>
 [client]
-user = <%= source.p('mysql_backup_username') %>
-password = <%= source.p('mysql_backup_password') %>
-host = <%= source.instances[0].address %>
-port = <%= source.p('port') %>
-<%- end  %>
-
-
+user = <%= user %>
+password = <%= pass %>
+host = <%= host %>
+port = <%= port %>
+<% end.else_if_p do if_link("source") do |link| %>
+[client]
+user = <%= link.p('mysql_backup_username') %>
+password = <%= link.p('mysql_backup_password') %>
+host = <%= link.address %>
+port = <%= link.p('port') %>
+<% end end %>

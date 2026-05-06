@@ -6,6 +6,7 @@ templates:
   bin/setup: bin/setup
   bin/post-start: bin/post-start
   source.mysql.cnf.erb: config/source.mysql.cnf
+  source.admin.mysql.cnf.erb: config/source.admin.mysql.cnf
 
 packages:
 - percona-xtradb-cluster-8.0
@@ -16,19 +17,30 @@ packages:
 - pxc-utils
 
 consumes:
-- name: replica
-  type: conn
+- name: source
+  type: source
+  optional: true
   properties:
   - port
   - mysql_version
   - mysql_backup_username
   - mysql_backup_password
-  - tls
 
 properties:
+  source_admin_username:
+    description: |
+      this is here for compatibility with older deployments of the pxc-release.
+      technically, the `roadmin` user is viable as a replication user, but it misses `REPLICATION SLAVE` privilege.
+      providing the source_admin_username & password will ensure that the roadmin will updated with the missing permission
+
+  source_admin_password:
+    description: |
+      this is here for compatibility with older deployments of the pxc-release.
+      technically, the `roadmin` user is viable as a replication user, but it misses `REPLICATION SLAVE` privilege.
+      providing the source_admin_username & password will ensure that the roadmin will updated with the missing permission
   monit_startup_timeout:
-    description: 'How long to wait for monit to show running for the process'
-    default: 5
+    description: 'How long to wait for monit to show running for the process, will also be used as a timeout for the post-start health check'
+    default: 180
   mysql_version:
     description: 'deployed version'
     default: 8.0
@@ -36,23 +48,21 @@ properties:
     default: rfc3339
   replicator_enabled:
     description: 'Whether to enable the job ( skips writing monit file if set to false )'
-    default: true
-  config.source.tls:
-    description: 'TLS certificates to use for connections'
-    example: {
-      "ca": "...",
-      "certificate": "...",
-      "private_key": "..."
-    }
-    default: {}
-  config.source.tls:
-    description: 'TLS certificates to use for connections'
-    example: {
-      "ca": "...",
-      "certificate": "...",
-      "private_key": "..."
-    }
-    default: {}
-  config.tls.enabled:
-    description: 'Use TLS for connections & authentication'
     default: false
+  mysql_backup_username:
+    description: 'user to use for connection to source instance'
+  mysql_backup_password:
+    description: 'password to use for connection to source instance'
+  host:
+    description: 'hostname of the source database instance'
+  port:
+    description: 'Whether to enable the job ( skips writing monit file if set to false )'
+    default: 3306
+  tls:
+    description: 'TLS certificates to use for connections'
+    example: {
+      "ca": "...",
+      "certificate": "...",
+      "private_key": "..."
+    }
+    default: {}
