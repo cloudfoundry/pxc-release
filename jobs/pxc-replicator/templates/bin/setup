@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 
 . /var/vcap/packages/pxc-utils/logging.sh
 
-function is_replication_configured(){
 
+<%- if_p('tls.client.ca','tls.client.certificate','tls.client.private_key') do -%>
+SOURCE_SSL_CONFIG="SOURCE_SSL_CA = '/var/vcap/jobs/pxc-replicator/certificates/server-ca.pem', SOURCE_SSL_CERT = '/var/vcap/jobs/pxc-replicator/certificates/client-cert.pem', SOURCE_SSL_KEY = '/var/vcap/jobs/pxc-replicator/certificates/client-key.pem'"
+<%- end.else do if_link('source') do |link| -%>
+  <%- if link.p('tls') != nil && link.p('tls')['client'] != nil then -%>
+SOURCE_SSL_CONFIG="SOURCE_SSL_CA = '/var/vcap/jobs/pxc-replicator/certificates/server-ca.pem', SOURCE_SSL_CERT = '/var/vcap/jobs/pxc-replicator/certificates/client-cert.pem', SOURCE_SSL_KEY = '/var/vcap/jobs/pxc-replicator/certificates/client-key.pem'"
+  <%- else -%>
+SOURCE_SSL_CONFIG=""
+  <%- end -%>
+<%- end end -%>
+function is_replication_configured(){
   ! test "$($self_mysql <<< "SHOW REPLICA STATUS\G")" = ""
 }
 function is_replica_io_running (){
@@ -19,7 +28,8 @@ CHANGE REPLICATION SOURCE TO
     SOURCE_HOST='${SOURCE_ADDR}',
     SOURCE_USER='${SOURCE_USER}',
     SOURCE_PASSWORD='${SOURCE_PASS}',
-    SOURCE_AUTO_POSITION=1;
+    SOURCE_AUTO_POSITION=1,
+    ${SOURCE_SSL_CONFIG};
 START REPLICA;"
 }
 function ensure_backup_user_has_replication_slave(){

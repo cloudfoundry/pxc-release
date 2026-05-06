@@ -7,6 +7,9 @@ templates:
   bin/post-start: bin/post-start
   source.mysql.cnf.erb: config/source.mysql.cnf
   source.admin.mysql.cnf.erb: config/source.admin.mysql.cnf
+  config/client-cert.pem.erb: certificates/client-cert.pem
+  config/client-key.pem.erb: certificates/client-key.pem
+  config/server-ca.pem.erb: certificates/server-ca.pem
 
 packages:
 - percona-xtradb-cluster-8.0
@@ -25,6 +28,7 @@ consumes:
   - mysql_version
   - mysql_backup_username
   - mysql_backup_password
+  - tls
 
 properties:
   source_admin_username:

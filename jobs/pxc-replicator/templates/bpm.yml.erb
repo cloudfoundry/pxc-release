@@ -8,7 +8,15 @@ path = [
   "/bin",
   "/var/vcap/packages/percona-xtradb-cluster-#{p('mysql_version')}/bin",
 ]
-
+flags = ""
+if_p('tls.client.ca','tls.client.certificate','tls.client.private_key') do
+  flags = "--ssl-ca=/var/vcap/jobs/pxc-replicator/certificates/server-ca.pem --ssl-cert=/var/vcap/jobs/pxc-replicator/certificates/client-cert.pem --ssl-key=/var/vcap/jobs/pxc-replicator/certificates/client-key.pem"
+end
+if_link('source') do |link|
+  if link.p('tls') != nil && link.p('tls')['client'] != nil then
+    flags = "--ssl-ca=/var/vcap/jobs/pxc-replicator/certificates/server-ca.pem --ssl-cert=/var/vcap/jobs/pxc-replicator/certificates/client-cert.pem --ssl-key=/var/vcap/jobs/pxc-replicator/certificates/client-key.pem"
+  end
+end
 -%>
 ---
 <% if p('replicator_enabled') %>
@@ -28,10 +36,10 @@ processes:
     SOURCE_ADDR: <%= link.address %>
 <%- end end -%>
     self_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf'
-    source_dump: 'mysqldump --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf'
-    source_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf'
+    source_dump: 'mysqldump --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf <%= flags -%>'
+    source_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.mysql.cnf <%= flags -%>'
 <%- if_p('source_admin_username','source_admin_password','host') do -%>
-    source_admin_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.admin.mysql.cnf'
+    source_admin_mysql: 'mysql --defaults-file=/var/vcap/jobs/pxc-replicator/config/source.admin.mysql.cnf <%= flags -%>'
 <%- end -%>
   persistent_disk: true
   ephemeral_disk: true
@@ -42,4 +50,5 @@ processes:
     writeable: false
   - path: /var/vcap/jobs/pxc-mysql/config
   - path: /var/vcap/jobs/pxc-mysql/certificates
+  - path: /var/vcap/jobs/pxc-replicator/certificates
 <% end %>

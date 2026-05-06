@@ -58,6 +58,7 @@ provides:
   - mysql_version
   - mysql_backup_username
   - mysql_backup_password
+  - tls
 
 - name: mysql
   type: mysql
