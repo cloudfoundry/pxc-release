@@ -44,11 +44,9 @@ processes:
   persistent_disk: true
   ephemeral_disk: true
   additional_volumes:
-  - path: /var/vcap/packages/pxc-utils
-    writeable: false
   - path: /var/vcap/sys/run/pxc-mysql
     writeable: false
   - path: /var/vcap/jobs/pxc-mysql/config
-  - path: /var/vcap/jobs/pxc-mysql/certificates
+    writeable: false
   - path: /var/vcap/jobs/pxc-replicator/certificates
 <% end %>
