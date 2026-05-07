@@ -75,7 +75,7 @@ if ! is_replication_configured; then
 
   log "replication is not configured. enabling"
   OUT=$(enable_replication);
-  if [[ $(enable_replication) !=  "" ]]; then
+  if [[ "${OUT}" !=  "" ]]; then
     log "failed enabling replication: '$OUT'" | sed "s/${PASS}/<REDACTED>/g"
   else
     log "replication enabled"
