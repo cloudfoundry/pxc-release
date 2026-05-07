@@ -6,7 +6,7 @@ GENERAL_OPS=(
 	"-o operations/update-network.yml"
 	"-o operations/update-vm-type.yml"
 	"-o operations/update-azs.yml"
-	"-o operations/local-dev-release.yml"
+	"-o operations/dev-release.yml"
 	"-o operations/add-replicator-job.yml"
 )
 SOURCE_OPS=(
