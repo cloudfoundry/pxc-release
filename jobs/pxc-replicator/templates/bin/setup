@@ -91,7 +91,9 @@ while true; do
     log "replication healthy"
   elif ! is_replica_io_running; then
     log "restarting replica"
+    ensure_backup_user_has_replication_slave
     $self_mysql <<< "START REPLICA;"
+    sleep 30
   elif ! is_replica_sql_running ; then
     log "replication Replica_SQL_Running marked as no. Attempting to resync"
     sync_databases
