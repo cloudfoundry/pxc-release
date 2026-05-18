@@ -1,0 +1,7 @@
+<% if_p('source_admin_username','source_admin_password','host','port') do |user,pass,host,port| %>
+[client]
+user = <%= user %>
+password = <%= pass %>
+host = <%= host %>
+port = <%= port %>
+<% end %>
