@@ -3,13 +3,13 @@ module github.com/cloudfoundry-incubator/switchboard
 go 1.25.1
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.69.0
-	code.cloudfoundry.org/tlsconfig v0.54.0
+	code.cloudfoundry.org/lager/v3 v3.70.0
+	code.cloudfoundry.org/tlsconfig v0.55.0
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.2
-	github.com/onsi/ginkgo/v2 v2.28.3
-	github.com/onsi/gomega v1.40.0
+	github.com/onsi/ginkgo/v2 v2.29.0
+	github.com/onsi/gomega v1.41.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/tedsuo/ifrit v0.0.0-20260418191334-846868129986
 	gopkg.in/validator.v2 v2.0.1
@@ -33,7 +33,7 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.79.0 // indirect
+	go.step.sm/crypto v0.81.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.51.0 // indirect
