@@ -3,8 +3,8 @@ module github.com/cloudfoundry-incubator/galera-healthcheck
 go 1.25.1
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.70.0
-	code.cloudfoundry.org/tlsconfig v0.55.0
+	code.cloudfoundry.org/lager/v3 v3.71.0
+	code.cloudfoundry.org/tlsconfig v0.56.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.10.0
@@ -32,7 +32,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/square/certstrap v1.3.0 // indirect
-	go.step.sm/crypto v0.81.0 // indirect
+	go.step.sm/crypto v0.81.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/mod v0.36.0 // indirect
