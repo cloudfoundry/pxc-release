@@ -12,7 +12,10 @@ main() {
 install_build_dependencies() {
   tar -xf pkgconf-*.tar.xz
   cd pkgconf-*/
-  ./configure --prefix=/usr
+  ./configure \
+    --prefix=/usr \
+    --with-pkg-config-dir=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig \
+    --with-system-libdir=/usr/lib/x86_64-linux-gnu:/usr/lib
   make -j "$(nproc)" install
   ln -sf pkgconf /usr/bin/pkg-config
   cd -
