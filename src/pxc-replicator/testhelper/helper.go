@@ -7,12 +7,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/onsi/ginkgo/v2"
@@ -51,12 +50,14 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 	}
 }
 
-func StartContainerInstance(name, password string) config.Target {
+func StartContainerInstance(name, password string, netAliases []string, net *testcontainers.DockerNetwork) (config.Target, config.Target) {
 	ctx := context.Background()
+
 	pxc, err := testcontainers.Run(ctx,
 		fmt.Sprintf("%s:%s", image, tag),
-		testcontainers.WithName(name),
+		network.WithNetwork(netAliases, net),
 		testcontainers.WithExposedPorts("3306"),
+		testcontainers.WithName(name),
 		testcontainers.WithEnv(map[string]string{
 			"MYSQL_ROOT_PASSWORD": password,
 			"CLUSTER_NAME":        name,
@@ -68,19 +69,33 @@ func StartContainerInstance(name, password string) config.Target {
 		))
 	Expect(err).ToNot(HaveOccurred())
 	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), pxc)
-	endpoint, err := pxc.Endpoint(ctx, "tcp/3306")
-	Expect(err).ToNot(HaveOccurred())
+	// endpoint, err := pxc.Endpoint(ctx, "tcp/3306")
+	// Expect(err).ToNot(HaveOccurred())
 	// endpoint should be in format "tcp/3306:localhost:37853"
-	outerPort := strings.Split(endpoint, ":")
-	portInt, err := strconv.Atoi(outerPort[len(outerPort)-1])
+	// outerPort := strings.Split(endpoint, ":")
+	// portInt, err := strconv.Atoi(outerPort[len(outerPort)-1])
+	// Expect(err).ToNot(HaveOccurred())
+	ip, err := pxc.ContainerIP(context.Background())
 	Expect(err).ToNot(HaveOccurred())
+	port, err := pxc.MappedPort(context.Background(), "3306")
+	Expect(err).ToNot(HaveOccurred())
+	// the networking with testcontainers makes this a bit hard.. we need to configure the replica with the "inner view" using the ContainerIP and the default 3306 port
+	// but to run external checks we need the Host view which is a mapped port on localhost...
+
 	return config.Target{
-		Host: "localhost",
-		Port: portInt,
-		Creds: config.Creds{
-			Username: "root",
-			Password: password,
-		},
-		TLS: config.Certs{},
-	}
+			Host: ip,
+			Port: 3306,
+			Creds: config.Creds{
+				Username: "root",
+				Password: password,
+			},
+			TLS: config.Certs{},
+		}, config.Target{
+			Host: "localhost",
+			Port: port.Num(),
+			Creds: config.Creds{
+				Username: "root",
+				Password: password,
+			},
+		}
 }
