@@ -195,7 +195,7 @@ REVOKE IF EXISTS PROXY ON ''@'' FROM #{user['username']}@#{user['host']};
 }
   end
 
-  def escape(value) "'#{value.gsub("'", "''")}'" end
+  def escape(value) "'#{value.gsub('\\') { '\\\\' }.gsub("'", "''")}'" end
   def ident(value) "`#{value.gsub("`", "``")}`" end
   def ident_escaped(value) "#{ident(value).gsub("_", "\\_").gsub("%", "\\%")}" end
 

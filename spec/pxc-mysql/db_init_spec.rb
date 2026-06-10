@@ -333,4 +333,35 @@ describe 'db_init template' do
       end
     end
   end
+
+  context 'password escaping in seeded_users' do
+    def spec_with_password(pw)
+      {
+        "admin_password" => "secret-admin-pw",
+        "seeded_users" => {
+          "test-user" => { "role" => "minimal", "password" => pw, "host" => "localhost" },
+        }
+      }
+    end
+
+    it 'escapes a backslash in the password' do
+      rendered = template.render(spec_with_password('pass\\word'))
+      expect(rendered).to include("BY 'pass\\\\word'")
+    end
+
+    it 'escapes a single quote in the password' do
+      rendered = template.render(spec_with_password("it's"))
+      expect(rendered).to include("BY 'it''s'")
+    end
+
+    it 'escapes a password ending in a backslash (SQL injection vector)' do
+      rendered = template.render(spec_with_password('secret\\'))
+      expect(rendered).to include("BY 'secret\\\\'")
+    end
+
+    it 'escapes a password containing both a backslash and a single quote' do
+      rendered = template.render(spec_with_password("it\\'s"))
+      expect(rendered).to include("BY 'it\\\\''s'")
+    end
+  end
 end
