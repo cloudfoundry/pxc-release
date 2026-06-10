@@ -158,6 +158,14 @@ REVOKE IF EXISTS PROXY ON ''@'' FROM #{user['username']}@#{user['host']};
                    raise "invalid host '#{cfg['host']}' specified for username #{username}"
                  end
 
+    if cfg["max_user_connections"]
+      begin
+        Integer(cfg["max_user_connections"])
+      rescue ArgumentError, TypeError
+        raise "seeded_users property specifies non-integer max_user_connections for username #{username}"
+      end
+    end
+
     {
       "username" => escape(username),
       "host" => escape(mysql_host),
@@ -165,7 +173,7 @@ REVOKE IF EXISTS PROXY ON ''@'' FROM #{user['username']}@#{user['host']};
       "schema" => cfg['schema'],
       "role" => cfg["role"],
       "auth_plugin" => cfg["auth_plugin"],
-      "max_user_connections" => cfg["max_user_connections"],
+      "max_user_connections" => cfg["max_user_connections"] && Integer(cfg["max_user_connections"]),
     }.compact
   end
 
