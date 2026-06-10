@@ -312,5 +312,25 @@ describe 'db_init template' do
         expect { template.render(spec) }.to raise_error(RuntimeError, "seeded_users property specifies unsupported authentication plugin 'mysql_clear_password' for user 'invalid-auth-plugin'")
       end
     end
+
+    context 'when seeded_users specifies a non-integer max_user_connections' do
+      before(:each) do
+        spec["seeded_users"]["some-user"] = { "role" => "minimal", "password" => "secret", "host" => "any", "max_user_connections" => "0; CREATE USER 'evil'@'%'" }
+      end
+
+      it 'fails' do
+        expect { template.render(spec) }.to raise_error(RuntimeError, "seeded_users property specifies non-integer max_user_connections for username some-user")
+      end
+    end
+
+    context 'when seeded_users specifies max_user_connections as a quoted numeric string' do
+      before(:each) do
+        spec["seeded_users"]["some-user"] = { "role" => "minimal", "password" => "secret", "host" => "any", "max_user_connections" => "32" }
+      end
+
+      it 'renders successfully and coerces the value' do
+        expect(template.render(spec)).to match(/WITH MAX_USER_CONNECTIONS 32/)
+      end
+    end
   end
 end
