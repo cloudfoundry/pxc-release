@@ -44,15 +44,14 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 		return err
 	}
 
-	shutdown := make(chan interface{})
-	go func(shutdown <-chan interface{}, listener net.Listener) {
+	shutdown := make(chan struct{})
+	c := make(chan net.Conn)
+	go r.blockingAccept(listener, c, shutdown)
+
+	go func(shutdown <-chan struct{}, c <-chan net.Conn) {
 		trafficEnabled := true
 		var activeBackend *domain.Backend
-		e := make(chan error)
-		c := make(chan net.Conn)
-
 		for {
-			go blockingAccept(listener, c, e)
 			select {
 			case <-shutdown:
 				return
@@ -81,31 +80,26 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 			case clientConn := <-c:
 				if !trafficEnabled {
-					clientConn.Close()
+					_ = clientConn.Close()
 					continue
 				}
 
 				go func(clientConn net.Conn, activeBackend *domain.Backend) {
 					if activeBackend == nil {
-						clientConn.Close()
-						r.logger.Error("No active backend", err)
+						_ = clientConn.Close()
+						r.logger.Info("No active backend")
 						return
 					}
 
 					err := activeBackend.Bridge(clientConn)
 					if err != nil {
-						clientConn.Close()
+						_ = clientConn.Close()
 						r.logger.Error("Error routing to backend", err)
 					}
 				}(clientConn, activeBackend)
-			case err := <-e:
-				if err != nil {
-					r.logger.Error("Error accepting client connection", err)
-					continue
-				}
 			}
 		}
-	}(shutdown, listener)
+	}(shutdown, c)
 
 	close(ready)
 
@@ -115,19 +109,30 @@ func (r Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	time.Sleep(r.timeout)
 
 	close(shutdown)
-	listener.Close()
+	_ = listener.Close()
 
 	r.logger.Info("Proxy runner has exited")
 	return nil
 }
 
-func blockingAccept(l net.Listener, c chan<- net.Conn, e chan<- error) {
-	clientConn, err := l.Accept()
+func (r Runner) blockingAccept(l net.Listener, c chan<- net.Conn, shutdown <-chan struct{}) {
+	for {
+		clientConn, err := l.Accept()
+		if err != nil {
+			select {
+			case <-shutdown:
+				return
+			default:
+			}
+			r.logger.Error("Error accepting client connection", err)
+			continue
+		}
 
-	if err != nil {
-		e <- err
-		return
+		select {
+		case c <- clientConn:
+		case <-shutdown:
+			_ = clientConn.Close()
+			return
+		}
 	}
-
-	c <- clientConn
 }
