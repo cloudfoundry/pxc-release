@@ -12,20 +12,30 @@ import (
 )
 
 var _ = Describe("Dumper/Dump", Ordered, func() {
-	var fromHost config.Target
+	var sourceFromHost, targetFromHost config.Target
+	var dumpClient dumper.Dumper
+	var dumpPath string
 	_ = BeforeAll(func() {
 		net, aliases := testhelper.CreateTestNetwork()
 		pass := uuid.New().String()
-		_, fromHost = testhelper.StartContainerInstance("dumpTest", pass, aliases, net)
+		_, sourceFromHost = testhelper.StartContainerInstance("dumpTest", pass, aliases, net)
+		_, targetFromHost = testhelper.StartContainerInstance("restoreTest", pass, aliases, net)
+		var err error
+		dumpClient, err = dumper.New(sourceFromHost, dataDir, mysqlBinDir)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("creates a	backup", func() {
-		dumpClient, err := dumper.New(fromHost, "/tmp/replicator", "/nix/store/vikhrsnr4cbrmgky1lk8k3xdayag5278-mysql-8.4.9/bin")
-		Expect(err).ToNot(HaveOccurred())
-		dumpPath, err := dumpClient.Dump("test.sql")
+		testhelper.GenerateTestData(sourceFromHost, "dumpDB", "dumpTbl", 10)
+		var err error
+		dumpPath, err = dumpClient.Dump("test.sql")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(dumpPath).ToNot(BeEmpty())
 		bytes, err := os.ReadFile(dumpPath)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(bytes).To(ContainSubstring("Dump completed on"))
+	})
+	It("restores a	backup", func() {
+		err := dumpClient.Restore(dumpPath, targetFromHost)
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
