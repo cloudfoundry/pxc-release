@@ -17,8 +17,23 @@ type Dumper struct {
 	target   config.Target
 }
 
-func (d Dumper) GetCMD() (*exec.Cmd, error) {
+func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
 	args, err := d.args()
+	args = append(args, flags...)
+	log.Default().Println("args:", args)
+	if err != nil {
+		return nil, fmt.Errorf("failed generating mysql command: %w", err)
+	}
+	cmd := exec.Command("mysql",
+		args...,
+	)
+
+	return cmd, nil
+}
+
+func (d Dumper) GetDumpCommand(flags []string) (*exec.Cmd, error) {
+	args, err := d.args()
+	args = append(args, flags...)
 	log.Default().Println("args:", args)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysqldump command: %w", err)
@@ -32,7 +47,7 @@ func (d Dumper) GetCMD() (*exec.Cmd, error) {
 
 func (d Dumper) args() ([]string, error) {
 	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DataPath, d.target.Name)
-	defaultFileContents := fmt.Sprintf(`[mysqldump]
+	defaultFileContents := fmt.Sprintf(`[client]
 	user = '%s'
 	password = '%s'
 	protocol = tcp
@@ -49,8 +64,6 @@ func (d Dumper) args() ([]string, error) {
 	}
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", defaultsFile), // param is positional. Needs to go first.
-		// fmt.Sprintf("--host=%s", d.target.Host),
-		"--all-databases", "--triggers", "--routines", "--single-transaction",
 	}
 	if d.target.Certs.CA != "" {
 		fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DataPath, d.target.Name)
@@ -72,7 +85,7 @@ func (d Dumper) args() ([]string, error) {
 			fmt.Sprintf("--ssl-key=%s", keyPath),
 		}...)
 	}
-
+	log.Default().Println("wrote config for: %s", d.target.Name)
 	return args, nil
 }
 
@@ -101,8 +114,30 @@ func New(target config.Target, dataPath, binPath string) (Dumper, error) {
 	return d, nil
 }
 
-func (d Dumper) Dump(dumpPath string) (string, error) {
-	dumpFile, err := os.CreateTemp(d.DataPath, "dump.sql")
+func (d Dumper) Restore(filename string, target config.Target) error {
+	inputFile, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("failed opening file containing the backup: %w", err)
+	}
+
+	// we only need to reset this in this scope, so no pointer receiver on the method.
+	d.target = target
+
+	cmd, err := d.GetRestoreCommand()
+	if err != nil {
+		return fmt.Errorf("failed generating restore command: %s", err)
+	}
+	cmd.Stdin = inputFile
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Default().Println("mysql output: %s", string(out))
+		return fmt.Errorf("failed restoring dump at %s: %w", filename, err)
+	}
+	return nil
+}
+
+func (d Dumper) Dump(fileName string) (string, error) {
+	dumpFile, err := os.CreateTemp(d.DataPath, fileName)
 	if err != nil {
 		return "", fmt.Errorf("failed creating file: %w", err)
 	}
@@ -113,7 +148,7 @@ func (d Dumper) Dump(dumpPath string) (string, error) {
 			log.Default().Printf("failed closing dumpFile: %s\n", deferErr)
 		}
 	}()
-	cmd, err := d.GetCMD()
+	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--routines", "--single-transaction"})
 	if err != nil {
 		return "", fmt.Errorf("failed generating dump of %s: %w", d.target.Name, err)
 	}
@@ -123,7 +158,7 @@ func (d Dumper) Dump(dumpPath string) (string, error) {
 
 	err = cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("failed taking backup with mysqldump: %s", errBuffer.String())
+		return "", fmt.Errorf("failed taking backup with mysqldump: Stderr: `%s`, err: %w", errBuffer.String(), err)
 	}
 
 	return dumpFile.Name(), nil

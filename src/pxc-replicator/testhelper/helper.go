@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/google/uuid"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
@@ -25,6 +26,17 @@ var (
 
 func backtick(in string) string {
 	return fmt.Sprintf("`%s`", in)
+}
+
+func CreateTestNetwork() (*testcontainers.DockerNetwork, []string) {
+	ctx := context.Background()
+	newNetwork, err := network.New(ctx)
+	Expect(err).ToNot(HaveOccurred())
+	testcontainers.CleanupNetwork(ginkgo.GinkgoTB(), newNetwork)
+
+	aliases := []string{uuid.New().String()}
+
+	return newNetwork, aliases
 }
 
 func GenerateTestData(target config.Target, dbName, tableName string, numberRows int) {
@@ -50,7 +62,7 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 	}
 }
 
-func StartContainerInstance(name, password string, netAliases []string, net *testcontainers.DockerNetwork) (config.Target, config.Target) {
+func StartContainerInstance(name, password string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
 	ctx := context.Background()
 
 	pxc, err := testcontainers.Run(ctx,
@@ -62,7 +74,7 @@ func StartContainerInstance(name, password string, netAliases []string, net *tes
 			"MYSQL_ROOT_PASSWORD": password,
 			"CLUSTER_NAME":        name,
 			"MYSQL_ROOT_HOST":     "%",
-		}), testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON"),
+		}), testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE"),
 		testcontainers.WithWaitStrategy(
 			wait.ForListeningPort("3306/tcp"),
 			wait.ForLog("Synchronized with group, ready for connections"),
@@ -83,6 +95,7 @@ func StartContainerInstance(name, password string, netAliases []string, net *tes
 	// but to run external checks we need the Host view which is a mapped port on localhost...
 
 	return config.Target{
+			Name: name,
 			Host: ip,
 			Port: 3306,
 			Creds: config.Creds{
@@ -91,6 +104,7 @@ func StartContainerInstance(name, password string, netAliases []string, net *tes
 			},
 			TLS: config.Certs{},
 		}, config.Target{
+			Name: name,
 			Host: "localhost",
 			Port: port.Num(),
 			Creds: config.Creds{
