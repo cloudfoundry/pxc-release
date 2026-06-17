@@ -85,7 +85,7 @@ func (d Dumper) args() ([]string, error) {
 			fmt.Sprintf("--ssl-key=%s", keyPath),
 		}...)
 	}
-	log.Default().Println("wrote config for: %s", d.target.Name)
+	log.Default().Printf("wrote config for: %s", d.target.Name)
 	return args, nil
 }
 
