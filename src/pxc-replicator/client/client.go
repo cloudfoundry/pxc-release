@@ -56,12 +56,12 @@ func (r *ReplClient) Setup() error {
 	if err != nil {
 		return fmt.Errorf("failed connecting to %s: %w", SOURCE, err)
 	}
-	defer closeAndLogError(sourceCon)
+	defer CloseAndLogError(sourceCon)
 
 	return r.Configure(sourceCon)
 }
 
-func closeAndLogError(db *sql.DB) {
+func CloseAndLogError(db *sql.DB) {
 	err := db.Close()
 	if err != nil {
 		log.Default().Println(err)
