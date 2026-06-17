@@ -41,18 +41,30 @@ var _ = Describe("Client/Client", func() {
 				Source: sourceFromHost,
 				Target: targetFromHost,
 			}
-			db, err := replClientFromHost.Connect(client.TARGET)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(db.Ping()).To(Succeed())
 		})
-		It("can configure replication on the source", func() {
-			db, err := replClientFromHost.Connect(client.TARGET)
+		It("can connect with the provided creds", func() {
+			Expect(sourceFromHost.Host).ToNot(BeEmpty())
+			db, err := replClient.Connect(client.SOURCE)
+			defer client.CloseAndLogError(db)
+			Expect(err).ToNot(HaveOccurred())
+			db, err = replClient.Connect(client.TARGET)
+			defer client.CloseAndLogError(db)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("can configure replication on the target", func() {
+			// the source should use the "container IP" for this test,
+			// else the replica will try to connect to localhost:<dynPort> and fail...
+			replClient.Source = source
+			db, err := replClient.Connect(client.TARGET)
+			defer client.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(replClient.Configure(db)).To(Succeed())
 			Expect(db.Close()).To(Succeed())
 		})
 		It("gets the replication state", func() {
-			db, err := replClientFromHost.Connect(client.TARGET)
+			db, err := replClient.Connect(client.TARGET)
+			defer client.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			state, err := replClient.CheckReplication(db)
 
