@@ -93,6 +93,7 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 		if err != nil {
 			return ReplState{}, err
 		}
+
 		for k, v := range data {
 			switch columnNames[k] {
 			case COLUMN_IO_RUNNING:
@@ -223,9 +224,10 @@ func (r *ReplClient) connect(connectionString string) (*sql.DB, error) {
 
 	err = db.Ping()
 	if err != nil {
-		log.Default().Printf("failed pining host: %s", connectionString)
-		return nil, fmt.Errorf("failed pinging source: %w", err)
+		return nil, fmt.Errorf("failed pinging target: %s after connecting: %w", host, err)
 	}
-
+	// TODO figure out if we should set any connection defaults.
+	// db.SetConnMaxLifetime(time.Second * 15)
+	// db.SetConnMaxIdleTime(time.Second * 5)
 	return db, nil
 }
