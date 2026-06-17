@@ -7,8 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -43,7 +45,7 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 	db, err := sql.Open("mysql", target.String())
 	Expect(err).ToNot(HaveOccurred())
 
-	_, err = db.Exec(fmt.Sprintf("Create DATABASE %s;", backtick(dbName)))
+	_, err = db.Exec(fmt.Sprintf("Create DATABASE IF NOT EXISTS %s;", backtick(dbName)))
 	Expect(err).ToNot(HaveOccurred())
 	Expect(db.Close()).To(Succeed())
 
@@ -64,6 +66,7 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 
 func StartContainerInstance(name, password string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
 	ctx := context.Background()
+	serverID := rand.Int() + 1
 
 	pxc, err := testcontainers.Run(ctx,
 		fmt.Sprintf("%s:%s", image, tag),
@@ -74,7 +77,7 @@ func StartContainerInstance(name, password string, netAliases []string, net *tes
 			"MYSQL_ROOT_PASSWORD": password,
 			"CLUSTER_NAME":        name,
 			"MYSQL_ROOT_HOST":     "%",
-		}), testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE"),
+		}), testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE", fmt.Sprintf("--server-id=%d", serverID)),
 		testcontainers.WithWaitStrategy(
 			wait.ForListeningPort("3306/tcp"),
 			wait.ForLog("Synchronized with group, ready for connections"),
