@@ -35,6 +35,7 @@ type ReplState struct {
 	LastIOErr        string
 	LastIOErrorTime  string
 	LastSQLErrorTime string
+	Misc             map[string]string
 }
 
 var resetStatements = map[string]string{
@@ -72,7 +73,9 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	if err != nil {
 		return ReplState{}, err
 	}
-	state := ReplState{}
+	state := ReplState{
+		Misc: make(map[string]string),
+	}
 	for result.Next() {
 		data := []any{}
 		columnNames := []string{}
@@ -117,7 +120,8 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 			case COLUMN_LAST_SQL_ERR:
 				state.LastSQLErr = string(*v.(*sql.RawBytes))
 			default:
-				fmt.Println(columnNames[k], ":", string(*v.(*sql.RawBytes)))
+
+				state.Misc[columnNames[k]] = string(*v.(*sql.RawBytes))
 				continue
 			}
 		}

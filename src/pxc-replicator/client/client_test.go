@@ -61,6 +61,7 @@ var _ = Describe("Client/Client", func() {
 			Expect(db.Close()).To(Succeed())
 			Expect(state.IORunning).To(Equal("IO thread is running"))
 			Expect(state.SQLRunning).To(Equal("SQL thread is running"))
+			log.Default().Printf("%v", state.Misc)
 		})
 	})
 })
