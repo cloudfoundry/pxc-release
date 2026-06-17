@@ -58,13 +58,6 @@ func (r *ReplClient) Setup() error {
 	defer closeAndLogError(sourceCon)
 
 	return r.Configure(sourceCon)
-
-	//targetCon, err := r.Connect(TARGET)
-	//if err != nil {
-	//	return fmt.Errorf("failed connecting to %s: %w", TARGET, err)
-	//}
-	//defer closeAndLogError(targetCon)
-	//log.Default().Println("successfully pinged source and target")
 }
 
 func closeAndLogError(db *sql.DB) {
@@ -72,10 +65,6 @@ func closeAndLogError(db *sql.DB) {
 	if err != nil {
 		log.Default().Println(err)
 	}
-}
-
-func (r *ReplClient) CheckReplicationEnabled() (string, error) {
-	return "", nil
 }
 
 func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
@@ -165,6 +154,7 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 	}
 	_, err = db.Exec(query)
 	if err != nil {
+		log.Default().Printf("query failed: %s", query)
 		return fmt.Errorf("failed configuring the source data on the replica: %w", err)
 	}
 
@@ -192,6 +182,7 @@ func (r *ReplClient) Connect(host string) (*sql.DB, error) {
 
 	err = db.Ping()
 	if err != nil {
+		log.Default().Printf("failed pining host: %s", connectionString)
 		return nil, fmt.Errorf("failed pinging source: %w", err)
 	}
 
