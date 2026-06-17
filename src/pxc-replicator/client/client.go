@@ -51,10 +51,9 @@ type ReplClient struct {
 func (r *ReplClient) Setup() error {
 	log.Default().Println("setting up replica", "target", r.Target.Host, "source", r.Source.Host)
 
-	log.Default().Println("pinging", "host", SOURCE)
-	sourceCon, err := r.Connect(SOURCE)
+	sourceCon, err := r.connect(SOURCE)
 	if err != nil {
-		return fmt.Errorf("failed connecting to %s: %w", SOURCE, err)
+		return fmt.Errorf("replica setup of %s: %w", SOURCE, err)
 	}
 	defer CloseAndLogError(sourceCon)
 
@@ -170,7 +169,15 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 	return nil
 }
 
-func (r *ReplClient) Connect(host string) (*sql.DB, error) {
+func (r *ReplClient) ConnectTarget() (*sql.DB, error) {
+	return r.connect(TARGET)
+}
+
+func (r *ReplClient) ConnectSource() (*sql.DB, error) {
+	return r.connect(SOURCE)
+}
+
+func (r *ReplClient) connect(host string) (*sql.DB, error) {
 	var connectionString string
 	switch host {
 	case SOURCE:
