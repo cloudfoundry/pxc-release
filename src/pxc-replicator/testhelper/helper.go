@@ -7,7 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"math/rand"
+	"os"
+	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 	_ "github.com/go-sql-driver/mysql"
@@ -64,12 +67,21 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 	}
 }
 
+type StdoutLogConsumer struct{}
+
+func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
+	log.Default().Println("mysql:", string(l.Content))
+}
+
+type Log struct {
+	LogType string
+	Content []byte
+}
+
 func StartContainerInstance(name, password string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
 	ctx := context.Background()
-	serverID := rand.Int() + 1
-
-	pxc, err := testcontainers.Run(ctx,
-		fmt.Sprintf("%s:%s", image, tag),
+	serverID := rand.Intn(999) + 1
+	opts := []testcontainers.ContainerCustomizer{
 		network.WithNetwork(netAliases, net),
 		testcontainers.WithExposedPorts("3306"),
 		testcontainers.WithName(name),
@@ -77,23 +89,30 @@ func StartContainerInstance(name, password string, netAliases []string, net *tes
 			"MYSQL_ROOT_PASSWORD": password,
 			"CLUSTER_NAME":        name,
 			"MYSQL_ROOT_HOST":     "%",
-		}), testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE", fmt.Sprintf("--server-id=%d", serverID)),
+		}),
+		testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE", fmt.Sprintf("--server-id=%d", serverID)),
 		testcontainers.WithWaitStrategy(
-			wait.ForListeningPort("3306/tcp"),
-			wait.ForLog("Synchronized with group, ready for connections"),
-		))
+			wait.ForLog("Synchronized with group, ready for connections").WithStartupTimeout(180*time.Second),
+			wait.ForListeningPort("3306/tcp").WithStartupTimeout(120*time.Second),
+			wait.ForExposedPort().WithStartupTimeout(120*time.Second),
+		),
+	}
+	if os.Getenv("TEST_DEBUG") == "true" {
+		opts = append(opts, testcontainers.WithLogConsumerConfig(&testcontainers.LogConsumerConfig{
+			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
+			Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{}},
+		}),
+		)
+	}
+	pxc, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", image, tag), opts...)
+
 	Expect(err).ToNot(HaveOccurred())
-	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), pxc)
-	// endpoint, err := pxc.Endpoint(ctx, "tcp/3306")
-	// Expect(err).ToNot(HaveOccurred())
-	// endpoint should be in format "tcp/3306:localhost:37853"
-	// outerPort := strings.Split(endpoint, ":")
-	// portInt, err := strconv.Atoi(outerPort[len(outerPort)-1])
-	// Expect(err).ToNot(HaveOccurred())
+	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), pxc, testcontainers.StopTimeout(120*time.Second))
 	ip, err := pxc.ContainerIP(context.Background())
 	Expect(err).ToNot(HaveOccurred())
 	port, err := pxc.MappedPort(context.Background(), "3306")
 	Expect(err).ToNot(HaveOccurred())
+
 	// the networking with testcontainers makes this a bit hard.. we need to configure the replica with the "inner view" using the ContainerIP and the default 3306 port
 	// but to run external checks we need the Host view which is a mapped port on localhost...
 
