@@ -23,8 +23,6 @@ const (
 	COLUMN_LAST_IO_ERR_TIME  = "Last_IO_Error_Timestamp"
 	COLUMN_LAST_SQL_ERR_TIME = "Last_SQL_Error"
 	COLUMN_LAST_SQL_ERR      = "Last_SQL_Error_Timestamp"
-	SOURCE                   = "source"
-	TARGET                   = "target"
 	DATE_LAYOUT              = "060102 15:04:05"
 )
 
@@ -47,16 +45,18 @@ var resetStatements = map[string]string{
 }
 
 type ReplClient struct {
-	Source config.Target
-	Target config.Target
+	Source  config.Target
+	Target  config.Target
+	DataDir string
+	BinDir  string
 }
 
 func (r *ReplClient) Setup() error {
 	log.Default().Println("setting up replica", "target", r.Target.Host, "source", r.Source.Host)
 
-	sourceCon, err := r.connect(SOURCE)
+	sourceCon, err := r.connect(r.Source.String())
 	if err != nil {
-		return fmt.Errorf("replica setup of %s: %w", SOURCE, err)
+		return fmt.Errorf("replica setup of %s: %w", r.Source.Name, err)
 	}
 	defer CloseAndLogError(sourceCon)
 
@@ -208,22 +208,14 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 }
 
 func (r *ReplClient) ConnectTarget() (*sql.DB, error) {
-	return r.connect(TARGET)
+	return r.connect(r.Target.String())
 }
 
 func (r *ReplClient) ConnectSource() (*sql.DB, error) {
-	return r.connect(SOURCE)
+	return r.connect(r.Target.String())
 }
 
-func (r *ReplClient) connect(host string) (*sql.DB, error) {
-	var connectionString string
-	switch host {
-	case SOURCE:
-		connectionString = r.Source.String()
-	case TARGET:
-		connectionString = r.Target.String()
-	}
-
+func (r *ReplClient) connect(connectionString string) (*sql.DB, error) {
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return nil, err
