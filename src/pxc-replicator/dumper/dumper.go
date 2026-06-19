@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 )
@@ -127,21 +128,23 @@ func (d Dumper) Restore(filename string, target config.Target) error {
 	if err != nil {
 		return fmt.Errorf("failed generating restore command: %s", err)
 	}
+	log.Default().Println(cmd)
 	cmd.Stdin = inputFile
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Default().Println("mysql output: %s", string(out))
+		log.Default().Printf("mysql output: %s", string(out))
 		return fmt.Errorf("failed restoring dump at %s: %w", filename, err)
 	}
 	return nil
 }
 
-func (d Dumper) Dump(fileName string) (string, error) {
-	dumpFile, err := os.CreateTemp(d.DataPath, fileName)
+func (d Dumper) Dump() (string, error) {
+	prefix := time.Now().UTC().Format(time.RFC3339)
+	dumpFile, err := os.CreateTemp(d.DataPath, prefix)
 	if err != nil {
 		return "", fmt.Errorf("failed creating file: %w", err)
 	}
-
+	log.Default().Printf("will save dump at %s", dumpFile.Name())
 	defer func() {
 		deferErr := dumpFile.Close()
 		if deferErr != nil {
