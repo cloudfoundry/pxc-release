@@ -44,6 +44,17 @@ func CreateTestNetwork() (*testcontainers.DockerNetwork, []string) {
 	return newNetwork, aliases
 }
 
+func GeneratePassword() string {
+	return uuid.NewString()[:20]
+}
+
+type TestDataRow struct {
+	ID        *int
+	CreatedAt *string
+	UpdatedAt *string
+	Value     *int
+}
+
 func GenerateTestData(target config.Target, dbName, tableName string, numberRows int) {
 	db, err := sql.Open("mysql", target.String())
 	Expect(err).ToNot(HaveOccurred())
@@ -55,14 +66,14 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 	db, err = sql.Open("mysql", fmt.Sprintf("%s%s", target.String(), dbName))
 	Expect(err).ToNot(HaveOccurred())
 	_, err = db.Exec(fmt.Sprintf(`CREATE TABLE %s (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		value INT NOT NULL
-	);`, backtick(tableName)))
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    value INT NOT NULL
+  );`, backtick(tableName)))
 	Expect(err).ToNot(HaveOccurred())
 	for i := range numberRows {
-		_, err = db.Exec(fmt.Sprintf("INSERT INTO `%s` VALUES(NULL,NULL,NULL,?);", tableName), i)
+		_, err = db.Exec(fmt.Sprintf("INSERT INTO `%s` (`value`) VALUES(?);", tableName), i)
 		Expect(err).ToNot(HaveOccurred())
 	}
 }
