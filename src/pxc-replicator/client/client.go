@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/replicator/dumper"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -130,6 +131,27 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 
 func (r *ReplClient) CheckSQLRunning() (bool, error) {
 	return false, nil
+}
+
+func (r *ReplClient) SyncSourceToTarget() error {
+	dumpClient, err := dumper.New(r.Source, r.DataDir, r.BinDir)
+	if err != nil {
+		return fmt.Errorf("failed creating dumpClient for sync: %w", err)
+	}
+
+	backupFullPath, err := dumpClient.Dump()
+	if err != nil {
+		return fmt.Errorf("failed backing up source: %w", err)
+	}
+
+	log.Default().Printf("finished backup: %s", backupFullPath)
+
+	err = dumpClient.Restore(backupFullPath, r.Target)
+	if err != nil {
+		return fmt.Errorf("failed restoring to target: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ReplClient) Configure(db *sql.DB) error {
