@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"github.com/cloudfoundry/pxc-release/replicator/dumper"
@@ -24,6 +25,7 @@ const (
 	COLUMN_LAST_SQL_ERR      = "Last_SQL_Error_Timestamp"
 	SOURCE                   = "source"
 	TARGET                   = "target"
+	DATE_LAYOUT              = "060102 15:04:05"
 )
 
 type ReplState struct {
@@ -34,8 +36,8 @@ type ReplState struct {
 	SecondsBehind    int
 	LastSQLErr       string
 	LastIOErr        string
-	LastIOErrorTime  string
-	LastSQLErrorTime string
+	LastIOErrorTime  *time.Time
+	LastSQLErrorTime *time.Time
 	Misc             map[string]string
 }
 
@@ -114,9 +116,23 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 			case COLUMN_LAST_IO_ERR:
 				state.LastIOErr = string(*v.(*sql.RawBytes))
 			case COLUMN_LAST_IO_ERR_TIME:
-				state.LastIOErrorTime = string(*v.(*sql.RawBytes))
+				if len(*v.(*sql.RawBytes)) == 0 {
+					continue
+				}
+				t, err := time.Parse(DATE_LAYOUT, string(*v.(*sql.RawBytes)))
+				if err != nil {
+					return state, fmt.Errorf("failed parsing LastIOErrTime as date: %w", err)
+				}
+				state.LastIOErrorTime = &t
 			case COLUMN_LAST_SQL_ERR_TIME:
-				state.LastSQLErrorTime = string(*v.(*sql.RawBytes))
+				if len(*v.(*sql.RawBytes)) == 0 {
+					continue
+				}
+				t, err := time.Parse(DATE_LAYOUT, string(*v.(*sql.RawBytes)))
+				if err != nil {
+					return state, fmt.Errorf("failed parsing LastSQLErrTime as date: %w", err)
+				}
+				state.LastSQLErrorTime = &t
 			case COLUMN_LAST_SQL_ERR:
 				state.LastSQLErr = string(*v.(*sql.RawBytes))
 			default:
