@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
@@ -49,6 +50,62 @@ type ReplClient struct {
 	Target  config.Target
 	DataDir string
 	BinDir  string
+}
+
+func (r *ReplClient) CheckVersion() error {
+	source, err := r.ConnectSource()
+	if err != nil {
+		return fmt.Errorf("failed connecting to source: %s", err)
+	}
+	target, err := r.ConnectTarget()
+	if err != nil {
+		return fmt.Errorf("failed connecting to target: %s", err)
+	}
+
+	var sourceVersion, targetVersion string
+	rows, err := source.Query("SELECT VERSION();")
+	if err != nil {
+		return fmt.Errorf("failed to query source for version: %s", err)
+	}
+
+	if !rows.Next() {
+		return fmt.Errorf("could not determine Version of source")
+	}
+	err = rows.Scan(&sourceVersion)
+	if err != nil {
+		return fmt.Errorf("failed reading source response: %s", err)
+	}
+
+	log.Default().Printf("source response: %s", sourceVersion)
+
+	rows, err = target.Query("SELECT VERSION();")
+	if err != nil {
+		return fmt.Errorf("failed to query source for version: %s", err)
+	}
+
+	if !rows.Next() {
+		return fmt.Errorf("could not determine Version of target")
+	}
+	err = rows.Scan(&targetVersion)
+	if err != nil {
+		return fmt.Errorf("failed reading target response: %s", err)
+	}
+
+	log.Default().Printf("target response: %s", targetVersion)
+
+	elems := strings.Split(sourceVersion, ".")
+	sourceMajMin := fmt.Sprintf("%s.%s", elems[0], elems[1])
+	log.Default().Printf("source version is: %s", sourceMajMin)
+
+	elems = strings.Split(targetVersion, ".")
+	targetMajMin := fmt.Sprintf("%s.%s", elems[0], elems[1])
+	log.Default().Printf("target version is: %s", targetMajMin)
+
+	if sourceMajMin != targetMajMin {
+		return fmt.Errorf("sourceVersion: %s does not match targetVersion: %s", sourceMajMin, targetMajMin)
+	}
+
+	return nil
 }
 
 func (r *ReplClient) Setup() error {
@@ -213,7 +270,7 @@ func (r *ReplClient) ConnectTarget() (*sql.DB, error) {
 }
 
 func (r *ReplClient) ConnectSource() (*sql.DB, error) {
-	return r.connect(r.Target.String())
+	return r.connect(r.Source.String())
 }
 
 func (r *ReplClient) connect(connectionString string) (*sql.DB, error) {
@@ -224,7 +281,7 @@ func (r *ReplClient) connect(connectionString string) (*sql.DB, error) {
 
 	err = db.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("failed pinging target: %s after connecting: %w", host, err)
+		return nil, fmt.Errorf("failed pinging target: %s after connecting: %w", connectionString, err)
 	}
 	// TODO figure out if we should set any connection defaults.
 	// db.SetConnMaxLifetime(time.Second * 15)
