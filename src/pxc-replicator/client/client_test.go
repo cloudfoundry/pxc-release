@@ -13,19 +13,32 @@ import (
 )
 
 var _ = Describe("Client/Client", func() {
-	//FIt("parses empty time", func() {
-	//	t, err := time.Parse(client.DATE_LAYOUT, "")
-	//	Expect(err).To(BeNil())
-	//	Expect(t).To(BeNil())
-	//})
 	var replClient client.ReplClient
 	var source, sourceFromHost, _, targetFromHost config.Target
+	Describe("mismatched versions", Ordered, func() {
+		_ = BeforeAll(func() {
+			testNet, aliases := testhelper.CreateTestNetwork()
+
+			source, sourceFromHost = testhelper.StartContainerInstance("source", testhelper.GeneratePassword(), "8.0", aliases, testNet)
+			_, targetFromHost = testhelper.StartContainerInstance("target", testhelper.GeneratePassword(), "8.4", aliases, testNet)
+			replClient = client.ReplClient{
+				Source:  sourceFromHost,
+				Target:  targetFromHost,
+				DataDir: dataDir,
+				BinDir:  mysqlBinDir,
+			}
+		})
+
+		FIt("will generate an error about mismatched versions", func() {
+			Expect(replClient.CheckVersion()).To(MatchError(MatchRegexp("sourceVersion: 8.0 does not match targetVersion: 8.4")))
+		})
+	})
 	Describe("updating creds after sync", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet, aliases := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance("source", testhelper.GeneratePassword(), aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance("target", testhelper.GeneratePassword(), aliases, testNet)
+			source, sourceFromHost = testhelper.StartContainerInstance("source", testhelper.GeneratePassword(), testhelper.Tag, aliases, testNet)
+			_, targetFromHost = testhelper.StartContainerInstance("target", testhelper.GeneratePassword(), testhelper.Tag, aliases, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -61,12 +74,12 @@ var _ = Describe("Client/Client", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
-	FDescribe("full start procedure", Ordered, func() {
+	Describe("full start procedure", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet, aliases := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", aliases, testNet)
+			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.Tag, "test", aliases, testNet)
+			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.Tag, "test", aliases, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,

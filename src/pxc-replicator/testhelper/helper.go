@@ -25,8 +25,8 @@ import (
 )
 
 var (
-	image = "percona/percona-xtradb-cluster"
-	tag   = "8.4"
+	Image = "percona/percona-xtradb-cluster"
+	Tag   = "8.4"
 )
 
 func backtick(in string) string {
@@ -89,7 +89,7 @@ type Log struct {
 	Content []byte
 }
 
-func StartContainerInstance(name, password string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
+func StartContainerInstance(name, password, version string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
 	ctx := context.Background()
 	serverID := rand.Intn(999) + 1
 	opts := []testcontainers.ContainerCustomizer{
@@ -115,7 +115,7 @@ func StartContainerInstance(name, password string, netAliases []string, net *tes
 		}),
 		)
 	}
-	pxc, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", image, tag), opts...)
+	pxc, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", Image, version), opts...)
 
 	Expect(err).ToNot(HaveOccurred())
 	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), pxc, testcontainers.StopTimeout(120*time.Second))

@@ -18,8 +18,9 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 	_ = BeforeAll(func() {
 		net, aliases := testhelper.CreateTestNetwork()
 		pass := uuid.New().String()
-		_, sourceFromHost = testhelper.StartContainerInstance("dumpTest", pass, aliases, net)
-		_, targetFromHost = testhelper.StartContainerInstance("restoreTest", pass, aliases, net)
+		tag := "8.0"
+		_, sourceFromHost = testhelper.StartContainerInstance("dumpTest", pass, tag, aliases, net)
+		_, targetFromHost = testhelper.StartContainerInstance("restoreTest", pass, tag, aliases, net)
 		var err error
 		dumpClient, err = dumper.New(sourceFromHost, dataDir, mysqlBinDir)
 		Expect(err).ToNot(HaveOccurred())
@@ -27,7 +28,7 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 	It("creates a	backup", func() {
 		testhelper.GenerateTestData(sourceFromHost, "dumpDB", "dumpTbl", 10)
 		var err error
-		dumpPath, err = dumpClient.Dump("test.sql")
+		dumpPath, err = dumpClient.Dump()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(dumpPath).ToNot(BeEmpty())
 		bytes, err := os.ReadFile(dumpPath)
