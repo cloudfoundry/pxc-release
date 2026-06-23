@@ -41,7 +41,8 @@ func main() {
 
 	if err != nil {
 		logger.Error("Failed to repair cluster", err, lager.Data{
-			"config": rootConfig,
+			"repair_mode":      rootConfig.RepairMode,
+			"healthcheck_urls": rootConfig.HealthcheckURLs,
 		})
 		printHumanReadableErr(err, rootConfig.RepairMode)
 		os.Exit(1)

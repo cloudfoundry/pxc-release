@@ -16,7 +16,7 @@ type Config struct {
 	HealthcheckURLs           []string   `yaml:"HealthcheckURLs" validate:"nonzero"`
 	BackendTLS                BackendTLS `yaml:"BackendTLS"`
 	Username                  string     `yaml:"Username" validate:"nonzero"`
-	Password                  string     `yaml:"Password" validate:"nonzero"`
+	Password                  string     `yaml:"Password" validate:"nonzero" json:"-"`
 	ShutDownMysql             string
 	MysqlStatus               string
 	GetSeqNumber              string
@@ -28,7 +28,7 @@ type Config struct {
 type BackendTLS struct {
 	Enabled            bool   `yaml:"Enabled"`
 	ServerName         string `yaml:"ServerName"`
-	CA                 string `yaml:"CA"`
+	CA                 string `yaml:"CA" json:"-"`
 	InsecureSkipVerify bool   `yaml:"InsecureSkipVerify"`
 }
 
