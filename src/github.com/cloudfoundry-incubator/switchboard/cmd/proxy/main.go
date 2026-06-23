@@ -33,7 +33,7 @@ func main() {
 
 	err = rootConfig.Validate()
 	if err != nil {
-		logger.Fatal("Error validating config:", err, lager.Data{"config": rootConfig})
+		logger.Fatal("Error validating config:", err)
 	}
 
 	if _, err := os.Stat(rootConfig.StaticDir); os.IsNotExist(err) {
