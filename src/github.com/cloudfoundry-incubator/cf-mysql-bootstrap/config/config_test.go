@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"encoding/json"
 	"fmt"
 
 	. "github.com/cloudfoundry-incubator/cf-mysql-bootstrap/config"
@@ -86,6 +87,30 @@ var _ = Describe("Config", func() {
 			rootConfig.RepairMode = "shoestrap"
 			err := rootConfig.Validate()
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("Sensitive field redaction", func() {
+		BeforeEach(func() {
+			rawConfig = `{
+			"HealthcheckURLs": ["http://10.10.10.10:9200"],
+			"Username": "fake-username",
+			"Password": "fake-password",
+			"RepairMode": "bootstrap"
+			}`
+		})
+
+		It("does not serialize Password in JSON output", func() {
+			data, err := json.Marshal(rootConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(data)).NotTo(ContainSubstring("fake-password"))
+		})
+
+		It("does not serialize BackendTLS CA in JSON output", func() {
+			rootConfig.BackendTLS.CA = "-----BEGIN CERTIFICATE-----\nfake-ca-cert\n-----END CERTIFICATE-----"
+			data, err := json.Marshal(rootConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(data)).NotTo(ContainSubstring("fake-ca-cert"))
 		})
 	})
 
