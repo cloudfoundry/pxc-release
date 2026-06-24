@@ -9,18 +9,21 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"database/sql"
 	"encoding/pem"
 	"fmt"
 	"log"
 	"math/big"
 	mathRand "math/rand"
 	"os"
+	"os/exec"
 	"time"
 
+	"github.com/cloudfoundry/pxc-release/replicator/client"
 	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
@@ -28,6 +31,12 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+)
+
+const (
+	TlsDisabled    = "DISABLED"
+	VerifyCA       = "VERIFY_CA"
+	VerifyIdentity = "VERIFY_IDENTITY"
 )
 
 var (
@@ -62,14 +71,17 @@ type TestDataRow struct {
 }
 
 func GenerateTestData(target config.Target, dbName, tableName string, numberRows int) {
-	db, err := sql.Open("mysql", target.String())
+	r := client.ReplClient{
+		Target: target,
+	}
+	db, err := r.ConnectTarget()
 	Expect(err).ToNot(HaveOccurred())
 
 	_, err = db.Exec(fmt.Sprintf("Create DATABASE IF NOT EXISTS %s;", backtick(dbName)))
 	Expect(err).ToNot(HaveOccurred())
 	Expect(db.Close()).To(Succeed())
 
-	db, err = sql.Open("mysql", fmt.Sprintf("%s%s", target.String(), dbName))
+	db, err = r.ConnectTarget(dbName)
 	Expect(err).ToNot(HaveOccurred())
 	_, err = db.Exec(fmt.Sprintf(`CREATE TABLE %s (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -100,7 +112,7 @@ func writeKeyFile(path, name string) (key *rsa.PrivateKey, bytes []byte) {
 	Expect(err).ToNot(HaveOccurred())
 
 	file, err := os.Create(fmt.Sprintf("%s/%s", path, name))
-	defer file.Close()
+	defer utils.CloseAndLogError(file)
 	Expect(err).ToNot(HaveOccurred())
 
 	block := &pem.Block{
@@ -176,31 +188,81 @@ func writeCertFile(filename, path string, names []string, serverKeyPublic *rsa.P
 	return cert, pemBytes
 }
 
-func InitCerts(name, path string, aliases []string) (serverCerts, clientCerts config.Certs) {
+func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clientCerts *config.Certs) {
 	caKey, _ := writeKeyFile(path, "server-ca-key.pem")
-	serverCa, serverCABytes := writeCaFile(path, "localhost", caKey)
+	serverCa, serverCABytes := writeCaFile(path, name, caKey)
 
 	serverKey, serverKeyBytes := writeKeyFile(path, "server-key.pem")
 	_, serverCertBytes := writeCertFile("server", path, append([]string{"localhost", name}, aliases...), &serverKey.PublicKey, serverCa, caKey)
 
 	clientKey, clientKeyBytes := writeKeyFile(path, "client-key.pem")
-	_, clientCertBytes := writeCertFile("client", path, []string{"localhost", fmt.Sprintf("%s-client", name)}, &clientKey.PublicKey, serverCa, caKey)
+	_, clientCertBytes := writeCertFile("client", path, []string{"localhost", "client", fmt.Sprintf("%s-client", name)}, &clientKey.PublicKey, serverCa, caKey)
 
-	clientCerts = config.Certs{
-		CA:          string(serverCABytes),
-		PrivateKey:  string(clientKeyBytes),
-		Certificate: string(clientCertBytes),
+	switch tlsMode {
+	case VerifyCA:
+		clientCerts = &config.Certs{
+			CA: serverCABytes, // append(serverCABytes, serverCertBytes...),
+		}
+	default:
+		clientCerts = &config.Certs{
+			CA:          serverCABytes,
+			PrivateKey:  clientKeyBytes,
+			Certificate: clientCertBytes,
+		}
 	}
-	serverCerts = config.Certs{
-		CA:          string(serverCABytes),
-		PrivateKey:  string(serverKeyBytes),
-		Certificate: string(serverCertBytes),
+	serverCerts = &config.Certs{
+		CA:          serverCABytes,
+		PrivateKey:  serverKeyBytes,
+		Certificate: serverCertBytes,
 	}
 
 	return serverCerts, clientCerts
 }
 
-func StartContainerInstance(name, password, version string, tls bool, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
+func StartReplicatorInContainer(version string, config config.Config, net *testcontainers.DockerNetwork, aliases []string) {
+	cmd := exec.Command("go", "build", "-o", "./replicator")
+	out, err := cmd.CombinedOutput()
+	Expect(string(out)).To(BeEmpty())
+	Expect(err).ToNot(HaveOccurred())
+	config.BinDir = "/usr/bin"
+	config.DataDir = "/tmp"
+
+	configBytes, err := yaml.Marshal(config)
+	Expect(err).ToNot(HaveOccurred())
+	configFile, err := os.CreateTemp("", "")
+	Expect(err).ToNot(HaveOccurred())
+	_, err = configFile.Write(configBytes)
+	Expect(err).ToNot(HaveOccurred())
+
+	opts := []testcontainers.ContainerCustomizer{
+		network.WithNetwork(aliases, net),
+		testcontainers.WithName("replicator"),
+		testcontainers.WithFiles(
+			testcontainers.ContainerFile{
+				HostFilePath:      "./replicator",
+				ContainerFilePath: "/replicator",
+				FileMode:          0o0755,
+			},
+		),
+		testcontainers.WithFiles(
+			testcontainers.ContainerFile{
+				HostFilePath:      configFile.Name(),
+				ContainerFilePath: "/config/config.yml",
+				FileMode:          0o0644,
+			},
+		),
+		testcontainers.WithLogConsumerConfig(&testcontainers.LogConsumerConfig{
+			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
+			Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{}},
+		}),
+		testcontainers.WithCmd("/replicator", "--config", "/config/config.yml", "--data-dir", "/tmp", "--mysql-bin-dir"),
+	}
+	ctx := context.Background()
+	rep, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", Image, version), opts...)
+	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
+}
+
+func StartContainerInstance(name, password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
 	serverID := mathRand.Intn(999) + 1
 	opts := []testcontainers.ContainerCustomizer{
 		network.WithNetwork(netAliases, net),
@@ -218,22 +280,22 @@ func StartContainerInstance(name, password, version string, tls bool, netAliases
 			wait.ForExposedPort().WithStartupTimeout(120*time.Second),
 		),
 	}
-	var clientCerts config.Certs
-	if tls {
+	var clientCerts *config.Certs
+	if tlsMode != TlsDisabled {
 		certsDir, err := os.MkdirTemp("", name)
 		Expect(err).ToNot(HaveOccurred())
-		_, clientCerts = InitCerts(name, certsDir, netAliases)
+		_, clientCerts = InitCerts(name, certsDir, tlsMode, netAliases)
 		opts = append(opts,
 			testcontainers.WithFiles(
 				testcontainers.ContainerFile{
 					HostFilePath:      fmt.Sprintf("%s/server-ca.pem", certsDir),
 					ContainerFilePath: "/certs/server-ca.pem",
-					FileMode:          0o777,
+					FileMode:          0o0644,
 				},
 				testcontainers.ContainerFile{
 					HostFilePath:      fmt.Sprintf("%s/server-cert.pem", certsDir),
 					ContainerFilePath: "/certs/server-cert.pem",
-					FileMode:          0o777,
+					FileMode:          0o644,
 				},
 				testcontainers.ContainerFile{
 					HostFilePath:      fmt.Sprintf("%s/server-key.pem", certsDir),
@@ -273,7 +335,7 @@ func StartContainerInstance(name, password, version string, tls bool, netAliases
 				Username: "root",
 				Password: password,
 			},
-			TLS: clientCerts,
+			Certs: clientCerts,
 		}, config.Target{
 			Name: name,
 			Host: "localhost",
@@ -282,6 +344,6 @@ func StartContainerInstance(name, password, version string, tls bool, netAliases
 				Username: "root",
 				Password: password,
 			},
-			TLS: clientCerts,
+			Certs: clientCerts,
 		}
 }

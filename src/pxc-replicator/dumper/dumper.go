@@ -46,45 +46,54 @@ func (d Dumper) GetDumpCommand(flags []string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+// args generates the base argument slice used by both GetRestoreCommand and GetDumpCommand.
+// It creates a temporary my.cnf file, writes TLS files if needed,
+// and returns the flags slice. An error is returned on any I/O or os write failure.
 func (d Dumper) args() ([]string, error) {
 	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DataPath, d.target.Name)
 	defaultFileContents := fmt.Sprintf(`[client]
-	user = '%s'
-	password = '%s'
-	protocol = tcp
-	host = '%s'
-	port = '%d'`,
+  user = '%s'
+  password = '%s'
+  protocol = tcp
+  host = '%s'
+  port = '%d'`,
 		d.target.Creds.Username,
 		d.target.Creds.Password,
 		d.target.Host,
 		d.target.Port,
 	)
-	err := os.WriteFile(defaultsFile, []byte(defaultFileContents), 0o644)
+	err := os.WriteFile(defaultsFile, []byte(defaultFileContents), 0o600)
 	if err != nil {
 		return []string{}, fmt.Errorf("failed writing defaults file: %w", err)
 	}
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", defaultsFile), // param is positional. Needs to go first.
 	}
-	if d.target.Certs.CA != "" {
-		fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DataPath, d.target.Name)
-		args = append(args, fmt.Sprintf("--ssl-ca=%s", fileName))
-	}
-	if d.target.Certs.Certificate != "" && d.target.Certs.PrivateKey != "" {
-		certPath := fmt.Sprintf("%s/%s-cert.pem", d.DataPath, d.target.Name)
-		err := os.WriteFile(certPath, []byte(d.target.Certs.Certificate), 0o644)
-		if err != nil {
-			return []string{}, fmt.Errorf("failed creating certFile: %s", err)
+	if d.target.Certs != nil {
+		if len(d.target.Certs.CA) > 0 {
+			fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DataPath, d.target.Name)
+			args = append(args, "--ssl-mode=VERIFY_CA", fmt.Sprintf("--ssl-ca=%s", fileName))
+			err = os.WriteFile(fileName, d.target.Certs.CA, 0o600)
+			if err != nil {
+				return []string{}, fmt.Errorf("failed writing server-ca-file `%s`: %w", fileName, err)
+			}
 		}
-		keyPath := fmt.Sprintf("%s/%s-key.pem", d.target.Name, d.DataPath)
-		err = os.WriteFile(keyPath, []byte(d.target.Certs.Certificate), 0o644)
-		if err != nil {
-			return []string{}, fmt.Errorf("failed creating keyFile: %s", err)
-		}
-		args = append(args, []string{
-			fmt.Sprintf("--ssl-cert=%s", certPath),
-			fmt.Sprintf("--ssl-key=%s", keyPath),
-		}...)
+		//if len(d.target.Certs.Certificate) > 0 && len(d.target.Certs.PrivateKey) > 0 {
+		//	certPath := fmt.Sprintf("%s/%s-cert.pem", d.DataPath, d.target.Name)
+		//	err := os.WriteFile(certPath, d.target.Certs.Certificate, 0o600)
+		//	if err != nil {
+		//		return []string{}, fmt.Errorf("failed creating certFile: %s", err)
+		//	}
+		//	keyPath := fmt.Sprintf("%s/%s-key.pem", d.target.Name, d.DataPath)
+		//	err = os.WriteFile(keyPath, d.target.Certs.PrivateKey, 0o600)
+		//	if err != nil {
+		//		return []string{}, fmt.Errorf("failed creating keyFile: %s", err)
+		//	}
+		//	args = append(args, []string{
+		//		fmt.Sprintf("--ssl-cert=%s", certPath),
+		//		fmt.Sprintf("--ssl-key=%s", keyPath),
+		//	}...)
+		//}
 	}
 	log.Default().Printf("wrote config for: %s", d.target.Name)
 	return args, nil
@@ -145,18 +154,13 @@ func (d Dumper) Dump() (string, error) {
 		return "", fmt.Errorf("failed creating file: %w", err)
 	}
 	log.Default().Printf("will save dump at %s", dumpFile.Name())
-	defer func() {
-		deferErr := dumpFile.Close()
-		if deferErr != nil {
-			log.Default().Printf("failed closing dumpFile: %s\n", deferErr)
-		}
-	}()
+	defer utils.CloseAndLogError(dumpFile)
 	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--routines", "--single-transaction"})
 	if err != nil {
 		return "", fmt.Errorf("failed generating dump of %s: %w", d.target.Name, err)
 	}
 	cmd.Stdout = dumpFile
-	errBuffer := bytes.Buffer{}
+	var errBuffer bytes.Buffer
 	cmd.Stderr = &errBuffer
 
 	err = cmd.Run()

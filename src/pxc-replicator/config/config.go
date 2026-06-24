@@ -3,7 +3,6 @@ package config
 
 import (
 	"fmt"
-	"time"
 )
 
 type (
@@ -12,27 +11,22 @@ type (
 		Host    string `json:"host" yaml:"host"`
 		Port    uint16 `json:"port" yaml:"port"`
 		Creds   Creds  `json:"creds" yaml:"creds"`
-		Certs   Certs  `json:"certs" yaml:"certs"`
-		TLS     Certs  `json:"tls" yaml:"tls"`
+		Certs   *Certs `json:"certs" yaml:"certs"`
 		Version string `json:"version" yaml:"version"`
-	}
-	HostConfig struct {
-		Self              Target        `json:"self" yaml:"self"`
-		Source            Target        `json:"source" yaml:"source"`
-		DumpPath          string        `json:"dumpPath" yaml:"dumpPath" default:"/var/vcap/data/pxc-replicator/latest.sql"`
-		WatchInterval     time.Duration `json:"watchInterval" yaml:"watchInterval" default:"5s"`
-		ProcessTimeout    time.Duration `json:"gracefulTimeout" yaml:"gracefulTimeout" default:"300s"`
-		ConnectionTimeout time.Duration
-		MySQLBin          string `json:"mysqlBin" yaml:"mysqlBin"`
-		DumpBin           string `json:"dumpBin" yaml:"dumpBin"`
 	}
 	Creds struct {
 		Username, Password string
 	}
 	Certs struct {
-		CA          string
-		Certificate string
-		PrivateKey  string
+		CA          []byte
+		Certificate []byte
+		PrivateKey  []byte
+	}
+	Config struct {
+		Source  Target `yaml:"source"`
+		Target  Target `yaml:"target"`
+		BinDir  string
+		DataDir string
 	}
 )
 
