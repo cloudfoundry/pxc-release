@@ -11,19 +11,34 @@ import (
 var _ = Describe("Testhelper/Helper", func() {
 	It("starts testinstances with tls", func() {
 		net, aliases := testhelper.CreateTestNetwork()
-		testhelper.StartContainerInstance("test", "test", "8.4", true, aliases, net)
+		testhelper.StartContainerInstance("test", "test", "8.4", testhelper.VerifyCA, aliases, net)
 	})
-	It("generates certs", func() {
+	It("leaves client key and cert empty on VERIFY_CA", func() {
 		path, err := os.MkdirTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
-		serverCerts, clientCerts := testhelper.InitCerts("test", path, []string{"alias"})
+		serverCerts, clientCerts := testhelper.InitCerts("test", path, testhelper.VerifyCA, []string{"alias"})
 
-		Expect(clientCerts.PrivateKey).To(MatchRegexp("BEGIN RSA PRIVATE KEY"))
-		Expect(serverCerts.PrivateKey).To(MatchRegexp("BEGIN RSA PRIVATE KEY"))
-		Expect(clientCerts.PrivateKey).ToNot(Equal(serverCerts.PrivateKey))
-		Expect(serverCerts.CA).To(MatchRegexp("BEGIN CERTIFICATE"))
-		Expect(serverCerts.CA).To(Equal(clientCerts.CA))
-		Expect(clientCerts.Certificate).To(MatchRegexp("BEGIN CERTIFICATE"))
-		Expect(serverCerts.Certificate).To(MatchRegexp("BEGIN CERTIFICATE"))
+		Expect(clientCerts.PrivateKey).To(BeEmpty())
+		Expect(clientCerts.Certificate).To(BeEmpty())
+		Expect(clientCerts.CA).ToNot(BeEmpty())
+		Expect(string(clientCerts.CA)).To(MatchRegexp("BEGIN CERTIFICATE"))
+		Expect(string(clientCerts.CA)).To(ContainSubstring(string(serverCerts.CA)))
+		// Expect(string(clientCerts.CA)).To(ContainSubstring(string(serverCerts.Certificate)))
+
+		Expect(string(serverCerts.PrivateKey)).To(MatchRegexp("BEGIN RSA PRIVATE KEY"))
+		Expect(string(serverCerts.CA)).To(MatchRegexp("BEGIN CERTIFICATE"))
+		Expect(string(serverCerts.Certificate)).To(MatchRegexp("BEGIN CERTIFICATE"))
+	})
+
+	It("populates client key and cert on FULL", func() {
+		path, err := os.MkdirTemp("", "")
+		Expect(err).ToNot(HaveOccurred())
+		serverCerts, clientCerts := testhelper.InitCerts("test", path, testhelper.VerifyIdentity, []string{"alias"})
+		Expect(string(clientCerts.PrivateKey)).To(MatchRegexp("BEGIN RSA PRIVATE KEY"))
+		Expect(string(serverCerts.PrivateKey)).To(MatchRegexp("BEGIN RSA PRIVATE KEY"))
+		Expect(string(clientCerts.PrivateKey)).ToNot(Equal(serverCerts.PrivateKey))
+		Expect(string(serverCerts.CA)).To(MatchRegexp("BEGIN CERTIFICATE"))
+		Expect(string(clientCerts.Certificate)).To(MatchRegexp("BEGIN CERTIFICATE"))
+		Expect(string(serverCerts.Certificate)).To(MatchRegexp("BEGIN CERTIFICATE"))
 	})
 })

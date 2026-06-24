@@ -2,16 +2,20 @@
 package client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"github.com/cloudfoundry/pxc-release/replicator/dumper"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/cloudfoundry/pxc-release/replicator/utils"
+	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -28,6 +32,7 @@ const (
 )
 
 type ReplState struct {
+	Enabled          bool
 	IORunning        string
 	SQLRunning       string
 	SQLRunningState  string
@@ -38,6 +43,30 @@ type ReplState struct {
 	LastIOErrorTime  *time.Time
 	LastSQLErrorTime *time.Time
 	Misc             map[string]string
+}
+
+func (r ReplState) String() string {
+	line := fmt.Sprintf(
+		"IORunning: %s, SQLRunning: %s, SQLDelay: %v, SecondsBehind %v",
+		r.IORunning,
+		r.SQLRunning,
+		r.SQLDelay,
+		r.SecondsBehind,
+	)
+
+	withinTheLastFiveMinutes := time.Now().Add(time.Minute * -5)
+
+	if r.LastIOErrorTime.After(withinTheLastFiveMinutes) {
+		line = fmt.Sprintf("%s, IOErr within last 5 minutes: %s",
+			line, r.LastIOErr,
+		)
+	}
+	if r.LastSQLErrorTime.After(withinTheLastFiveMinutes) {
+		line = fmt.Sprintf("%s, SQLErr within last 5 minutes: %s",
+			line, r.LastSQLErr,
+		)
+	}
+	return line
 }
 
 var resetStatements = map[string]string{
@@ -52,21 +81,33 @@ type ReplClient struct {
 	BinDir  string
 }
 
+func FromConfig(config config.Config) ReplClient {
+	return ReplClient{
+		Source:  config.Source,
+		Target:  config.Target,
+		BinDir:  config.BinDir,
+		DataDir: config.DataDir,
+	}
+}
+
 func (r *ReplClient) CheckVersion() error {
 	source, err := r.ConnectSource()
 	if err != nil {
 		return fmt.Errorf("failed connecting to source: %s", err)
 	}
+	defer utils.CloseAndLogError(source)
 	target, err := r.ConnectTarget()
 	if err != nil {
 		return fmt.Errorf("failed connecting to target: %s", err)
 	}
+	defer utils.CloseAndLogError(target)
 
 	var sourceVersion, targetVersion string
 	rows, err := source.Query("SELECT VERSION();")
 	if err != nil {
 		return fmt.Errorf("failed to query source for version: %s", err)
 	}
+	defer utils.CloseAndLogError(rows)
 
 	if !rows.Next() {
 		return fmt.Errorf("could not determine Version of source")
@@ -111,20 +152,33 @@ func (r *ReplClient) CheckVersion() error {
 func (r *ReplClient) Setup() error {
 	log.Default().Println("setting up replica", "target", r.Target.Host, "source", r.Source.Host)
 
-	sourceCon, err := r.connect(r.Source.String())
-	if err != nil {
-		return fmt.Errorf("replica setup of %s: %w", r.Source.Name, err)
+	if err := r.CheckVersion(); err != nil {
+		return fmt.Errorf("setup failed: %w", err)
 	}
-	defer CloseAndLogError(sourceCon)
 
+	sourceCon, err := r.ConnectSource()
+	if err != nil {
+		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Source.Name, err)
+	}
+	defer utils.CloseAndLogError(sourceCon)
+
+	targetCon, err := r.ConnectTarget()
+	if err != nil {
+		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Target.Name, err)
+	}
+	defer utils.CloseAndLogError(targetCon)
+
+	state, err := r.CheckReplication(targetCon)
+	if err != nil {
+		return fmt.Errorf("setup failed: %w", err)
+	}
+
+	if !state.Enabled {
+		if err := r.SyncSourceToTarget(); err != nil {
+			return fmt.Errorf("setup failed: %w", err)
+		}
+	}
 	return r.Configure(sourceCon)
-}
-
-func CloseAndLogError(db *sql.DB) {
-	err := db.Close()
-	if err != nil {
-		log.Default().Println(err)
-	}
 }
 
 func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
@@ -132,10 +186,13 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	if err != nil {
 		return ReplState{}, err
 	}
+	defer utils.CloseAndLogError(result)
+
 	state := ReplState{
 		Misc: make(map[string]string),
 	}
-	for result.Next() {
+	if result.Next() {
+		state.Enabled = true
 		data := []any{}
 		columnNames := []string{}
 		columns, err := result.Columns()
@@ -199,12 +256,10 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 				continue
 			}
 		}
+	} else {
+		state.Enabled = false
 	}
 	return state, nil
-}
-
-func (r *ReplClient) CheckSQLRunning() (bool, error) {
-	return false, nil
 }
 
 func (r *ReplClient) SyncSourceToTarget() error {
@@ -229,51 +284,94 @@ func (r *ReplClient) SyncSourceToTarget() error {
 }
 
 func (r *ReplClient) Configure(db *sql.DB) error {
+	log.Default().Println("stopping replication")
 	_, err := db.Exec(`STOP REPLICA;`)
 	if err != nil {
 		return fmt.Errorf("failed stopping replication: %w", err)
 	}
-	query := fmt.Sprintf(`CHANGE REPLICATION SOURCE TO
-    SOURCE_HOST='%s',
-		SOURCE_PORT=%d,
-    SOURCE_USER='%s',
-    SOURCE_PASSWORD='%s',
-    SOURCE_AUTO_POSITION=1`,
-		r.Source.Host,
-		r.Source.Port,
-		r.Source.Creds.Username,
-		r.Source.Creds.Password,
-	)
+	log.Default().Println("updating replication")
+	query := `CHANGE REPLICATION SOURCE TO
+    SOURCE_HOST=?,
+		SOURCE_PORT=?,
+    SOURCE_USER=?,
+    SOURCE_PASSWORD=?
+`
+	args := []any{r.Source.Host, r.Source.Port, r.Source.Creds.Username, r.Source.Creds.Password}
 
-	if r.Target.TLS.CA != "" {
-		query = fmt.Sprintf(`%s,
-		SOURCE_SSL_CA='/var/vcap/jobs/pxc-replicator/config/source.ca.pem',
+	if r.Source.Certs != nil {
+		if len(r.Source.Certs.CA) > 0 {
+			caFileName := fmt.Sprintf("%s/source-server-ca.pem", r.DataDir)
+			err = os.WriteFile(caFileName, r.Source.Certs.CA, 0o400)
+			if err != nil {
+				return fmt.Errorf("failed writing source-server-ca file: %w", err)
+			}
+			args = append(args, caFileName)
+			log.Default().Println("found TLS DATA, will encrypt the replication connection")
+			query = fmt.Sprintf(`%s,
+		SOURCE_SSL_CA=?,
 		SOURCE_SSL_VERIFY_SERVER_CERT=1;
 		`, query)
+		}
 	}
-	_, err = db.Exec(query)
+	_, err = db.Exec(query, args...)
 	if err != nil {
 		log.Default().Printf("query failed: %s", query)
 		return fmt.Errorf("failed configuring the source data on the replica: %w", err)
 	}
 
+	log.Default().Println("starting replication")
 	_, err = db.Exec(`START REPLICA;`)
 	if err != nil {
 		return fmt.Errorf("failed starting replication: %w", err)
 	}
 
+	log.Default().Println("finished configuration of replica")
+
 	return nil
 }
 
-func (r *ReplClient) ConnectTarget() (*sql.DB, error) {
-	return r.connect(r.Target.String())
+func (r *ReplClient) ConnectTarget(dbname ...string) (*sql.DB, error) {
+	return r.connect(r.Target.Name, r.Target.DSN(), r.Target.Certs, dbname...)
 }
 
-func (r *ReplClient) ConnectSource() (*sql.DB, error) {
-	return r.connect(r.Source.String())
+func (r *ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
+	return r.connect(r.Source.Name, r.Source.DSN(), r.Source.Certs, dbname...)
 }
 
-func (r *ReplClient) connect(connectionString string) (*sql.DB, error) {
+func registerTLSConfig(name string, certs *config.Certs) error {
+	rootCertPool := x509.NewCertPool()
+	if ok := rootCertPool.AppendCertsFromPEM(certs.CA); !ok {
+		return fmt.Errorf("failed to append ca cert to pool")
+	}
+	return mysql.RegisterTLSConfig(name, &tls.Config{
+		RootCAs:      rootCertPool,
+		Certificates: []tls.Certificate{},
+	})
+
+	//tlsCerts, err := tls.X509KeyPair(certs.Certificate, certs.PrivateKey)
+	//if err != nil {
+	//	return fmt.Errorf("failed parsing certs: %w", err)
+	//}
+
+	//	return mysql.RegisterTLSConfig(name, &tls.Config{
+	//		RootCAs:      rootCertPool,
+	//		Certificates: []tls.Certificate{tlsCerts},
+	//	})
+}
+
+func (r *ReplClient) connect(name, connectionString string, certs *config.Certs, dbname ...string) (*sql.DB, error) {
+	databaseName := ""
+	if len(dbname) > 0 {
+		databaseName = dbname[0]
+	}
+	connectionString = fmt.Sprintf("%s%s?interpolateParams=true", connectionString, databaseName)
+	if certs != nil {
+		if err := registerTLSConfig(name, certs); err != nil {
+			return nil, fmt.Errorf("failed creating tls config for connection: %w", err)
+		}
+		connectionString = fmt.Sprintf("%s&tls=%s", connectionString, name)
+	}
+
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return nil, err
@@ -286,5 +384,6 @@ func (r *ReplClient) connect(connectionString string) (*sql.DB, error) {
 	// TODO figure out if we should set any connection defaults.
 	// db.SetConnMaxLifetime(time.Second * 15)
 	// db.SetConnMaxIdleTime(time.Second * 5)
+	log.Printf("successfully connected to: %s", name)
 	return db, nil
 }

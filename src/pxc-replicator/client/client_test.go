@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/client"
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
+	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -15,12 +16,31 @@ import (
 var _ = Describe("Client/Client", func() {
 	var replClient client.ReplClient
 	var source, sourceFromHost, _, targetFromHost config.Target
+
+	Describe("using tls connections", Ordered, func() {
+		_ = BeforeAll(func() {
+			testNet, aliases := testhelper.CreateTestNetwork()
+
+			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, aliases, testNet)
+			replClient = client.ReplClient{
+				Source:  sourceFromHost,
+				Target:  config.Target{},
+				DataDir: dataDir,
+				BinDir:  mysqlBinDir,
+			}
+		})
+		It("will work", func() {
+			db, err := replClient.ConnectSource()
+			Expect(err).To(BeNil())
+			Expect(db.Close()).To(Succeed())
+		})
+	})
 	Describe("mismatched versions", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet, aliases := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance("source", testhelper.GeneratePassword(), "8.0", aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance("target", testhelper.GeneratePassword(), "8.4", aliases, testNet)
+			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.0", testhelper.TlsDisabled, aliases, testNet)
+			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TlsDisabled, aliases, testNet)
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
@@ -29,16 +49,37 @@ var _ = Describe("Client/Client", func() {
 			}
 		})
 
-		FIt("will generate an error about mismatched versions", func() {
+		It("will generate an error about mismatched versions", func() {
 			Expect(replClient.CheckVersion()).To(MatchError(MatchRegexp("sourceVersion: 8.0 does not match targetVersion: 8.4")))
 		})
 	})
-	Describe("updating creds after sync", Ordered, func() {
+	Describe("checking if replication is enablded", func() {
+		_ = BeforeEach(func() {
+			testNet, aliases := testhelper.CreateTestNetwork()
+
+			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TlsDisabled, aliases, testNet)
+			replClient = client.ReplClient{
+				Target:  targetFromHost,
+				DataDir: dataDir,
+				BinDir:  mysqlBinDir,
+			}
+		})
+
+		It("will return state with Enabled=false", func() {
+			db, err := replClient.ConnectTarget()
+			Expect(err).ToNot(HaveOccurred())
+			defer utils.CloseAndLogError(db)
+			state, err := replClient.CheckReplication(db)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(state.Enabled).To(BeFalse())
+		})
+	})
+	Describe("updating creds through syncing initial state", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet, aliases := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance("source", testhelper.GeneratePassword(), testhelper.Tag, aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance("target", testhelper.GeneratePassword(), testhelper.Tag, aliases, testNet)
+			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
+			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -48,38 +89,16 @@ var _ = Describe("Client/Client", func() {
 			}
 		})
 
-		It("will reconnect with the synced creds", func() {
-			Expect(replClient.SyncSourceToTarget()).To(Succeed())
-
-			db, err := replClient.ConnectTarget()
-			Expect(err).ToNot(HaveOccurred())
-			replClient.Source = source
-			Expect(replClient.Configure(db)).To(Succeed())
-			state, err := replClient.CheckReplication(db)
-			Expect(err).ToNot(HaveOccurred())
-			stateJSONBytes := []byte{}
-			client.CloseAndLogError(db)
-			db, err = replClient.ConnectTarget()
-			Expect(err).ToNot(HaveOccurred())
-			Eventually(func() bool {
-				state, err = replClient.CheckReplication(db)
-				Expect(err).ToNot(HaveOccurred())
-				stateJSONBytes, err = json.MarshalIndent(state, "", "  ")
-				log.Default().Printf("%v", string(stateJSONBytes))
-				time.Sleep(time.Second)
-				return state.SQLRunning == "Yes" && state.IORunning == "Yes"
-			}, time.Minute).Should(BeTrue())
-			db, err = replClient.ConnectTarget()
-			defer Expect(db.Close()).To(Succeed())
-			Expect(err).ToNot(HaveOccurred())
+		It("will work because the connection is already established", func() {
+			endToEnd(replClient, source)
 		})
 	})
 	Describe("full start procedure", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet, aliases := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.Tag, "test", aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.Tag, "test", aliases, testNet)
+			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
+			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -91,10 +110,10 @@ var _ = Describe("Client/Client", func() {
 		It("can connect with the provided creds", func() {
 			Expect(sourceFromHost.Host).ToNot(BeEmpty())
 			db, err := replClient.ConnectSource()
-			defer client.CloseAndLogError(db)
+			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			db, err = replClient.ConnectTarget()
-			defer client.CloseAndLogError(db)
+			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("will dump and import the source", func() {
@@ -106,14 +125,14 @@ var _ = Describe("Client/Client", func() {
 			// else the replica will try to connect to localhost:<dynPort> and fail...
 			replClient.Source = source
 			db, err := replClient.ConnectTarget()
-			defer client.CloseAndLogError(db)
+			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(replClient.Configure(db)).To(Succeed())
 			Expect(db.Close()).To(Succeed())
 		})
 		It("gets the replication state", func() {
 			db, err := replClient.ConnectTarget()
-			defer client.CloseAndLogError(db)
+			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			testhelper.GenerateTestData(targetFromHost, "first", "moredata", 100)
 			state, err := replClient.CheckReplication(db)
@@ -144,3 +163,24 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 })
+
+func endToEnd(replClient client.ReplClient, source config.Target) {
+	Expect(replClient.SyncSourceToTarget()).To(Succeed())
+	db, err := replClient.ConnectTarget()
+	Expect(err).ToNot(HaveOccurred())
+	replClient.Source = source
+	Expect(replClient.Configure(db)).To(Succeed())
+	state, err := replClient.CheckReplication(db)
+	Expect(err).ToNot(HaveOccurred())
+	stateJSONBytes := []byte{}
+	Eventually(func() bool {
+		state, err = replClient.CheckReplication(db)
+		Expect(err).ToNot(HaveOccurred())
+		stateJSONBytes, err = json.MarshalIndent(state, "", "  ")
+		log.Default().Printf("%v", string(stateJSONBytes))
+		time.Sleep(time.Second)
+		return state.SQLRunning == "Yes" && state.IORunning == "Yes"
+	}, time.Minute).Should(BeTrue())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(db.Close()).To(Succeed())
+}
