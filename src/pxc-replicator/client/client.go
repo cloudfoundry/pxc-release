@@ -291,10 +291,10 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 	}
 	log.Default().Println("updating replication")
 	query := `CHANGE REPLICATION SOURCE TO
-    SOURCE_HOST=?,
-		SOURCE_PORT=?,
-    SOURCE_USER=?,
-    SOURCE_PASSWORD=?
+	SOURCE_HOST=?,
+	SOURCE_PORT=?,
+	SOURCE_USER=?,
+	SOURCE_PASSWORD=?
 `
 	args := []any{r.Source.Host, r.Source.Port, r.Source.Creds.Username, r.Source.Creds.Password}
 
