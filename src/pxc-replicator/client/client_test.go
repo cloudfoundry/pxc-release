@@ -35,6 +35,7 @@ var _ = Describe("Client/Client", func() {
 			Expect(db.Close()).To(Succeed())
 		})
 	})
+
 	Describe("mismatched versions", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet, aliases := testhelper.CreateTestNetwork()
