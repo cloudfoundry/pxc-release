@@ -10,14 +10,27 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/replicator/utils"
 )
 
+// Package dumper provides helpers for creating logical MySQL dumps using mysqldump
+// and restoring them via mysql. The API revolves around the Dumper type,
+// which holds configuration for command execution.
+
+// Dumper encapsulates the configuration used to create and restore dumps.
+// BinPath holds path to mysqldump/mysql binaries; DataPath is where
+// temporary configuration files and dumps are stored. The target field
+// contains the Target node information used to generate command arguments.
+// All fields are exported except target, which is unexported intentionally.
 type Dumper struct {
 	BinPath  string
 	DataPath string
 	target   config.Target
 }
 
+// GetRestoreCommand builds an *exec.Cmd configured to run `mysql` with the
+// appropriate defaults file and any supplied flags. It returns an error if argument
+// generation fails.
 func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
 	args, err := d.args()
 	args = append(args, flags...)
@@ -32,6 +45,9 @@ func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+// GetDumpCommand builds an *exec.Cmd configured to run `mysqldump` with the
+// appropriate defaults file and any supplied flags. It returns an error if argument
+// generation fails.
 func (d Dumper) GetDumpCommand(flags []string) (*exec.Cmd, error) {
 	args, err := d.args()
 	args = append(args, flags...)
@@ -99,6 +115,8 @@ func (d Dumper) args() ([]string, error) {
 	return args, nil
 }
 
+// New constructs a new Dumper. It validates that the data directory can be created
+// and that mysqldump's version matches target.Version. An error is returned if any check fails.
 func New(target config.Target, dataPath, binPath string) (Dumper, error) {
 	d := Dumper{
 		BinPath:  binPath,
@@ -124,6 +142,8 @@ func New(target config.Target, dataPath, binPath string) (Dumper, error) {
 	return d, nil
 }
 
+// Restore feeds the file at filename into a mysql process to restore the database described by target.
+// It rewrites d.target for this operation and returns an error on failure.
 func (d Dumper) Restore(filename string, target config.Target) error {
 	inputFile, err := os.Open(filename)
 	if err != nil {
@@ -147,6 +167,9 @@ func (d Dumper) Restore(filename string, target config.Target) error {
 	return nil
 }
 
+// Dump creates a full logical backup of d.target using mysqldump, stores it in DataPath with
+// a timestamped filename, and returns the file path. Any error from running mysqldump
+// is wrapped with details.
 func (d Dumper) Dump() (string, error) {
 	prefix := time.Now().UTC().Format(time.RFC3339)
 	dumpFile, err := os.CreateTemp(d.DataPath, prefix)
