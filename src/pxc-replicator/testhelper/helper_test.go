@@ -10,7 +10,8 @@ import (
 
 var _ = Describe("Testhelper/Helper", func() {
 	It("starts testinstances with tls", func() {
-		net, aliases := testhelper.CreateTestNetwork()
+		aliases := []string{"test"}
+		net := testhelper.CreateTestNetwork()
 		testhelper.StartContainerInstance("test", "test", "8.4", testhelper.VerifyCA, aliases, net)
 	})
 	It("leaves client key and cert empty on VERIFY_CA", func() {

@@ -23,40 +23,39 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	"go.yaml.in/yaml/v3"
-
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 const (
-	TlsDisabled    = "DISABLED"
+	TLSDisabled    = "DISABLED"
 	VerifyCA       = "VERIFY_CA"
 	VerifyIdentity = "VERIFY_IDENTITY"
 )
 
 var (
-	Image = "percona/percona-xtradb-cluster"
-	Tag   = "8.4"
+	Image       = "percona/percona-xtradb-cluster"
+	Tag         = "8.4"
+	MysqlBinDir = os.Getenv("MYSQL_BIN_DIR")
+	DataDir     = os.Getenv("DATA_DIR")
 )
 
 func backtick(in string) string {
 	return fmt.Sprintf("`%s`", in)
 }
 
-func CreateTestNetwork() (*testcontainers.DockerNetwork, []string) {
+func CreateTestNetwork() *testcontainers.DockerNetwork {
 	ctx := context.Background()
 	newNetwork, err := network.New(ctx)
 	Expect(err).ToNot(HaveOccurred())
 	testcontainers.CleanupNetwork(ginkgo.GinkgoTB(), newNetwork)
 
-	aliases := []string{uuid.New().String()}
-
-	return newNetwork, aliases
+	return newNetwork
 }
 
 func GeneratePassword() string {
@@ -96,10 +95,15 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 	}
 }
 
-type StdoutLogConsumer struct{}
+type StdoutLogConsumer struct {
+	Buffer *gbytes.Buffer
+}
 
 func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 	log.Default().Println("mysql:", string(l.Content))
+	if lc.Buffer != nil {
+		lc.Buffer.Write(l.Content)
+	}
 }
 
 type Log struct {
@@ -188,7 +192,7 @@ func writeCertFile(filename, path string, names []string, serverKeyPublic *rsa.P
 	return cert, pemBytes
 }
 
-func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clientCerts *config.Certs) {
+func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clientCerts config.Certs) {
 	caKey, _ := writeKeyFile(path, "server-ca-key.pem")
 	serverCa, serverCABytes := writeCaFile(path, name, caKey)
 
@@ -200,17 +204,17 @@ func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clien
 
 	switch tlsMode {
 	case VerifyCA:
-		clientCerts = &config.Certs{
+		clientCerts = config.Certs{
 			CA: serverCABytes, // append(serverCABytes, serverCertBytes...),
 		}
 	default:
-		clientCerts = &config.Certs{
+		clientCerts = config.Certs{
 			CA:          serverCABytes,
 			PrivateKey:  clientKeyBytes,
 			Certificate: clientCertBytes,
 		}
 	}
-	serverCerts = &config.Certs{
+	serverCerts = config.Certs{
 		CA:          serverCABytes,
 		PrivateKey:  serverKeyBytes,
 		Certificate: serverCertBytes,
@@ -219,23 +223,20 @@ func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clien
 	return serverCerts, clientCerts
 }
 
-func StartReplicatorInContainer(version string, config config.Config, net *testcontainers.DockerNetwork, aliases []string) {
+func StartReplicatorInContainer(version string, config []byte, net *testcontainers.DockerNetwork, logBuffer *gbytes.Buffer) *testcontainers.DockerContainer {
 	cmd := exec.Command("go", "build", "-o", "./replicator")
+	// TODO make arch not hardcoded
+	cmd.Env = []string{"HOME=/tmp", "GOOS=linux", "GOARCH=arm64", "CGO_ENABLED=0"}
 	out, err := cmd.CombinedOutput()
 	Expect(string(out)).To(BeEmpty())
 	Expect(err).ToNot(HaveOccurred())
-	config.BinDir = "/usr/bin"
-	config.DataDir = "/tmp"
-
-	configBytes, err := yaml.Marshal(config)
+	f, err := os.CreateTemp("", "config.yml")
 	Expect(err).ToNot(HaveOccurred())
-	configFile, err := os.CreateTemp("", "")
-	Expect(err).ToNot(HaveOccurred())
-	_, err = configFile.Write(configBytes)
+	_, err = f.Write(config)
 	Expect(err).ToNot(HaveOccurred())
 
 	opts := []testcontainers.ContainerCustomizer{
-		network.WithNetwork(aliases, net),
+		network.WithNetwork([]string{"client"}, net),
 		testcontainers.WithName("replicator"),
 		testcontainers.WithFiles(
 			testcontainers.ContainerFile{
@@ -246,23 +247,25 @@ func StartReplicatorInContainer(version string, config config.Config, net *testc
 		),
 		testcontainers.WithFiles(
 			testcontainers.ContainerFile{
-				HostFilePath:      configFile.Name(),
+				HostFilePath:      f.Name(),
 				ContainerFilePath: "/config/config.yml",
 				FileMode:          0o0644,
 			},
 		),
 		testcontainers.WithLogConsumerConfig(&testcontainers.LogConsumerConfig{
 			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
-			Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{}},
+			Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{Buffer: logBuffer}},
 		}),
-		testcontainers.WithCmd("/replicator", "--config", "/config/config.yml", "--data-dir", "/tmp", "--mysql-bin-dir"),
+		testcontainers.WithEntrypoint("/replicator", "-config", "/config/config.yml", "-data-dir", "/tmp", "-mysql-bin-path", "/usr/bin"),
 	}
 	ctx := context.Background()
 	rep, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", Image, version), opts...)
 	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
+	Expect(err).ToNot(HaveOccurred())
+	return rep
 }
 
-func StartContainerInstance(name, password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target) {
+func StartContainerInstance(name, password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target, container *testcontainers.DockerContainer) {
 	serverID := mathRand.Intn(999) + 1
 	opts := []testcontainers.ContainerCustomizer{
 		network.WithNetwork(netAliases, net),
@@ -280,8 +283,8 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 			wait.ForExposedPort().WithStartupTimeout(120*time.Second),
 		),
 	}
-	var clientCerts *config.Certs
-	if tlsMode != TlsDisabled {
+	var clientCerts config.Certs
+	if tlsMode != TLSDisabled {
 		certsDir, err := os.MkdirTemp("", name)
 		Expect(err).ToNot(HaveOccurred())
 		_, clientCerts = InitCerts(name, certsDir, tlsMode, netAliases)
@@ -290,7 +293,7 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 				testcontainers.ContainerFile{
 					HostFilePath:      fmt.Sprintf("%s/server-ca.pem", certsDir),
 					ContainerFilePath: "/certs/server-ca.pem",
-					FileMode:          0o0644,
+					FileMode:          0o644,
 				},
 				testcontainers.ContainerFile{
 					HostFilePath:      fmt.Sprintf("%s/server-cert.pem", certsDir),
@@ -320,8 +323,6 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 	Expect(err).ToNot(HaveOccurred())
 
 	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), pxc, testcontainers.StopTimeout(120*time.Second))
-	ip, err := pxc.ContainerIP(context.Background())
-	Expect(err).ToNot(HaveOccurred())
 	port, err := pxc.MappedPort(context.Background(), "3306")
 	Expect(err).ToNot(HaveOccurred())
 
@@ -329,7 +330,7 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 	// but to run external checks we need the Host view which is a mapped port on localhost...
 	return config.Target{
 			Name: name,
-			Host: ip,
+			Host: name,
 			Port: 3306,
 			Creds: config.Creds{
 				Username: "root",
@@ -345,5 +346,6 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 				Password: password,
 			},
 			Certs: clientCerts,
-		}
+		},
+		pxc
 }
