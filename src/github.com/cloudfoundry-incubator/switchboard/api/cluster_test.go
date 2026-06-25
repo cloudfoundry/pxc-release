@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -214,6 +215,31 @@ var _ = Describe("ClusterEndpoint", func() {
 
 					Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 				})
+			})
+		})
+
+		Context("when a PATCH request includes an Authorization header", func() {
+			It("does not log the Authorization header credentials", func() {
+				const password = "supersecretpassword"
+				encodedCreds := base64.StdEncoding.EncodeToString(
+					[]byte("admin:" + password),
+				)
+
+				req, err := http.NewRequest(
+					"PATCH",
+					server.URL()+"?trafficEnabled=true",
+					nil,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				req.SetBasicAuth("admin", password)
+
+				client := &http.Client{}
+				_, err = client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+
+				logContents := testLogger.Buffer().Contents()
+				Expect(logContents).ToNot(ContainSubstring(encodedCreds),
+					"Authorization header base64 value must not appear in logs")
 			})
 		})
 

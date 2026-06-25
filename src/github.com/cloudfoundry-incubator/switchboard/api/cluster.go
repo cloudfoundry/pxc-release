@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httputil"
 	"strconv"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -61,14 +60,6 @@ func handleUpdate(
 		return
 	}
 
-	dumpBody := true
-	b, err := httputil.DumpRequest(req, dumpBody)
-	if err != nil {
-		http.Error(w, "Failed to dump http body", http.StatusInternalServerError)
-		return
-	}
-
-	logger.Debug("API /cluster req", lager.Data{"dump": string(b)})
 	logger.Debug("API /cluster req form", lager.Data{"form": req.Form})
 
 	enabledStr := req.Form.Get("trafficEnabled")
