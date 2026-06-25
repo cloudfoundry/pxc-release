@@ -26,8 +26,8 @@ const (
 	COLUMN_SECONDS_BEHIND    = "Seconds_Behind_Source"
 	COLUMN_LAST_IO_ERR       = "Last_IO_Error"
 	COLUMN_LAST_IO_ERR_TIME  = "Last_IO_Error_Timestamp"
-	COLUMN_LAST_SQL_ERR_TIME = "Last_SQL_Error"
-	COLUMN_LAST_SQL_ERR      = "Last_SQL_Error_Timestamp"
+	COLUMN_LAST_SQL_ERR      = "Last_SQL_Error"
+	COLUMN_LAST_SQL_ERR_TIME = "Last_SQL_Error_Timestamp"
 	DATE_LAYOUT              = "060102 15:04:05"
 )
 
@@ -54,14 +54,13 @@ func (r ReplState) String() string {
 		r.SecondsBehind,
 	)
 
-	withinTheLastFiveMinutes := time.Now().Add(time.Minute * -5)
-
-	if r.LastIOErrorTime.After(withinTheLastFiveMinutes) {
+	fiveMinutesAgo := time.Now().Add(time.Minute * -5)
+	if r.LastIOErrorTime != nil && r.LastIOErrorTime.After(fiveMinutesAgo) {
 		line = fmt.Sprintf("%s, IOErr within last 5 minutes: %s",
 			line, r.LastIOErr,
 		)
 	}
-	if r.LastSQLErrorTime.After(withinTheLastFiveMinutes) {
+	if r.LastSQLErrorTime != nil && r.LastSQLErrorTime.After(fiveMinutesAgo) {
 		line = fmt.Sprintf("%s, SQLErr within last 5 minutes: %s",
 			line, r.LastSQLErr,
 		)
