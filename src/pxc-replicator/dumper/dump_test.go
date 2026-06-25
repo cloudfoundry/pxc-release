@@ -17,14 +17,14 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 	var dumpPath string
 	Describe("with encryption", func() {
 		_ = BeforeAll(func() {
-			net, aliases := testhelper.CreateTestNetwork()
-			aliases = append(aliases, "localhost")
+			net := testhelper.CreateTestNetwork()
+			aliases := []string{"localhost"}
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost = testhelper.StartContainerInstance("dumpTest", pass, tag, testhelper.VerifyCA, aliases, net)
-			_, targetFromHost = testhelper.StartContainerInstance("restoreTest", pass, tag, testhelper.VerifyCA, aliases, net)
+			_, sourceFromHost, _ = testhelper.StartContainerInstance("dumpTest", pass, tag, testhelper.VerifyCA, aliases, net)
+			_, targetFromHost, _ = testhelper.StartContainerInstance("restoreTest", pass, tag, testhelper.VerifyCA, aliases, net)
 			var err error
-			dumpClient, err = dumper.New(sourceFromHost, dataDir, mysqlBinDir)
+			dumpClient, err = dumper.New(sourceFromHost, testhelper.DataDir, testhelper.MysqlBinDir)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("creates a	backup", func() {
@@ -44,13 +44,14 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 	})
 	Describe("without encryption", func() {
 		_ = BeforeAll(func() {
-			net, aliases := testhelper.CreateTestNetwork()
+			net := testhelper.CreateTestNetwork()
+
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost = testhelper.StartContainerInstance("dumpTest", pass, tag, testhelper.TlsDisabled, aliases, net)
-			_, targetFromHost = testhelper.StartContainerInstance("restoreTest", pass, tag, testhelper.TlsDisabled, aliases, net)
+			_, sourceFromHost, _ = testhelper.StartContainerInstance("dumpTest", pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			_, targetFromHost, _ = testhelper.StartContainerInstance("restoreTest", pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
 			var err error
-			dumpClient, err = dumper.New(sourceFromHost, dataDir, mysqlBinDir)
+			dumpClient, err = dumper.New(sourceFromHost, testhelper.DataDir, testhelper.MysqlBinDir)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("creates a	backup", func() {

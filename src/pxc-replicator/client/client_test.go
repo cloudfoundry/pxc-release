@@ -19,9 +19,9 @@ var _ = Describe("Client/Client", func() {
 
 	Describe("using tls connections", Ordered, func() {
 		_ = BeforeAll(func() {
-			testNet, aliases := testhelper.CreateTestNetwork()
+			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, aliases, testNet)
+			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, testNet)
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  config.Target{},
@@ -38,10 +38,10 @@ var _ = Describe("Client/Client", func() {
 
 	Describe("mismatched versions", Ordered, func() {
 		_ = BeforeAll(func() {
-			testNet, aliases := testhelper.CreateTestNetwork()
+			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.0", testhelper.TlsDisabled, aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TlsDisabled, aliases, testNet)
+			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.0", testhelper.TLSDisabled, []string{"source"}, testNet)
+			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
@@ -56,9 +56,9 @@ var _ = Describe("Client/Client", func() {
 	})
 	Describe("checking if replication is enablded", func() {
 		_ = BeforeEach(func() {
-			testNet, aliases := testhelper.CreateTestNetwork()
+			testNet := testhelper.CreateTestNetwork()
 
-			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TlsDisabled, aliases, testNet)
+			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient = client.ReplClient{
 				Target:  targetFromHost,
 				DataDir: dataDir,
@@ -77,10 +77,10 @@ var _ = Describe("Client/Client", func() {
 	})
 	Describe("updating creds through syncing initial state", Ordered, func() {
 		_ = BeforeAll(func() {
-			testNet, aliases := testhelper.CreateTestNetwork()
+			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
+			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -96,10 +96,10 @@ var _ = Describe("Client/Client", func() {
 	})
 	Describe("full start procedure", Ordered, func() {
 		_ = BeforeAll(func() {
-			testNet, aliases := testhelper.CreateTestNetwork()
+			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
-			_, targetFromHost = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TlsDisabled, aliases, testNet)
+			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
