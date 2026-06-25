@@ -42,10 +42,10 @@ percona-xtrabackup-8.0.35-35.tar.gz:
   size: 447852862
   object_id: cfe465d2-d13b-46a9-64f1-8ebb44bd7e08
   sha: sha256:012aa40e35d7186da1d0c4ccd20d703b2b56a69dc0d750056d969245226a3d67
-percona-xtrabackup-8.4.0-5.tar.gz:
-  size: 432646274
-  object_id: edf66c32-e051-4a55-561a-bd67bb8a13bb
-  sha: sha256:fadcf27efd2a2596f689388659e2ff5c36debcc051a55974ac8bb4a83c015f57
+percona-xtrabackup-8.4.0-6.tar.gz:
+  size: 432884869
+  object_id: 806fe095-89f3-49e8-6ee0-d226ebc6b0a1
+  sha: sha256:e0e886b78d18b34122bd15b2d80f52fc5df2422260edaa3074820902beecd351
 pkg-config_0.29.2.orig.tar.gz:
   size: 2016830
   object_id: ca3d829d-016e-4acd-6509-9d1766884b9d
