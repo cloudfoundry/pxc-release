@@ -85,7 +85,7 @@ func (d Dumper) args() ([]string, error) {
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", defaultsFile), // param is positional. Needs to go first.
 	}
-	if d.target.Certs != nil {
+	if d.target.Certs.CA != nil {
 		if len(d.target.Certs.CA) > 0 {
 			fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DataPath, d.target.Name)
 			args = append(args, "--ssl-mode=VERIFY_CA", fmt.Sprintf("--ssl-ca=%s", fileName))
@@ -145,10 +145,12 @@ func New(target config.Target, dataPath, binPath string) (Dumper, error) {
 // Restore feeds the file at filename into a mysql process to restore the database described by target.
 // It rewrites d.target for this operation and returns an error on failure.
 func (d Dumper) Restore(filename string, target config.Target) error {
+	log.Default().Println("starting restore")
 	inputFile, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed opening file containing the backup: %w", err)
 	}
+	defer inputFile.Close()
 
 	// we only need to reset this in this scope, so no pointer receiver on the method.
 	d.target = target
@@ -157,12 +159,16 @@ func (d Dumper) Restore(filename string, target config.Target) error {
 	if err != nil {
 		return fmt.Errorf("failed generating restore command: %s", err)
 	}
-	log.Default().Println(cmd)
+	log.Default().Printf("generated mysql args %s", cmd)
 	cmd.Stdin = inputFile
 	out, err := cmd.CombinedOutput()
+	log.Default().Printf("importing dump %s", filename)
 	if err != nil {
 		log.Default().Printf("mysql output: %s", string(out))
 		return fmt.Errorf("failed restoring dump at %s: %w", filename, err)
+	}
+	if len(out) > 0 {
+		log.Default().Printf("import output: `%s`", string(out))
 	}
 	return nil
 }
@@ -191,5 +197,6 @@ func (d Dumper) Dump() (string, error) {
 		return "", fmt.Errorf("failed taking backup with mysqldump: Stderr: `%s`, err: %w", errBuffer.String(), err)
 	}
 
+	log.Default().Printf("finished backup: %s", dumpFile.Name())
 	return dumpFile.Name(), nil
 }

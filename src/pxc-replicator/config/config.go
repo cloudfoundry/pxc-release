@@ -21,22 +21,16 @@ type (
 		Host    string `json:"host" yaml:"host"`
 		Port    uint16 `json:"port" yaml:"port"`
 		Creds   Creds  `json:"creds" yaml:"creds"`
-		Certs   *Certs `json:"certs" yaml:"certs"`
+		Certs   Certs  `json:"certs" yaml:"certs"`
 		Version string `json:"version" yaml:"version"`
 	}
 	Creds struct {
 		Username, Password string
 	}
 	Certs struct {
-		CA          []byte
-		Certificate []byte
-		PrivateKey  []byte
-	}
-	Config struct {
-		Source  Target `yaml:"source"`
-		Target  Target `yaml:"target"`
-		BinDir  string
-		DataDir string
+		CA          []byte `yaml:"ca"`
+		Certificate []byte `yaml:"certificate"`
+		PrivateKey  []byte `yaml:"private_key"`
 	}
 )
 

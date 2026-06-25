@@ -46,6 +46,9 @@ type ReplState struct {
 }
 
 func (r ReplState) String() string {
+	if !r.Enabled {
+		return "disabled"
+	}
 	line := fmt.Sprintf(
 		"IORunning: %s, SQLRunning: %s, SQLDelay: %v, SecondsBehind %v",
 		r.IORunning,
@@ -74,22 +77,13 @@ var resetStatements = map[string]string{
 }
 
 type ReplClient struct {
-	Source  config.Target
-	Target  config.Target
-	DataDir string
-	BinDir  string
+	Source  config.Target `yaml:"source"`
+	Target  config.Target `yaml:"target"`
+	DataDir string        `yaml:"datadir"`
+	BinDir  string        `yaml:"bindir"`
 }
 
-func FromConfig(config config.Config) ReplClient {
-	return ReplClient{
-		Source:  config.Source,
-		Target:  config.Target,
-		BinDir:  config.BinDir,
-		DataDir: config.DataDir,
-	}
-}
-
-func (r *ReplClient) CheckVersion() error {
+func (r ReplClient) CheckVersion() error {
 	source, err := r.ConnectSource()
 	if err != nil {
 		return fmt.Errorf("failed connecting to source: %s", err)
@@ -148,8 +142,8 @@ func (r *ReplClient) CheckVersion() error {
 	return nil
 }
 
-func (r *ReplClient) Setup() error {
-	log.Default().Println("setting up replica", "target", r.Target.Host, "source", r.Source.Host)
+func (r ReplClient) Setup() error {
+	log.Default().Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
 
 	if err := r.CheckVersion(); err != nil {
 		return fmt.Errorf("setup failed: %w", err)
@@ -173,16 +167,18 @@ func (r *ReplClient) Setup() error {
 	}
 
 	if !state.Enabled {
+		log.Println("running initial sync as there is no current replication setup")
 		if err := r.SyncSourceToTarget(); err != nil {
 			return fmt.Errorf("setup failed: %w", err)
 		}
 	}
-	return r.Configure(sourceCon)
+	return r.Configure(targetCon)
 }
 
-func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
+func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	result, err := db.Query("SHOW REPLICA STATUS")
 	if err != nil {
+		log.Println("failed querying replica")
 		return ReplState{}, err
 	}
 	defer utils.CloseAndLogError(result)
@@ -190,7 +186,9 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	state := ReplState{
 		Misc: make(map[string]string),
 	}
+
 	if result.Next() {
+		log.Default().Println("replication check returned non empty resultset")
 		state.Enabled = true
 		data := []any{}
 		columnNames := []string{}
@@ -255,13 +253,11 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 				continue
 			}
 		}
-	} else {
-		state.Enabled = false
 	}
 	return state, nil
 }
 
-func (r *ReplClient) SyncSourceToTarget() error {
+func (r ReplClient) SyncSourceToTarget() error {
 	dumpClient, err := dumper.New(r.Source, r.DataDir, r.BinDir)
 	if err != nil {
 		return fmt.Errorf("failed creating dumpClient for sync: %w", err)
@@ -272,8 +268,6 @@ func (r *ReplClient) SyncSourceToTarget() error {
 		return fmt.Errorf("failed backing up source: %w", err)
 	}
 
-	log.Default().Printf("finished backup: %s", backupFullPath)
-
 	err = dumpClient.Restore(backupFullPath, r.Target)
 	if err != nil {
 		return fmt.Errorf("failed restoring to target: %w", err)
@@ -282,7 +276,7 @@ func (r *ReplClient) SyncSourceToTarget() error {
 	return nil
 }
 
-func (r *ReplClient) Configure(db *sql.DB) error {
+func (r ReplClient) Configure(db *sql.DB) error {
 	log.Default().Println("stopping replication")
 	_, err := db.Exec(`STOP REPLICA;`)
 	if err != nil {
@@ -293,14 +287,14 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 	SOURCE_HOST=?,
 	SOURCE_PORT=?,
 	SOURCE_USER=?,
-	SOURCE_PASSWORD=?
-`
+	SOURCE_PASSWORD=?`
 	args := []any{r.Source.Host, r.Source.Port, r.Source.Creds.Username, r.Source.Creds.Password}
 
-	if r.Source.Certs != nil {
+	if r.Source.Certs.CA != nil {
+		log.Println("found certs for encryption")
 		if len(r.Source.Certs.CA) > 0 {
 			caFileName := fmt.Sprintf("%s/source-server-ca.pem", r.DataDir)
-			err = os.WriteFile(caFileName, r.Source.Certs.CA, 0o400)
+			err = os.WriteFile(caFileName, r.Source.Certs.CA, 0o644)
 			if err != nil {
 				return fmt.Errorf("failed writing source-server-ca file: %w", err)
 			}
@@ -308,10 +302,11 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 			log.Default().Println("found TLS DATA, will encrypt the replication connection")
 			query = fmt.Sprintf(`%s,
 		SOURCE_SSL_CA=?,
-		SOURCE_SSL_VERIFY_SERVER_CERT=1;
-		`, query)
+		SOURCE_SSL=1;`,
+				query)
 		}
 	}
+
 	_, err = db.Exec(query, args...)
 	if err != nil {
 		log.Default().Printf("query failed: %s", query)
@@ -329,15 +324,15 @@ func (r *ReplClient) Configure(db *sql.DB) error {
 	return nil
 }
 
-func (r *ReplClient) ConnectTarget(dbname ...string) (*sql.DB, error) {
+func (r ReplClient) ConnectTarget(dbname ...string) (*sql.DB, error) {
 	return r.connect(r.Target.Name, r.Target.DSN(), r.Target.Certs, dbname...)
 }
 
-func (r *ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
+func (r ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
 	return r.connect(r.Source.Name, r.Source.DSN(), r.Source.Certs, dbname...)
 }
 
-func registerTLSConfig(name string, certs *config.Certs) error {
+func registerTLSConfig(name string, certs config.Certs) error {
 	rootCertPool := x509.NewCertPool()
 	if ok := rootCertPool.AppendCertsFromPEM(certs.CA); !ok {
 		return fmt.Errorf("failed to append ca cert to pool")
@@ -358,13 +353,13 @@ func registerTLSConfig(name string, certs *config.Certs) error {
 	//	})
 }
 
-func (r *ReplClient) connect(name, connectionString string, certs *config.Certs, dbname ...string) (*sql.DB, error) {
+func (r ReplClient) connect(name, connectionString string, certs config.Certs, dbname ...string) (*sql.DB, error) {
 	databaseName := ""
 	if len(dbname) > 0 {
 		databaseName = dbname[0]
 	}
 	connectionString = fmt.Sprintf("%s%s?interpolateParams=true", connectionString, databaseName)
-	if certs != nil {
+	if certs.CA != nil {
 		if err := registerTLSConfig(name, certs); err != nil {
 			return nil, fmt.Errorf("failed creating tls config for connection: %w", err)
 		}
