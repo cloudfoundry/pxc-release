@@ -81,6 +81,7 @@ type ReplClient struct {
 	Target  config.Target `yaml:"target"`
 	DataDir string        `yaml:"datadir"`
 	BinDir  string        `yaml:"bindir"`
+	Version string        `yaml:"version"`
 }
 
 func (r ReplClient) CheckVersion() error {
@@ -290,11 +291,11 @@ func (r ReplClient) Configure(db *sql.DB) error {
 	SOURCE_PASSWORD=?`
 	args := []any{r.Source.Host, r.Source.Port, r.Source.Creds.Username, r.Source.Creds.Password}
 
-	if r.Source.Certs.CA != nil {
+	if r.Source.Certs.CA != "" {
 		log.Println("found certs for encryption")
 		if len(r.Source.Certs.CA) > 0 {
 			caFileName := fmt.Sprintf("%s/source-server-ca.pem", r.DataDir)
-			err = os.WriteFile(caFileName, r.Source.Certs.CA, 0o644)
+			err = os.WriteFile(caFileName, []byte(r.Source.Certs.CA), 0o644)
 			if err != nil {
 				return fmt.Errorf("failed writing source-server-ca file: %w", err)
 			}
@@ -334,7 +335,7 @@ func (r ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
 
 func registerTLSConfig(name string, certs config.Certs) error {
 	rootCertPool := x509.NewCertPool()
-	if ok := rootCertPool.AppendCertsFromPEM(certs.CA); !ok {
+	if ok := rootCertPool.AppendCertsFromPEM([]byte(certs.CA)); !ok {
 		return fmt.Errorf("failed to append ca cert to pool")
 	}
 	return mysql.RegisterTLSConfig(name, &tls.Config{
@@ -359,7 +360,7 @@ func (r ReplClient) connect(name, connectionString string, certs config.Certs, d
 		databaseName = dbname[0]
 	}
 	connectionString = fmt.Sprintf("%s%s?interpolateParams=true", connectionString, databaseName)
-	if certs.CA != nil {
+	if certs.CA != "" {
 		if err := registerTLSConfig(name, certs); err != nil {
 			return nil, fmt.Errorf("failed creating tls config for connection: %w", err)
 		}
