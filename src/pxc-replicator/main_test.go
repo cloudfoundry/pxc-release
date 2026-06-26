@@ -21,8 +21,8 @@ var _ = Describe("Main", Ordered, func() {
 	var rep *testcontainers.DockerContainer
 	_ = BeforeAll(func() {
 		net := testhelper.CreateTestNetwork()
-		source, _, sourceContainer := testhelper.StartContainerInstance("source", testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
-		target, _, targetContainer := testhelper.StartContainerInstance("target", testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
+		source, _, sourceContainer := testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
+		target, _, targetContainer := testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
 
 		ctx := context.Background()
 		fileReader, err := sourceContainer.CopyFileFromContainer(ctx, "/certs/server-ca.pem")
