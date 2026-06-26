@@ -21,8 +21,8 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 			aliases := []string{"localhost"}
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost, _ = testhelper.StartContainerInstance("dumpTest", pass, tag, testhelper.VerifyCA, aliases, net)
-			_, targetFromHost, _ = testhelper.StartContainerInstance("restoreTest", pass, tag, testhelper.VerifyCA, aliases, net)
+			_, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.VerifyCA, aliases, net)
+			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.VerifyCA, aliases, net)
 			var err error
 			dumpClient, err = dumper.New(sourceFromHost, testhelper.DataDir, testhelper.MysqlBinDir)
 			Expect(err).ToNot(HaveOccurred())
@@ -48,8 +48,8 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost, _ = testhelper.StartContainerInstance("dumpTest", pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
-			_, targetFromHost, _ = testhelper.StartContainerInstance("restoreTest", pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			_, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
 			var err error
 			dumpClient, err = dumper.New(sourceFromHost, testhelper.DataDir, testhelper.MysqlBinDir)
 			Expect(err).ToNot(HaveOccurred())
