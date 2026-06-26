@@ -28,9 +28,9 @@ type (
 		Username, Password string
 	}
 	Certs struct {
-		CA          []byte `yaml:"ca"`
-		Certificate []byte `yaml:"certificate"`
-		PrivateKey  []byte `yaml:"private_key"`
+		CA          string `yaml:"ca"`
+		Certificate string `yaml:"certificate"`
+		PrivateKey  string `yaml:"private_key"`
 	}
 )
 

@@ -85,11 +85,11 @@ func (d Dumper) args() ([]string, error) {
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", defaultsFile), // param is positional. Needs to go first.
 	}
-	if d.target.Certs.CA != nil {
+	if d.target.Certs.CA != "" {
 		if len(d.target.Certs.CA) > 0 {
 			fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DataPath, d.target.Name)
 			args = append(args, "--ssl-mode=VERIFY_CA", fmt.Sprintf("--ssl-ca=%s", fileName))
-			err = os.WriteFile(fileName, d.target.Certs.CA, 0o600)
+			err = os.WriteFile(fileName, []byte(d.target.Certs.CA), 0o600)
 			if err != nil {
 				return []string{}, fmt.Errorf("failed writing server-ca-file `%s`: %w", fileName, err)
 			}

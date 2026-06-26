@@ -205,19 +205,19 @@ func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clien
 	switch tlsMode {
 	case VerifyCA:
 		clientCerts = config.Certs{
-			CA: serverCABytes, // append(serverCABytes, serverCertBytes...),
+			CA: string(serverCABytes), // append(serverCABytes, serverCertBytes...),
 		}
 	default:
 		clientCerts = config.Certs{
-			CA:          serverCABytes,
-			PrivateKey:  clientKeyBytes,
-			Certificate: clientCertBytes,
+			CA:          string(serverCABytes),
+			PrivateKey:  string(clientKeyBytes),
+			Certificate: string(clientCertBytes),
 		}
 	}
 	serverCerts = config.Certs{
-		CA:          serverCABytes,
-		PrivateKey:  serverKeyBytes,
-		Certificate: serverCertBytes,
+		CA:          string(serverCABytes),
+		PrivateKey:  string(serverKeyBytes),
+		Certificate: string(serverCertBytes),
 	}
 
 	return serverCerts, clientCerts
