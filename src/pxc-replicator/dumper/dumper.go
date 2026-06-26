@@ -24,7 +24,7 @@ import (
 // All fields are exported except target, which is unexported intentionally.
 type Dumper struct {
 	BinPath  string
-	DataPath string
+	DumpPath string
 	target   config.Target
 }
 
@@ -66,7 +66,7 @@ func (d Dumper) GetDumpCommand(flags []string) (*exec.Cmd, error) {
 // It creates a temporary my.cnf file, writes TLS files if needed,
 // and returns the flags slice. An error is returned on any I/O or os write failure.
 func (d Dumper) args() ([]string, error) {
-	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DataPath, d.target.Name)
+	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DumpPath, d.target.Name)
 	defaultFileContents := fmt.Sprintf(`[client]
   user = '%s'
   password = '%s'
@@ -87,7 +87,7 @@ func (d Dumper) args() ([]string, error) {
 	}
 	if d.target.Certs.CA != "" {
 		if len(d.target.Certs.CA) > 0 {
-			fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DataPath, d.target.Name)
+			fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DumpPath, d.target.Name)
 			args = append(args, "--ssl-mode=VERIFY_CA", fmt.Sprintf("--ssl-ca=%s", fileName))
 			err = os.WriteFile(fileName, []byte(d.target.Certs.CA), 0o600)
 			if err != nil {
@@ -117,14 +117,14 @@ func (d Dumper) args() ([]string, error) {
 
 // New constructs a new Dumper. It validates that the data directory can be created
 // and that mysqldump's version matches target.Version. An error is returned if any check fails.
-func New(target config.Target, dataPath, binPath string) (Dumper, error) {
+func New(target config.Target, dumpPath, binPath string) (Dumper, error) {
 	d := Dumper{
 		BinPath:  binPath,
-		DataPath: dataPath,
+		DumpPath: dumpPath,
 		target:   target,
 	}
 
-	err := os.MkdirAll(dataPath, 0o755)
+	err := os.MkdirAll(dumpPath, 0o755)
 	if err != nil {
 		return Dumper{}, fmt.Errorf("failed creating dataDir: %w", err)
 	}
@@ -178,7 +178,7 @@ func (d Dumper) Restore(filename string, target config.Target) error {
 // is wrapped with details.
 func (d Dumper) Dump() (string, error) {
 	prefix := time.Now().UTC().Format(time.RFC3339)
-	dumpFile, err := os.CreateTemp(d.DataPath, prefix)
+	dumpFile, err := os.CreateTemp(d.DumpPath, prefix)
 	if err != nil {
 		return "", fmt.Errorf("failed creating file: %w", err)
 	}
