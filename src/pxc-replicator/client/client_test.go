@@ -26,6 +26,7 @@ var _ = Describe("Client/Client", func() {
 				Source:  sourceFromHost,
 				Target:  config.Target{},
 				DataDir: dataDir,
+				DumpDir: dataDir,
 				BinDir:  mysqlBinDir,
 			}
 		})
@@ -45,6 +46,7 @@ var _ = Describe("Client/Client", func() {
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
+				DumpDir: dataDir,
 				DataDir: dataDir,
 				BinDir:  mysqlBinDir,
 			}
@@ -62,6 +64,7 @@ var _ = Describe("Client/Client", func() {
 			replClient = client.ReplClient{
 				Target:  targetFromHost,
 				DataDir: dataDir,
+				DumpDir: dataDir,
 				BinDir:  mysqlBinDir,
 			}
 		})
@@ -86,6 +89,7 @@ var _ = Describe("Client/Client", func() {
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
 				DataDir: dataDir,
+				DumpDir: dataDir,
 				BinDir:  mysqlBinDir,
 			}
 		})
@@ -105,6 +109,7 @@ var _ = Describe("Client/Client", func() {
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
 				DataDir: dataDir,
+				DumpDir: dataDir,
 				BinDir:  mysqlBinDir,
 			}
 		})
