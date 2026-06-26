@@ -2,6 +2,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -97,7 +98,9 @@ func (r ReplClient) CheckVersion() error {
 	defer utils.CloseAndLogError(target)
 
 	var sourceVersion, targetVersion string
-	rows, err := source.Query("SELECT VERSION();")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	rows, err := source.QueryContext(ctx, "SELECT VERSION();")
 	if err != nil {
 		return fmt.Errorf("failed to query source for version: %s", err)
 	}
@@ -113,7 +116,9 @@ func (r ReplClient) CheckVersion() error {
 
 	log.Default().Printf("source response: %s", sourceVersion)
 
-	rows, err = target.Query("SELECT VERSION();")
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	rows, err = target.QueryContext(ctx, "SELECT VERSION();")
 	if err != nil {
 		return fmt.Errorf("failed to query source for version: %s", err)
 	}
@@ -177,7 +182,9 @@ func (r ReplClient) Setup() error {
 }
 
 func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
-	result, err := db.Query("SHOW REPLICA STATUS")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result, err := db.QueryContext(ctx, "SHOW REPLICA STATUS")
 	if err != nil {
 		log.Println("failed querying replica")
 		return ReplState{}, err
@@ -189,69 +196,52 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	}
 
 	if result.Next() {
-		log.Default().Println("replication check returned non empty resultset")
+		log.Default().Println("replication check returned resultset")
 		state.Enabled = true
-		data := []any{}
-		columnNames := []string{}
 		columns, err := result.Columns()
 		if err != nil {
 			return ReplState{}, err
 		}
-		for _, cName := range columns {
-			data = append(data, &sql.RawBytes{})
-			columnNames = append(columnNames, cName)
+		data := make([]sql.RawBytes, len(columns))
+		dataPointers := make([]any, len(columns))
+		for i := range dataPointers {
+			dataPointers[i] = &data[i]
 		}
-		err = result.Scan(data...)
+		err = result.Scan(dataPointers...)
 		if err != nil {
 			return ReplState{}, err
 		}
 
-		for k, v := range data {
-			switch columnNames[k] {
-			case COLUMN_IO_RUNNING:
-				state.IORunning = string(*v.(*sql.RawBytes))
-			case COLUMN_SQL_RUNNING:
-				state.SQLRunning = string(*v.(*sql.RawBytes))
-			case COLUMN_SQL_RUNNING_STATE:
-				state.SQLRunningState = string(*v.(*sql.RawBytes))
-			case COLUMN_SQL_DELAY:
-				val, err := strconv.Atoi(string(*v.(*sql.RawBytes)))
-				if err != nil {
-					return state, fmt.Errorf("failed converting SQL Delay to int %w", err)
-				}
-				state.SQLDelay = val
-			case COLUMN_SECONDS_BEHIND:
-				val, err := strconv.Atoi(string(*v.(*sql.RawBytes)))
-				if err != nil {
-					return state, fmt.Errorf("failed converting Seconds Behind to int %w", err)
-				}
-				state.SecondsBehind = val
-			case COLUMN_LAST_IO_ERR:
-				state.LastIOErr = string(*v.(*sql.RawBytes))
-			case COLUMN_LAST_IO_ERR_TIME:
-				if len(*v.(*sql.RawBytes)) == 0 {
-					continue
-				}
-				t, err := time.Parse(DATE_LAYOUT, string(*v.(*sql.RawBytes)))
-				if err != nil {
-					return state, fmt.Errorf("failed parsing LastIOErrTime as date: %w", err)
-				}
-				state.LastIOErrorTime = &t
-			case COLUMN_LAST_SQL_ERR_TIME:
-				if len(*v.(*sql.RawBytes)) == 0 {
-					continue
-				}
-				t, err := time.Parse(DATE_LAYOUT, string(*v.(*sql.RawBytes)))
-				if err != nil {
-					return state, fmt.Errorf("failed parsing LastSQLErrTime as date: %w", err)
-				}
-				state.LastSQLErrorTime = &t
-			case COLUMN_LAST_SQL_ERR:
-				state.LastSQLErr = string(*v.(*sql.RawBytes))
-			default:
-
-				state.Misc[columnNames[k]] = string(*v.(*sql.RawBytes))
+		for k, rawVal := range data {
+			if len(rawVal) == 0 {
 				continue
+			}
+			v := string(append([]byte(nil), rawVal...))
+			switch columns[k] {
+			case COLUMN_IO_RUNNING:
+				state.IORunning = v
+			case COLUMN_SQL_RUNNING:
+				state.SQLRunning = v
+			case COLUMN_SQL_RUNNING_STATE:
+				state.SQLRunningState = v
+			case COLUMN_SQL_DELAY:
+				state.SQLDelay, err = strconv.Atoi(v)
+			case COLUMN_SECONDS_BEHIND:
+				state.SecondsBehind, err = strconv.Atoi(v)
+			case COLUMN_LAST_IO_ERR:
+				state.LastIOErr = string(v)
+			case COLUMN_LAST_IO_ERR_TIME:
+				*state.LastIOErrorTime, err = time.Parse(DATE_LAYOUT, v)
+			case COLUMN_LAST_SQL_ERR_TIME:
+				*state.LastSQLErrorTime, err = time.Parse(DATE_LAYOUT, v)
+			case COLUMN_LAST_SQL_ERR:
+				state.LastSQLErr = v
+			default:
+				state.Misc[columns[k]] = v
+				continue
+			}
+			if err != nil {
+				log.Printf("failed converting value for %s from %s", columns[k], v)
 			}
 		}
 	}
@@ -371,10 +361,11 @@ func (r ReplClient) connect(name, connectionString string, certs config.Certs, d
 	if err != nil {
 		return nil, err
 	}
-
-	err = db.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err = db.PingContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed pinging target: %s after connecting: %w", connectionString, err)
+		return nil, fmt.Errorf("failed pinging target: %s after connecting: %w", name, err)
 	}
 	// TODO figure out if we should set any connection defaults.
 	// db.SetConnMaxLifetime(time.Second * 15)
