@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"encoding/json"
 	"log"
 	"time"
 
@@ -178,12 +177,9 @@ func endToEnd(replClient client.ReplClient, source config.Target) {
 	Expect(replClient.Configure(db)).To(Succeed())
 	state, err := replClient.CheckReplication(db)
 	Expect(err).ToNot(HaveOccurred())
-	stateJSONBytes := []byte{}
 	Eventually(func() bool {
 		state, err = replClient.CheckReplication(db)
 		Expect(err).ToNot(HaveOccurred())
-		stateJSONBytes, err = json.MarshalIndent(state, "", "  ")
-		log.Default().Printf("%v", string(stateJSONBytes))
 		time.Sleep(time.Second)
 		return state.SQLRunning == "Yes" && state.IORunning == "Yes"
 	}, time.Minute).Should(BeTrue())

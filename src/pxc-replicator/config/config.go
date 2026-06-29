@@ -17,15 +17,16 @@ type (
 	// Config aggregates source and target Target structs along with local directories used for data
 	// storage (DataDir) and binary location (BinDir).
 	Target struct {
-		Name    string `json:"name" yaml:"name"`
-		Host    string `json:"host" yaml:"host"`
-		Port    uint16 `json:"port" yaml:"port"`
-		Creds   Creds  `json:"creds" yaml:"creds"`
-		Certs   Certs  `json:"certs" yaml:"certs"`
-		Version string `json:"version" yaml:"version"`
+		Name    string `yaml:"name"`
+		Host    string `yaml:"host"`
+		Port    uint16 `yaml:"port"`
+		Creds   Creds  `yaml:"creds"`
+		Certs   Certs  `yaml:"certs"`
+		Version string `yaml:"version"`
 	}
 	Creds struct {
-		Username, Password string
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
 	}
 	Certs struct {
 		CA          string `yaml:"ca"`
