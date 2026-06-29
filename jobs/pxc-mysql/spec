@@ -101,7 +101,7 @@ properties:
     description: 'Optional. Password for mysql-backup user'
   mysql_backup_allowed_remote_hosts:
     default: localhost
-    description: 'Optional. Host from where the backup user is allowed to connect'
+    description: 'Optional. Host from where the backup user is allowed to connect. % for all remote hosts.'
   mysql_socket:
     description: Location of the mysql socket for connecting locally
     default: '/var/vcap/sys/run/pxc-mysql/mysqld.sock'
