@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	dataDir      = flag.String("data-dir", "/var/vcap/data/pxc-mysql", "directory to store ca certs, needs to be accessible by mysqld process")
-	dumpDir      = flag.String("dump-dir", "/var/vcap/data/pxc-replicator", "directory to store dumps")
-	mysqlBinPath = flag.String("mysql-bin-path", "/var/vcap/packages/percona-xtradb-cluster-8.4/bin/", "path to MySQL binaries; if empty, rely on $PATH")
+	dataDir      = flag.String("data-dir", "/tmp", "directory to store ca certs, needs to be accessible by mysqld process")
+	dumpDir      = flag.String("dump-dir", "/tmp", "directory to store dumps")
+	mysqlBinPath = flag.String("mysql-bin-path", "", "path to MySQL binaries; if empty, rely on $PATH")
 	configFile   = flag.String("config", "/var/vcap/jobs/pxc-replicator/config/config.yml", "path to YAML config file")
 	mysqlVersion = flag.String("mysql-version", "8.4", "the mysql MAJ.MIN version of source and target")
 )
@@ -37,7 +37,7 @@ func main() {
 	}
 	replClient.Version = *mysqlVersion
 	replClient.DataDir = *dataDir
-	replClient.BinDir = *mysqlBinPath
+	replClient.BinPath = *mysqlBinPath
 	replClient.DumpDir = *dumpDir
 
 	log.Default().Printf("Parsed config:\n  Source: %+v\n  Target: %+v\n", replClient.Source.Host, replClient.Target.Host)

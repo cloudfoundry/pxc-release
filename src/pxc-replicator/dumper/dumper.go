@@ -13,6 +13,11 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/utils"
 )
 
+const (
+	mysqlDumpBinName = "mysqldump"
+	mysqlBinName     = "mysql"
+)
+
 // Package dumper provides helpers for creating logical MySQL dumps using mysqldump
 // and restoring them via mysql. The API revolves around the Dumper type,
 // which holds configuration for command execution.
@@ -23,9 +28,10 @@ import (
 // contains the Target node information used to generate command arguments.
 // All fields are exported except target, which is unexported intentionally.
 type Dumper struct {
-	BinPath  string
-	DumpPath string
-	target   config.Target
+	BinPath                string
+	DumpPath               string
+	target                 config.Target
+	mysqlBin, mysqlDumpBin string
 }
 
 // GetRestoreCommand builds an *exec.Cmd configured to run `mysql` with the
@@ -34,32 +40,29 @@ type Dumper struct {
 func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
 	args, err := d.args()
 	args = append(args, flags...)
-	log.Default().Println("args:", args)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysql command: %w", err)
 	}
-	cmd := exec.Command("mysql",
-		args...,
-	)
+	log.Default().Println("args:", args)
 
-	return cmd, nil
+	return exec.Command(d.mysqlBin,
+		args...,
+	), nil
 }
 
 // GetDumpCommand builds an *exec.Cmd configured to run `mysqldump` with the
 // appropriate defaults file and any supplied flags. It returns an error if argument
 // generation fails.
-func (d Dumper) GetDumpCommand(flags []string) (*exec.Cmd, error) {
+func (d Dumper) GetDumpCommand(flags ...string) (*exec.Cmd, error) {
 	args, err := d.args()
 	args = append(args, flags...)
-	log.Default().Println("args:", args)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysqldump command: %w", err)
 	}
-	cmd := exec.Command("mysqldump",
+	log.Default().Println("args:", args)
+	return exec.Command(d.mysqlDumpBin,
 		args...,
-	)
-
-	return cmd, nil
+	), nil
 }
 
 // args generates the base argument slice used by both GetRestoreCommand and GetDumpCommand.
@@ -128,10 +131,32 @@ func New(target config.Target, dumpPath, binPath string) (Dumper, error) {
 	if err != nil {
 		return Dumper{}, fmt.Errorf("failed creating dataDir: %w", err)
 	}
+	if binPath != "" {
+		fullPath := fmt.Sprintf("%s/%s", binPath, mysqlDumpBinName)
+		_, err = os.Stat(fullPath)
+		if err != nil {
+			return Dumper{}, fmt.Errorf("BinPath set to: %s but didn't contain %s", binPath, mysqlDumpBinName)
+		}
+		d.mysqlDumpBin = fullPath
+		fullPath = fmt.Sprintf("%s/%s", binPath, mysqlBinName)
+		_, err = os.Stat(fullPath)
+		if err != nil {
+			return Dumper{}, fmt.Errorf("BinPath set to: %s but didn't contain %s", binPath, mysqlBinName)
+		}
+		d.mysqlBin = fullPath
+	} else {
+		d.mysqlBin = mysqlBinName
+		d.mysqlDumpBin = mysqlDumpBinName
+	}
 
-	cmd := exec.Command("mysqldump", "--version")
+	cmd, err := d.GetDumpCommand("--version")
+	if err != nil {
+		log.Default().Printf("using binary at: `%s`", mysqlDumpBinName)
+		return Dumper{}, fmt.Errorf("failed checking version of mysqldump: %w", err)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Default().Printf("using binary at: `%s`", mysqlDumpBinName)
 		return Dumper{}, fmt.Errorf("failed checking version of mysqldump: %w", err)
 	}
 	versionMatchRE := regexp.MustCompile(fmt.Sprintf("Ver %s", target.Version))
@@ -184,7 +209,7 @@ func (d Dumper) Dump() (string, error) {
 	}
 	log.Default().Printf("will save dump at %s", dumpFile.Name())
 	defer utils.CloseAndLogError(dumpFile)
-	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--routines", "--single-transaction"})
+	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--routines", "--single-transaction"}...)
 	if err != nil {
 		return "", fmt.Errorf("failed generating dump of %s: %w", d.target.Name, err)
 	}

@@ -82,7 +82,7 @@ type ReplClient struct {
 	Target  config.Target `yaml:"target"`
 	DataDir string        `yaml:"datadir"` // DataDir needs to be accessible by the mysql process.
 	DumpDir string        `yaml:"dumpdir"`
-	BinDir  string        `yaml:"bindir"`
+	BinPath string        `yaml:"bindir"`
 	Version string        `yaml:"version"`
 }
 
@@ -250,7 +250,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 }
 
 func (r ReplClient) SyncSourceToTarget() error {
-	dumpClient, err := dumper.New(r.Source, r.DumpDir, r.BinDir)
+	dumpClient, err := dumper.New(r.Source, r.DumpDir, r.BinPath)
 	if err != nil {
 		return fmt.Errorf("failed creating dumpClient for sync: %w", err)
 	}
