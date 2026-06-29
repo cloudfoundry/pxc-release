@@ -1,16 +1,14 @@
 module github.com/cloudfoundry/pxc-release/replicator
 
-go 1.26.3
+go 1.26.2
 
 require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/uuid v1.6.0
-	github.com/moby/moby/api v1.55.0
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.42.1
 	github.com/testcontainers/testcontainers-go v0.42.0
 	go.yaml.in/yaml/v3 v3.0.4
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -43,6 +41,7 @@ require (
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
+	github.com/moby/moby/api v1.55.0 // indirect
 	github.com/moby/moby/client v0.4.0 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
@@ -71,4 +70,5 @@ require (
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
