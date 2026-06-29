@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	mysqlBinDir = os.Getenv("MYSQL_BIN_DIR")
-	dataDir     = os.Getenv("DATA_DIR")
+	mysqlBinPath = os.Getenv("MYSQL_BIN_DIR")
+	dataDir      = os.Getenv("DATA_DIR")
 )
 
 func TestClient(t *testing.T) {

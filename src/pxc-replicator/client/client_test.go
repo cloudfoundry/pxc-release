@@ -27,7 +27,7 @@ var _ = Describe("Client/Client", func() {
 				Target:  config.Target{},
 				DataDir: dataDir,
 				DumpDir: dataDir,
-				BinDir:  mysqlBinDir,
+				BinPath: mysqlBinPath,
 			}
 		})
 		It("will work", func() {
@@ -48,7 +48,7 @@ var _ = Describe("Client/Client", func() {
 				Target:  targetFromHost,
 				DumpDir: dataDir,
 				DataDir: dataDir,
-				BinDir:  mysqlBinDir,
+				BinPath: mysqlBinPath,
 			}
 		})
 
@@ -65,7 +65,7 @@ var _ = Describe("Client/Client", func() {
 				Target:  targetFromHost,
 				DataDir: dataDir,
 				DumpDir: dataDir,
-				BinDir:  mysqlBinDir,
+				BinPath: mysqlBinPath,
 			}
 		})
 
@@ -90,7 +90,7 @@ var _ = Describe("Client/Client", func() {
 				Target:  targetFromHost,
 				DataDir: dataDir,
 				DumpDir: dataDir,
-				BinDir:  mysqlBinDir,
+				BinPath: mysqlBinPath,
 			}
 		})
 
@@ -110,7 +110,7 @@ var _ = Describe("Client/Client", func() {
 				Target:  targetFromHost,
 				DataDir: dataDir,
 				DumpDir: dataDir,
-				BinDir:  mysqlBinDir,
+				BinPath: mysqlBinPath,
 			}
 		})
 		It("can connect with the provided creds", func() {

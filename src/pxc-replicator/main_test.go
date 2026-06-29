@@ -43,8 +43,9 @@ var _ = Describe("Main", Ordered, func() {
 		repClient := client.ReplClient{
 			Source:  source,
 			Target:  target,
-			DataDir: testhelper.DataDir,
-			BinDir:  testhelper.DataDir,
+			DataDir: "/tmp",
+			DumpDir: "/tmp",
+			BinPath: testhelper.DataDir,
 		}
 
 		config, err := yaml.Marshal(repClient)
