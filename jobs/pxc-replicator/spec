@@ -4,7 +4,6 @@ name: pxc-replicator
 templates:
   bpm.yml.erb: config/bpm.yml
   config/config.yml.erb: config/config.yml
-  config/source.ca.pem.erb: config/source.ca.pem
 
 packages:
 - percona-xtradb-cluster-8.0
@@ -15,12 +14,15 @@ consumes:
 - name: mysql-backup-user-creds
   type: mysql-backup-user-creds
   optional: true
-- name: mysql
+- name: source
+  type: mysql
+  optional: true
+- name: target
   type: mysql
   optional: true
 
 properties:
-  #CREDS
+  #SOURCE
   source_admin_username:
     description: |
       this is here for compatibility with older deployments of the pxc-release.
@@ -34,6 +36,15 @@ properties:
   mysql_backup_password:
     description: 'password to use for connection to source instance'
 
+  #SOURCE TLS/CONNECTION
+  source_tls.ca:
+    description: ca certificate in pem format to validate the source instance
+  source_host:
+    description: 'hostname of the source database instance'
+  source_port:
+    default: 3306
+
+  #TARGET
   target_admin_username:
     description: |
       the admin user for the target of the replication. It will be used to connect and setup the replication
@@ -42,14 +53,7 @@ properties:
     description: |
       the admin user for the target of the replication. It will be used to connect and setup the replication
       connection
-
-  #CONNECTION
-  source_tls.ca:
-    description: ca certificate in pem format to validate the source instance
-  source_host:
-    description: 'hostname of the source database instance'
-  source_port:
-    default: 3306
+  #TARGET TLS/CONNECTION
   target_host:
     description: 'hostname of the target database instance'
   target_port:

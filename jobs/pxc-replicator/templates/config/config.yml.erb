@@ -1,0 +1,58 @@
+#SOURCE
+version: <%= p('mysql_version') %>
+<% if_link('source') do |link| %>
+source:
+  name: source
+  host: <%= link.address %>
+  port: <%= link.p('port') %>
+  version: <%= link.p('mysql_version') %>
+  creds:
+    username: <%= link("mysql-backup-user-creds").p('mysql_backup_username') %>
+    password: <%= link("mysql-backup-user-creds").p('mysql_backup_password') %>
+  <%- if link.p('tls.server.ca') do |ca| -%>
+  tls:
+    ca: <%= tls.ca %>
+  <%- end -%>
+<%- end end.else do -%>
+source:
+  name: source
+  host: <%= p('source_host') %>
+  port: <%= p('source_port') %>
+  version: <%= p('mysql_version') %>
+  creds:
+    username: <%= p('mysql_backup_username') %>
+    password: <%= p('mysql_backup_password') %>
+  <%- if p('source_tls.ca') do |ca| -%>
+  tls:
+    ca: <%= tls.ca %>
+  <%- end -%>
+<%- end end -%>
+
+#TARGET
+<% if_link('target') do |link| -%>
+target:
+  name: target
+  version: <%= link.p('mysql_version') %>
+  host: localhost
+  port: <%= link.p('port') %>
+  creds:
+    username: <%= p('target_admin_username') %>
+    password: <%= p('target_admin_password') %>
+  <%- if link.p('tls.server.ca') do |ca| -%>
+  tls:
+    ca: <%= tls.ca %>
+  <%- end -%>
+<%- end end.else do -%>
+target:
+  name: target
+  host: <%= p('target_host') %>
+  port: <%= p('target_port') %>
+  version: <%= p('mysql_version') %>
+  creds:
+    username: <%= p('target_admin_username') %>
+    password: <%= p('target_admin_password') %>
+  <%- if p('target_tls.ca') do |ca| -%>
+  tls:
+    ca: <%= tls.ca %>
+  <%- end -%>
+<%- end end -%>
