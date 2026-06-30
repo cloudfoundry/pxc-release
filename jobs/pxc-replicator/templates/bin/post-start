@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+<% if p('replicator_enabled') then %>
+. /var/vcap/packages/pxc-utils/logging.sh
+
+#it's a bash feature.
+#https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html#index-SECONDS
+SECONDS=0
+PATH="${PATH}:/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') -%>/bin"
+
+log "starting post-start, checking replication"
+while [[ $SECONDS -lt 300 ]]; do
+  if mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf <<< "SHOW REPLICA STATUS\G" | grep 'Replica_IO_Running: Yes'; then
+    log "IO thread is running"
+  else
+    log "IO thread is running"
+    continue
+  fi
+
+  if mysql --defaults-file=/var/vcap/jobs/pxc-mysql/config/mylogin.cnf <<< "SHOW REPLICA STATUS\G" | grep 'Replica_SQL_Running: Yes'; then
+    log "SQL thread is running"
+    exit 0
+  else
+    log "SQL thread not running" && continue
+    continue
+  fi
+  sleep 5
+done
+
+log "timed out waiting for replication to report healthy"
+exit -1
+<% end %>
