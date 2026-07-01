@@ -26,15 +26,15 @@ properties:
   source_admin_username:
     description: |
       this is here for compatibility with older deployments of the pxc-release.
-      If provided it will be used to allow remote connections for the `mysql-backup-user`
+      If provided it will be used to create, authorize the `mysql-backup-user` on the source instance
   source_admin_password:
     description: |
       this is here for compatibility with older deployments of the pxc-release.
-      If provided it will be used to allow remote connections for the `mysql-backup-user`
+      If provided it will be used to create, authorize the `mysql-backup-user` on the source instance
   mysql_backup_username:
-    description: 'user to use for connection to source instance'
+    description: 'a replication enabled user that exists on the source mysql. It requires permissions to do a full `mysqldump --all-databases --events --triggers --routines --single-transaction` of the source instance. If specified alongside source_admin_username && source_admin_password this user will automatically be generated and provided with the right permissions. '
   mysql_backup_password:
-    description: 'password to use for connection to source instance'
+    description: 'password to use for connection to source instance. If specified alongside source_admin_username && source_admin_password this user will automatically be generated and provided with the right permissions.'
 
   #SOURCE TLS/CONNECTION
   source_tls.ca:

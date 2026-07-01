@@ -59,7 +59,10 @@ func main() {
 			consecutiveFailureCount += 1
 			log.Printf("failed checking replication. Consecutive failures: %v, error: %s", consecutiveFailureCount, err)
 			if consecutiveFailureCount >= 5 {
-				log.Default().Fatalf("failed to check replication %v in a row, exiting", consecutiveFailureCount)
+				log.Default().Fatalf("failed to check replication %v in a row, resyncing", consecutiveFailureCount)
+				if err := replClient.SyncSourceToTarget(); err != nil {
+					log.Default().Fatalf("failed to resync: %s", err)
+				}
 			}
 		}
 		consecutiveFailureCount = 0

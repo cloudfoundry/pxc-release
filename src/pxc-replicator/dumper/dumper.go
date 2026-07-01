@@ -38,7 +38,7 @@ type Dumper struct {
 // appropriate defaults file and any supplied flags. It returns an error if argument
 // generation fails.
 func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
-	args, err := d.args()
+	args, err := d.args(true)
 	args = append(args, flags...)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysql command: %w", err)
@@ -68,16 +68,22 @@ func (d Dumper) GetDumpCommand(flags ...string) (*exec.Cmd, error) {
 // args generates the base argument slice used by both GetRestoreCommand and GetDumpCommand.
 // It creates a temporary my.cnf file, writes TLS files if needed,
 // and returns the flags slice. An error is returned on any I/O or os write failure.
-func (d Dumper) args() ([]string, error) {
+func (d Dumper) args(admin ...bool) ([]string, error) {
 	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DumpPath, d.target.Name)
+	user := d.target.Creds.Username
+	pass := d.target.Creds.Password
+	if len(admin) > 0 {
+		user = d.target.Creds.AdminUsername
+		pass = d.target.Creds.AdminPassword
+	}
 	defaultFileContents := fmt.Sprintf(`[client]
   user = '%s'
   password = '%s'
   protocol = tcp
   host = '%s'
   port = '%d'`,
-		d.target.Creds.Username,
-		d.target.Creds.Password,
+		user,
+		pass,
 		d.target.Host,
 		d.target.Port,
 	)
@@ -209,7 +215,7 @@ func (d Dumper) Dump() (string, error) {
 	}
 	log.Default().Printf("will save dump at %s", dumpFile.Name())
 	defer utils.CloseAndLogError(dumpFile)
-	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--routines", "--single-transaction"}...)
+	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--events", "--routines", "--single-transaction"}...)
 	if err != nil {
 		return "", fmt.Errorf("failed generating dump of %s: %w", d.target.Name, err)
 	}

@@ -25,8 +25,10 @@ type (
 		Version string `yaml:"version"`
 	}
 	Creds struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
+		Username      string `yaml:"username"`
+		Password      string `yaml:"password"`
+		AdminUsername string `yaml:"admin_username"`
+		AdminPassword string `yaml:"admin_password"`
 	}
 	Certs struct {
 		CA          string `yaml:"ca"`
@@ -40,6 +42,10 @@ type (
 // The trailing slash indicates the root schema, which is required for replication commands.
 func (t Target) DSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/", t.Creds.Username, t.Creds.Password, t.Host, t.Port)
+}
+
+func (t Target) AdminDSN() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/", t.Creds.AdminUsername, t.Creds.AdminPassword, t.Host, t.Port)
 }
 
 // String returns a redacted MySQL DSN for this target

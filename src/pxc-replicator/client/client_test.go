@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -20,7 +21,9 @@ var _ = Describe("Client/Client", func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, testNet)
+			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
+			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  config.Target{},
@@ -40,8 +43,10 @@ var _ = Describe("Client/Client", func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.0", testhelper.TLSDisabled, []string{"source"}, testNet)
-			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.0", testhelper.TLSDisabled, []string{"source"}, testNet)
+			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
+			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
@@ -52,14 +57,20 @@ var _ = Describe("Client/Client", func() {
 		})
 
 		It("will generate an error about mismatched versions", func() {
-			Expect(replClient.CheckVersion()).To(MatchError(MatchRegexp("sourceVersion: 8.0 does not match targetVersion: 8.4")))
+			source, err := replClient.ConnectSource()
+			Expect(err).ToNot(HaveOccurred())
+			target, err := replClient.ConnectTarget()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(replClient.CheckVersion(source, target)).To(MatchError(MatchRegexp("sourceVersion: 8.0 does not match targetVersion: 8.4")))
+			Expect(source.Close()).To(Succeed())
+			Expect(target.Close()).To(Succeed())
 		})
 	})
 	Describe("checking if replication is enablded", func() {
 		_ = BeforeEach(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient = client.ReplClient{
 				Target:  targetFromHost,
 				DataDir: dataDir,
@@ -77,12 +88,68 @@ var _ = Describe("Client/Client", func() {
 			Expect(state.Enabled).To(BeFalse())
 		})
 	})
-	Describe("updating creds through syncing initial state", Ordered, func() {
+	Describe("creating the replica user", Ordered, func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
-			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
+			sourceFromHost.Creds.Password = ""
+			sourceFromHost.Creds.Username = ""
+
+			replClient = client.ReplClient{
+				Source:  sourceFromHost,
+				Target:  targetFromHost,
+				DataDir: dataDir,
+				DumpDir: dataDir,
+				BinPath: mysqlBinPath,
+			}
+		})
+		It("will not create a user when no creds were provided", func() {
+			Expect(replClient.Source.Creds.Password).To(BeEmpty())
+			Expect(replClient.Source.Creds.Username).To(BeEmpty())
+			_, err := replClient.ConnectSource()
+			Expect(err).To(MatchError(MatchRegexp("admin credentials provided but backup user name and password are missing")))
+		})
+		It("will create a user when creds were provided", func() {
+			username := testhelper.GeneratePassword()
+			password := testhelper.GeneratePassword()
+
+			adminUser := replClient.Source.Creds.AdminUsername
+			adminPass := replClient.Source.Creds.AdminPassword
+
+			replClient.Source.Creds.Username = username
+			replClient.Source.Creds.Password = password
+			replClient.Source.Creds.AdminUsername = ""
+			replClient.Source.Creds.AdminPassword = ""
+
+			// user doesn't exist yet
+			_, err := replClient.ConnectSource()
+			Expect(err).To(MatchError(MatchRegexp(fmt.Sprintf("Access denied for user '%s'", username))))
+
+			// this will ensure the above user exists
+			replClient.Source.Creds.AdminUsername = adminUser
+			replClient.Source.Creds.AdminPassword = adminPass
+			_, err = replClient.ConnectSource()
+			Expect(err).ToNot(HaveOccurred())
+
+			// completely remove admin creds, to prove that the new user exists
+			source.Creds.Username = username
+			source.Creds.Password = password
+			source.Creds.AdminUsername = ""
+			source.Creds.AdminPassword = ""
+
+			endToEnd(replClient, source)
+		})
+	})
+	Describe("updated creds through syncing initial state", Ordered, func() {
+		_ = BeforeAll(func() {
+			testNet := testhelper.CreateTestNetwork()
+
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
+			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -101,8 +168,10 @@ var _ = Describe("Client/Client", func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
-			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
+			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -178,9 +247,9 @@ func endToEnd(replClient client.ReplClient, source config.Target) {
 	state, err := replClient.CheckReplication(db)
 	Expect(err).ToNot(HaveOccurred())
 	Eventually(func() bool {
+		time.Sleep(time.Second)
 		state, err = replClient.CheckReplication(db)
 		Expect(err).ToNot(HaveOccurred())
-		time.Sleep(time.Second)
 		return state.SQLRunning == "Yes" && state.IORunning == "Yes"
 	}, time.Minute).Should(BeTrue())
 	Expect(err).ToNot(HaveOccurred())

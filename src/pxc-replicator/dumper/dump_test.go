@@ -1,6 +1,7 @@
 package dumper_test
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
@@ -15,20 +16,22 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 	var sourceFromHost, targetFromHost config.Target
 	var dumpClient dumper.Dumper
 	var dumpPath string
+	expectedTable := "someTableName"
 	Describe("with encryption", func() {
 		_ = BeforeAll(func() {
 			net := testhelper.CreateTestNetwork()
 			aliases := []string{"localhost"}
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.VerifyCA, aliases, net)
-			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.VerifyCA, aliases, net)
+			_, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), pass, tag, testhelper.VerifyCA, aliases, net)
+			testhelper.GenerateTestData(sourceFromHost, "dumpDB", expectedTable, 10)
+			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), pass, tag, testhelper.VerifyCA, aliases, net)
 			var err error
 			dumpClient, err = dumper.New(sourceFromHost, testhelper.DataDir, testhelper.MysqlBinDir)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("creates a	backup", func() {
-			testhelper.GenerateTestData(sourceFromHost, "dumpDB", "dumpTbl", 10)
 			var err error
 			dumpPath, err = dumpClient.Dump()
 			Expect(err).ToNot(HaveOccurred())
@@ -36,6 +39,7 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 			bytes, err := os.ReadFile(dumpPath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bytes).To(ContainSubstring("Dump completed on"))
+			Expect(bytes).To(MatchRegexp(fmt.Sprintf("CREATE TABLE `%s`", expectedTable)))
 		})
 		It("restores a	backup", func() {
 			err := dumpClient.Restore(dumpPath, targetFromHost)
@@ -43,19 +47,23 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 		})
 	})
 	Describe("without encryption", func() {
+		tableName := "testTable"
 		_ = BeforeAll(func() {
 			net := testhelper.CreateTestNetwork()
 
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
-			_, targetFromHost, _ = testhelper.StartContainerInstance(testhelper.GeneratePassword(), pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			_, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
 			var err error
 			dumpClient, err = dumper.New(sourceFromHost, testhelper.DataDir, testhelper.MysqlBinDir)
+
+			testhelper.GenerateTestData(sourceFromHost, "testDataBase", tableName, 1000)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("creates a	backup", func() {
-			testhelper.GenerateTestData(sourceFromHost, "dumpDB", "dumpTbl", 10)
+			testhelper.GenerateTestData(sourceFromHost, "dumpDB", expectedTable, 10)
 			var err error
 			dumpPath, err = dumpClient.Dump()
 			Expect(err).ToNot(HaveOccurred())
@@ -63,6 +71,7 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 			bytes, err := os.ReadFile(dumpPath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bytes).To(ContainSubstring("Dump completed on"))
+			Expect(bytes).To(MatchRegexp(fmt.Sprintf("CREATE TABLE.*%s", tableName)))
 		})
 		It("restores a	backup", func() {
 			err := dumpClient.Restore(dumpPath, targetFromHost)
