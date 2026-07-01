@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -51,7 +52,7 @@ func (r ReplState) String() string {
 		return "disabled"
 	}
 	line := fmt.Sprintf(
-		"IORunning: %s, SQLRunning: %s, SQLDelay: %v, SecondsBehind %v",
+		"IORunning: %s, SQLRunning: %s, SQLDelay: %v, SecondsBehind: %v",
 		r.IORunning,
 		r.SQLRunning,
 		r.SQLDelay,
@@ -72,11 +73,6 @@ func (r ReplState) String() string {
 	return line
 }
 
-var resetStatements = map[string]string{
-	"8.4": "REPLICA",
-	"8.0": "SLAVE",
-}
-
 type ReplClient struct {
 	Source  config.Target `yaml:"source"`
 	Target  config.Target `yaml:"target"`
@@ -86,18 +82,7 @@ type ReplClient struct {
 	Version string        `yaml:"version"`
 }
 
-func (r ReplClient) CheckVersion() error {
-	source, err := r.ConnectSource()
-	if err != nil {
-		return fmt.Errorf("failed connecting to source: %s", err)
-	}
-	defer utils.CloseAndLogError(source)
-	target, err := r.ConnectTarget()
-	if err != nil {
-		return fmt.Errorf("failed connecting to target: %s", err)
-	}
-	defer utils.CloseAndLogError(target)
-
+func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 	var sourceVersion, targetVersion string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -152,10 +137,6 @@ func (r ReplClient) CheckVersion() error {
 func (r ReplClient) Setup() error {
 	log.Default().Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
 
-	if err := r.CheckVersion(); err != nil {
-		return fmt.Errorf("setup failed: %w", err)
-	}
-
 	sourceCon, err := r.ConnectSource()
 	if err != nil {
 		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Source.Name, err)
@@ -167,6 +148,10 @@ func (r ReplClient) Setup() error {
 		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Target.Name, err)
 	}
 	defer utils.CloseAndLogError(targetCon)
+
+	if err = r.CheckVersion(sourceCon, targetCon); err != nil {
+		return fmt.Errorf("setup failed: %w", err)
+	}
 
 	state, err := r.CheckReplication(targetCon)
 	if err != nil {
@@ -193,7 +178,9 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	defer utils.CloseAndLogError(result)
 
 	state := ReplState{
-		Misc: make(map[string]string),
+		Misc:             make(map[string]string),
+		LastIOErrorTime:  &time.Time{},
+		LastSQLErrorTime: &time.Time{},
 	}
 
 	if result.Next() {
@@ -217,7 +204,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 			if len(rawVal) == 0 {
 				continue
 			}
-			v := string(append([]byte(nil), rawVal...))
+			v := string(append([]byte{}, rawVal...))
 			switch columns[k] {
 			case COLUMN_IO_RUNNING:
 				state.IORunning = v
@@ -230,7 +217,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 			case COLUMN_SECONDS_BEHIND:
 				state.SecondsBehind, err = strconv.Atoi(v)
 			case COLUMN_LAST_IO_ERR:
-				state.LastIOErr = string(v)
+				state.LastIOErr = v
 			case COLUMN_LAST_IO_ERR_TIME:
 				*state.LastIOErrorTime, err = time.Parse(DATE_LAYOUT, v)
 			case COLUMN_LAST_SQL_ERR_TIME:
@@ -246,6 +233,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 			}
 		}
 	}
+	log.Default().Println(state.Misc)
 	return state, nil
 }
 
@@ -317,11 +305,57 @@ func (r ReplClient) Configure(db *sql.DB) error {
 }
 
 func (r ReplClient) ConnectTarget(dbname ...string) (*sql.DB, error) {
-	return r.connect(r.Target.Name, r.Target.DSN(), r.Target.Certs, dbname...)
+	return r.connect(r.Target.Name, r.Target.AdminDSN(), r.Target.Certs, dbname...)
 }
 
 func (r ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
+	if r.Source.Creds.AdminUsername != "" && r.Source.Creds.AdminPassword != "" {
+		log.Default().Println("found admin creds. Will attempt to generate replica user")
+		if r.Source.Creds.Username == "" || r.Source.Creds.Password == "" {
+			return nil, errors.New("admin credentials provided but backup user name and password are missing.\nwill not continue")
+		}
+		db, err := r.connect(r.Source.Name, r.Source.AdminDSN(), r.Source.Certs, dbname...)
+		if err != nil {
+			return nil, fmt.Errorf("failed connecting with admin user: %w", err)
+		}
+		defer utils.CloseAndLogError(db)
+
+		err = r.CreateReplicaUser(db)
+		if err != nil {
+			return nil, fmt.Errorf("failed creating the replica user: %w", err)
+		}
+	}
+
 	return r.connect(r.Source.Name, r.Source.DSN(), r.Source.Certs, dbname...)
+}
+
+func (r ReplClient) CreateReplicaUser(db *sql.DB) error {
+	args := []any{
+		r.Source.Creds.Username, "%", r.Source.Creds.Password,
+	}
+	log.Default().Println("creating replica user")
+	query := `CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY ?;`
+	_, err := db.Exec(query, args...)
+	if err != nil {
+		return fmt.Errorf("failed ensuring user existence: %w", err)
+	}
+
+	log.Default().Println("updating replica user")
+	query = `ALTER USER ?@? IDENTIFIED BY ?;`
+	_, err = db.Exec(query, args...)
+	if err != nil {
+		return fmt.Errorf("failed ensuring user password: %w", err)
+	}
+
+	log.Default().Println("setting replica user permissions")
+
+	query = `GRANT SELECT, EVENT, RELOAD, LOCK TABLES, PROCESS, /*!80001 BACKUP_ADMIN,*/ REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO ?@?;`
+	_, err = db.Exec(query, []any{r.Source.Creds.Username, "%"}...)
+	if err != nil {
+		return fmt.Errorf("failed ensuring user permissions: %w", err)
+	}
+
+	return nil
 }
 
 func registerTLSConfig(name string, certs config.Certs) error {

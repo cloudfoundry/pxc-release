@@ -71,16 +71,16 @@ type TestDataRow struct {
 
 func GenerateTestData(target config.Target, dbName, tableName string, numberRows int) {
 	r := client.ReplClient{
-		Target: target,
+		Source: target,
 	}
-	db, err := r.ConnectTarget()
+	db, err := r.ConnectSource()
 	Expect(err).ToNot(HaveOccurred())
 
 	_, err = db.Exec(fmt.Sprintf("Create DATABASE IF NOT EXISTS %s;", backtick(dbName)))
 	Expect(err).ToNot(HaveOccurred())
 	Expect(db.Close()).To(Succeed())
 
-	db, err = r.ConnectTarget(dbName)
+	db, err = r.ConnectSource(dbName)
 	Expect(err).ToNot(HaveOccurred())
 	_, err = db.Exec(fmt.Sprintf(`CREATE TABLE %s (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -265,7 +265,7 @@ func StartReplicatorInContainer(version string, config []byte, net *testcontaine
 	return rep
 }
 
-func StartContainerInstance(name, password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target, container *testcontainers.DockerContainer) {
+func StartPXCInstance(name, password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target, container *testcontainers.DockerContainer) {
 	serverID := mathRand.Intn(999) + 1
 	opts := []testcontainers.ContainerCustomizer{
 		network.WithNetwork(netAliases, net),
@@ -333,8 +333,10 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 			Host: name,
 			Port: 3306,
 			Creds: config.Creds{
-				Username: "root",
-				Password: password,
+				Username:      "root",
+				Password:      password,
+				AdminUsername: "root",
+				AdminPassword: password,
 			},
 			Certs: clientCerts,
 		}, config.Target{
@@ -342,8 +344,10 @@ func StartContainerInstance(name, password, version string, tlsMode string, netA
 			Host: "localhost",
 			Port: port.Num(),
 			Creds: config.Creds{
-				Username: "root",
-				Password: password,
+				Username:      "root",
+				Password:      password,
+				AdminUsername: "root",
+				AdminPassword: password,
 			},
 			Certs: clientCerts,
 		},

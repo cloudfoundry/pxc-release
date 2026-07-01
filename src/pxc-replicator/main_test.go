@@ -18,11 +18,12 @@ import (
 
 var _ = Describe("Main", Ordered, func() {
 	var logBuffer *gbytes.Buffer
+	replUser := "replUser"
 	var rep *testcontainers.DockerContainer
 	_ = BeforeAll(func() {
 		net := testhelper.CreateTestNetwork()
-		source, _, sourceContainer := testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
-		target, _, targetContainer := testhelper.StartContainerInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
+		source, _, sourceContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
+		target, _, targetContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
 
 		ctx := context.Background()
 		fileReader, err := sourceContainer.CopyFileFromContainer(ctx, "/certs/server-ca.pem")
@@ -40,6 +41,9 @@ var _ = Describe("Main", Ordered, func() {
 		err = targetContainer.CopyFileToContainer(ctx, f.Name(), fmt.Sprintf("%s/source-server-ca.pem", "/tmp"), 644)
 		Expect(err).ToNot(HaveOccurred())
 		// targetContainer.CopyFileToContainer(
+		source.Creds.Username = replUser
+		source.Creds.Password = testhelper.GeneratePassword()
+
 		repClient := client.ReplClient{
 			Source:  source,
 			Target:  target,
@@ -64,7 +68,11 @@ var _ = Describe("Main", Ordered, func() {
 		Eventually(logBuffer, 180).Should(gbytes.Say("will save dump"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("finished backup"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("replication state:"))
-		Eventually(logBuffer, 1800).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes"))
+		Eventually(logBuffer, 300).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes"))
+		Eventually(logBuffer, 300).Should(gbytes.Say("SQLDelay: 0, SecondsBehind: 0"))
+		Eventually(logBuffer, 300).Should(gbytes.Say("Source_SSL_CA_File:/tmp/source-server-ca.pem"))
+		Eventually(logBuffer, 300).Should(gbytes.Say("Source_SSL_Allowed:Yes"))
+		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_User:%s", replUser)))
 		defer rep.Terminate(context.Background())
 	})
 })
