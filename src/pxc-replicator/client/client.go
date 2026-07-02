@@ -91,34 +91,38 @@ func (r ReplClient) CleanBackups() {
 	}
 	paths, err := r.ListBackups()
 	if err != nil {
-		log.Default().Printf("failed cleaning backups: %s", err.Error())
+		log.Printf("failed cleaning backups: %s", err.Error())
 	}
 	db, err := r.ConnectSource()
 	if err != nil {
-		log.Default().Printf("failed cleaning backups, cannot reach source: %s", err.Error())
+		log.Printf("failed cleaning backups, cannot reach source: %s", err.Error())
 	}
 	defer utils.CloseAndLogError(db)
 	foundRestorable := false
 	for _, path := range paths {
 		if foundRestorable {
-			log.Default().Printf("cleaning `%s`, found newer restorable backup", path)
+			log.Printf("cleaning `%s`, found newer restorable backup", path)
 			err := os.Remove(path)
 			if err != nil {
 				log.Printf("failed cleaning: `%s`", err.Error())
 			}
 			continue
 		}
-		gtid, ok := r.GetGTIDFromBackupFile(path)
+		GTIDPurged, ok := r.GetGTIDFromBackupFile(path)
 		if !ok {
-			log.Default().Printf("failed getting gtid from `%s`, skipping clean", path)
+			log.Printf("failed getting gtid from `%s`, skipping clean", path)
 			continue
 		}
-		restorable, err := r.CheckGTIDRestorable(db, gtid)
+		restorable, err := r.CheckGTIDRestorable(db, GTIDPurged)
 		if err != nil {
 			log.Printf("failed checking gtid from `%s`, skipping clean", path)
+			continue
 		}
 		if !restorable {
-			os.Remove(path)
+			err = os.Remove(path)
+			if err != nil {
+				log.Printf("failed cleaning backup `%s`", path)
+			}
 			continue
 		}
 		foundRestorable = true
@@ -143,7 +147,7 @@ func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 		return fmt.Errorf("failed reading source response: %s", err)
 	}
 
-	log.Default().Printf("source response: %s", sourceVersion)
+	log.Printf("source response: %s", sourceVersion)
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -160,15 +164,15 @@ func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 		return fmt.Errorf("failed reading target response: %s", err)
 	}
 
-	log.Default().Printf("target response: %s", targetVersion)
+	log.Printf("target response: %s", targetVersion)
 
 	elems := strings.Split(sourceVersion, ".")
 	sourceMajMin := fmt.Sprintf("%s.%s", elems[0], elems[1])
-	log.Default().Printf("source version is: %s", sourceMajMin)
+	log.Printf("source version is: %s", sourceMajMin)
 
 	elems = strings.Split(targetVersion, ".")
 	targetMajMin := fmt.Sprintf("%s.%s", elems[0], elems[1])
-	log.Default().Printf("target version is: %s", targetMajMin)
+	log.Printf("target version is: %s", targetMajMin)
 
 	if sourceMajMin != targetMajMin {
 		return fmt.Errorf("sourceVersion: %s does not match targetVersion: %s", sourceMajMin, targetMajMin)
@@ -180,7 +184,7 @@ func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 func (r ReplClient) ListBackups() ([]string, error) {
 	entries, err := os.ReadDir(r.DumpDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed listing dumpdir `%s`: %w", r.DataDir, err)
+		return nil, fmt.Errorf("failed listing dumpdir `%s`: %w", r.DumpDir, err)
 	}
 	result := []string{}
 	for _, dirEntry := range entries {
@@ -196,7 +200,7 @@ func (r ReplClient) ListBackups() ([]string, error) {
 func (r ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 	dump, err := os.Open(fileName)
 	if err != nil {
-		log.Default().Printf("skipping %s, could not open: %s", fileName, err.Error())
+		log.Printf("skipping %s, could not open: %s", fileName, err.Error())
 	}
 	fileReader := bufio.NewReader(dump)
 	for {
@@ -206,6 +210,7 @@ func (r ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 				break
 			}
 			log.Printf("failed reading line of file `%s`: %s", fileName, err.Error())
+			continue
 		}
 		GTIDPurged, found := utils.ParseGTIDFromLine(line)
 		if found {
@@ -226,9 +231,14 @@ func (r ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) {
 	}
 	for result.Next() {
 		success := sql.NullBool{}
-		result.Scan(&success)
-		log.Default().Printf("backup GTID `%s` restoreable: %v", gtid, success.Bool && success.Valid)
-		return success.Bool && success.Valid, nil
+		err := result.Scan(&success)
+		if err != nil {
+			return false, fmt.Errorf("failed scanning check result for `%s`: `%w`", gtid, err)
+		}
+		log.Printf("backup GTID `%s` restoreable: %v", gtid, success.Bool && success.Valid)
+		if success.Bool && success.Valid {
+			return true, nil
+		}
 	}
 	return false, nil
 }
@@ -242,7 +252,7 @@ func (r ReplClient) FindElligibleBackup() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed creating connection to check backup usability: %w", err)
 	}
-	defer db.Close()
+	defer utils.CloseAndLogError(db)
 	for _, fileName := range backupsPaths {
 		GTIDPurged, found := r.GetGTIDFromBackupFile(fileName)
 		if !found {
@@ -250,14 +260,14 @@ func (r ReplClient) FindElligibleBackup() (string, error) {
 		}
 		restorable, err := r.CheckGTIDRestorable(db, GTIDPurged)
 		if err != nil {
-			log.Default().Printf("failed to query source to check if backup `%s` is elligible", fileName)
+			log.Printf("failed to query source to check if backup `%s` is elligible", fileName)
 			continue
 		}
 		if restorable {
 			return fileName, nil
 		}
 	}
-	log.Default().Println("no matching backup found")
+	log.Println("no matching backup found")
 	return "", nil
 }
 
@@ -283,10 +293,10 @@ func (r ReplClient) InitFiles() error {
 }
 
 func (r ReplClient) Setup() error {
-	log.Default().Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
+	log.Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
 
 	if err := r.InitFiles(); err != nil {
-		log.Default().Printf("failed writing config and certificate files to %s", r.DataDir)
+		log.Printf("failed writing config and certificate files to %s", r.DataDir)
 		return fmt.Errorf("failed to init files: %w", err)
 	}
 	sourceCon, err := r.ConnectSource()
@@ -336,7 +346,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	}
 
 	if result.Next() {
-		log.Default().Println("replication check returned resultset")
+		log.Println("replication check returned resultset")
 		state.Enabled = true
 		columns, err := result.Columns()
 		if err != nil {
@@ -381,11 +391,11 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 				continue
 			}
 			if err != nil {
-				log.Default().Printf("failed converting value for %s from %s", columns[k], v)
+				log.Printf("failed converting value for %s from %s", columns[k], v)
 			}
 		}
 	}
-	log.Default().Println(state.Misc)
+	log.Println(state.Misc)
 	return state, nil
 }
 
@@ -396,7 +406,7 @@ func (r ReplClient) SyncSourceToTarget() error {
 	}
 	backupFullPath, err := r.FindElligibleBackup()
 	if err != nil {
-		log.Default().Printf("failed checking elligibility of existing backups: %s", err.Error())
+		log.Printf("failed checking elligibility of existing backups: %s", err.Error())
 	}
 	if backupFullPath == "" {
 		backupFullPath, err = dumpClient.Dump()
@@ -414,12 +424,12 @@ func (r ReplClient) SyncSourceToTarget() error {
 }
 
 func (r ReplClient) Configure(db *sql.DB) error {
-	log.Default().Println("stopping replication")
+	log.Println("stopping replication")
 	_, err := db.Exec(`STOP REPLICA;`)
 	if err != nil {
 		return fmt.Errorf("failed stopping replication: %w", err)
 	}
-	log.Default().Println("updating replication")
+	log.Println("updating replication")
 	query := `CHANGE REPLICATION SOURCE TO
 	SOURCE_HOST=?,
 	SOURCE_PORT=?,
@@ -432,7 +442,7 @@ func (r ReplClient) Configure(db *sql.DB) error {
 		if len(r.Source.Certs.CA) > 0 {
 			caFileName := fmt.Sprintf("%s/%s.ca.pem", r.DataDir, r.Source.Name)
 			args = append(args, caFileName)
-			log.Default().Println("found TLS DATA, will encrypt the replication connection")
+			log.Println("found TLS DATA, will encrypt the replication connection")
 			query = fmt.Sprintf(`%s,
 		SOURCE_SSL_CA=?,
 		SOURCE_SSL=1;`,
@@ -442,17 +452,17 @@ func (r ReplClient) Configure(db *sql.DB) error {
 
 	_, err = db.Exec(query, args...)
 	if err != nil {
-		log.Default().Printf("query failed: %s", query)
+		log.Printf("query failed: %s", query)
 		return fmt.Errorf("failed configuring the source data on the replica: %w", err)
 	}
 
-	log.Default().Println("starting replication")
+	log.Println("starting replication")
 	_, err = db.Exec(`START REPLICA;`)
 	if err != nil {
 		return fmt.Errorf("failed starting replication: %w", err)
 	}
 
-	log.Default().Println("finished configuration of replica")
+	log.Println("finished configuration of replica")
 
 	return nil
 }
@@ -463,7 +473,7 @@ func (r ReplClient) ConnectTarget(dbname ...string) (*sql.DB, error) {
 
 func (r ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
 	if r.Source.Creds.AdminUsername != "" && r.Source.Creds.AdminPassword != "" {
-		log.Default().Println("found admin creds. Will attempt to generate replica user")
+		log.Println("found admin creds. Will attempt to generate replica user")
 		if r.Source.Creds.Username == "" || r.Source.Creds.Password == "" {
 			return nil, errors.New("admin credentials provided but backup user name and password are missing.\nwill not continue")
 		}
@@ -486,21 +496,21 @@ func (r ReplClient) CreateReplicaUser(db *sql.DB) error {
 	args := []any{
 		r.Source.Creds.Username, "%", r.Source.Creds.Password,
 	}
-	log.Default().Println("creating replica user")
+	log.Println("creating replica user")
 	query := `CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY ?;`
 	_, err := db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed ensuring user existence: %w", err)
 	}
 
-	log.Default().Println("updating replica user")
+	log.Println("updating replica user")
 	query = `ALTER USER ?@? IDENTIFIED BY ?;`
 	_, err = db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed ensuring user password: %w", err)
 	}
 
-	log.Default().Println("setting replica user permissions")
+	log.Println("setting replica user permissions")
 
 	query = `GRANT SELECT, EVENT, RELOAD, LOCK TABLES, PROCESS, /*!80001 BACKUP_ADMIN,*/ REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO ?@?;`
 	_, err = db.Exec(query, []any{r.Source.Creds.Username, "%"}...)
@@ -558,6 +568,6 @@ func (r ReplClient) connect(name, connectionString string, certs config.Certs, d
 	// TODO figure out if we should set any connection defaults.
 	// db.SetConnMaxLifetime(time.Second * 15)
 	// db.SetConnMaxIdleTime(time.Second * 5)
-	log.Default().Printf("successfully connected to: %s", name)
+	log.Printf("successfully connected to: %s", name)
 	return db, nil
 }

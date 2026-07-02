@@ -54,7 +54,7 @@ var _ = Describe("Main", Ordered, func() {
 		}
 
 		config, err := yaml.Marshal(repClient)
-		log.Default().Printf("%s", string(config))
+		log.Printf("%s", string(config))
 		Expect(err).ToNot(HaveOccurred())
 		logBuffer = gbytes.NewBuffer()
 		rep = testhelper.StartReplicatorInContainer("8.4", config, net, logBuffer)
@@ -74,6 +74,6 @@ var _ = Describe("Main", Ordered, func() {
 		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_SSL_CA_File:/tmp/%s.ca.pem", sourceName)))
 		Eventually(logBuffer, 300).Should(gbytes.Say("Source_SSL_Allowed:Yes"))
 		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_User:%s", replUser)))
-		defer rep.Terminate(context.Background())
+		defer Expect(rep.Terminate(context.Background())).To(Succeed())
 	})
 })

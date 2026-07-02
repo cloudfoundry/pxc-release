@@ -40,16 +40,16 @@ func main() {
 	replClient.BinPath = *mysqlBinPath
 	replClient.DumpDir = *dumpDir
 
-	log.Default().Printf("Parsed config:\n  Source: %+v\n  Target: %+v\n", replClient.Source.Host, replClient.Target.Host)
-	log.Default().Printf("DataDir: %s, MysqlBinPath: %s\n", *dataDir, *mysqlBinPath)
+	log.Printf("Parsed config:\n  Source: %+v\n  Target: %+v\n", replClient.Source.Host, replClient.Target.Host)
+	log.Printf("DataDir: %s, MysqlBinPath: %s\n", *dataDir, *mysqlBinPath)
 
 	if err = replClient.Setup(); err != nil {
-		log.Default().Fatalf("starting job failed: %s", err)
+		log.Fatalf("starting job failed: %s", err)
 	}
 
 	conn, err := replClient.ConnectTarget()
 	if err != nil {
-		log.Default().Fatalf("failed setting up connection for healthcheck: %s", err)
+		log.Fatalf("failed setting up connection for healthcheck: %s", err)
 	}
 	defer utils.CloseAndLogError(conn)
 	consecutiveFailureCount := 0
@@ -59,14 +59,14 @@ func main() {
 			consecutiveFailureCount += 1
 			log.Printf("failed checking replication. Consecutive failures: %v, error: %s", consecutiveFailureCount, err)
 			if consecutiveFailureCount >= 5 {
-				log.Default().Fatalf("failed to check replication %v in a row, resyncing", consecutiveFailureCount)
+				log.Fatalf("failed to check replication %v in a row, resyncing", consecutiveFailureCount)
 				if err := replClient.SyncSourceToTarget(); err != nil {
-					log.Default().Fatalf("failed to resync: %s", err)
+					log.Fatalf("failed to resync: %s", err)
 				}
 			}
 		}
 		consecutiveFailureCount = 0
-		log.Default().Printf("replication state: %s", state.String())
+		log.Printf("replication state: %s", state.String())
 		time.Sleep(time.Second * 5)
 	}
 }
