@@ -30,6 +30,7 @@ const (
 type Dumper struct {
 	BinPath                string
 	DumpPath               string
+	DataPath               string
 	target                 config.Target
 	mysqlBin, mysqlDumpBin string
 }
@@ -38,7 +39,7 @@ type Dumper struct {
 // appropriate defaults file and any supplied flags. It returns an error if argument
 // generation fails.
 func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
-	args, err := d.args(true)
+	args, err := d.args()
 	args = append(args, flags...)
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysql command: %w", err)
@@ -68,40 +69,15 @@ func (d Dumper) GetDumpCommand(flags ...string) (*exec.Cmd, error) {
 // args generates the base argument slice used by both GetRestoreCommand and GetDumpCommand.
 // It creates a temporary my.cnf file, writes TLS files if needed,
 // and returns the flags slice. An error is returned on any I/O or os write failure.
-func (d Dumper) args(admin ...bool) ([]string, error) {
-	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DumpPath, d.target.Name)
-	user := d.target.Creds.Username
-	pass := d.target.Creds.Password
-	if len(admin) > 0 {
-		user = d.target.Creds.AdminUsername
-		pass = d.target.Creds.AdminPassword
-	}
-	defaultFileContents := fmt.Sprintf(`[client]
-  user = '%s'
-  password = '%s'
-  protocol = tcp
-  host = '%s'
-  port = '%d'`,
-		user,
-		pass,
-		d.target.Host,
-		d.target.Port,
-	)
-	err := os.WriteFile(defaultsFile, []byte(defaultFileContents), 0o600)
-	if err != nil {
-		return []string{}, fmt.Errorf("failed writing defaults file: %w", err)
-	}
+func (d Dumper) args() ([]string, error) {
+	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", d.DataPath, d.target.Name)
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", defaultsFile), // param is positional. Needs to go first.
 	}
 	if d.target.Certs.CA != "" {
 		if len(d.target.Certs.CA) > 0 {
-			fileName := fmt.Sprintf("%s/%s-server-ca.pem", d.DumpPath, d.target.Name)
+			fileName := fmt.Sprintf("%s/%s.ca.pem", d.DataPath, d.target.Name)
 			args = append(args, "--ssl-mode=VERIFY_CA", fmt.Sprintf("--ssl-ca=%s", fileName))
-			err = os.WriteFile(fileName, []byte(d.target.Certs.CA), 0o600)
-			if err != nil {
-				return []string{}, fmt.Errorf("failed writing server-ca-file `%s`: %w", fileName, err)
-			}
 		}
 		//if len(d.target.Certs.Certificate) > 0 && len(d.target.Certs.PrivateKey) > 0 {
 		//	certPath := fmt.Sprintf("%s/%s-cert.pem", d.DataPath, d.target.Name)
@@ -120,16 +96,16 @@ func (d Dumper) args(admin ...bool) ([]string, error) {
 		//	}...)
 		//}
 	}
-	log.Default().Printf("wrote config for: %s", d.target.Name)
 	return args, nil
 }
 
 // New constructs a new Dumper. It validates that the data directory can be created
 // and that mysqldump's version matches target.Version. An error is returned if any check fails.
-func New(target config.Target, dumpPath, binPath string) (Dumper, error) {
+func New(target config.Target, dumpPath, dataPath, binPath string) (Dumper, error) {
 	d := Dumper{
 		BinPath:  binPath,
 		DumpPath: dumpPath,
+		DataPath: dataPath,
 		target:   target,
 	}
 

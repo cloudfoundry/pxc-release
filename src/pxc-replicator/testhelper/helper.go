@@ -45,6 +45,12 @@ var (
 	DataDir     = os.Getenv("DATA_DIR")
 )
 
+func DumpDir() string {
+	dir, err := os.MkdirTemp("", "dumptest")
+	Expect(err).ToNot(HaveOccurred())
+	return dir
+}
+
 func backtick(in string) string {
 	return fmt.Sprintf("`%s`", in)
 }
@@ -265,7 +271,8 @@ func StartReplicatorInContainer(version string, config []byte, net *testcontaine
 	return rep
 }
 
-func StartPXCInstance(name, password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target, container *testcontainers.DockerContainer) {
+func StartPXCInstance(password, version string, tlsMode string, netAliases []string, net *testcontainers.DockerNetwork) (fromContainer config.Target, fromHost config.Target, container *testcontainers.DockerContainer) {
+	name := GeneratePassword()
 	serverID := mathRand.Intn(999) + 1
 	opts := []testcontainers.ContainerCustomizer{
 		network.WithNetwork(netAliases, net),
@@ -278,9 +285,9 @@ func StartPXCInstance(name, password, version string, tlsMode string, netAliases
 		}),
 		testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE", fmt.Sprintf("--server-id=%d", serverID)),
 		testcontainers.WithWaitStrategy(
-			wait.ForLog("Synchronized with group, ready for connections").WithStartupTimeout(180*time.Second),
-			wait.ForListeningPort("3306/tcp").WithStartupTimeout(120*time.Second),
-			wait.ForExposedPort().WithStartupTimeout(120*time.Second),
+			wait.ForLog("Synchronized with group, ready for connections").WithStartupTimeout(2*time.Minute),
+			wait.ForListeningPort("3306/tcp").WithStartupTimeout(2*time.Minute),
+			wait.ForExposedPort().WithStartupTimeout(2*time.Minute),
 		),
 	}
 	var clientCerts config.Certs
