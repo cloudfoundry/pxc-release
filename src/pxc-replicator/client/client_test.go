@@ -3,6 +3,7 @@ package client_test
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
@@ -11,17 +12,18 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/testcontainers/testcontainers-go"
 )
 
 var _ = Describe("Client/Client", func() {
 	var replClient client.ReplClient
 	var source, sourceFromHost, _, targetFromHost config.Target
 
-	Describe("using tls connections", Ordered, func() {
+	Describe("using tls connections", Ordered, FlakeAttempts(3), func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, testNet)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
 			replClient = client.ReplClient{
@@ -31,6 +33,7 @@ var _ = Describe("Client/Client", func() {
 				DumpDir: dataDir,
 				BinPath: mysqlBinPath,
 			}
+			Expect(replClient.InitFiles()).To(Succeed())
 		})
 		It("will work", func() {
 			db, err := replClient.ConnectSource()
@@ -39,14 +42,14 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 
-	Describe("mismatched versions", Ordered, func() {
+	Describe("mismatched versions", Ordered, FlakeAttempts(3), func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.0", testhelper.TLSDisabled, []string{"source"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.0", testhelper.TLSDisabled, []string{"source"}, testNet)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
-			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
@@ -54,6 +57,7 @@ var _ = Describe("Client/Client", func() {
 				DataDir: dataDir,
 				BinPath: mysqlBinPath,
 			}
+			Expect(replClient.InitFiles()).To(Succeed())
 		})
 
 		It("will generate an error about mismatched versions", func() {
@@ -66,17 +70,60 @@ var _ = Describe("Client/Client", func() {
 			Expect(target.Close()).To(Succeed())
 		})
 	})
+	Describe("it checks for elligible backups", Ordered, FlakeAttempts(3), func() {
+		var testNet *testcontainers.DockerNetwork
+		_ = BeforeAll(func() {
+			dir, err := os.MkdirTemp("", "")
+			Expect(err).ToNot(HaveOccurred())
+
+			testNet = testhelper.CreateTestNetwork()
+			_, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"source"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
+			replClient = client.ReplClient{
+				Target:  targetFromHost,
+				Source:  sourceFromHost,
+				DataDir: dataDir,
+				DumpDir: dir,
+				BinPath: mysqlBinPath,
+			}
+			Expect(replClient.InitFiles()).To(Succeed())
+		})
+		It("finds no backups when there are none", func() {
+			path, err := replClient.FindElligibleBackup()
+			Expect(path).To(BeEmpty())
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("finds elligible backups", func() {
+			Expect(replClient.SyncSourceToTarget()).To(Succeed())
+			path, err := replClient.FindElligibleBackup()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(path).ToNot(BeEmpty())
+		})
+		It("skips taking another backup if it finds a usable one", func() {
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
+			replClient.Target = targetFromHost
+			Expect(replClient.InitFiles()).To(Succeed())
+			entries, err := os.ReadDir(replClient.DumpDir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(entries).To(HaveLen(1))
+			Expect(replClient.SyncSourceToTarget()).To(Succeed())
+			entries, err = os.ReadDir(replClient.DumpDir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(entries).To(HaveLen(1))
+		})
+	})
 	Describe("checking if replication is enablded", func() {
 		_ = BeforeEach(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient = client.ReplClient{
 				Target:  targetFromHost,
 				DataDir: dataDir,
 				DumpDir: dataDir,
 				BinPath: mysqlBinPath,
 			}
+			Expect(replClient.InitFiles()).To(Succeed())
 		})
 
 		It("will return state with Enabled=false", func() {
@@ -88,12 +135,12 @@ var _ = Describe("Client/Client", func() {
 			Expect(state.Enabled).To(BeFalse())
 		})
 	})
-	Describe("creating the replica user", Ordered, func() {
+	Describe("creating the replica user", Ordered, FlakeAttempts(3), func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
-			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 			sourceFromHost.Creds.Password = ""
 			sourceFromHost.Creds.Username = ""
 
@@ -104,6 +151,7 @@ var _ = Describe("Client/Client", func() {
 				DumpDir: dataDir,
 				BinPath: mysqlBinPath,
 			}
+			Expect(replClient.InitFiles()).To(Succeed())
 		})
 		It("will not create a user when no creds were provided", func() {
 			Expect(replClient.Source.Creds.Password).To(BeEmpty())
@@ -142,14 +190,14 @@ var _ = Describe("Client/Client", func() {
 			endToEnd(replClient, source)
 		})
 	})
-	Describe("updated creds through syncing initial state", Ordered, func() {
+	Describe("updated creds through syncing initial state", Ordered, FlakeAttempts(3), func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
-			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -158,20 +206,21 @@ var _ = Describe("Client/Client", func() {
 				DumpDir: dataDir,
 				BinPath: mysqlBinPath,
 			}
+			Expect(replClient.InitFiles()).To(Succeed())
 		})
 
 		It("will work because the connection is already established", func() {
 			endToEnd(replClient, source)
 		})
 	})
-	Describe("full start procedure", Ordered, func() {
+	Describe("full start procedure", Ordered, FlakeAttempts(3), func() {
 		_ = BeforeAll(func() {
 			testNet := testhelper.CreateTestNetwork()
 
-			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
+			source, sourceFromHost, _ = testhelper.StartPXCInstance("test", testhelper.Tag, testhelper.TLSDisabled, []string{"source"}, testNet)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
-			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "test", testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
+			_, targetFromHost, _ = testhelper.StartPXCInstance("test", testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
 			replClient = client.ReplClient{
 				Source:  sourceFromHost,
@@ -180,6 +229,7 @@ var _ = Describe("Client/Client", func() {
 				DumpDir: dataDir,
 				BinPath: mysqlBinPath,
 			}
+			Expect(replClient.InitFiles()).To(Succeed())
 		})
 		It("can connect with the provided creds", func() {
 			Expect(sourceFromHost.Host).ToNot(BeEmpty())

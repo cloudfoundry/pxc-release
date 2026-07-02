@@ -12,7 +12,7 @@ var _ = Describe("Testhelper/Helper", func() {
 	It("starts testinstances with tls", func() {
 		aliases := []string{"test"}
 		net := testhelper.CreateTestNetwork()
-		testhelper.StartPXCInstance("test", "test", "8.4", testhelper.VerifyCA, aliases, net)
+		testhelper.StartPXCInstance("test", "8.4", testhelper.VerifyCA, aliases, net)
 	})
 	It("leaves client key and cert empty on VERIFY_CA", func() {
 		path, err := os.MkdirTemp("", "")

@@ -17,14 +17,15 @@ import (
 )
 
 var _ = Describe("Main", Ordered, func() {
+	var sourceName string
 	var logBuffer *gbytes.Buffer
 	replUser := "replUser"
 	var rep *testcontainers.DockerContainer
 	_ = BeforeAll(func() {
 		net := testhelper.CreateTestNetwork()
-		source, _, sourceContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
-		target, _, targetContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
-
+		source, _, sourceContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
+		target, _, targetContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
+		sourceName = source.Name
 		ctx := context.Background()
 		fileReader, err := sourceContainer.CopyFileFromContainer(ctx, "/certs/server-ca.pem")
 		Expect(err).ToNot(HaveOccurred())
@@ -38,7 +39,7 @@ var _ = Describe("Main", Ordered, func() {
 		// TODO
 		// this file would normally be written by the replicator. For now it's expected to run on the same host as the replica mysqld
 		// the code will write it into 'datadir'. it needs to be accessible to the bpm process of mysqld
-		err = targetContainer.CopyFileToContainer(ctx, f.Name(), fmt.Sprintf("%s/source-server-ca.pem", "/tmp"), 644)
+		err = targetContainer.CopyFileToContainer(ctx, f.Name(), fmt.Sprintf("/tmp/%s.ca.pem", source.Name), 644)
 		Expect(err).ToNot(HaveOccurred())
 		// targetContainer.CopyFileToContainer(
 		source.Creds.Username = replUser
@@ -47,8 +48,8 @@ var _ = Describe("Main", Ordered, func() {
 		repClient := client.ReplClient{
 			Source:  source,
 			Target:  target,
-			DataDir: "/tmp",
-			DumpDir: "/tmp",
+			DataDir: "/tmp/data",
+			DumpDir: "/tmp/dump",
 			BinPath: testhelper.DataDir,
 		}
 
@@ -70,7 +71,7 @@ var _ = Describe("Main", Ordered, func() {
 		Eventually(logBuffer, 180).Should(gbytes.Say("replication state:"))
 		Eventually(logBuffer, 300).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes"))
 		Eventually(logBuffer, 300).Should(gbytes.Say("SQLDelay: 0, SecondsBehind: 0"))
-		Eventually(logBuffer, 300).Should(gbytes.Say("Source_SSL_CA_File:/tmp/source-server-ca.pem"))
+		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_SSL_CA_File:/tmp/%s.ca.pem", sourceName)))
 		Eventually(logBuffer, 300).Should(gbytes.Say("Source_SSL_Allowed:Yes"))
 		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_User:%s", replUser)))
 		defer rep.Terminate(context.Background())

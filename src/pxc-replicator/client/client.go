@@ -2,12 +2,14 @@
 package client
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -134,9 +136,91 @@ func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 	return nil
 }
 
+func (r ReplClient) FindElligibleBackup() (string, error) {
+	entries, err := os.ReadDir(r.DumpDir)
+	if err != nil {
+		return "", fmt.Errorf("failed listing dumpdir `%s`: %w", r.DataDir, err)
+	}
+
+	db, err := r.ConnectSource()
+	if err != nil {
+		return "", fmt.Errorf("failed creating connection to check backup usability: %w", err)
+	}
+	defer db.Close()
+	for _, dirEntry := range entries {
+
+		fileName := fmt.Sprintf("%s/%s", r.DumpDir, dirEntry.Name())
+		log.Default().Printf("found backup, checking if elligibe: %s", fileName)
+		if dirEntry.Type().IsRegular() {
+			dump, err := os.Open(fileName)
+			if err != nil {
+				log.Default().Printf("skipping %s, could not open: %s", fileName, err.Error())
+			}
+			fileReader := bufio.NewReader(dump)
+			for {
+				line, err := fileReader.ReadString('\n')
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					log.Printf("failed reading line of file `%s`: %s", fileName, err.Error())
+				}
+				GTIDPurged, found := utils.ParseGTIDFromLine(line)
+				if !found {
+					continue
+				}
+				query := `SELECT GTID_SUBSET(@@global.gtid_purged, ?) AS is_backup_usable;`
+				args := []any{GTIDPurged}
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				result, err := db.QueryContext(ctx, query, args...)
+				if err != nil {
+					log.Default().Printf("failed to query source to check if backup `%s` is elligible", fileName)
+					continue
+				}
+				for result.Next() {
+					success := sql.NullBool{}
+					result.Scan(&success)
+					log.Default().Printf("backup GTID `%s` restoreable: %v", GTIDPurged, success.Bool && success.Valid)
+					if success.Bool && success.Valid {
+						return fileName, nil
+					}
+				}
+			}
+		}
+	}
+	log.Default().Println("no matching backup found")
+	return "", nil
+}
+
+func (r ReplClient) InitFiles() error {
+	if err := utils.WriteCertFiles(r.Source, r.DataDir); err != nil {
+		return fmt.Errorf("failed writing source certs: %w", err)
+	}
+
+	if err := utils.WriteCertFiles(r.Target, r.DataDir); err != nil {
+		return fmt.Errorf("failed writing target certs: %w", err)
+	}
+	// the source defaults file is used by mysqldump, it should use the non admin creds
+	if _, err := utils.WriteMysqlCnf(r.Source, r.DataDir, false); err != nil {
+		return fmt.Errorf("failed writing source defaults-file: %w", err)
+	}
+
+	// the target defaults file is used by mysql cli for the restore, it should use the admin creds
+	if _, err := utils.WriteMysqlCnf(r.Target, r.DataDir, true); err != nil {
+		return fmt.Errorf("failed writing source defaults-file: %w", err)
+	}
+
+	return nil
+}
+
 func (r ReplClient) Setup() error {
 	log.Default().Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
 
+	if err := r.InitFiles(); err != nil {
+		log.Default().Printf("failed writing config and certificate files to %s", r.DataDir)
+		return fmt.Errorf("failed to init files: %w", err)
+	}
 	sourceCon, err := r.ConnectSource()
 	if err != nil {
 		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Source.Name, err)
@@ -229,7 +313,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 				continue
 			}
 			if err != nil {
-				log.Printf("failed converting value for %s from %s", columns[k], v)
+				log.Default().Printf("failed converting value for %s from %s", columns[k], v)
 			}
 		}
 	}
@@ -238,14 +322,19 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 }
 
 func (r ReplClient) SyncSourceToTarget() error {
-	dumpClient, err := dumper.New(r.Source, r.DumpDir, r.BinPath)
+	dumpClient, err := dumper.New(r.Source, r.DumpDir, r.DataDir, r.BinPath)
 	if err != nil {
 		return fmt.Errorf("failed creating dumpClient for sync: %w", err)
 	}
-
-	backupFullPath, err := dumpClient.Dump()
+	backupFullPath, err := r.FindElligibleBackup()
 	if err != nil {
-		return fmt.Errorf("failed backing up source: %w", err)
+		log.Default().Printf("failed checking elligibility of existing backups: %s", err.Error())
+	}
+	if backupFullPath == "" {
+		backupFullPath, err = dumpClient.Dump()
+		if err != nil {
+			return fmt.Errorf("failed backing up source: %w", err)
+		}
 	}
 
 	err = dumpClient.Restore(backupFullPath, r.Target)
@@ -273,11 +362,7 @@ func (r ReplClient) Configure(db *sql.DB) error {
 	if r.Source.Certs.CA != "" {
 		log.Println("found certs for encryption")
 		if len(r.Source.Certs.CA) > 0 {
-			caFileName := fmt.Sprintf("%s/source-server-ca.pem", r.DataDir)
-			err = os.WriteFile(caFileName, []byte(r.Source.Certs.CA), 0o644)
-			if err != nil {
-				return fmt.Errorf("failed writing source-server-ca file: %w", err)
-			}
+			caFileName := fmt.Sprintf("%s/%s.ca.pem", r.DataDir, r.Source.Name)
 			args = append(args, caFileName)
 			log.Default().Println("found TLS DATA, will encrypt the replication connection")
 			query = fmt.Sprintf(`%s,
@@ -405,6 +490,6 @@ func (r ReplClient) connect(name, connectionString string, certs config.Certs, d
 	// TODO figure out if we should set any connection defaults.
 	// db.SetConnMaxLifetime(time.Second * 15)
 	// db.SetConnMaxIdleTime(time.Second * 5)
-	log.Printf("successfully connected to: %s", name)
+	log.Default().Printf("successfully connected to: %s", name)
 	return db, nil
 }
