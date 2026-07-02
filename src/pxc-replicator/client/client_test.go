@@ -308,7 +308,7 @@ var _ = Describe("Client/Client", func() {
 			Expect(state.SQLRunning).To(Equal("Yes"))
 			Expect(state.IORunning).To(Equal("Yes"))
 			Expect(state.Misc).ToNot(BeEmpty())
-			log.Default().Printf("%v", state.Misc)
+			log.Printf("%v", state.Misc)
 		})
 		It("will have the same values in the replica", func() {
 			db, err := replClient.ConnectTarget()

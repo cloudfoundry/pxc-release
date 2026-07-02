@@ -106,9 +106,12 @@ type StdoutLogConsumer struct {
 }
 
 func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
-	log.Default().Println("mysql:", string(l.Content))
+	log.Println("mysql:", string(l.Content))
 	if lc.Buffer != nil {
-		lc.Buffer.Write(l.Content)
+		_, err := lc.Buffer.Write(l.Content)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -129,7 +132,7 @@ func writeKeyFile(path, name string) (key *rsa.PrivateKey, bytes []byte) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
-	log.Default().Printf("generated %s at %s", name, file.Name())
+	log.Printf("generated %s at %s", name, file.Name())
 
 	keyBytes := pem.EncodeToMemory(block)
 	_, err = file.Write(keyBytes)
@@ -189,7 +192,7 @@ func writeCertFile(filename, path string, names []string, serverKeyPublic *rsa.P
 	}
 	pemBytes := pem.EncodeToMemory(&block)
 	serverCertFile, err := os.Create(fmt.Sprintf("%s/%s-%s", path, filename, "cert.pem"))
-	log.Default().Printf("wrote: %s", serverCertFile.Name())
+	log.Printf("wrote: %s", serverCertFile.Name())
 	Expect(err).ToNot(HaveOccurred())
 
 	_, err = serverCertFile.Write(pemBytes)

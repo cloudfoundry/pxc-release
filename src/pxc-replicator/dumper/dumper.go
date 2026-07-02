@@ -44,7 +44,7 @@ func (d Dumper) GetRestoreCommand(flags ...string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysql command: %w", err)
 	}
-	log.Default().Println("args:", args)
+	log.Println("args:", args)
 
 	return exec.Command(d.mysqlBin,
 		args...,
@@ -60,7 +60,7 @@ func (d Dumper) GetDumpCommand(flags ...string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed generating mysqldump command: %w", err)
 	}
-	log.Default().Println("args:", args)
+	log.Println("args:", args)
 	return exec.Command(d.mysqlDumpBin,
 		args...,
 	), nil
@@ -133,12 +133,12 @@ func New(target config.Target, dumpPath, dataPath, binPath string) (Dumper, erro
 
 	cmd, err := d.GetDumpCommand("--version")
 	if err != nil {
-		log.Default().Printf("using binary at: `%s`", mysqlDumpBinName)
+		log.Printf("using binary at: `%s`", mysqlDumpBinName)
 		return Dumper{}, fmt.Errorf("failed checking version of mysqldump: %w", err)
 	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Default().Printf("using binary at: `%s`", mysqlDumpBinName)
+		log.Printf("using binary at: `%s`", mysqlDumpBinName)
 		return Dumper{}, fmt.Errorf("failed checking version of mysqldump: %w", err)
 	}
 	versionMatchRE := regexp.MustCompile(fmt.Sprintf("Ver %s", target.Version))
@@ -152,12 +152,12 @@ func New(target config.Target, dumpPath, dataPath, binPath string) (Dumper, erro
 // Restore feeds the file at filename into a mysql process to restore the database described by target.
 // It rewrites d.target for this operation and returns an error on failure.
 func (d Dumper) Restore(filename string, target config.Target) error {
-	log.Default().Println("starting restore")
+	log.Println("starting restore")
 	inputFile, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed opening file containing the backup: %w", err)
 	}
-	defer inputFile.Close()
+	defer utils.CloseAndLogError(inputFile)
 
 	// we only need to reset this in this scope, so no pointer receiver on the method.
 	d.target = target
@@ -166,16 +166,16 @@ func (d Dumper) Restore(filename string, target config.Target) error {
 	if err != nil {
 		return fmt.Errorf("failed generating restore command: %s", err)
 	}
-	log.Default().Printf("generated mysql args %s", cmd)
+	log.Printf("generated mysql args %s", cmd)
 	cmd.Stdin = inputFile
 	out, err := cmd.CombinedOutput()
-	log.Default().Printf("importing dump %s", filename)
+	log.Printf("importing dump %s", filename)
 	if err != nil {
-		log.Default().Printf("mysql output: %s", string(out))
+		log.Printf("mysql output: %s", string(out))
 		return fmt.Errorf("failed restoring dump at %s: %w", filename, err)
 	}
 	if len(out) > 0 {
-		log.Default().Printf("import output: `%s`", string(out))
+		log.Printf("import output: `%s`", string(out))
 	}
 	return nil
 }
@@ -189,7 +189,7 @@ func (d Dumper) Dump() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed creating file: %w", err)
 	}
-	log.Default().Printf("will save dump at %s", dumpFile.Name())
+	log.Printf("will save dump at %s", dumpFile.Name())
 	defer utils.CloseAndLogError(dumpFile)
 	cmd, err := d.GetDumpCommand([]string{"--all-databases", "--triggers", "--events", "--routines", "--single-transaction"}...)
 	if err != nil {
@@ -204,6 +204,6 @@ func (d Dumper) Dump() (string, error) {
 		return "", fmt.Errorf("failed taking backup with mysqldump: Stderr: `%s`, err: %w", errBuffer.String(), err)
 	}
 
-	log.Default().Printf("finished backup: %s", dumpFile.Name())
+	log.Printf("finished backup: %s", dumpFile.Name())
 	return dumpFile.Name(), nil
 }
