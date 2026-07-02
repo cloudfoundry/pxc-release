@@ -23,6 +23,9 @@ const (
 )
 
 func WriteCertFiles(target config.Target, dataDir string) error {
+	if target.Certs.CA == "" {
+		return nil
+	}
 	caCertFile := fmt.Sprintf("%s/%s.%s", dataDir, target.Name, CASuffix)
 	if err := os.WriteFile(caCertFile, []byte(target.Certs.CA), 0o600); err != nil {
 		return fmt.Errorf("failed writing ca.pem for `%s`: %w", target.Name, err)

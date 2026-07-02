@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
 	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/replicator/dumper"
 	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
 	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -99,7 +100,7 @@ var _ = Describe("Client/Client", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(path).ToNot(BeEmpty())
 		})
-		It("skips taking another backup if it finds a usable one", func() {
+		It("skips taking another backup on sync if it finds a usable one", func() {
 			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient.Target = targetFromHost
 			Expect(replClient.InitFiles()).To(Succeed())
@@ -110,6 +111,46 @@ var _ = Describe("Client/Client", func() {
 			entries, err = os.ReadDir(replClient.DumpDir)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(entries).To(HaveLen(1))
+		})
+		Describe("cleaning backups", Ordered, func() {
+			BeforeEach(func() {
+				backups, err := replClient.ListBackups()
+				Expect(err).ToNot(HaveOccurred())
+				if len(backups) > 2 {
+					for _, file := range backups[2:] {
+						Expect(os.Remove(file)).To(Succeed())
+					}
+				}
+				dumper, err := dumper.New(replClient.Source, replClient.DumpDir, replClient.DataDir, replClient.BinPath)
+				Expect(err).ToNot(HaveOccurred())
+				_, err = dumper.Dump()
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("works", func() {
+				By("checking that it won't clean anything if not activated", func() {
+					paths, err := replClient.ListBackups()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(paths).To(HaveLen(2))
+					replClient.CleanBackups()
+					paths, err = replClient.ListBackups()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(paths).To(HaveLen(2))
+				})
+				By("checking that it will keep one backup", func() {
+					replClient.CleanExpiredBackups = true
+					replClient.CleanBackups()
+					paths, err := replClient.ListBackups()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(paths).To(HaveLen(1))
+				})
+				By("checking that it will keep one backup", func() {
+					replClient.CleanExpiredBackups = true
+					replClient.CleanBackups()
+					paths, err := replClient.ListBackups()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(paths).To(HaveLen(1))
+				})
+			})
 		})
 	})
 	Describe("checking if replication is enablded", func() {

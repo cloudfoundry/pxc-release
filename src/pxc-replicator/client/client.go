@@ -76,12 +76,53 @@ func (r ReplState) String() string {
 }
 
 type ReplClient struct {
-	Source  config.Target `yaml:"source"`
-	Target  config.Target `yaml:"target"`
-	DataDir string        `yaml:"datadir"` // DataDir needs to be accessible by the mysql process.
-	DumpDir string        `yaml:"dumpdir"`
-	BinPath string        `yaml:"bindir"`
-	Version string        `yaml:"version"`
+	Source              config.Target `yaml:"source"`
+	Target              config.Target `yaml:"target"`
+	DataDir             string        `yaml:"datadir"` // DataDir needs to be accessible by the mysql process.
+	DumpDir             string        `yaml:"dumpdir"`
+	BinPath             string        `yaml:"bindir"`
+	Version             string        `yaml:"version"`
+	CleanExpiredBackups bool          `yaml:"clean_expired_backups"`
+}
+
+func (r ReplClient) CleanBackups() {
+	if !r.CleanExpiredBackups {
+		return
+	}
+	paths, err := r.ListBackups()
+	if err != nil {
+		log.Default().Printf("failed cleaning backups: %s", err.Error())
+	}
+	db, err := r.ConnectSource()
+	if err != nil {
+		log.Default().Printf("failed cleaning backups, cannot reach source: %s", err.Error())
+	}
+	defer utils.CloseAndLogError(db)
+	foundRestorable := false
+	for _, path := range paths {
+		if foundRestorable {
+			log.Default().Printf("cleaning `%s`, found newer restorable backup", path)
+			err := os.Remove(path)
+			if err != nil {
+				log.Printf("failed cleaning: `%s`", err.Error())
+			}
+			continue
+		}
+		gtid, ok := r.GetGTIDFromBackupFile(path)
+		if !ok {
+			log.Default().Printf("failed getting gtid from `%s`, skipping clean", path)
+			continue
+		}
+		restorable, err := r.CheckGTIDRestorable(db, gtid)
+		if err != nil {
+			log.Printf("failed checking gtid from `%s`, skipping clean", path)
+		}
+		if !restorable {
+			os.Remove(path)
+			continue
+		}
+		foundRestorable = true
+	}
 }
 
 func (r ReplClient) CheckVersion(source, target *sql.DB) error {
@@ -136,57 +177,84 @@ func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 	return nil
 }
 
-func (r ReplClient) FindElligibleBackup() (string, error) {
+func (r ReplClient) ListBackups() ([]string, error) {
 	entries, err := os.ReadDir(r.DumpDir)
 	if err != nil {
-		return "", fmt.Errorf("failed listing dumpdir `%s`: %w", r.DataDir, err)
+		return nil, fmt.Errorf("failed listing dumpdir `%s`: %w", r.DataDir, err)
 	}
+	result := []string{}
+	for _, dirEntry := range entries {
+		if !dirEntry.Type().IsRegular() {
+			continue
+		}
+		fileName := fmt.Sprintf("%s/%s", r.DumpDir, dirEntry.Name())
+		result = append(result, fileName)
+	}
+	return result, nil
+}
 
+func (r ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
+	dump, err := os.Open(fileName)
+	if err != nil {
+		log.Default().Printf("skipping %s, could not open: %s", fileName, err.Error())
+	}
+	fileReader := bufio.NewReader(dump)
+	for {
+		line, err := fileReader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Printf("failed reading line of file `%s`: %s", fileName, err.Error())
+		}
+		GTIDPurged, found := utils.ParseGTIDFromLine(line)
+		if found {
+			return GTIDPurged, true
+		}
+	}
+	return "", false
+}
+
+func (r ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) {
+	query := `SELECT GTID_SUBSET(@@global.gtid_purged, ?) AS is_backup_usable;`
+	args := []any{gtid}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return false, fmt.Errorf("failed to query source to check if backup `%s` is elligible: %w", gtid, err)
+	}
+	for result.Next() {
+		success := sql.NullBool{}
+		result.Scan(&success)
+		log.Default().Printf("backup GTID `%s` restoreable: %v", gtid, success.Bool && success.Valid)
+		return success.Bool && success.Valid, nil
+	}
+	return false, nil
+}
+
+func (r ReplClient) FindElligibleBackup() (string, error) {
+	backupsPaths, err := r.ListBackups()
+	if err != nil {
+		return "", fmt.Errorf("failed discovering backups: %w", err)
+	}
 	db, err := r.ConnectSource()
 	if err != nil {
 		return "", fmt.Errorf("failed creating connection to check backup usability: %w", err)
 	}
 	defer db.Close()
-	for _, dirEntry := range entries {
-
-		fileName := fmt.Sprintf("%s/%s", r.DumpDir, dirEntry.Name())
-		log.Default().Printf("found backup, checking if elligibe: %s", fileName)
-		if dirEntry.Type().IsRegular() {
-			dump, err := os.Open(fileName)
-			if err != nil {
-				log.Default().Printf("skipping %s, could not open: %s", fileName, err.Error())
-			}
-			fileReader := bufio.NewReader(dump)
-			for {
-				line, err := fileReader.ReadString('\n')
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					log.Printf("failed reading line of file `%s`: %s", fileName, err.Error())
-				}
-				GTIDPurged, found := utils.ParseGTIDFromLine(line)
-				if !found {
-					continue
-				}
-				query := `SELECT GTID_SUBSET(@@global.gtid_purged, ?) AS is_backup_usable;`
-				args := []any{GTIDPurged}
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				defer cancel()
-				result, err := db.QueryContext(ctx, query, args...)
-				if err != nil {
-					log.Default().Printf("failed to query source to check if backup `%s` is elligible", fileName)
-					continue
-				}
-				for result.Next() {
-					success := sql.NullBool{}
-					result.Scan(&success)
-					log.Default().Printf("backup GTID `%s` restoreable: %v", GTIDPurged, success.Bool && success.Valid)
-					if success.Bool && success.Valid {
-						return fileName, nil
-					}
-				}
-			}
+	for _, fileName := range backupsPaths {
+		GTIDPurged, found := r.GetGTIDFromBackupFile(fileName)
+		if !found {
+			continue
+		}
+		restorable, err := r.CheckGTIDRestorable(db, GTIDPurged)
+		if err != nil {
+			log.Default().Printf("failed to query source to check if backup `%s` is elligible", fileName)
+			continue
+		}
+		if restorable {
+			return fileName, nil
 		}
 	}
 	log.Default().Println("no matching backup found")
