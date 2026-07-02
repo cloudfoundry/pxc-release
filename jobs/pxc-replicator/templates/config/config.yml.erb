@@ -22,13 +22,12 @@ source:
   name: source
 <%-
 if_link('source') do |link|
-  ca = ""
-
+  tls = {}
   link.if_p('tls.server.ca') do |val|
-   ca = val
+   tls["ca"] = val
   end.else do
     if_p('source_tls.ca') do |val|
-     ca = val
+     tls["ca"] = val
     end
   end
 -%>
@@ -37,8 +36,7 @@ if_link('source') do |link|
   port: <%= link.p('port') %>
   version: <%= link.p('mysql_version') %>
   creds: <%= JSON.dump(source_creds) %>
-  tls:
-    ca: <%= ca %>
+  tls: <%= JSON.dump(tls) %>
 <%-
 end.else do
 -%>
@@ -47,34 +45,39 @@ end.else do
   port: <%= p('source_port') %>
   version: <%= p('mysql_version') %>
   creds: <%= JSON.dump(source_creds) %>
-  tls:
-    ca: <%= ca %>
+  tls: <%= JSON.dump(tls) %>
 <%-
 end
-target_creds = {
-  "admin_username" => p('target_admin_username'),
-  "admin_password" => p('target_admin_password'),
-}
 -%>
 #TARGET
 target:
   name: target
-<% if_link('target') do |link| -%>
+<%-
+target_creds = {
+  "admin_username" => p('target_admin_username'),
+  "admin_password" => p('target_admin_password'),
+}
+if_link('target') do |link|
+tls = {}
+link.if_p('tls.server.ca') do |ca|
+  tls["ca"] = ca
+end.else do
+  if_p("target_tls.ca") do |ca|
+    tls["ca"] = ca
+  end
+end
+-%>
   version: <%= link.p('mysql_version') %>
   host: localhost
   port: <%= link.p('port') %>
   creds: <%= JSON.dump(target_creds) %>
-  <%- if link.p('tls.server.ca') do |ca| -%>
-  tls:
-    ca: <%= tls.ca %>
-  <%- end -%>
-<%- end end.else do -%>
+  tls: <%= JSON.dump(tls) %>
+<%-
+end.else do
+-%>
   host: <%= p('target_host') %>
   port: <%= p('target_port') %>
   version: <%= p('mysql_version') %>
   creds: <%= JSON.dump(target_creds) %>
-  <%- if p('target_tls.ca') do |ca| -%>
-  tls:
-    ca: <%= tls.ca %>
-  <%- end -%>
-<%- end end -%>
+  tls: <%= JSON.dump(tls) %>
+<%- end -%>
