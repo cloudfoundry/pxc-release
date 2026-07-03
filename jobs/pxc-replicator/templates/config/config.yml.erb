@@ -23,7 +23,7 @@ source:
 <%-
 if_link('source') do |link|
   tls = {}
-  link.if_p('tls.server.ca') do |val|
+  link.if_p('tls.client.ca') do |val|
    tls["ca"] = val
   end.else do
     if_p('source_tls.ca') do |val|
@@ -59,7 +59,7 @@ target_creds = {
 }
 if_link('target') do |link|
 tls = {}
-link.if_p('tls.server.ca') do |ca|
+link.if_p('tls.client.ca') do |ca|
   tls["ca"] = ca
 end.else do
   if_p("target_tls.ca") do |ca|
