@@ -57,7 +57,8 @@ provides:
   - port
   - pxc_enabled
   - mysql_version
-  - tls.server
+  - tls.client.ca
+
 - name: internal-mysql-database
   type: internal-database
 - name: mysql-backup-user-creds

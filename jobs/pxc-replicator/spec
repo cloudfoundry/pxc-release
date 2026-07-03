@@ -62,6 +62,11 @@ properties:
     description: ca certificate in pem format to validate the target instance
 
   #GENERAL
+  clean_expired_backups:
+    description: |
+      To setup replication, pxc replicator will run an initial sync that takes a backup via mysqldump of the source. Re-Syncing is necessary in some cases where the replication breaks in a way where the incoming transactions from the source do not cleanly apply.
+      Enabling this setting will cleanup "expired" backups once the contained GTID is too old to reconnect the target with the source. When multiple viable backups are cached, only the latest viable backup is kept.
+    default: true
   mysql_version:
     description: 'the version of mysql deployed for source and target. Both deployments should use the same version.'
     default: 8.4
