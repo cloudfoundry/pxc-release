@@ -76,7 +76,7 @@ type TestDataRow struct {
 }
 
 func GenerateTestData(target config.Target, dbName, tableName string, numberRows int) {
-	r := client.ReplClient{
+	r := &client.ReplClient{
 		Source: target,
 	}
 	db, err := r.ConnectSource()
@@ -84,10 +84,11 @@ func GenerateTestData(target config.Target, dbName, tableName string, numberRows
 
 	_, err = db.Exec(fmt.Sprintf("Create DATABASE IF NOT EXISTS %s;", backtick(dbName)))
 	Expect(err).ToNot(HaveOccurred())
-	Expect(db.Close()).To(Succeed())
+	r.Close()
 
-	db, err = r.ConnectSource(dbName)
+	db, err = r.ConnectSourceDBUncached(dbName)
 	Expect(err).ToNot(HaveOccurred())
+	defer utils.CloseAndLogError(db)
 	_, err = db.Exec(fmt.Sprintf(`CREATE TABLE %s (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,7 +111,7 @@ func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 	if lc.Buffer != nil {
 		_, err := lc.Buffer.Write(l.Content)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("logging error:", err)
 		}
 	}
 }
@@ -146,8 +147,8 @@ func writeCaFile(path, name string, caPrivateKey *rsa.PrivateKey) (*x509.Certifi
 		Subject: pkix.Name{
 			CommonName: name,
 		},
-		NotBefore:             time.Now().AddDate(0, 0, -1),
-		NotAfter:              time.Now().AddDate(0, 0, 1), // 10 years
+		NotBefore:             time.Now().AddDate(0, -1, -1),
+		NotAfter:              time.Now().AddDate(0, 1, 1),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -177,8 +178,8 @@ func writeCertFile(filename, path string, names []string, serverKeyPublic *rsa.P
 		Subject: pkix.Name{
 			CommonName: names[0],
 		},
-		NotBefore:   time.Now(),
-		NotAfter:    time.Now().AddDate(10, 0, 0),
+		NotBefore:   time.Now().AddDate(0, 0, -4),
+		NotAfter:    time.Now().AddDate(0, 0, 4),
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		DNSNames:    names,
@@ -269,7 +270,6 @@ func StartReplicatorInContainer(version string, config []byte, net *testcontaine
 	}
 	ctx := context.Background()
 	rep, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", Image, version), opts...)
-	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
 	Expect(err).ToNot(HaveOccurred())
 	return rep
 }

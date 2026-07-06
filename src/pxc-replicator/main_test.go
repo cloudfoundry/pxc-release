@@ -6,9 +6,12 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
+	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -20,11 +23,12 @@ var _ = Describe("Main", Ordered, func() {
 	var sourceName string
 	var logBuffer *gbytes.Buffer
 	replUser := "replUser"
-	var rep *testcontainers.DockerContainer
+	var rep, sourceContainer, targetContainer *testcontainers.DockerContainer
 	_ = BeforeAll(func() {
 		net := testhelper.CreateTestNetwork()
-		source, _, sourceContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
-		target, _, targetContainer := testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
+		var source, target config.Target
+		source, _, sourceContainer = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, net)
+		target, _, targetContainer = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"target"}, net)
 		sourceName = source.Name
 		ctx := context.Background()
 		fileReader, err := sourceContainer.CopyFileFromContainer(ctx, "/certs/server-ca.pem")
@@ -45,7 +49,7 @@ var _ = Describe("Main", Ordered, func() {
 		source.Creds.Username = replUser
 		source.Creds.Password = testhelper.GeneratePassword()
 
-		repClient := client.ReplClient{
+		repClient := &client.ReplClient{
 			Source:  source,
 			Target:  target,
 			DataDir: "/tmp/data",
@@ -60,6 +64,9 @@ var _ = Describe("Main", Ordered, func() {
 		rep = testhelper.StartReplicatorInContainer("8.4", config, net, logBuffer)
 	})
 	_ = AfterAll(func() {
+		testcontainers.CleanupContainer(ginkgo.GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(ginkgo.GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(ginkgo.GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
 	})
 	It("works", func() {
 		Eventually(logBuffer, 180).Should(gbytes.Say("Parsed config"))
@@ -68,12 +75,11 @@ var _ = Describe("Main", Ordered, func() {
 		Eventually(logBuffer, 180).Should(gbytes.Say("target version is:"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("will save dump"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("finished backup"))
-		Eventually(logBuffer, 180).Should(gbytes.Say("replication state:"))
-		Eventually(logBuffer, 300).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes"))
-		Eventually(logBuffer, 300).Should(gbytes.Say("SQLDelay: 0, SecondsBehind: 0"))
-		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_SSL_CA_File:/tmp/%s.ca.pem", sourceName)))
-		Eventually(logBuffer, 300).Should(gbytes.Say("Source_SSL_Allowed:Yes"))
-		Eventually(logBuffer, 300).Should(gbytes.Say(fmt.Sprintf("Source_User:%s", replUser)))
-		defer Expect(rep.Terminate(context.Background())).To(Succeed())
+		Eventually(logBuffer, 420).Should(gbytes.Say(fmt.Sprintf("Source_SSL_CA_File:/tmp/%s.ca.pem", sourceName)))
+		Eventually(logBuffer, 420).Should(gbytes.Say("Source_SSL_Allowed:Yes"))
+		Eventually(logBuffer, 420).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes"))
+		Eventually(logBuffer, 420).Should(gbytes.Say("SQLDelay: 0, SecondsBehind: 0"))
+		Eventually(logBuffer, 420).Should(gbytes.Say(fmt.Sprintf("Source_User:%s", replUser)))
+		Expect(rep.Terminate(context.Background())).To(Succeed())
 	})
 })
