@@ -278,6 +278,7 @@ var _ = Describe("Client/Client", func() {
 		It("can connect with the provided creds", func() {
 			Expect(sourceFromHost.Host).ToNot(BeEmpty())
 			db, err := replClient.ConnectSource()
+			Expect(db.Ping()).To(Succeed())
 			Expect(err).ToNot(HaveOccurred())
 			db, err = replClient.ConnectTarget()
 			Expect(err).ToNot(HaveOccurred())
