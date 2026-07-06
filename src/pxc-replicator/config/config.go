@@ -24,12 +24,19 @@ type (
 		Certs   Certs  `yaml:"certs"`
 		Version string `yaml:"version"`
 	}
+	// Creds holds MySQL authentication credentials.
+	// Username and Password are used for the regular replication user.
+	// AdminUsername and AdminPassword are used for administrative tasks
+	// such as creating the replication user.
 	Creds struct {
 		Username      string `yaml:"username"`
 		Password      string `yaml:"password"`
 		AdminUsername string `yaml:"admin_username"`
 		AdminPassword string `yaml:"admin_password"`
 	}
+	// Certs holds PEM-encoded TLS materials.
+	// CA is the certificate authority PEM used for server verification.
+	// Certificate and PrivateKey form a client key pair for mutual TLS.
 	Certs struct {
 		CA          string `yaml:"ca"`
 		Certificate string `yaml:"certificate"`
@@ -44,6 +51,8 @@ func (t Target) DSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/", t.Creds.Username, t.Creds.Password, t.Host, t.Port)
 }
 
+// AdminDSN returns a MySQL DSN using the admin credentials.
+// Format: "adminUser:adminPass@tcp(host:port)/".
 func (t Target) AdminDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/", t.Creds.AdminUsername, t.Creds.AdminPassword, t.Host, t.Port)
 }

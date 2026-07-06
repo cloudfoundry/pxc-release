@@ -1,4 +1,6 @@
-// Package client holds the client and the required sql calls
+// Package client provides the ReplClient type for managing MySQL replication.
+// It handles connection caching, replica user creation, backup management,
+// and full replication setup between a source and target Percona XtraDB Cluster.
 package client
 
 import (
@@ -36,6 +38,11 @@ const (
 	DATE_LAYOUT              = "060102 15:04:05"
 )
 
+// ReplState holds the parsed result of SHOW REPLICA STATUS.
+// Enabled indicates whether the replica returned any row set.
+// IORunning, SQLRunning, and SecondsBehind reflect the live replication status.
+// LastIOErrorTime and LastSQLErrorTime are nil when no recent errors exist.
+// Misc contains any unreferenced columns from the status row.
 type ReplState struct {
 	Enabled          bool
 	IORunning        string
@@ -50,6 +57,9 @@ type ReplState struct {
 	Misc             map[string]string
 }
 
+// String returns a human-readable summary of the replication state.
+// When replication is disabled it returns "disabled".
+// Recent IO and SQL errors (within the last 5 minutes) are included.
 func (r ReplState) String() string {
 	if !r.Enabled {
 		return "disabled"
@@ -76,6 +86,10 @@ func (r ReplState) String() string {
 	return line
 }
 
+// ReplClient manages MySQL replication between a source and a target cluster.
+// It caches database connections keyed by config.Target.Name and provides
+// helpers for replication setup, health checks, backup management, and cleanup.
+// Unexported fields mu and dbCache are used for concurrent-safe connection caching.
 type ReplClient struct {
 	Source              config.Target `yaml:"source"`
 	Target              config.Target `yaml:"target"`
@@ -119,6 +133,9 @@ func (r *ReplClient) getCachedDB(name, connectionString string, certs config.Cer
 	return db, nil
 }
 
+// CleanBackups removes backup files that are expired or not restorable.
+// It only operates when CleanExpiredBackups is enabled. Restorable backups
+// are determined by checking GTID_SUBSET against the source's gtid_purged.
 func (r *ReplClient) CleanBackups() {
 	if !r.CleanExpiredBackups {
 		return
@@ -163,6 +180,9 @@ func (r *ReplClient) CleanBackups() {
 	}
 }
 
+// CheckVersion verifies that the source and target MySQL versions
+// share the same major.minor release. It queries VERSION() on both
+// connections and compares the first two segments of the version string.
 func (r *ReplClient) CheckVersion(source, target *sql.DB) error {
 	var sourceVersion, targetVersion string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -215,6 +235,8 @@ func (r *ReplClient) CheckVersion(source, target *sql.DB) error {
 	return nil
 }
 
+// ListBackups returns the full paths of regular files in DumpDir.
+// It does not recurse into subdirectories and skips non-regular entries.
 func (r *ReplClient) ListBackups() ([]string, error) {
 	entries, err := os.ReadDir(r.DumpDir)
 	if err != nil {
@@ -259,6 +281,9 @@ func (r *ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 	return "", false
 }
 
+// CheckGTIDRestorable determines whether a given GTID is a subset of the
+// source's gtid_purged using GTID_SUBSET. Returns true if the backup GTID
+// is restorable, false otherwise. Errors are returned on query failures.
 func (r *ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) {
 	query := `SELECT GTID_SUBSET(@@global.gtid_purged, ?) AS is_backup_usable;`
 	args := []any{gtid}
@@ -282,6 +307,9 @@ func (r *ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) 
 	return false, nil
 }
 
+// FindElligibleBackup returns the path of the first backup file in DumpDir
+// whose GTID is restorable on the source. It iterates backups in directory
+// order and returns the first match. Returns empty string if none found.
 func (r *ReplClient) FindElligibleBackup() (string, error) {
 	backupsPaths, err := r.ListBackups()
 	if err != nil {
@@ -309,6 +337,10 @@ func (r *ReplClient) FindElligibleBackup() (string, error) {
 	return "", nil
 }
 
+// InitFiles writes TLS certificate files and MySQL defaults files for both
+// source and target into DataDir. The source defaults file uses non-admin
+// credentials (for mysqldump), while the target defaults file uses admin
+// credentials (for mysql restore).
 func (r *ReplClient) InitFiles() error {
 	if err := utils.WriteCertFiles(r.Source, r.DataDir); err != nil {
 		return fmt.Errorf("failed writing source certs: %w", err)
@@ -330,6 +362,12 @@ func (r *ReplClient) InitFiles() error {
 	return nil
 }
 
+// Setup performs the full replication setup sequence:
+//  1. Write certs and defaults files (InitFiles)
+//  2. Create or update the replica user if admin credentials exist
+//  3. Connect to source and target, check version compatibility
+//  4. If replication is not enabled, sync source to target
+//  5. Configure replication on the target (STOP/CHANGE/START REPLICA)
 func (r *ReplClient) Setup() error {
 	log.Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
 
@@ -372,6 +410,9 @@ func (r *ReplClient) Setup() error {
 	return r.Configure(targetCon)
 }
 
+// CheckReplication queries SHOW REPLICA STATUS and returns a ReplState
+// summarizing the current replication health. When no row set is returned,
+// Enabled is false and all other fields are zero-valued.
 func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -442,6 +483,9 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	return state, nil
 }
 
+// SyncSourceToTarget creates a logical dump of the source using mysqldump
+// and restores it to the target using mysql. If a restorable backup already
+// exists in DumpDir it is reused instead of taking a new dump.
 func (r *ReplClient) SyncSourceToTarget() error {
 	dumpClient, err := dumper.New(r.Source, r.DumpDir, r.DataDir, r.BinPath)
 	if err != nil {
@@ -466,6 +510,10 @@ func (r *ReplClient) SyncSourceToTarget() error {
 	return nil
 }
 
+// Configure sets up replication on the target by executing
+// STOP REPLICA, CHANGE REPLICATION SOURCE TO, and START REPLICA.
+// TLS CA certificate path is included in the CHANGE command when
+// Source.Certs.CA is set.
 func (r *ReplClient) Configure(db *sql.DB) error {
 	log.Println("stopping replication")
 	_, err := db.Exec(`STOP REPLICA;`)
