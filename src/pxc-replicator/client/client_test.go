@@ -10,14 +10,13 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"github.com/cloudfoundry/pxc-release/replicator/dumper"
 	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
-	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/testcontainers/testcontainers-go"
 )
 
 var _ = Describe("Client/Client", func() {
-	var replClient client.ReplClient
+	var replClient *client.ReplClient
 	var source, sourceFromHost, _, targetFromHost config.Target
 
 	Describe("using tls connections", Ordered, FlakeAttempts(3), func() {
@@ -27,7 +26,7 @@ var _ = Describe("Client/Client", func() {
 			source, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.VerifyCA, []string{"source"}, testNet)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  config.Target{},
 				DataDir: dataDir,
@@ -39,7 +38,8 @@ var _ = Describe("Client/Client", func() {
 		It("will work", func() {
 			db, err := replClient.ConnectSource()
 			Expect(err).To(BeNil())
-			Expect(db.Close()).To(Succeed())
+			Expect(db.Ping()).To(Succeed())
+			replClient.Close()
 		})
 	})
 
@@ -51,7 +51,7 @@ var _ = Describe("Client/Client", func() {
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
 			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
 				DumpDir: dataDir,
@@ -67,8 +67,7 @@ var _ = Describe("Client/Client", func() {
 			target, err := replClient.ConnectTarget()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(replClient.CheckVersion(source, target)).To(MatchError(MatchRegexp("sourceVersion: 8.0 does not match targetVersion: 8.4")))
-			Expect(source.Close()).To(Succeed())
-			Expect(target.Close()).To(Succeed())
+			replClient.Close()
 		})
 	})
 	Describe("it checks for elligible backups", Ordered, FlakeAttempts(3), func() {
@@ -80,7 +79,7 @@ var _ = Describe("Client/Client", func() {
 			testNet = testhelper.CreateTestNetwork()
 			_, sourceFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"source"}, testNet)
 			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Target:  targetFromHost,
 				Source:  sourceFromHost,
 				DataDir: dataDir,
@@ -158,7 +157,7 @@ var _ = Describe("Client/Client", func() {
 			testNet := testhelper.CreateTestNetwork()
 
 			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Target:  targetFromHost,
 				DataDir: dataDir,
 				DumpDir: dataDir,
@@ -170,10 +169,10 @@ var _ = Describe("Client/Client", func() {
 		It("will return state with Enabled=false", func() {
 			db, err := replClient.ConnectTarget()
 			Expect(err).ToNot(HaveOccurred())
-			defer utils.CloseAndLogError(db)
 			state, err := replClient.CheckReplication(db)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(state.Enabled).To(BeFalse())
+			replClient.Close()
 		})
 	})
 	Describe("creating the replica user", Ordered, FlakeAttempts(3), func() {
@@ -185,7 +184,7 @@ var _ = Describe("Client/Client", func() {
 			sourceFromHost.Creds.Password = ""
 			sourceFromHost.Creds.Username = ""
 
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
 				DataDir: dataDir,
@@ -197,7 +196,9 @@ var _ = Describe("Client/Client", func() {
 		It("will not create a user when no creds were provided", func() {
 			Expect(replClient.Source.Creds.Password).To(BeEmpty())
 			Expect(replClient.Source.Creds.Username).To(BeEmpty())
-			_, err := replClient.ConnectSource()
+			// close all cached connections
+			replClient.Close()
+			err := replClient.CreateReplicaUserWithAdminConnection()
 			Expect(err).To(MatchError(MatchRegexp("admin credentials provided but backup user name and password are missing")))
 		})
 		It("will create a user when creds were provided", func() {
@@ -209,9 +210,8 @@ var _ = Describe("Client/Client", func() {
 
 			replClient.Source.Creds.Username = username
 			replClient.Source.Creds.Password = password
-			replClient.Source.Creds.AdminUsername = ""
-			replClient.Source.Creds.AdminPassword = ""
-
+			// close all cached connections
+			replClient.Close()
 			// user doesn't exist yet
 			_, err := replClient.ConnectSource()
 			Expect(err).To(MatchError(MatchRegexp(fmt.Sprintf("Access denied for user '%s'", username))))
@@ -219,9 +219,12 @@ var _ = Describe("Client/Client", func() {
 			// this will ensure the above user exists
 			replClient.Source.Creds.AdminUsername = adminUser
 			replClient.Source.Creds.AdminPassword = adminPass
+			Expect(replClient.CreateReplicaUserWithAdminConnection()).To(Succeed())
 			_, err = replClient.ConnectSource()
 			Expect(err).ToNot(HaveOccurred())
 
+			// close all cached connections
+			replClient.Close()
 			// completely remove admin creds, to prove that the new user exists
 			source.Creds.Username = username
 			source.Creds.Password = password
@@ -240,7 +243,7 @@ var _ = Describe("Client/Client", func() {
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
 			_, targetFromHost, _ = testhelper.StartPXCInstance(testhelper.GeneratePassword(), testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
 				DataDir: dataDir,
@@ -263,7 +266,7 @@ var _ = Describe("Client/Client", func() {
 			source.Creds.AdminUsername, source.Creds.AdminPassword = "", ""
 			_, targetFromHost, _ = testhelper.StartPXCInstance("test", testhelper.Tag, testhelper.TLSDisabled, []string{"target"}, testNet)
 
-			replClient = client.ReplClient{
+			replClient = &client.ReplClient{
 				Source:  sourceFromHost,
 				Target:  targetFromHost,
 				DataDir: dataDir,
@@ -275,11 +278,11 @@ var _ = Describe("Client/Client", func() {
 		It("can connect with the provided creds", func() {
 			Expect(sourceFromHost.Host).ToNot(BeEmpty())
 			db, err := replClient.ConnectSource()
-			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			db, err = replClient.ConnectTarget()
-			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(db.Ping()).To(Succeed())
+			replClient.Close()
 		})
 		It("will dump and import the source", func() {
 			replClient.Source = sourceFromHost
@@ -290,25 +293,23 @@ var _ = Describe("Client/Client", func() {
 			// else the replica will try to connect to localhost:<dynPort> and fail...
 			replClient.Source = source
 			db, err := replClient.ConnectTarget()
-			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(replClient.Configure(db)).To(Succeed())
-			Expect(db.Close()).To(Succeed())
+			replClient.Close()
 		})
 		It("gets the replication state", func() {
 			db, err := replClient.ConnectTarget()
-			defer utils.CloseAndLogError(db)
 			Expect(err).ToNot(HaveOccurred())
 			testhelper.GenerateTestData(targetFromHost, "first", "moredata", 100)
 			state, err := replClient.CheckReplication(db)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(state).ToNot(Equal(client.ReplState{}))
-			Expect(db.Close()).To(Succeed())
 			Expect(state.SQLRunning).To(Equal("Yes"))
 			Expect(state.IORunning).To(Equal("Yes"))
 			Expect(state.Misc).ToNot(BeEmpty())
 			log.Printf("%v", state.Misc)
+			replClient.Close()
 		})
 		It("will have the same values in the replica", func() {
 			db, err := replClient.ConnectTarget()
@@ -329,7 +330,7 @@ var _ = Describe("Client/Client", func() {
 	})
 })
 
-func endToEnd(replClient client.ReplClient, source config.Target) {
+func endToEnd(replClient *client.ReplClient, source config.Target) {
 	Expect(replClient.SyncSourceToTarget()).To(Succeed())
 	db, err := replClient.ConnectTarget()
 	Expect(err).ToNot(HaveOccurred())
@@ -344,5 +345,5 @@ func endToEnd(replClient client.ReplClient, source config.Target) {
 		return state.SQLRunning == "Yes" && state.IORunning == "Yes"
 	}, time.Minute).Should(BeTrue())
 	Expect(err).ToNot(HaveOccurred())
-	Expect(db.Close()).To(Succeed())
+	replClient.Close()
 }

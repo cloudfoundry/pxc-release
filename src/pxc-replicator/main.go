@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
-	"github.com/cloudfoundry/pxc-release/replicator/utils"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -47,11 +46,12 @@ func main() {
 		log.Fatalf("starting job failed: %s", err)
 	}
 
+	defer replClient.Close()
+
 	conn, err := replClient.ConnectTarget()
 	if err != nil {
 		log.Fatalf("failed setting up connection for healthcheck: %s", err)
 	}
-	defer utils.CloseAndLogError(conn)
 	consecutiveFailureCount := 0
 	for {
 		state, err := replClient.CheckReplication(conn)

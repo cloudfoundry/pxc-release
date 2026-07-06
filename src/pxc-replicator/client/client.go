@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
@@ -78,14 +79,47 @@ func (r ReplState) String() string {
 type ReplClient struct {
 	Source              config.Target `yaml:"source"`
 	Target              config.Target `yaml:"target"`
-	DataDir             string        `yaml:"datadir"` // DataDir needs to be accessible by the mysql process.
+	DataDir             string        `yaml:"datadir"`
 	DumpDir             string        `yaml:"dumpdir"`
 	BinPath             string        `yaml:"bindir"`
 	Version             string        `yaml:"version"`
 	CleanExpiredBackups bool          `yaml:"clean_expired_backups"`
+	mu                  sync.Mutex
+	dbCache             map[string]*sql.DB
 }
 
-func (r ReplClient) CleanBackups() {
+func (r *ReplClient) getCachedDB(name, connectionString string, certs config.Certs) (*sql.DB, error) {
+	r.mu.Lock()
+	if r.dbCache == nil {
+		r.dbCache = make(map[string]*sql.DB)
+	}
+	db, ok := r.dbCache[name]
+	if ok {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		err := db.PingContext(ctx)
+		if err == nil {
+			r.mu.Unlock()
+			return db, nil
+		}
+		log.Printf("cached connection `%s` is stale, reconnecting", name)
+		utils.CloseAndLogError(db)
+		delete(r.dbCache, name)
+	}
+	r.mu.Unlock()
+
+	db, err := r.connect(name, connectionString, certs)
+	if err != nil {
+		return nil, err
+	}
+
+	r.mu.Lock()
+	r.dbCache[name] = db
+	r.mu.Unlock()
+	return db, nil
+}
+
+func (r *ReplClient) CleanBackups() {
 	if !r.CleanExpiredBackups {
 		return
 	}
@@ -96,8 +130,8 @@ func (r ReplClient) CleanBackups() {
 	db, err := r.ConnectSource()
 	if err != nil {
 		log.Printf("failed cleaning backups, cannot reach source: %s", err.Error())
+		return
 	}
-	defer utils.CloseAndLogError(db)
 	foundRestorable := false
 	for _, path := range paths {
 		if foundRestorable {
@@ -129,7 +163,7 @@ func (r ReplClient) CleanBackups() {
 	}
 }
 
-func (r ReplClient) CheckVersion(source, target *sql.DB) error {
+func (r *ReplClient) CheckVersion(source, target *sql.DB) error {
 	var sourceVersion, targetVersion string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -181,7 +215,7 @@ func (r ReplClient) CheckVersion(source, target *sql.DB) error {
 	return nil
 }
 
-func (r ReplClient) ListBackups() ([]string, error) {
+func (r *ReplClient) ListBackups() ([]string, error) {
 	entries, err := os.ReadDir(r.DumpDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed listing dumpdir `%s`: %w", r.DumpDir, err)
@@ -197,7 +231,7 @@ func (r ReplClient) ListBackups() ([]string, error) {
 	return result, nil
 }
 
-func (r ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
+func (r *ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 	dump, err := os.Open(fileName)
 	if err != nil {
 		log.Printf("skipping %s, could not open: %s", fileName, err.Error())
@@ -220,7 +254,7 @@ func (r ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 	return "", false
 }
 
-func (r ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) {
+func (r *ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) {
 	query := `SELECT GTID_SUBSET(@@global.gtid_purged, ?) AS is_backup_usable;`
 	args := []any{gtid}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -243,7 +277,7 @@ func (r ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) {
 	return false, nil
 }
 
-func (r ReplClient) FindElligibleBackup() (string, error) {
+func (r *ReplClient) FindElligibleBackup() (string, error) {
 	backupsPaths, err := r.ListBackups()
 	if err != nil {
 		return "", fmt.Errorf("failed discovering backups: %w", err)
@@ -252,7 +286,6 @@ func (r ReplClient) FindElligibleBackup() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed creating connection to check backup usability: %w", err)
 	}
-	defer utils.CloseAndLogError(db)
 	for _, fileName := range backupsPaths {
 		GTIDPurged, found := r.GetGTIDFromBackupFile(fileName)
 		if !found {
@@ -271,7 +304,7 @@ func (r ReplClient) FindElligibleBackup() (string, error) {
 	return "", nil
 }
 
-func (r ReplClient) InitFiles() error {
+func (r *ReplClient) InitFiles() error {
 	if err := utils.WriteCertFiles(r.Source, r.DataDir); err != nil {
 		return fmt.Errorf("failed writing source certs: %w", err)
 	}
@@ -292,24 +325,29 @@ func (r ReplClient) InitFiles() error {
 	return nil
 }
 
-func (r ReplClient) Setup() error {
+func (r *ReplClient) Setup() error {
 	log.Println("setting up replica", "target:", r.Target.Name, "source:", r.Source.Name)
 
 	if err := r.InitFiles(); err != nil {
 		log.Printf("failed writing config and certificate files to %s", r.DataDir)
 		return fmt.Errorf("failed to init files: %w", err)
 	}
+
+	if r.Source.Creds.AdminPassword != "" && r.Source.Creds.AdminUsername != "" && r.Source.Creds.Username != "" && r.Source.Creds.Password != "" {
+		log.Println("found user & admin creds, will ensure user exists & has permissions")
+		if err := r.CreateReplicaUserWithAdminConnection(); err != nil {
+			return fmt.Errorf("failed ensuring backup user: %w", err)
+		}
+	}
 	sourceCon, err := r.ConnectSource()
 	if err != nil {
 		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Source.Name, err)
 	}
-	defer utils.CloseAndLogError(sourceCon)
 
 	targetCon, err := r.ConnectTarget()
 	if err != nil {
 		return fmt.Errorf("setup failed: couldn't connect to `%s`: %w", r.Target.Name, err)
 	}
-	defer utils.CloseAndLogError(targetCon)
 
 	if err = r.CheckVersion(sourceCon, targetCon); err != nil {
 		return fmt.Errorf("setup failed: %w", err)
@@ -329,7 +367,7 @@ func (r ReplClient) Setup() error {
 	return r.Configure(targetCon)
 }
 
-func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
+func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	result, err := db.QueryContext(ctx, "SHOW REPLICA STATUS")
@@ -399,7 +437,7 @@ func (r ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	return state, nil
 }
 
-func (r ReplClient) SyncSourceToTarget() error {
+func (r *ReplClient) SyncSourceToTarget() error {
 	dumpClient, err := dumper.New(r.Source, r.DumpDir, r.DataDir, r.BinPath)
 	if err != nil {
 		return fmt.Errorf("failed creating dumpClient for sync: %w", err)
@@ -423,7 +461,7 @@ func (r ReplClient) SyncSourceToTarget() error {
 	return nil
 }
 
-func (r ReplClient) Configure(db *sql.DB) error {
+func (r *ReplClient) Configure(db *sql.DB) error {
 	log.Println("stopping replication")
 	_, err := db.Exec(`STOP REPLICA;`)
 	if err != nil {
@@ -467,32 +505,72 @@ func (r ReplClient) Configure(db *sql.DB) error {
 	return nil
 }
 
-func (r ReplClient) ConnectTarget(dbname ...string) (*sql.DB, error) {
-	return r.connect(r.Target.Name, r.Target.AdminDSN(), r.Target.Certs, dbname...)
-}
-
-func (r ReplClient) ConnectSource(dbname ...string) (*sql.DB, error) {
-	if r.Source.Creds.AdminUsername != "" && r.Source.Creds.AdminPassword != "" {
-		log.Println("found admin creds. Will attempt to generate replica user")
-		if r.Source.Creds.Username == "" || r.Source.Creds.Password == "" {
-			return nil, errors.New("admin credentials provided but backup user name and password are missing.\nwill not continue")
-		}
-		db, err := r.connect(r.Source.Name, r.Source.AdminDSN(), r.Source.Certs, dbname...)
-		if err != nil {
-			return nil, fmt.Errorf("failed connecting with admin user: %w", err)
-		}
-		defer utils.CloseAndLogError(db)
-
-		err = r.CreateReplicaUser(db)
-		if err != nil {
-			return nil, fmt.Errorf("failed creating the replica user: %w", err)
-		}
+// CreateReplicaUserWithAdminConnection opens an admin connection to the source, creates or updates
+// the replica user with the correct permissions, then closes the connection.
+// The connection is NOT cached; the caller does not need to close it.
+func (r *ReplClient) CreateReplicaUserWithAdminConnection() error {
+	if r.Source.Creds.AdminUsername == "" || r.Source.Creds.AdminPassword == "" {
+		log.Println("no admin creds found, skipping replica user creation")
+		return nil
+	}
+	if r.Source.Creds.Username == "" || r.Source.Creds.Password == "" {
+		return errors.New("admin credentials provided but backup user name and password are missing.\nwill not continue")
 	}
 
-	return r.connect(r.Source.Name, r.Source.DSN(), r.Source.Certs, dbname...)
+	log.Println("found admin creds. Will attempt to generate replica user")
+	db, err := r.connect(r.Source.Name, r.Source.AdminDSN(), r.Source.Certs)
+	if err != nil {
+		return fmt.Errorf("failed connecting with admin user: %w", err)
+	}
+	defer utils.CloseAndLogError(db)
+
+	return r.createReplicaUser(db)
 }
 
-func (r ReplClient) CreateReplicaUser(db *sql.DB) error {
+// ConnectSource returns a cached connection to the source using non-admin credentials.
+// The connection is cached and reused; use ConnectSourceDBUncached for a
+// temporary connection to a specific database.
+func (r *ReplClient) ConnectSource() (*sql.DB, error) {
+	return r.getCachedDB(r.Source.Name, r.Source.DSN(), r.Source.Certs)
+}
+
+// ConnectSourceDBUncached opens a temporary connection to a specific database on the source
+// using non-admin credentials. The connection is NOT cached; the caller MUST close it.
+func (r *ReplClient) ConnectSourceDBUncached(dbname string) (*sql.DB, error) {
+	return r.connect(r.Source.Name, r.Source.DSN(), r.Source.Certs, dbname)
+}
+
+// ConnectTarget returns a cached connection to the target using admin credentials.
+// The connection is cached and reused; use ConnectTargetDBUncached for a
+// temporary connection to a specific database.
+func (r *ReplClient) ConnectTarget() (*sql.DB, error) {
+	return r.getCachedDB(r.Target.Name, r.Target.AdminDSN(), r.Target.Certs)
+}
+
+// ConnectTargetDBUncached opens a temporary connection to a specific database on the target
+// using admin credentials. The connection is NOT cached; the caller MUST close it.
+func (r *ReplClient) ConnectTargetDBUncached(dbname string) (*sql.DB, error) {
+	return r.connect(r.Target.Name, r.Target.AdminDSN(), r.Target.Certs, dbname)
+}
+
+// Close closes all cached database connections and clears the cache.
+func (r *ReplClient) Close() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.dbCache == nil {
+		return
+	}
+	for name, db := range r.dbCache {
+		log.Printf("closing cached connection: %s", name)
+		err := db.Close()
+		if err != nil {
+			log.Printf("failed closing connection for host `%s`: `%s`", name, err)
+		}
+	}
+	r.dbCache = nil
+}
+
+func (r *ReplClient) createReplicaUser(db *sql.DB) error {
 	args := []any{
 		r.Source.Creds.Username, "%", r.Source.Creds.Password,
 	}
@@ -542,7 +620,7 @@ func registerTLSConfig(name string, certs config.Certs) error {
 	//	})
 }
 
-func (r ReplClient) connect(name, connectionString string, certs config.Certs, dbname ...string) (*sql.DB, error) {
+func (r *ReplClient) connect(name, connectionString string, certs config.Certs, dbname ...string) (*sql.DB, error) {
 	databaseName := ""
 	if len(dbname) > 0 {
 		databaseName = dbname[0]
