@@ -1,4 +1,6 @@
-// Package utils holds share helpers
+// Package utils provides shared helpers for TLS certificate files,
+// MySQL defaults file generation, GTID extraction from dump headers,
+// and safe I/O closing with error logging.
 package utils
 
 import (
@@ -11,6 +13,8 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 )
 
+// CloseAndLogError safely closes an io.Closer and logs any error encountered.
+// It is intended for use with defer where the close error is non-fatal.
 func CloseAndLogError(c io.Closer) {
 	err := c.Close()
 	if err != nil {
@@ -22,6 +26,8 @@ const (
 	CASuffix = "ca.pem"
 )
 
+// WriteCertFiles writes the CA certificate PEM for target into dataDir
+// as "<name>.ca.pem". It is a no-op when target.Certs.CA is empty.
 func WriteCertFiles(target config.Target, dataDir string) error {
 	if target.Certs.CA == "" {
 		return nil
@@ -34,6 +40,9 @@ func WriteCertFiles(target config.Target, dataDir string) error {
 	return nil
 }
 
+// WriteMysqlCnf writes a MySQL defaults file (my.cnf) into dataDir as
+// "<name>.mysql.cnf". When admin is true, it uses admin credentials;
+// otherwise it uses the regular user credentials. Returns the file path.
 func WriteMysqlCnf(target config.Target, dataDir string, admin bool) (string, error) {
 	defaultsFile := fmt.Sprintf("%s/%s.mysql.cnf", dataDir, target.Name)
 	user := target.Creds.Username
@@ -63,6 +72,9 @@ func WriteMysqlCnf(target config.Target, dataDir string, admin bool) (string, er
 
 var gtidRegex = regexp.MustCompile(`SET @@GLOBAL\.GTID_PURGED=(?:\/\*.*?\*\/\s*)?'(?P<GTID>[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}:[0-9]*-[0-9]*)'`)
 
+// ParseGTIDFromLine extracts a GTID_PURGED value from a mysqldump SET statement line.
+// The expected format is: SET @@GLOBAL.GTID_PURGED='uuid1:N1-M1,...,uuidN:Nk-Mk';
+// Returns the GTID string and true on match, or empty string and false otherwise.
 func ParseGTIDFromLine(line string) (string, bool) {
 	match := gtidRegex.FindStringSubmatch(line)
 	if match == nil {
