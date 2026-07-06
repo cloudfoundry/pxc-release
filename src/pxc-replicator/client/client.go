@@ -234,8 +234,10 @@ func (r *ReplClient) ListBackups() ([]string, error) {
 func (r *ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 	dump, err := os.Open(fileName)
 	if err != nil {
-		log.Printf("skipping %s, could not open: %s", fileName, err.Error())
+		log.Printf("failed open to open `%s` for GTID search: %s", fileName, err.Error())
+		return "", false
 	}
+	defer dump.Close()
 	fileReader := bufio.NewReader(dump)
 	for {
 		line, err := fileReader.ReadString('\n')
@@ -608,7 +610,6 @@ func registerTLSConfig(name string, certs config.Certs) error {
 		RootCAs:      rootCertPool,
 		Certificates: []tls.Certificate{},
 	})
-
 	//tlsCerts, err := tls.X509KeyPair(certs.Certificate, certs.PrivateKey)
 	//if err != nil {
 	//	return fmt.Errorf("failed parsing certs: %w", err)
