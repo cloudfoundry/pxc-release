@@ -104,6 +104,7 @@ type ReplClient struct {
 
 func (r *ReplClient) getCachedDB(name, connectionString string, certs config.Certs) (*sql.DB, error) {
 	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.dbCache == nil {
 		r.dbCache = make(map[string]*sql.DB)
 	}
@@ -113,23 +114,19 @@ func (r *ReplClient) getCachedDB(name, connectionString string, certs config.Cer
 		defer cancel()
 		err := db.PingContext(ctx)
 		if err == nil {
-			r.mu.Unlock()
 			return db, nil
 		}
 		log.Printf("cached connection `%s` is stale, reconnecting", name)
 		utils.CloseAndLogError(db)
 		delete(r.dbCache, name)
 	}
-	r.mu.Unlock()
 
 	db, err := r.connect(name, connectionString, certs)
 	if err != nil {
 		return nil, err
 	}
 
-	r.mu.Lock()
 	r.dbCache[name] = db
-	r.mu.Unlock()
 	return db, nil
 }
 

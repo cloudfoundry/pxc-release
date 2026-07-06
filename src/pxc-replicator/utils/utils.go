@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 )
@@ -70,7 +71,7 @@ func WriteMysqlCnf(target config.Target, dataDir string, admin bool) (string, er
 	return defaultsFile, nil
 }
 
-var gtidRegex = regexp.MustCompile(`SET @@GLOBAL\.GTID_PURGED=(?:\/\*.*?\*\/\s*)?'(?P<GTID>[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}:[0-9]*-[0-9]*)'`)
+var gtidRegex = regexp.MustCompile(`SET @@GLOBAL\.GTID_PURGED=(?:\/\*.*?\*\/\s*)? ?'(?<GTID>.*)'`)
 
 // ParseGTIDFromLine extracts a GTID_PURGED value from a mysqldump SET statement line.
 // The expected format is: SET @@GLOBAL.GTID_PURGED='uuid1:N1-M1,...,uuidN:Nk-Mk';
@@ -80,6 +81,6 @@ func ParseGTIDFromLine(line string) (string, bool) {
 	if match == nil {
 		return "", false
 	}
-
-	return match[1], true
+	gtidIndex := gtidRegex.SubexpIndex("GTID")
+	return strings.ReplaceAll(strings.Join(match[gtidIndex:], ""), " ", ""), true
 }
