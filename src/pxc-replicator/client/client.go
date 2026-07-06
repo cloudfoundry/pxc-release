@@ -231,13 +231,16 @@ func (r *ReplClient) ListBackups() ([]string, error) {
 	return result, nil
 }
 
+// GetGTIDFromBackupFile reads the GTID_PURGED value from a mysqldump file.
+// It scans the file line by line looking for a SET @@GLOBAL.GTID_PURGED statement.
+// Returns the GTID string and true on success, or empty string and false otherwise.
 func (r *ReplClient) GetGTIDFromBackupFile(fileName string) (string, bool) {
 	dump, err := os.Open(fileName)
 	if err != nil {
 		log.Printf("failed open to open `%s` for GTID search: %s", fileName, err.Error())
 		return "", false
 	}
-	defer dump.Close()
+	defer utils.CloseAndLogError(dump)
 	fileReader := bufio.NewReader(dump)
 	for {
 		line, err := fileReader.ReadString('\n')
@@ -380,9 +383,7 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 	defer utils.CloseAndLogError(result)
 
 	state := ReplState{
-		Misc:             make(map[string]string),
-		LastIOErrorTime:  &time.Time{},
-		LastSQLErrorTime: &time.Time{},
+		Misc: make(map[string]string),
 	}
 
 	if result.Next() {
@@ -421,8 +422,10 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 			case COLUMN_LAST_IO_ERR:
 				state.LastIOErr = v
 			case COLUMN_LAST_IO_ERR_TIME:
+				state.LastIOErrorTime = &time.Time{}
 				*state.LastIOErrorTime, err = time.Parse(DATE_LAYOUT, v)
 			case COLUMN_LAST_SQL_ERR_TIME:
+				state.LastSQLErrorTime = &time.Time{}
 				*state.LastSQLErrorTime, err = time.Parse(DATE_LAYOUT, v)
 			case COLUMN_LAST_SQL_ERR:
 				state.LastSQLErr = v

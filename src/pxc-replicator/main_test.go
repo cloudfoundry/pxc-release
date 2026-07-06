@@ -11,7 +11,6 @@ import (
 	"github.com/cloudfoundry/pxc-release/replicator/client"
 	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
-	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -64,9 +63,9 @@ var _ = Describe("Main", Ordered, func() {
 		rep = testhelper.StartReplicatorInContainer("8.4", config, net, logBuffer)
 	})
 	_ = AfterAll(func() {
-		testcontainers.CleanupContainer(ginkgo.GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
-		testcontainers.CleanupContainer(ginkgo.GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
-		testcontainers.CleanupContainer(ginkgo.GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
 	})
 	It("works", func() {
 		Eventually(logBuffer, 180).Should(gbytes.Say("Parsed config"))
