@@ -3,7 +3,7 @@ module github.com/cloudfoundry-incubator/galera-healthcheck
 go 1.25.8
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.76.0
+	code.cloudfoundry.org/lager/v3 v3.77.0
 	code.cloudfoundry.org/tlsconfig v0.61.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
@@ -36,7 +36,7 @@ require (
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
