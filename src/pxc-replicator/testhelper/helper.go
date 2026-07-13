@@ -42,7 +42,6 @@ var (
 	Image       = "percona/percona-xtradb-cluster"
 	Tag         = "8.4"
 	MysqlBinDir = os.Getenv("MYSQL_BIN_DIR")
-	DataDir     = os.Getenv("DATA_DIR")
 )
 
 func DumpDir() string {
@@ -263,7 +262,7 @@ func StartReplicatorInContainer(version string, config []byte, net *testcontaine
 			},
 		),
 		testcontainers.WithLogConsumerConfig(&testcontainers.LogConsumerConfig{
-			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
+			Opts:      []testcontainers.LogProductionOption{},
 			Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{Buffer: logBuffer}},
 		}),
 		testcontainers.WithEntrypoint("/replicator", "-config", "/config/config.yml", "-data-dir", "/tmp", "-mysql-bin-path", "/usr/bin"),
@@ -288,9 +287,9 @@ func StartPXCInstance(password, version string, tlsMode string, netAliases []str
 		}),
 		testcontainers.WithCmdArgs("--gtid-mode=ON", "--enforce-gtid-consistency=ON", "--pxc_strict_mode=PERMISSIVE", fmt.Sprintf("--server-id=%d", serverID)),
 		testcontainers.WithWaitStrategy(
-			wait.ForLog("Synchronized with group, ready for connections").WithStartupTimeout(2*time.Minute),
-			wait.ForListeningPort("3306/tcp").WithStartupTimeout(2*time.Minute),
-			wait.ForExposedPort().WithStartupTimeout(2*time.Minute),
+			wait.ForLog("Synchronized with group, ready for connections").WithStartupTimeout(1*time.Minute),
+			wait.ForListeningPort("3306/tcp").WithStartupTimeout(1*time.Minute),
+			wait.ForExposedPort().WithStartupTimeout(1*time.Minute),
 		),
 	}
 	var clientCerts config.Certs
@@ -298,7 +297,8 @@ func StartPXCInstance(password, version string, tlsMode string, netAliases []str
 		certsDir, err := os.MkdirTemp("", name)
 		Expect(err).ToNot(HaveOccurred())
 		_, clientCerts = InitCerts(name, certsDir, tlsMode, netAliases)
-		opts = append(opts,
+		opts = append(
+			opts,
 			testcontainers.WithFiles(
 				testcontainers.ContainerFile{
 					HostFilePath:      fmt.Sprintf("%s/server-ca.pem", certsDir),
@@ -322,17 +322,30 @@ func StartPXCInstance(password, version string, tlsMode string, netAliases []str
 
 	ctx := context.Background()
 	if os.Getenv("TEST_DEBUG") == "true" {
-		opts = append(opts, testcontainers.WithLogConsumerConfig(&testcontainers.LogConsumerConfig{
-			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
-			Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{}},
-		}),
+		opts = append(
+			opts, testcontainers.WithLogConsumerConfig(&testcontainers.LogConsumerConfig{
+				Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
+				Consumers: []testcontainers.LogConsumer{&StdoutLogConsumer{}},
+			}),
 		)
 	}
-	pxc, err := testcontainers.Run(ctx, fmt.Sprintf("%s:%s", Image, version), opts...)
-
+	var pxc *testcontainers.DockerContainer
+	var err error
+	var success bool
+	go func() {
+		for range 3 {
+			pxc, err = testcontainers.Run(ctx, fmt.Sprintf("%s:%s", Image, version), opts...)
+			if err == nil {
+				success = true
+				break
+			}
+			Expect(pxc.Terminate(context.Background())).To(Succeed())
+			log.Printf("testcontainer failed to start, trying again %s\n", err.Error())
+		}
+	}()
+	Eventually(func() bool { return success }, "240s").Should(BeTrue())
 	Expect(err).ToNot(HaveOccurred())
 
-	testcontainers.CleanupContainer(ginkgo.GinkgoTB(), pxc, testcontainers.StopTimeout(120*time.Second))
 	port, err := pxc.MappedPort(context.Background(), "3306")
 	Expect(err).ToNot(HaveOccurred())
 

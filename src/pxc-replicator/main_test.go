@@ -53,7 +53,7 @@ var _ = Describe("Main", Ordered, func() {
 			Target:  target,
 			DataDir: "/tmp/data",
 			DumpDir: "/tmp/dump",
-			BinPath: testhelper.DataDir,
+			BinPath: "",
 		}
 
 		config, err := yaml.Marshal(repClient)
@@ -62,23 +62,22 @@ var _ = Describe("Main", Ordered, func() {
 		logBuffer = gbytes.NewBuffer()
 		rep = testhelper.StartReplicatorInContainer("8.4", config, net, logBuffer)
 	})
-	_ = AfterAll(func() {
-		testcontainers.CleanupContainer(GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
-		testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
-		testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
-	})
 	It("works", func() {
 		Eventually(logBuffer, 180).Should(gbytes.Say("Parsed config"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("setting up replica"))
-		Eventually(logBuffer, 180).Should(gbytes.Say("source version is:"))
-		Eventually(logBuffer, 180).Should(gbytes.Say("target version is:"))
+		Eventually(logBuffer, 180).Should(gbytes.Say("source version is: 8.4"))
+		Eventually(logBuffer, 180).Should(gbytes.Say("target version is: 8.4"))
+		Eventually(logBuffer, 180).Should(gbytes.Say("running initial sync as there is no current replication setup"))
+		Eventually(logBuffer, 180).Should(gbytes.Say("no matching backup found"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("will save dump"))
 		Eventually(logBuffer, 180).Should(gbytes.Say("finished backup"))
-		Eventually(logBuffer, 420).Should(gbytes.Say(fmt.Sprintf("Source_SSL_CA_File:/tmp/%s.ca.pem", sourceName)))
-		Eventually(logBuffer, 420).Should(gbytes.Say("Source_SSL_Allowed:Yes"))
-		Eventually(logBuffer, 420).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes"))
-		Eventually(logBuffer, 420).Should(gbytes.Say("SQLDelay: 0, SecondsBehind: 0"))
-		Eventually(logBuffer, 420).Should(gbytes.Say(fmt.Sprintf("Source_User:%s", replUser)))
+		Eventually(logBuffer, 180).Should(gbytes.Say("starting restore"))
+		Eventually(logBuffer, 180).Should(gbytes.Say("importing dump"))
+		Eventually(logBuffer, 180).Should(gbytes.Say(fmt.Sprintf("Source_SSL_Allowed:Yes Source_SSL_CA_File:/tmp/%s.ca.pem.*%s", sourceName, fmt.Sprintf("Source_User:%s", replUser))))
+		Eventually(logBuffer, 180).Should(gbytes.Say("IORunning: Yes, SQLRunning: Yes, SQLDelay: 0, SecondsBehind: 0"))
 		Expect(rep.Terminate(context.Background())).To(Succeed())
+		testcontainers.CleanupContainer(GinkgoTB(), rep, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
+		testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
 	})
 })

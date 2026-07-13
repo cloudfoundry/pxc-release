@@ -290,6 +290,7 @@ func (r *ReplClient) CheckGTIDRestorable(db *sql.DB, gtid string) (bool, error) 
 	if err != nil {
 		return false, fmt.Errorf("failed to query source to check if backup `%s` is elligible: %w", gtid, err)
 	}
+	defer utils.CloseAndLogError(result)
 	for result.Next() {
 		success := sql.NullBool{}
 		err := result.Scan(&success)
