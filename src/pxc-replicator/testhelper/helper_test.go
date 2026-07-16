@@ -27,8 +27,7 @@ var _ = Describe("Testhelper/Helper", func() {
 		Expect(clientCerts.Certificate).To(BeEmpty())
 		Expect(clientCerts.CA).ToNot(BeEmpty())
 		Expect(string(clientCerts.CA)).To(MatchRegexp("BEGIN CERTIFICATE"))
-		Expect(string(clientCerts.CA)).To(ContainSubstring(string(serverCerts.CA)))
-		// Expect(string(clientCerts.CA)).To(ContainSubstring(string(serverCerts.Certificate)))
+		Expect(string(clientCerts.CA)).To(Equal(string(serverCerts.CA)))
 
 		Expect(string(serverCerts.PrivateKey)).To(MatchRegexp("BEGIN RSA PRIVATE KEY"))
 		Expect(string(serverCerts.CA)).To(MatchRegexp("BEGIN CERTIFICATE"))
