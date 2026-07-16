@@ -3,6 +3,7 @@ package dumper_test
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
 	"github.com/cloudfoundry/pxc-release/replicator/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/testcontainers/testcontainers-go"
 )
 
 var _ = Describe("Dumper/Dump", Ordered, func() {
@@ -25,15 +27,20 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 
 	expectedTable := "someTableName"
 	Describe("with encryption", FlakeAttempts(3), func() {
-		_ = BeforeAll(func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
+		AfterAll(func() {
+			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
+			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
+		})
+		BeforeAll(func() {
 			net := testhelper.CreateTestNetwork()
 			aliases := []string{"localhost"}
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost, _ = testhelper.StartPXCInstance(pass, tag, testhelper.VerifyCA, aliases, net)
+			_, sourceFromHost, sourceContainer = testhelper.StartPXCInstance(pass, tag, testhelper.VerifyCA, aliases, net)
 			testhelper.GenerateTestData(sourceFromHost, "dumpDB", expectedTable, 10)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
-			_, targetFromHost, _ = testhelper.StartPXCInstance(pass, tag, testhelper.VerifyCA, aliases, net)
+			_, targetFromHost, targetContainer = testhelper.StartPXCInstance(pass, tag, testhelper.VerifyCA, aliases, net)
 			var err error
 
 			r := client.ReplClient{
@@ -62,15 +69,21 @@ var _ = Describe("Dumper/Dump", Ordered, func() {
 		})
 	})
 	Describe("without encryption", FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		tableName := "testTable"
-		_ = BeforeAll(func() {
+
+		AfterAll(func() {
+			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
+			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
+		})
+		BeforeAll(func() {
 			net := testhelper.CreateTestNetwork()
 
 			pass := uuid.New().String()
 			tag := "8.0"
-			_, sourceFromHost, _ = testhelper.StartPXCInstance(pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			_, sourceFromHost, sourceContainer = testhelper.StartPXCInstance(pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
 			sourceFromHost.Creds.AdminUsername, sourceFromHost.Creds.AdminPassword = "", ""
-			_, targetFromHost, _ = testhelper.StartPXCInstance(pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
+			_, targetFromHost, targetContainer = testhelper.StartPXCInstance(pass, tag, testhelper.TLSDisabled, []string{"localhost"}, net)
 			var err error
 
 			_, err = utils.WriteMysqlCnf(sourceFromHost, dataDir, false)

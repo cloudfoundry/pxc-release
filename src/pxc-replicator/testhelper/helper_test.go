@@ -2,17 +2,21 @@ package testhelper_test
 
 import (
 	"os"
+	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/testcontainers/testcontainers-go"
 )
 
 var _ = Describe("Testhelper/Helper", func() {
+	var container *testcontainers.DockerContainer
 	It("starts testinstances with tls", func() {
 		aliases := []string{"test"}
 		net := testhelper.CreateTestNetwork()
-		testhelper.StartPXCInstance("test", "8.4", testhelper.VerifyCA, aliases, net)
+		_, _, container = testhelper.StartPXCInstance("test", "8.4", testhelper.VerifyCA, aliases, net)
+		testcontainers.CleanupContainer(GinkgoTB(), container, testcontainers.StopTimeout(120*time.Second))
 	})
 	It("leaves client key and cert empty on VERIFY_CA", func() {
 		path, err := os.MkdirTemp("", "")
