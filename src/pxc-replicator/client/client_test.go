@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -19,8 +20,8 @@ var _ = Describe("Client/Client", func() {
 	var replClient *client.ReplClient
 	var dataDir, dumpDir string
 	var source, sourceFromHost, _, targetFromHost config.Target
-	var sourceContainer, targetContainer *testcontainers.DockerContainer
 	Describe("using tls connections", Ordered, FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		AfterAll(func() {
 			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
 			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
@@ -53,6 +54,7 @@ var _ = Describe("Client/Client", func() {
 	})
 
 	Describe("mismatched versions", Ordered, FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		AfterAll(func() {
 			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
 			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
@@ -89,6 +91,7 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 	Describe("it checks for elligible backups", Ordered, FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		var testNet *testcontainers.DockerNetwork
 		AfterAll(func() {
 			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
@@ -125,6 +128,9 @@ var _ = Describe("Client/Client", func() {
 			Expect(path).ToNot(BeEmpty())
 		})
 		It("skips taking another backup on sync if it finds a usable one", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			Expect(targetContainer.Terminate(ctx)).To(Succeed())
 			_, targetFromHost, targetContainer = testhelper.StartPXCInstance(testhelper.GeneratePassword(), "8.4", testhelper.TLSDisabled, []string{"target"}, testNet)
 			replClient.Target = targetFromHost
 			Expect(replClient.InitFiles()).To(Succeed())
@@ -178,6 +184,7 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 	Describe("checking if replication is enablded", func() {
+		var targetContainer *testcontainers.DockerContainer
 		BeforeEach(func() {
 			var err error
 			dataDir, err = os.MkdirTemp("", "")
@@ -209,6 +216,7 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 	Describe("creating the replica user", Ordered, FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		AfterAll(func() {
 			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
 			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
@@ -277,6 +285,7 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 	Describe("updated creds through syncing initial state", Ordered, FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		AfterAll(func() {
 			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
 			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
@@ -309,6 +318,7 @@ var _ = Describe("Client/Client", func() {
 		})
 	})
 	Describe("full start procedure", Ordered, FlakeAttempts(3), func() {
+		var sourceContainer, targetContainer *testcontainers.DockerContainer
 		AfterAll(func() {
 			testcontainers.CleanupContainer(GinkgoTB(), sourceContainer, testcontainers.StopTimeout(120*time.Second))
 			testcontainers.CleanupContainer(GinkgoTB(), targetContainer, testcontainers.StopTimeout(120*time.Second))
