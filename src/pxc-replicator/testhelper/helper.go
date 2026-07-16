@@ -16,6 +16,7 @@ import (
 	mathRand "math/rand"
 	"os"
 	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
@@ -234,8 +235,7 @@ func InitCerts(name, path, tlsMode string, aliases []string) (serverCerts, clien
 
 func StartReplicatorInContainer(version string, config []byte, net *testcontainers.DockerNetwork, logBuffer *gbytes.Buffer) *testcontainers.DockerContainer {
 	cmd := exec.Command("go", "build", "-o", "./replicator")
-	// TODO make arch not hardcoded
-	cmd.Env = []string{"HOME=/tmp", "GOOS=linux", "GOARCH=arm64", "CGO_ENABLED=0"}
+	cmd.Env = []string{"HOME=/tmp", "GOOS=linux", fmt.Sprintf("GOARCH=%s", runtime.GOARCH), "CGO_ENABLED=0"}
 	out, err := cmd.CombinedOutput()
 	Expect(string(out)).To(BeEmpty())
 	Expect(err).ToNot(HaveOccurred())
