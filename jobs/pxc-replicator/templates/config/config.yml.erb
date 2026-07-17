@@ -21,15 +21,16 @@ version: <%= p('mysql_version') %>
 source:
   name: source
 <%-
+tls = {}
 if_link('source') do |link|
-  tls = {}
   link.if_p('tls.client.ca') do |val|
-   tls["ca"] = val
-  end.else do
-    if_p('source_tls.ca') do |val|
-     tls["ca"] = val
-    end
+    tls["ca"] = val
   end
+end.else do
+  if_p('source_tls.ca') do |val|
+    tls["ca"] = val
+  end
+end
 -%>
 #link config
   host: <%= link.address %>
