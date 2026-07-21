@@ -3,8 +3,8 @@ module github.com/cloudfoundry-incubator/galera-healthcheck
 go 1.25.8
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.78.0
-	code.cloudfoundry.org/tlsconfig v0.62.0
+	code.cloudfoundry.org/lager/v3 v3.79.0
+	code.cloudfoundry.org/tlsconfig v0.63.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.10.0
@@ -23,7 +23,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20260709232956-b9395ee17fa0 // indirect
