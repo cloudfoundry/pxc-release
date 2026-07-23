@@ -64,8 +64,9 @@ func main() {
 					log.Fatalf("failed to resync: %s", err)
 				}
 			}
+		} else {
+			consecutiveFailureCount = 0
 		}
-		consecutiveFailureCount = 0
 		log.Printf("replication state: %s", state.String())
 		time.Sleep(time.Second * 5)
 	}
