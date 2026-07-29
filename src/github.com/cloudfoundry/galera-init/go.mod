@@ -3,7 +3,7 @@ module github.com/cloudfoundry/galera-init
 go 1.25.0
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.79.0
+	code.cloudfoundry.org/lager/v3 v3.80.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/renameio/v2 v2.0.2
@@ -24,7 +24,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20260709232956-b9395ee17fa0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
