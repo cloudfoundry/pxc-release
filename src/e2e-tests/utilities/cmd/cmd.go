@@ -20,7 +20,11 @@ func RunWithoutOutput(w io.Writer, name string, args ...string) error {
 
 func RunCustom(mutator MutatorFunc, name string, args ...string) error {
 	defer ginkgo.GinkgoWriter.Println()
-	cmd := exec.Command(name, args...)
+	resolvedPath, err := exec.LookPath(name)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(resolvedPath, args...) // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	cmd.Stderr = ginkgo.GinkgoWriter
 	cmd.Stdout = ginkgo.GinkgoWriter
 
