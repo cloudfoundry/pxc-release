@@ -113,7 +113,6 @@ build() {
     make -j "$(nproc)" install/strip
   )
 
-  mv "${BOSH_INSTALL_TARGET}/doc" "${BOSH_INSTALL_TARGET}/doc.galera"
   rm -fr "${BOSH_INSTALL_TARGET}"/share/garb* "${BOSH_INSTALL_TARGET}/cmake/"
 }
 
