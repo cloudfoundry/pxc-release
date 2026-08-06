@@ -14,6 +14,12 @@
       section_entries
     end
 
+    def override_or_default(section, key, default)
+      section_entries = @entries[section]
+      return default unless section_entries.is_a?(Hash) && section_entries.key?(key)
+      section_entries.delete(key)
+    end
+
     def available_sections
       @entries.keys
     end
@@ -156,6 +162,21 @@ userstat                        = <%= bool_to_on_off(p('engine_config.userstat')
 
 max_heap_table_size             = <%= p('engine_config.max_heap_table_size') %>
 tmp_table_size                  = <%= p('engine_config.tmp_table_size') %>
+# TEMPORARY mitigation for https://bugs.mysql.com/bug.php?id=116741 (incorrect query
+# results when an in-memory temp table spills to an on-disk InnoDB temp table).
+# Fixed upstream in MySQL 8.4.11; remove once Percona XtraDB Cluster ships a v8.4.11-based
+# release (PXC typically lags upstream MySQL by 1-2 months) and revert to the v8.4 default
+# of disabling TempTable mmap (temptable_use_mmap=off), since both variables are deprecated
+# and slated for removal in MySQL 9.7.
+#
+# Deliberately hardcoded rather than exposed as new job properties: this is a short-lived
+# workaround, not a feature, and it can already be overridden per-deployment via the
+# existing engine_config.additional_raw_entries mechanism if needed.
+#
+# Note: on 8.4, temptable_max_mmap has no effect unless temptable_use_mmap is also on -
+# the "modern equivalent" framing in MySQL docs only applies starting in 9.7.
+temptable_use_mmap              = <%= additional_entries.override_or_default('mysqld', 'temptable_use_mmap', 'on') %>
+temptable_max_mmap              = <%= additional_entries.override_or_default('mysqld', 'temptable_max_mmap', '1G') %>
 
 default_storage_engine          = InnoDB
 innodb_autoinc_lock_mode        = 2
