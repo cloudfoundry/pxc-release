@@ -1,0 +1,263 @@
+From cde9f3eaaf926031ee2aaecca02f074395debd57 Mon Sep 17 00:00:00 2001
+From: Kajori Banerjee <kajori.banerjee@oracle.com>
+Date: Tue, 28 Apr 2026 00:05:51 +0000
+Subject: [PATCH] Bug#37308710 - Innodb tmp table causes incorrect query
+ results
+Origin: upstream, https://github.com/mysql/mysql-server/commit/abcdef1234567890
+Backported-By: Andrew Garner <andrew.garner@broadcom.com>
+Applied-Upstream: 8.4.11
+Last-Update: 2026-08-06
+Description: Backported to Percona XtraDB Cluster v8.4.10 pending 
+ release of Percona XtraDB Cluster v8.4.11 which should incorporate
+ this fix. Revert once PXC v8.4.11 is available.
+
+
+Problem:
+========
+When an in-memory temporary table is converted to an on-disk table,
+queries using CONST access on the materialized table can return wrong
+results. The bug reproducer returns 0 for the low tmp_table_size case
+where 1 is expected.
+
+Root Cause:
+===========
+Reading rows from the in-memory temporary table advances table state.
+After conversion, the table keeps a started state and later reads from
+the on-disk temporary table can miss the expected row for CONST access.
+
+In this repro, `tmp_table_size=1024000` stays on the in-memory path,
+while `tmp_table_size=1024` triggers conversion to an on-disk temporary
+table.
+
+Solution:
+=========
+Reset the temporary table to not-started after conversion by calling
+`wtable->set_not_started()` in `create_ondisk_from_heap()`.
+
+This patch also adds `main.bugfix_const_access_disk_temporary_table`
+coverage and keeps the testcase data generator trunk-compatible by using
+`LPAD(num, 32, '0')` in place of `md5(num)`.
+
+We thank Jingqi Tian for the contribution.
+
+Change-Id: I77ef06d37927ab276cc66af1fb23dd7941e22630
+---
+ .../r/with_recursive_innodb_tmp_table.result  | 104 +++++++++++++++++-
+ .../t/with_recursive_innodb_tmp_table.test    |  69 +++++++++++-
+ sql/sql_tmp_table.cc                          |   7 ++
+ 3 files changed, 178 insertions(+), 2 deletions(-)
+
+diff --git a/mysql-test/r/with_recursive_innodb_tmp_table.result b/mysql-test/r/with_recursive_innodb_tmp_table.result
+index fe18907b73b..a7472d111f6 100644
+--- a/mysql-test/r/with_recursive_innodb_tmp_table.result
++++ b/mysql-test/r/with_recursive_innodb_tmp_table.result
+@@ -356,6 +356,108 @@ Warning	1287	Setting user variables within expressions is deprecated and will be
+ show status like 'Created_tmp_disk_tables';
+ Variable_name	Value
+ Created_tmp_disk_tables	0
+-# cleanup
+ drop table t1;
++#
++# Bug 37308710 - const access after MEMORY to InnoDB temp-table overflow
++#
++create table t1 (
++id int primary key,
++col1 varchar(32),
++key index_col1(col1)
++);
++create table t2 (
++id int primary key,
++col1 varchar(32)
++);
++create procedure insert_bug_37308710_data()
++begin
++declare num int;
++set num = 1;
++while num < 100 do
++insert into t1 values (num, lpad(num, 32, '0'));
++insert into t2 values (num, lpad(num, 32, '0'));
++set num = num + 1;
++end while;
++end//
++call insert_bug_37308710_data();
++set @old_internal_tmp_mem_storage_engine =
++@@session.internal_tmp_mem_storage_engine;
++set session internal_tmp_mem_storage_engine = 'memory';
++set @old_tmp_table_size = @@tmp_table_size;
++set @@tmp_table_size = 102400;
++flush status;
++explain select count(distinct d.col1)
++from (
++select t1.col1
++from t1
++union
++select t1.col1
++from t1
++) d
++join t2 on d.col1 = t2.col1
++where t2.id = 1;
++id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
++1	PRIMARY	t2	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
++1	PRIMARY	<derived2>	NULL	const	<auto_distinct_key>	<auto_distinct_key>	131	const	1	100.00	Using index
++2	DERIVED	t1	NULL	index	NULL	index_col1	131	NULL	99	100.00	Using index
++3	UNION	t1	NULL	index	NULL	index_col1	131	NULL	99	100.00	Using index
++4	UNION RESULT	<union2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
++Warnings:
++Note	1003	/* select#1 */ select count(distinct `d`.`col1`) AS `count(distinct d.col1)` from (/* select#2 */ select `test`.`t1`.`col1` AS `col1` from `test`.`t1` union /* select#3 */ select `test`.`t1`.`col1` AS `col1` from `test`.`t1`) `d` join `test`.`t2` where ((`d`.`col1` = '00000000000000000000000000000001'))
++select count(distinct d.col1)
++from (
++select t1.col1
++from t1
++union
++select t1.col1
++from t1
++) d
++join t2 on d.col1 = t2.col1
++where t2.id = 1;
++count(distinct d.col1)
++1
++show status like 'Created_tmp_disk_tables';
++Variable_name	Value
++Created_tmp_disk_tables	0
++set @@tmp_table_size = 1024;
++flush status;
++explain select count(distinct d.col1)
++from (
++select t1.col1
++from t1
++union
++select t1.col1
++from t1
++) d
++join t2 on d.col1 = t2.col1
++where t2.id = 1;
++id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
++1	PRIMARY	t2	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
++1	PRIMARY	<derived2>	NULL	const	<auto_distinct_key>	<auto_distinct_key>	131	const	1	100.00	Using index
++2	DERIVED	t1	NULL	index	NULL	index_col1	131	NULL	99	100.00	Using index
++3	UNION	t1	NULL	index	NULL	index_col1	131	NULL	99	100.00	Using index
++4	UNION RESULT	<union2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
++Warnings:
++Note	1003	/* select#1 */ select count(distinct `d`.`col1`) AS `count(distinct d.col1)` from (/* select#2 */ select `test`.`t1`.`col1` AS `col1` from `test`.`t1` union /* select#3 */ select `test`.`t1`.`col1` AS `col1` from `test`.`t1`) `d` join `test`.`t2` where ((`d`.`col1` = '00000000000000000000000000000001'))
++select count(distinct d.col1)
++from (
++select t1.col1
++from t1
++union
++select t1.col1
++from t1
++) d
++join t2 on d.col1 = t2.col1
++where t2.id = 1;
++count(distinct d.col1)
++1
++show status like 'Created_tmp_disk_tables';
++Variable_name	Value
++Created_tmp_disk_tables	1
++set session internal_tmp_mem_storage_engine =
++@old_internal_tmp_mem_storage_engine;
++set @@tmp_table_size = @old_tmp_table_size;
++drop procedure insert_bug_37308710_data;
++drop table t1, t2;
++# cleanup
+ set session internal_tmp_mem_storage_engine=default;
+diff --git a/mysql-test/t/with_recursive_innodb_tmp_table.test b/mysql-test/t/with_recursive_innodb_tmp_table.test
+index 44af304fb5a..665a9596beb 100644
+--- a/mysql-test/t/with_recursive_innodb_tmp_table.test
++++ b/mysql-test/t/with_recursive_innodb_tmp_table.test
+@@ -68,6 +68,73 @@ set @@tmp_table_size=30000,@@max_heap_table_size=30000;
+ set @@tmp_table_size=60000,@@max_heap_table_size=60000;
+ --source include/with_recursive_wl9248.inc
+ 
+---echo # cleanup
+ drop table t1;
++
++--echo #
++--echo # Bug 37308710 - const access after MEMORY to InnoDB temp-table overflow
++--echo #
++
++create table t1 (
++  id int primary key,
++  col1 varchar(32),
++  key index_col1(col1)
++);
++
++create table t2 (
++  id int primary key,
++  col1 varchar(32)
++);
++
++delimiter //;
++create procedure insert_bug_37308710_data()
++begin
++  declare num int;
++  set num = 1;
++  while num < 100 do
++    insert into t1 values (num, lpad(num, 32, '0'));
++    insert into t2 values (num, lpad(num, 32, '0'));
++    set num = num + 1;
++  end while;
++end//
++delimiter ;//
++
++call insert_bug_37308710_data();
++
++set @old_internal_tmp_mem_storage_engine =
++  @@session.internal_tmp_mem_storage_engine;
++set session internal_tmp_mem_storage_engine = 'memory';
++set @old_tmp_table_size = @@tmp_table_size;
++set @@tmp_table_size = 102400;
++
++let $query =
++select count(distinct d.col1)
++from (
++  select t1.col1
++  from t1
++  union
++  select t1.col1
++  from t1
++) d
++join t2 on d.col1 = t2.col1
++where t2.id = 1;
++
++flush status;
++eval explain $query;
++eval $query;
++show status like 'Created_tmp_disk_tables';
++
++set @@tmp_table_size = 1024;
++
++flush status;
++eval explain $query;
++eval $query;
++show status like 'Created_tmp_disk_tables';
++
++set session internal_tmp_mem_storage_engine =
++  @old_internal_tmp_mem_storage_engine;
++set @@tmp_table_size = @old_tmp_table_size;
++drop procedure insert_bug_37308710_data;
++drop table t1, t2;
++
++--echo # cleanup
+ set session internal_tmp_mem_storage_engine=default;
+diff --git a/sql/sql_tmp_table.cc b/sql/sql_tmp_table.cc
+index a6393b77beb..ff511a27b5e 100644
+--- a/sql/sql_tmp_table.cc
++++ b/sql/sql_tmp_table.cc
+@@ -2877,6 +2877,13 @@ bool create_ondisk_from_heap(THD *thd, TABLE *wtable, int error,
+     thd_proc_info(thd, (!strcmp(save_proc_info, "Copying to tmp table")
+                             ? "Copying to tmp table on disk"
+                             : save_proc_info));
++
++  /*
++    Reading from the in-memory table clears wtable's not-started state, so reset
++    it here.
++  */
++  wtable->set_not_started();
++
+   return false;
+ 
+ err_after_open:
+-- 
+2.55.0
+
