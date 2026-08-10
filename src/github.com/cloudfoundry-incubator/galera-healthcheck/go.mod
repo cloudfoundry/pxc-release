@@ -3,8 +3,8 @@ module github.com/cloudfoundry-incubator/galera-healthcheck
 go 1.25.8
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.80.0
-	code.cloudfoundry.org/tlsconfig v0.63.0
+	code.cloudfoundry.org/lager/v3 v3.81.0
+	code.cloudfoundry.org/tlsconfig v0.64.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.10.0
