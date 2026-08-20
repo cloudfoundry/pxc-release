@@ -47,35 +47,6 @@ describe 'my.cnf template' do
     end
   }
 
-  it 'temporarily enabled deprecated TempTable mmap options to mitigate https://bugs.mysql.com/bug.php?id=116741' do
-      expect(parsed_mycnf).to include("mysqld" => hash_including(
-        "temptable_use_mmap" => "on",
-        "temptable_max_mmap" => "1G"
-      ))
-  end
-
-  context 'when a user overrides temptable settings' do
-    let(:spec) {
-      {
-        "engine_config" => {
-          "additional_raw_entries" => {
-            "mysqld" => {
-              "temptable_use_mmap" => "off",  # prove we can turn temptable mmap back off, if desired
-              "some-other-option" => "some-value", # prove some other override option works too
-            }
-          }
-        }
-      }
-    }
-
-    it 'uses the overrides' do
-      expect(parsed_mycnf).to include("mysqld" => hash_including(
-        "temptable_use_mmap" => "off",
-        "some-other-option" => "some-value"
-      ))
-    end
-  end
-
   it 'sets the authentication policy to what is provided in the job spec' do
       expect(parsed_mycnf).to include("mysqld" => hash_including("authentication_policy" => "caching_sha2_password"))
   end
