@@ -45,3 +45,5 @@ require (
 )
 
 exclude golang.org/x/tools v0.38.0
+
+replace github.com/tedsuo/ifrit => github.com/tedsuo/ifrit v0.0.0-20260418191334-846868129986
