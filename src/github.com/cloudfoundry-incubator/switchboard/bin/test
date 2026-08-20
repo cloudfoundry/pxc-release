@@ -13,13 +13,16 @@ go vet ./...
 
 echo "Testing packages..."
 
+CPU_COUNT="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+GINKGO_PROCS=$(( CPU_COUNT < 4 ? CPU_COUNT : 4 ))
+
 GINKGO_FLAGS=(
   -r
   --fail-on-pending
   --randomize-all
   --race
   --keep-going
-  -p
+  --procs="${GINKGO_PROCS}"
 )
 
 go run github.com/onsi/ginkgo/v2/ginkgo "${GINKGO_FLAGS[@]}" "$@"

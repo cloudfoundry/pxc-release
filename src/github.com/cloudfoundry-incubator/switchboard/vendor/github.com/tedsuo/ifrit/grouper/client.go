@@ -131,6 +131,10 @@ func (c dynamicClient) broadcastExit(event ExitEvent) {
 	c.exitBroadcaster.Broadcast(event)
 }
 
+func (c dynamicClient) closeExitBroadcaster() {
+	c.exitBroadcaster.Close()
+}
+
 func (c dynamicClient) closeBroadcasters() error {
 	c.entranceBroadcaster.Close()
 	c.exitBroadcaster.Close()
