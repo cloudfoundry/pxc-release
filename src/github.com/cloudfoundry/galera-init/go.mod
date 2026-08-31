@@ -3,14 +3,14 @@ module github.com/cloudfoundry/galera-init
 go 1.25.0
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.82.0
+	code.cloudfoundry.org/lager/v3 v3.84.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/renameio/v2 v2.0.2
 	github.com/google/uuid v1.6.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.2
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/pivotal-cf-experimental/service-config v0.0.0-20160129003516-b1dc94de6ada
 	github.com/pkg/errors v0.9.1
 	gopkg.in/validator.v2 v2.0.1
@@ -23,7 +23,7 @@ require (
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 // indirect
+	github.com/google/pprof v0.0.0-20260830191439-4932ad3515ea // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
