@@ -1,0 +1,83 @@
+<%-
+source_creds = {}
+fallback = true
+if_link('mysql-backup-user-creds') do |link|
+  link.if_p('mysql_backup_username','mysql_backup_password') do |user,pass|
+    source_creds = { 'username' => user, 'password' => pass }
+    fallback = false
+  end
+end
+if fallback
+  if_p('mysql_backup_username', 'mysql_backup_password') do |user,pass|
+    source_creds = { 'username' => user, 'password' => pass }
+  end
+end
+  if_p('source_admin_username', 'source_admin_password') do |user,pass|
+    source_creds["admin_username"] = user
+    source_creds["admin_password"] = pass
+  end
+-%>
+version: <%= p('mysql_version') %>
+source:
+  name: source
+<%-
+if_link('source') do |link|
+  tls = {}
+  link.if_p('tls.client.ca') do |val|
+   tls["ca"] = val
+  end.else do
+    if_p('source_tls.ca') do |val|
+     tls["ca"] = val
+    end
+  end
+-%>
+#link config
+  host: <%= link.address %>
+  port: <%= link.p('port') %>
+  version: <%= link.p('mysql_version') %>
+  creds: <%= JSON.dump(source_creds) %>
+  tls: <%= JSON.dump(tls) %>
+<%-
+end.else do
+-%>
+#manual config
+  host: <%= p('source_host') %>
+  port: <%= p('source_port') %>
+  version: <%= p('mysql_version') %>
+  creds: <%= JSON.dump(source_creds) %>
+  tls: <%= JSON.dump(tls) %>
+<%-
+end
+-%>
+#TARGET
+target:
+  name: target
+<%-
+target_creds = {
+  "admin_username" => p('target_admin_username'),
+  "admin_password" => p('target_admin_password'),
+}
+if_link('target') do |link|
+tls = {}
+link.if_p('tls.client.ca') do |ca|
+  tls["ca"] = ca
+end.else do
+  if_p("target_tls.ca") do |ca|
+    tls["ca"] = ca
+  end
+end
+-%>
+  version: <%= link.p('mysql_version') %>
+  host: localhost
+  port: <%= link.p('port') %>
+  creds: <%= JSON.dump(target_creds) %>
+  tls: <%= JSON.dump(tls) %>
+<%-
+end.else do
+-%>
+  host: <%= p('target_host') %>
+  port: <%= p('target_port') %>
+  version: <%= p('mysql_version') %>
+  creds: <%= JSON.dump(target_creds) %>
+  tls: <%= JSON.dump(tls) %>
+<%- end -%>
