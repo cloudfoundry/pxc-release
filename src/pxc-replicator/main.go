@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/pxc-release/replicator/client"
+	"github.com/cloudfoundry/pxc-release/replicator/config"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -54,20 +55,30 @@ func main() {
 	}
 	consecutiveFailureCount := 0
 	for {
+		time.Sleep(time.Second * 5)
+		if consecutiveFailureCount >= 5 {
+			log.Printf("failed to check replication %v in a row, resyncing", consecutiveFailureCount)
+			if err := replClient.SyncSourceToTarget(); err != nil {
+				log.Fatalf("failed to resync: %s", err)
+			}
+		}
 		state, err := replClient.CheckReplication(conn)
 		if err != nil {
-			consecutiveFailureCount += 1
-			log.Printf("failed checking replication. Consecutive failures: %v, error: %s", consecutiveFailureCount, err)
-			if consecutiveFailureCount >= 5 {
-				log.Printf("failed to check replication %v in a row, resyncing", consecutiveFailureCount)
-				if err := replClient.SyncSourceToTarget(); err != nil {
-					log.Fatalf("failed to resync: %s", err)
-				}
+			if replError, ok := err.(client.ReplicationError); ok {
+				consecutiveFailureCount += 1
+				log.Printf("replication is unhealthy: %s", replError)
+				const sleepLength = 30
+				log.Printf("delaying next check for %d seconds to give it time to recover", sleepLength)
+				time.Sleep(time.Second * sleepLength)
+				continue
+			} else {
+				log.Printf("failed checking replication. Consecutive failures: %v, error: %s", consecutiveFailureCount, err)
+				continue
 			}
-		} else {
+		}
+		log.Printf("replication state: %s", state)
+		if state.SQLRunning == config.HealthyStatus && state.IORunning == config.HealthyStatus {
 			consecutiveFailureCount = 0
 		}
-		log.Printf("replication state: %s", state.String())
-		time.Sleep(time.Second * 5)
 	}
 }

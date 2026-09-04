@@ -38,6 +38,35 @@ const (
 	DATE_LAYOUT              = "060102 15:04:05"
 )
 
+type ReplicationError struct {
+	state ReplState
+}
+
+func (e ReplicationError) Error() string {
+	return fmt.Sprintf(
+		`Failed Replcation:
+	IORunning: %s
+	SQLRunning: %s
+	SQLRunningState: %s
+	SQLDelay: %d
+	SecondsBehind: %d
+	LastIOErrorTime: %s
+	LastIOErr: %s
+	LastSQLErrorTime: %s
+	LastSQLErr: %s
+	`,
+		e.state.IORunning,
+		e.state.SQLRunning,
+		e.state.SQLRunningState,
+		e.state.SQLDelay,
+		e.state.SecondsBehind,
+		e.state.LastIOErrorTime,
+		e.state.LastIOErr,
+		e.state.LastSQLErrorTime,
+		e.state.LastSQLErr,
+	)
+}
+
 // ReplState holds the parsed result of SHOW REPLICA STATUS.
 // Enabled indicates whether the replica returned any row set.
 // IORunning, SQLRunning, and SecondsBehind reflect the live replication status.
@@ -74,12 +103,14 @@ func (r ReplState) String() string {
 
 	fiveMinutesAgo := time.Now().Add(time.Minute * -5)
 	if r.LastIOErrorTime != nil && r.LastIOErrorTime.After(fiveMinutesAgo) {
-		line = fmt.Sprintf("%s, IOErr within last 5 minutes: %s",
+		line = fmt.Sprintf(
+			"%s, IOErr within last 5 minutes: %s",
 			line, r.LastIOErr,
 		)
 	}
 	if r.LastSQLErrorTime != nil && r.LastSQLErrorTime.After(fiveMinutesAgo) {
-		line = fmt.Sprintf("%s, SQLErr within last 5 minutes: %s",
+		line = fmt.Sprintf(
+			"%s, SQLErr within last 5 minutes: %s",
 			line, r.LastSQLErr,
 		)
 	}
@@ -478,6 +509,9 @@ func (r *ReplClient) CheckReplication(db *sql.DB) (ReplState, error) {
 		}
 	}
 	log.Println(state.Misc)
+	if state.Enabled && state.IORunning != config.HealthyStatus && state.SQLRunning != config.HealthyStatus {
+		return ReplState{}, ReplicationError{state: state}
+	}
 	return state, nil
 }
 

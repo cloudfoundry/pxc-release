@@ -376,8 +376,8 @@ var _ = Describe("Client/Client", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(state).ToNot(Equal(client.ReplState{}))
-			Expect(state.SQLRunning).To(Equal("Yes"))
-			Expect(state.IORunning).To(Equal("Yes"))
+			Expect(state.SQLRunning).To(Equal(config.HealthyStatus))
+			Expect(state.IORunning).To(Equal(config.HealthyStatus))
 			Expect(state.Misc).ToNot(BeEmpty())
 			log.Printf("%v", state.Misc)
 			replClient.Close()
@@ -414,7 +414,7 @@ func endToEnd(replClient *client.ReplClient, source config.Target) {
 		time.Sleep(time.Second)
 		state, err = replClient.CheckReplication(db)
 		Expect(err).ToNot(HaveOccurred())
-		return state.SQLRunning == "Yes" && state.IORunning == "Yes"
+		return state.SQLRunning == config.HealthyStatus && state.IORunning == "Yes"
 	}, time.Minute).Should(BeTrue())
 	Expect(err).ToNot(HaveOccurred())
 	replClient.Close()
