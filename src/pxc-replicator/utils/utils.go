@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
 )
 
 // CloseAndLogError safely closes an io.Closer and logs any error encountered.

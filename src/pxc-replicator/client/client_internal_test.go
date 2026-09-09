@@ -3,7 +3,7 @@ package client
 import (
 	"sync"
 
-	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

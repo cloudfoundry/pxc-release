@@ -19,9 +19,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cloudfoundry/pxc-release/replicator/client"
-	"github.com/cloudfoundry/pxc-release/replicator/config"
-	"github.com/cloudfoundry/pxc-release/replicator/utils"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/client"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/utils"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/testcontainers/testcontainers-go"

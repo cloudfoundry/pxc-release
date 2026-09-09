@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry/pxc-release/replicator/config"
-	"github.com/cloudfoundry/pxc-release/replicator/dumper"
-	"github.com/cloudfoundry/pxc-release/replicator/utils"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/dumper"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/utils"
 	"github.com/go-sql-driver/mysql"
 )
 

@@ -1,4 +1,4 @@
-module github.com/cloudfoundry/pxc-release/replicator
+module github.com/cloudfoundry/pxc-release/pxc-replicator
 
 go 1.26.2
 

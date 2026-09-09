@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/cloudfoundry/pxc-release/replicator/config"
-	"github.com/cloudfoundry/pxc-release/replicator/utils"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/utils"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry/pxc-release/replicator/client"
-	"github.com/cloudfoundry/pxc-release/replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/client"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
 	"go.yaml.in/yaml/v3"
 )
 

@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry/pxc-release/replicator/client"
-	"github.com/cloudfoundry/pxc-release/replicator/config"
-	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/client"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/config"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/testhelper"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

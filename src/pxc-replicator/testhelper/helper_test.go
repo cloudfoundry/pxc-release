@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry/pxc-release/replicator/testhelper"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/testhelper"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/testcontainers/testcontainers-go"

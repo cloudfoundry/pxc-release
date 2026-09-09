@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"github.com/cloudfoundry/pxc-release/replicator/utils"
+	"github.com/cloudfoundry/pxc-release/pxc-replicator/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
