@@ -1,0 +1,37 @@
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/server_id?
+  value: 2
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/binlog?/enable_gtid_mode?
+  value: true
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/provides?/mysql?
+  value:
+    as: replica-target
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/mysql_version?
+  value: '8.4'
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/properties/mysql_version?
+  value: '8.4'
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/properties/target_admin_username?
+  value: 'root'
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/properties/target_admin_password?
+  value: ((cf_mysql_mysql_admin_password))
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/tls?/client?/ca
+  value: ((mysql_server_certificate.ca))
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator/consumes?
+  value:
+    source:
+      from: replica-source
+      deployment: ((source_deployment_name))
+    target:
+      from:
+        replica-target
+    mysql-backup-user-creds:
+      from: source-creds
+      deployment: ((source_deployment_name))

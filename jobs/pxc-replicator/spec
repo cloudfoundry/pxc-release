@@ -1,0 +1,72 @@
+---
+name: pxc-replicator
+
+templates:
+  bpm.yml.erb: config/bpm.yml
+  config/config.yml.erb: config/config.yml
+
+packages:
+- percona-xtradb-cluster-8.0
+- percona-xtradb-cluster-8.4
+- pxc-replicator
+
+consumes:
+- name: mysql-backup-user-creds
+  type: mysql-backup-user-creds
+  optional: true
+- name: source
+  type: mysql
+  optional: true
+- name: target
+  type: mysql
+  optional: true
+
+properties:
+  #SOURCE
+  source_admin_username:
+    description: |
+      this is here for compatibility with older deployments of the pxc-release.
+      If provided it will be used to create, authorize the `mysql-backup-user` on the source instance
+  source_admin_password:
+    description: |
+      this is here for compatibility with older deployments of the pxc-release.
+      If provided it will be used to create, authorize the `mysql-backup-user` on the source instance
+  mysql_backup_username:
+    description: 'a replication enabled user that exists on the source mysql. It requires permissions to do a full `mysqldump --all-databases --events --triggers --routines --single-transaction` of the source instance. If specified alongside source_admin_username && source_admin_password this user will automatically be generated and provided with the right permissions. '
+  mysql_backup_password:
+    description: 'password to use for connection to source instance. If specified alongside source_admin_username && source_admin_password this user will automatically be generated and provided with the right permissions.'
+
+  #SOURCE TLS/CONNECTION
+  source_tls.ca:
+    description: ca certificate in pem format to validate the source instance
+  source_host:
+    description: 'hostname of the source database instance'
+  source_port:
+    default: 3306
+
+  #TARGET
+  target_admin_username:
+    description: |
+      the admin user for the target of the replication. It will be used to connect and setup the replication
+      connection
+  target_admin_password:
+    description: |
+      the admin user for the target of the replication. It will be used to connect and setup the replication
+      connection
+  #TARGET TLS/CONNECTION
+  target_host:
+    description: 'hostname of the target database instance'
+  target_port:
+    default: 3306
+  target_tls.ca:
+    description: ca certificate in pem format to validate the target instance
+
+  #GENERAL
+  clean_expired_backups:
+    description: |
+      To setup replication, pxc replicator will run an initial sync that takes a backup via mysqldump of the source. Re-Syncing is necessary in some cases where the replication breaks in a way where the incoming transactions from the source do not cleanly apply.
+      Enabling this setting will cleanup "expired" backups once the contained GTID is too old to reconnect the target with the source. When multiple viable backups are cached, only the latest viable backup is kept.
+    default: true
+  mysql_version:
+    description: 'the version of mysql deployed for source and target. Both deployments should use the same version.'
+    default: 8.4
