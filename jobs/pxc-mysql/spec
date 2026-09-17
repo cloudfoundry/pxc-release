@@ -57,6 +57,8 @@ provides:
   - port
   - pxc_enabled
   - mysql_version
+  - tls.client.ca
+
 - name: internal-mysql-database
   type: internal-database
 - name: mysql-backup-user-creds
@@ -67,14 +69,12 @@ provides:
   - mysql_socket
 
 properties:
-
   pxc_enabled:
     description: 'Used for disabling the job. Useful if co-locating the cf-mysql release mysql job and migrating'
     default: true
   disable_persistent_storage_safety_check:
     description: 'pre-start checks that /var/vcap/store is a persistent volume to prevent accidentally running the database on an ephemeral disk. This can be used to disable this check for test or bosh-lite situations'
     default: false
-
 
   # Admin Users
   admin_username:
@@ -100,7 +100,9 @@ properties:
     default: 'mysql-backup'
   mysql_backup_password:
     description: 'Optional. Password for mysql-backup user'
-
+  mysql_backup_allowed_remote_hosts:
+    default: localhost
+    description: 'Optional. Host from where the backup user is allowed to connect. % for all remote hosts.'
   mysql_socket:
     description: Location of the mysql socket for connecting locally
     default: '/var/vcap/sys/run/pxc-mysql/mysqld.sock'

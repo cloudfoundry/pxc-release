@@ -1,0 +1,9 @@
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-replicator?
+  value:
+    name: pxc-replicator
+    release: pxc
+    properties: {}
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/binlog?/enable_gtid_mode?
+  value: true

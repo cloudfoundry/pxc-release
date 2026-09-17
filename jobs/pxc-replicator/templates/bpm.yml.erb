@@ -1,0 +1,17 @@
+processes:
+- name: pxc-replicator
+  executable: /var/vcap/packages/pxc-replicator/bin/replicator
+  args:
+  - -config=/var/vcap/jobs/pxc-replicator/config/config.yml
+  - -data-dir=/var/vcap/data/pxc-replicator/data
+  - -dump-dir=/var/vcap/data/pxc-replicator/dumps
+  - -mysql-bin-path=/var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') -%>/bin/
+  - -mysql-version=<%= p('mysql_version')  %>
+  additional_volumes:
+  - path: /var/vcap/data/pxc-replicator/data
+    writable: true
+  - path: /var/vcap/data/pxc-replicator/dumps
+    writable: true
+  - path: /var/vcap/data/pxc-mysql
+    mount_only: true
+    writable: true
