@@ -70,7 +70,21 @@ ssl_key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 require_secure_transport        = ON
 <%- end -%>
 
-<%- if p('engine_config.galera.enabled') -%>
+<%- if p('engine_config.galera.enabled')
+  wsrep_provider_options = {
+    "gcache.size" => "#{p('engine_config.galera.gcache_size')}M",
+    "pc.recovery" => "FALSE",
+    "pc.checksum" => "TRUE",
+    "socket.ssl" => "yes",
+    "socket.ssl_ca" => "/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem",
+    "socket.ssl_cert" => "/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem",
+    "socket.ssl_key" => "/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem",
+    "socket.ssl_cipher" => "ECDHE-RSA-AES256-GCM-SHA384"
+  }
+  if p('mysql_version') == '8.4'
+    wsrep_provider_options["repl.force_sst_after_inconsistency"] = "TRUE"
+  end
+-%>
 # GALERA options:
 pxc_strict_mode                 = MASTER
 pxc_maint_transition_period     = 0
@@ -87,7 +101,7 @@ wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.por
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
 wsrep_provider                  = /var/vcap/packages/percona-xtradb-cluster-<%= p('mysql_version') %>/lib/libgalera_smm.so
-wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
+wsrep_provider_options          = "<%= wsrep_provider_options.map { |k, v| "#{k}=#{v}" }.join(";") %>"
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2
 pxc_encrypt_cluster_traffic     = OFF
@@ -195,6 +209,8 @@ jemalloc_profiling              = ON
 [<%= section = 'mysqld-8.4' %>]
 <%# Re-enable mysql_native_password authentication plugin in MySQL v8.4 for backwards compatibility %>
 mysql_native_password           = ON
+# Avoid eagerly populating the entire buffer pool at startup in memory-constrained environments.
+innodb_buffer_pool_populate      = OFF
 <%- additional_entries.extract_section(section).each do |key, value| -%>
 <%= key %> = <%= value %>
 <%- end -%>
