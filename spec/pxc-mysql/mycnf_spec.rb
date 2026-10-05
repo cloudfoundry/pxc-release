@@ -47,6 +47,16 @@ describe 'my.cnf template' do
     end
   }
 
+  it 'disables buffer pool populate on startup for mysql 8.4' do
+    expect(parsed_mycnf).to include("mysqld-8.4" => hash_including(
+      "innodb_buffer_pool_populate" => "OFF",
+    ))
+    %w[mysqld mysqld-8.0].each do |section|
+      expect(parsed_mycnf[section]).not_to have_key("innodb_buffer_pool_populate")
+      expect(parsed_mycnf[section]).not_to have_key("innodb-buffer-pool-populate")
+    end
+  end
+
   it 'sets the authentication-policy' do
     expect(rendered_template).to match(/authentication-policy\s*=\s*caching_sha2_password/)
   end
@@ -136,6 +146,10 @@ describe 'my.cnf template' do
       }
     } }
 
+    it 'does not configure wsrep provider options' do
+      expect(parsed_mycnf["mysqld"]).not_to have_key("wsrep_provider_options")
+    end
+
     context 'read_write_permissions' do
       it 'configures the super-read-only option if read_write_permissions specified as "super_read_only"' do
         spec["engine_config"]["read_write_permissions"] = "super_read_only"
@@ -193,6 +207,53 @@ describe 'my.cnf template' do
 
     it 'sets wsrep_sst_auth for 5.7' do
       expect(rendered_template).to match(/\[mysqld-5\.7\]\nwsrep_sst_auth/m)
+    end
+
+    context 'wsrep provider options' do
+      let(:wsrep_provider_options) do
+        raw_options = parsed_mycnf.dig('mysqld', 'wsrep_provider_options') || ''
+        raw_options.delete('"').split(';').to_h { |opt| opt.split('=', 2) }
+      end
+
+      let(:default_wsrep_options) do
+        {
+            "gcache.size" => "512M",
+            "pc.recovery" => "FALSE",
+            "pc.checksum" => "TRUE",
+            "socket.ssl" => "yes",
+            "socket.ssl_ca" => "/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem",
+            "socket.ssl_cert" => "/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem",
+            "socket.ssl_key" => "/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem",
+            "socket.ssl_cipher" => "ECDHE-RSA-AES256-GCM-SHA384"
+        }
+      end
+
+      it 'includes standard default options' do
+        expect(wsrep_provider_options).to include(default_wsrep_options)
+      end
+
+      context 'when engine_config.galera.gcache_size is specified in MiB' do
+          before { spec["engine_config"]["galera"]["gcache_size"] = "2048" }
+          it 'sets a non-default gcache size' do
+            expect(wsrep_provider_options).to include("gcache.size" => "2048M")
+          end
+      end
+
+      context 'when mysql_version is 8.0' do
+        before { spec["mysql_version"] = "8.0" }
+
+        it 'does not include the force_sst_after_inconsistency option' do
+          expect(wsrep_provider_options).not_to have_key("repl.force_sst_after_inconsistency")
+        end
+      end
+
+      context 'when mysql_version is 8.4' do
+        before { spec["mysql_version"] = "8.4" }
+
+        it 'forces SST after inconsistency' do
+          expect(wsrep_provider_options).to include("repl.force_sst_after_inconsistency" => "TRUE")
+        end
+      end
     end
 
     context 'when audit logs are disabled (default)' do

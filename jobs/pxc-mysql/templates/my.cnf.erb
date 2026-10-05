@@ -58,7 +58,8 @@ socket                          = <%= "#{base_folder}/mysqld.sock" %>
 [<%= section = 'mysqld-8.4' %>]
 <%# Re-enable mysql_native_password authentication plugin for backwards compatibility %>
 mysql-native-password           = ON
-
+# Avoid eagerly populating the entire buffer pool at startup in memory-constrained environments.
+innodb_buffer_pool_populate      = OFF
 authentication-policy           = <%= p('engine_config.user_authentication_policy') %>
 mysqlx_socket                   = <%= "#{base_folder}/mysqlx.sock" %>
 log_replica_updates             = ON
@@ -129,7 +130,21 @@ ssl-key=/var/vcap/jobs/pxc-mysql/certificates/server-key.pem
 require-secure-transport        = ON
 <%- end -%>
 
-<%- if p('engine_config.galera.enabled') -%>
+<%- if p('engine_config.galera.enabled')
+  wsrep_provider_options = {
+    "gcache.size" => "#{p('engine_config.galera.gcache_size')}M",
+    "pc.recovery" => "FALSE",
+    "pc.checksum" => "TRUE",
+    "socket.ssl" => "yes",
+    "socket.ssl_ca" => "/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem",
+    "socket.ssl_cert" => "/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem",
+    "socket.ssl_key" => "/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem",
+    "socket.ssl_cipher" => "ECDHE-RSA-AES256-GCM-SHA384"
+  }
+  if p('mysql_version') == '8.4'
+    wsrep_provider_options["repl.force_sst_after_inconsistency"] = "TRUE"
+  end
+-%>
 # GALERA options:
 pxc-strict-mode                 = MASTER
 pxc_maint_transition_period     = 0
@@ -142,7 +157,7 @@ wsrep_max_ws_size               = <%= p('engine_config.galera.wsrep_max_ws_size'
 wsrep_node_address              = <%= spec.ip %>:<%= p('engine_config.galera.port') %>
 wsrep_node_name                 = <%= name %>/<%= index %>
 wsrep_on                        = ON
-wsrep_provider_options          = "gcache.size=<%= p('engine_config.galera.gcache_size') %>M;pc.recovery=FALSE;pc.checksum=TRUE;socket.ssl=yes;socket.ssl_ca=/var/vcap/jobs/pxc-mysql/certificates/galera-ca.pem;socket.ssl_cert=/var/vcap/jobs/pxc-mysql/certificates/galera-cert.pem;socket.ssl_key=/var/vcap/jobs/pxc-mysql/certificates/galera-key.pem;socket.ssl_cipher=ECDHE-RSA-AES256-GCM-SHA384"
+wsrep_provider_options          = "<%= wsrep_provider_options.map { |k, v| "#{k}=#{v}" }.join(";") %>"
 wsrep_replicate_myisam          = OFF
 wsrep_sst_method                = xtrabackup-v2
 pxc-encrypt-cluster-traffic     = OFF
