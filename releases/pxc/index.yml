@@ -105,6 +105,8 @@ builds:
     version: 1.1.6
   5a61edeb-60e8-4f10-4783-2877cdc37c88:
     version: 1.0.0-alpha.1
+  62927a38-3b24-4996-49b9-fb3b28557f6d:
+    version: 1.1.21
   633a4b98-e677-4bf7-64ce-60bc04bab54c:
     version: 1.0.41
   6483e6c6-1de6-4639-7909-93e347dde650:
