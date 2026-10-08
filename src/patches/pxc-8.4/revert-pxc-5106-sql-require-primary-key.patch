@@ -1,0 +1,217 @@
+diff --git a/scripts/mysql_system_tables.sql b/scripts/mysql_system_tables.sql
+index ea4ee3782ae..f42d482f8df 100644
+--- a/scripts/mysql_system_tables.sql
++++ b/scripts/mysql_system_tables.sql
+@@ -349,16 +349,6 @@ DROP PREPARE stmt;
+ 
+ -- bug#92988: Temporarily turn off sql_require_primary_key for the
+ -- next 2 tables as this is not necessary as they do not replicate.
+---
+--- pxc_strict_mode ENFORCING/MASTER forces sql_require_primary_key ON, so it
+--- has to be relaxed
+-SET @old_pxc_strict_mode = @@global.pxc_strict_mode;
+-SET @pxc_relax_strict_mode = (@old_pxc_strict_mode <> 'DISABLED');
+-SET @cmd = "SET @@global.pxc_strict_mode = DISABLED";
+-SET @str = IF(@pxc_relax_strict_mode, @cmd, "SET @dummy = 0");
+-PREPARE stmt FROM @str;
+-EXECUTE stmt;
+-DROP PREPARE stmt;
+ SET @old_sql_require_primary_key = @@session.sql_require_primary_key;
+ SET @@session.sql_require_primary_key = 0;
+ 
+@@ -369,12 +359,6 @@ CREATE TABLE IF NOT EXISTS general_log (event_time TIMESTAMP(6) NOT NULL DEFAULT
+ CREATE TABLE IF NOT EXISTS slow_log (start_time TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), user_host MEDIUMTEXT NOT NULL, query_time TIME(6) NOT NULL, lock_time TIME(6) NOT NULL, rows_sent INTEGER NOT NULL, rows_examined INTEGER NOT NULL, db VARCHAR(512) NOT NULL, last_insert_id INTEGER NOT NULL, insert_id INTEGER NOT NULL, server_id INTEGER UNSIGNED NOT NULL, sql_text MEDIUMBLOB NOT NULL, thread_id BIGINT UNSIGNED NOT NULL) engine=CSV CHARACTER SET utf8mb3 comment="Slow log";
+ 
+ SET @@session.sql_require_primary_key = @old_sql_require_primary_key;
+--- Restore pxc_strict_mode saved above, under the same guard.
+-SET @cmd = "SET @@global.pxc_strict_mode = @old_pxc_strict_mode";
+-SET @str = IF(@pxc_relax_strict_mode, @cmd, "SET @dummy = 0");
+-PREPARE stmt FROM @str;
+-EXECUTE stmt;
+-DROP PREPARE stmt;
+ 
+ SET @cmd = "CREATE TABLE IF NOT EXISTS component ( component_id int unsigned NOT NULL AUTO_INCREMENT, component_group_id int unsigned NOT NULL, component_urn text NOT NULL, PRIMARY KEY (component_id)) engine=INNODB DEFAULT CHARSET=utf8mb3 COMMENT 'Components' ROW_FORMAT=DYNAMIC TABLESPACE=mysql";
+ SET @str = CONCAT(@cmd, " ENCRYPTION='", @is_mysql_encrypted, "'");
+diff --git a/scripts/mysql_system_tables_fix.sql b/scripts/mysql_system_tables_fix.sql
+index adf9aa91a14..2e0d51722bd 100644
+--- a/scripts/mysql_system_tables_fix.sql
++++ b/scripts/mysql_system_tables_fix.sql
+@@ -238,17 +238,6 @@ ALTER TABLE func
+ 
+ SET @old_log_state = @@global.general_log;
+ SET GLOBAL general_log = 'OFF';
+--- The log tables below have no primary key, so relax the primary-key policy
+--- for them (Refer bug#92988 in mysql_system_tables.sql).
+--- pxc_strict_mode ENFORCING/MASTER forces sql_require_primary_key ON, so it
+--- has to be relaxed
+-SET @old_pxc_strict_mode = @@global.pxc_strict_mode;
+-SET @pxc_relax_strict_mode = (@old_pxc_strict_mode <> 'DISABLED');
+-SET @cmd = "SET @@global.pxc_strict_mode = DISABLED";
+-SET @str = IF(@pxc_relax_strict_mode, @cmd, "SET @dummy = 0");
+-PREPARE stmt FROM @str;
+-EXECUTE stmt;
+-DROP PREPARE stmt;
+ SET @old_sql_require_primary_key = @@session.sql_require_primary_key;
+ SET @@session.sql_require_primary_key = 0;
+ ALTER TABLE general_log
+@@ -283,12 +272,6 @@ ALTER TABLE slow_log
+ SET GLOBAL slow_query_log = @old_log_state;
+ 
+ SET @@session.sql_require_primary_key = @old_sql_require_primary_key;
+--- Restore pxc_strict_mode saved above, under the same guard.
+-SET @cmd = "SET @@global.pxc_strict_mode = @old_pxc_strict_mode";
+-SET @str = IF(@pxc_relax_strict_mode, @cmd, "SET @dummy = 0");
+-PREPARE stmt FROM @str;
+-EXECUTE stmt;
+-DROP PREPARE stmt;
+ ALTER TABLE plugin
+   MODIFY name varchar(64) DEFAULT '' NOT NULL,
+   MODIFY dl varchar(128) DEFAULT '' NOT NULL,
+diff --git a/sql/bootstrap.cc b/sql/bootstrap.cc
+index 84e618845f2..733cac44c19 100644
+--- a/sql/bootstrap.cc
++++ b/sql/bootstrap.cc
+@@ -456,15 +456,6 @@ bool run_bootstrap_thread(const char *file_name, MYSQL_FILE *file,
+   */
+   thd->variables.default_table_encryption = false;
+ 
+-#ifdef WITH_WSREP
+-  /*
+-    Disable sql_require_primary_key for the server upgrade thread because its
+-    internal upgrade script modifies system tables without primary keys.
+-    Otherwise, PXC's default ENFORCING mode can abort the upgrade (PXC-5296).
+-  */
+-  if (thread_type == SYSTEM_THREAD_SERVER_UPGRADE)
+-    thd->variables.sql_require_primary_key = false;
+-#endif /* WITH_WSREP */
+   my_thread_attr_t thr_attr;
+   my_thread_attr_init(&thr_attr);
+ #ifndef _WIN32
+diff --git a/sql/mysqld.cc b/sql/mysqld.cc
+index ffab24d38ca..521368b85e6 100644
+--- a/sql/mysqld.cc
++++ b/sql/mysqld.cc
+@@ -7375,15 +7375,6 @@ int init_common_variables() {
+   WSREP statements. */
+   global_system_variables.wsrep_on = true;
+ 
+-  if (wsrep_provider_loaded && !opt_initialize &&
+-      pxc_strict_mode >= PXC_STRICT_MODE_ENFORCING &&
+-      !global_system_variables.sql_require_primary_key) {
+-    WSREP_WARN(
+-        "Setting sql_require_primary_key=ON because pxc_strict_mode is "
+-        "ENFORCING or MASTER.");
+-    global_system_variables.sql_require_primary_key = true;
+-  }
+-
+   if (wsrep_setup_allowed_sst_methods()) return 1;
+ 
+   /*
+diff --git a/sql/sys_vars.cc b/sql/sys_vars.cc
+index cf18db221d9..c5cf3698d20 100644
+--- a/sql/sys_vars.cc
++++ b/sql/sys_vars.cc
+@@ -428,12 +428,6 @@ static bool check_session_admin_no_super(sys_var *self, THD *thd,
+   @param thd the session context
+   @param setv the SET operations metadata
+  */
+-#ifdef WITH_WSREP
+-static bool check_session_admin_and_sql_require_primary_key_on_check(sys_var *,
+-                                                                     THD *,
+-                                                                     set_var *);
+-#endif /* WITH_WSREP */
+-
+ static bool check_session_admin(sys_var *self, THD *thd, set_var *setv) {
+   Security_context *sctx = thd->security_context();
+ 
+@@ -7963,11 +7957,7 @@ static Sys_var_bool Sys_sql_require_primary_key{
+     DEFAULT(false),
+     NO_MUTEX_GUARD,
+     IN_BINLOG,
+-#ifdef WITH_WSREP
+-    ON_CHECK(check_session_admin_and_sql_require_primary_key_on_check)};
+-#else
+     ON_CHECK(check_session_admin)};
+-#endif
+ 
+ static Sys_var_bool Sys_sql_generate_invisible_primary_key(
+     "sql_generate_invisible_primary_key",
+@@ -8225,29 +8215,6 @@ static Sys_var_charptr Sys_protocol_compression_algorithms(
+ #include "wsrep_sst.h"
+ #include "wsrep_var.h"
+ 
+-static bool check_session_admin_and_sql_require_primary_key_on_check(
+-    sys_var *self, THD *thd, set_var *var) {
+-  if (check_session_admin(self, thd, var)) return true;
+-  if (pxc_strict_mode < PXC_STRICT_MODE_ENFORCING) return false;
+-  /*
+-    Allow the server upgrade thread to bypass pxc_strict_mode when temporarily
+-    disabling sql_require_primary_key for system tables without primary keys.
+-    These are internal statements compiled into the server; rejecting them can
+-    abort upgrades and prevent the node from starting (PXC-5296).
+-  */
+-  if (thd->is_server_upgrade_thread()) return false;
+-  if (var->save_result.ulonglong_value == 0) {
+-    const char *strict_name =
+-        (pxc_strict_mode == PXC_STRICT_MODE_MASTER) ? "MASTER" : "ENFORCING";
+-    WSREP_ERROR(
+-        "Cannot set sql_require_primary_key=OFF while pxc_strict_mode is %s.",
+-        strict_name);
+-    my_error(ER_WRONG_VALUE_FOR_VAR, MYF(0), self->name.str, "OFF");
+-    return true;
+-  }
+-  return false;
+-}
+-
+ static PolyLock_mutex PLock_wsrep_cluster_config(&LOCK_wsrep_cluster_config);
+ static Sys_var_charptr Sys_wsrep_provider(
+     "wsrep_provider", "Path to replication provider library",
+@@ -8636,7 +8603,7 @@ static Sys_var_enum Sys_pxc_strict_mode(
+     "PXC strict mode help control behavior of experimental features",
+     GLOBAL_VAR(pxc_strict_mode), CMD_LINE(OPT_ARG), pxc_strict_modes,
+     DEFAULT(PXC_STRICT_MODE_ENFORCING), NO_MUTEX_GUARD, NOT_IN_BINLOG,
+-    ON_CHECK(pxc_strict_mode_check), ON_UPDATE(pxc_strict_mode_update));
++    ON_CHECK(pxc_strict_mode_check), ON_UPDATE(0));
+ 
+ static const char *pxc_maint_modes[] = {"DISABLED", "SHUTDOWN", "MAINTENANCE",
+                                         NullS};
+diff --git a/sql/wsrep_var.cc b/sql/wsrep_var.cc
+index 3da7554bfcf..50142694192 100644
+--- a/sql/wsrep_var.cc
++++ b/sql/wsrep_var.cc
+@@ -1006,23 +1006,6 @@ bool pxc_strict_mode_check(sys_var *, THD *thd, set_var *var) {
+   return (block);
+ }
+ 
+-bool pxc_strict_mode_update(sys_var *, THD *, enum_var_type) {
+-  /*
+-    When pxc_strict_mode=ENFORCING/MASTER, we set sql_require_primary_key=ON.
+-    Only global is set; existing sessions keep their session value
+-    (new sessions inherit the updated global default).
+-  */
+-  if (pxc_strict_mode >= PXC_STRICT_MODE_ENFORCING &&
+-      global_system_variables.sql_require_primary_key == false) {
+-    global_system_variables.sql_require_primary_key = true;
+-    WSREP_INFO(
+-        "Setting sql_require_primary_key=ON because pxc_strict_mode is "
+-        "being changed to %s.",
+-        pxc_strict_mode_to_string(pxc_strict_mode));
+-  }
+-  return false;
+-}
+-
+ static const char *pxc_maint_mode_to_string(ulong value) {
+   switch (value) {
+     case PXC_MAINT_MODE_DISABLED:
+diff --git a/sql/wsrep_var.h b/sql/wsrep_var.h
+index d123f935c7a..b60d91e5890 100644
+--- a/sql/wsrep_var.h
++++ b/sql/wsrep_var.h
+@@ -100,7 +100,6 @@ extern bool wsrep_debug_update UPDATE_ARGS;
+ extern bool wsrep_replicate_myisam_check CHECK_ARGS;
+ 
+ extern bool pxc_strict_mode_check CHECK_ARGS;
+-extern bool pxc_strict_mode_update UPDATE_ARGS;
+ 
+ extern bool pxc_maint_mode_check CHECK_ARGS;
+ extern bool pxc_maint_mode_update UPDATE_ARGS;

@@ -37,6 +37,12 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 	var innodbBufferPoolSizePercent int64 = 14
 	BeforeAll(func() {
 		deploymentName = "pxc-feature-" + uuid.New().String()
+		DeferCleanup(func() {
+			if CurrentSpecReport().Failed() {
+				return
+			}
+			Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
+		})
 
 		if os.Getenv("INNODB_BUFFER_POOL_SIZE_PERCENT") != "" {
 			var err error
@@ -78,13 +84,6 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		Expect(err).NotTo(HaveOccurred())
 		db.SetMaxIdleConns(0)
 		db.SetMaxOpenConns(1)
-	})
-
-	AfterAll(func() {
-		if CurrentSpecReport().Failed() {
-			return
-		}
-		Expect(bosh.DeleteDeployment(deploymentName)).To(Succeed())
 	})
 
 	Context("OS configuration", Label("os_config"), func() {
@@ -222,6 +221,48 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 					return memberGTIDExecuted
 				}).Should(Equal(expectedGTIDExecuted))
 			}
+		})
+
+		It("defaults sql_require_primary_key to OFF on every node in MASTER mode", Label("sql_require_primary_key"), func() {
+			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(instances).To(HaveLen(3))
+			for _, i := range instances {
+				instanceDB, err := sql.Open("mysql", "test-admin:integration-tests@tcp("+i.IP+")/?tls=skip-verify&interpolateParams=true")
+				Expect(err).NotTo(HaveOccurred())
+				DeferCleanup(func() { Expect(instanceDB.Close()).To(Succeed()) })
+
+				var strictMode string
+				var globalRequirePrimaryKey, sessionRequirePrimaryKey bool
+				Expect(instanceDB.QueryRow(`SELECT @@global.pxc_strict_mode, @@global.sql_require_primary_key, @@session.sql_require_primary_key`).
+					Scan(&strictMode, &globalRequirePrimaryKey, &sessionRequirePrimaryKey)).To(Succeed())
+				Expect(strictMode).To(Equal("MASTER"), "node %s", i.IP)
+				Expect(globalRequirePrimaryKey).To(BeFalse(), "global sql_require_primary_key on node %s", i.IP)
+				Expect(sessionRequirePrimaryKey).To(BeFalse(), "session sql_require_primary_key on node %s", i.IP)
+			}
+		})
+
+		It("allows creating a table without a primary key but rejects writes until one is added", Label("sql_require_primary_key"), func() {
+			Expect(db.Exec(`CREATE DATABASE primary_key_workflow`)).Error().NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				Expect(db.Exec(`DROP DATABASE primary_key_workflow`)).Error().NotTo(HaveOccurred())
+			})
+
+			// Schema migrations can create a table and add its primary key in separate statements.
+			Expect(db.Exec(`CREATE TABLE primary_key_workflow.t1 (id INT NOT NULL, data VARCHAR(255)) ENGINE=InnoDB`)).
+				Error().NotTo(HaveOccurred())
+			insertQuery := `INSERT INTO primary_key_workflow.t1 (id, data) VALUES (1, 'written after adding a primary key')`
+			Expect(db.Exec(insertQuery)).Error().To(MatchError(ContainSubstring(
+				`Percona-XtraDB-Cluster prohibits use of DML command on a table (primary_key_workflow.t1) without an explicit primary key with pxc_strict_mode`)))
+
+			Expect(db.Exec(`ALTER TABLE primary_key_workflow.t1 ADD PRIMARY KEY (id)`)).
+				Error().NotTo(HaveOccurred())
+			Expect(db.Exec(insertQuery)).
+				Error().NotTo(HaveOccurred())
+
+			var storedValue string
+			Expect(db.QueryRow(`SELECT data FROM primary_key_workflow.t1 WHERE id = 1`).Scan(&storedValue)).To(Succeed())
+			Expect(storedValue).To(Equal("written after adding a primary key"))
 		})
 
 		It("Sets the default character set to utf8mb4 ", func() {
