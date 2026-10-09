@@ -219,6 +219,10 @@ var _ = Describe("Feature Verification", Ordered, Label("verification"), func() 
 		})
 
 		It("defaults sql_require_primary_key to OFF on every node in MASTER mode", Label("sql_require_primary_key"), func() {
+			if expectedMysqlVersion == "5.7" {
+				Skip("Skipping sql_require_primary_key assertion because this is a MySQL v8.0+ feature")
+			}
+
 			instances, err := bosh.Instances(deploymentName, bosh.MatchByInstanceGroup("mysql"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).To(HaveLen(3))
