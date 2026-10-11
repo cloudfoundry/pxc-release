@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -ex
+
+source /var/vcap/packages/golang-1-linux/bosh/compile.env
+
+mkdir -p "${BOSH_INSTALL_TARGET}/bin"
+go build -C pxc-replicator -mod=vendor -o "${BOSH_INSTALL_TARGET}/bin/replicator" .
