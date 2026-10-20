@@ -3,7 +3,7 @@ module github.com/cloudfoundry-incubator/switchboard
 go 1.26.0
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.91.0
+	code.cloudfoundry.org/lager/v3 v3.92.0
 	code.cloudfoundry.org/tlsconfig v0.69.0
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/google/uuid v1.6.0
@@ -24,7 +24,7 @@ require (
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20261012231050-2af12c3f4d87 // indirect
+	github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
