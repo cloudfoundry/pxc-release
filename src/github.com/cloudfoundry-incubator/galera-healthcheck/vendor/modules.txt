@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.91.0
+# code.cloudfoundry.org/lager/v3 v3.92.0
 ## explicit; go 1.26.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -107,8 +107,8 @@ github.com/pivotal-cf-experimental/service-config/test_helpers
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/square/certstrap v1.4.0
-## explicit; go 1.24
+# github.com/square/certstrap v1.4.1
+## explicit; go 1.27.3
 github.com/square/certstrap/pkix
 # github.com/tedsuo/rata v1.0.0
 ## explicit

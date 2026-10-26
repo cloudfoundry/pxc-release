@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.91.0
+# code.cloudfoundry.org/lager/v3 v3.92.0
 ## explicit; go 1.26.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -123,13 +123,13 @@ github.com/prometheus/client_model/go
 ## explicit; go 1.26.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
-# github.com/prometheus/procfs v0.22.0
-## explicit; go 1.25.0
+# github.com/prometheus/procfs v0.23.0
+## explicit; go 1.26.0
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/parsers
-# github.com/square/certstrap v1.4.0
-## explicit; go 1.24
+# github.com/square/certstrap v1.4.1
+## explicit; go 1.27.3
 github.com/square/certstrap/pkix
 # github.com/tedsuo/ifrit v0.0.0-20260813155221-94822c932811 => github.com/tedsuo/ifrit v0.0.0-20260418191334-846868129986
 ## explicit; go 1.16
