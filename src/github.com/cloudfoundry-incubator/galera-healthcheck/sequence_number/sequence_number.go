@@ -39,29 +39,37 @@ func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
 
 	if s.config.Monit.ServiceName == "garbd" {
 		return "no sequence number - running on arbitrator node", nil
-	} else if s.dbReachable() {
-		return "", errors.New("can't determine sequence number when database is running")
-	} else if s.sstInProgress() {
-		return "", errors.New("SST is in progress: refusing to run mysqld --wsrep-recover")
-	} else {
-		s.m.Lock()
-		defer s.m.Unlock()
-		returnedSeqNo, err := s.readSeqNoFromRecoverCmd()
-		if err != nil {
-			return "", err
-		}
-
-		returnedSeqNoInt, converr := strconv.Atoi(returnedSeqNo)
-		if converr != nil {
-			return "", converr
-		}
-
-		if returnedSeqNoInt < 0 {
-			return "", errors.New(fmt.Sprintf("Invalid sequence number %s", returnedSeqNo))
-		}
-
-		return returnedSeqNo, nil
 	}
+
+	// Hold the mutex shared with node_manager before checking state so that a
+	// concurrent /start_mysql_* cannot start mysqld between the checks and
+	// mysqld --wsrep-recover.
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if s.dbReachable() {
+		return "", errors.New("can't determine sequence number when database is running")
+	}
+
+	if s.sstInProgress() {
+		return "", errors.New("SST is in progress: refusing to run mysqld --wsrep-recover")
+	}
+
+	returnedSeqNo, err := s.readSeqNoFromRecoverCmd()
+	if err != nil {
+		return "", err
+	}
+
+	returnedSeqNoInt, converr := strconv.Atoi(returnedSeqNo)
+	if converr != nil {
+		return "", converr
+	}
+
+	if returnedSeqNoInt < 0 {
+		return "", errors.New(fmt.Sprintf("Invalid sequence number %s", returnedSeqNo))
+	}
+
+	return returnedSeqNo, nil
 }
 
 func (s *SequenceNumberChecker) readSeqNoFromRecoverCmd() (string, error) {

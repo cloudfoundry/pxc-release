@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/erikstmartin/go-testdb"
 	. "github.com/onsi/ginkgo/v2"
@@ -127,6 +129,49 @@ var _ = Describe("GaleraSequenceChecker", func() {
 					Expect(seq).To(Equal(expectedSeqNumber))
 					Expect(mysqldCmd.RecoverSeqnoCallCount()).To(Equal(1))
 				})
+			})
+		})
+
+		Context("when the process mutex is held by a concurrent start request", func() {
+			var (
+				mutex   *sync.Mutex
+				dbUp    atomic.Bool
+				results chan error
+			)
+
+			BeforeEach(func() {
+				mutex = &sync.Mutex{}
+				dbUp.Store(false)
+				rootConfig.DataDir = GinkgoT().TempDir()
+				testdb.SetExecFunc(func(query string) (driver.Result, error) {
+					if dbUp.Load() {
+						return nil, nil
+					}
+					return nil, errors.New("failed to connect")
+				})
+			})
+
+			It("evaluates db state after acquiring the mutex and does not run mysqld --wsrep-recover", func() {
+				checker := sequence_number.New(db, mysqldCmd, rootConfig, logger, mutex)
+
+				mutex.Lock()
+				results = make(chan error, 1)
+				go func() {
+					defer GinkgoRecover()
+					_, err := checker.Check(createReq())
+					results <- err
+				}()
+
+				// Give the request a chance to run any checks that precede the lock,
+				// then simulate /start_mysql_* bringing the database up.
+				time.Sleep(100 * time.Millisecond)
+				dbUp.Store(true)
+				mutex.Unlock()
+
+				var err error
+				Eventually(results).Should(Receive(&err))
+				Expect(err).To(MatchError("can't determine sequence number when database is running"))
+				Expect(mysqldCmd.RecoverSeqnoCallCount()).To(Equal(0))
 			})
 		})
 
