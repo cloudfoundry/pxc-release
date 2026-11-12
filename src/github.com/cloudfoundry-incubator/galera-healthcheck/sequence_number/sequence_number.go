@@ -1,6 +1,7 @@
 package sequence_number
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,12 +10,18 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/config"
 	"github.com/cloudfoundry-incubator/galera-healthcheck/mysqld_cmd"
 )
+
+// dbQueryTimeout bounds how long Check() may hold the process mutex waiting on
+// mysqld to answer.
+const dbQueryTimeout = 5 * time.Second
 
 type SequenceNumberChecker struct {
 	db        *sql.DB
@@ -47,7 +54,7 @@ func (s *SequenceNumberChecker) Check(req *http.Request) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	if s.dbReachable() {
+	if s.dbMayBeRunning(req.Context()) {
 		return "", errors.New("can't determine sequence number when database is running")
 	}
 
@@ -92,10 +99,34 @@ func (s *SequenceNumberChecker) sstInProgress() bool {
 	return err == nil
 }
 
-func (s *SequenceNumberChecker) dbReachable() bool {
-	_, err := s.db.Exec("SHOW VARIABLES")
-	if err != nil {
-		s.logger.Info(fmt.Sprintf("Database not reachable, continuing: %s", err.Error()))
+// dbMayBeRunning reports whether mysqld may be running, in which case running
+// mysqld --wsrep-recover is unsafe. It errs on the side of "running":
+//   - A MySQL error (access denied, too many connections, WSREP not ready, ...)
+//     means a live server answered, so the database is up.
+//   - A timeout or cancellation means mysqld is not answering but may still be
+//     alive and holding the datadir, so it is not safe to assume it is down.
+//   - Any other error (socket missing, connection refused, ...) means nothing is
+//     listening, so the database is down.
+func (s *SequenceNumberChecker) dbMayBeRunning(ctx context.Context) bool {
+	ctx, cancel := context.WithTimeout(ctx, dbQueryTimeout)
+	defer cancel()
+
+	err := s.db.PingContext(ctx)
+	if err == nil {
+		return true
 	}
-	return err == nil
+
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) {
+		s.logger.Info("Database responded with an error, treating as running", lager.Data{"error": err.Error()})
+		return true
+	}
+
+	if ctx.Err() != nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		s.logger.Info("Database did not respond in time, treating as running", lager.Data{"error": err.Error()})
+		return true
+	}
+
+	s.logger.Info("Database not reachable, continuing", lager.Data{"error": err.Error()})
+	return false
 }

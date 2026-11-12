@@ -1,6 +1,7 @@
 package sequence_number_test
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -11,7 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/erikstmartin/go-testdb"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-sql-driver/mysql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -35,12 +37,16 @@ var _ = Describe("GaleraSequenceChecker", func() {
 		rootConfig      config.Config
 		logger          *lagertest.TestLogger
 		db              *sql.DB
+		mock            sqlmock.Sqlmock
 	)
 
 	BeforeEach(func() {
 		rootConfig = config.Config{}
 		logger = lagertest.NewTestLogger("sequence_number test")
-		db, _ = sql.Open("testdb", "")
+
+		var err error
+		db, mock, err = sqlmock.New(sqlmock.MonitorPingsOption(true))
+		Expect(err).NotTo(HaveOccurred())
 
 		mysqldCmd = &fakes.FakeMysqldCmd{}
 		mysqldCmd.RecoverSeqnoReturns(expectedSeqNumber, nil)
@@ -51,16 +57,14 @@ var _ = Describe("GaleraSequenceChecker", func() {
 	})
 
 	AfterEach(func() {
-		testdb.Reset()
+		_ = db.Close()
 	})
 
 	Describe("Check", func() {
 		Context("db works", func() {
 
 			BeforeEach(func() {
-				testdb.SetExecFunc(func(query string) (driver.Result, error) {
-					return nil, nil
-				})
+				mock.ExpectPing()
 			})
 
 			It("returns an unsuccessful check", func() {
@@ -71,9 +75,7 @@ var _ = Describe("GaleraSequenceChecker", func() {
 
 		Context("db is down", func() {
 			BeforeEach(func() {
-				testdb.SetExecFunc(func(query string) (driver.Result, error) {
-					return nil, errors.New("failed to connect")
-				})
+				mock.ExpectPing().WillReturnError(errors.New("failed to connect"))
 			})
 
 			It("returns a successful sequence number", func() {
@@ -132,27 +134,73 @@ var _ = Describe("GaleraSequenceChecker", func() {
 			})
 		})
 
+		Context("db responds with a MySQL error", func() {
+			DescribeTable("treats the database as running and does not invoke mysqld --wsrep-recover",
+				func(number uint16, message string) {
+					mock.ExpectPing().WillReturnError(&mysql.MySQLError{Number: number, Message: message})
+
+					_, err := sequenceChecker.Check(createReq())
+					Expect(err).To(MatchError("can't determine sequence number when database is running"))
+					Expect(mysqldCmd.RecoverSeqnoCallCount()).To(Equal(0))
+				},
+				Entry("access denied", uint16(1045), "Access denied for user 'root'@'localhost'"),
+				Entry("too many connections", uint16(1040), "Too many connections"),
+				Entry("max user connections", uint16(1203), "User already has more than 'max_user_connections' active connections"),
+				Entry("WSREP not ready", uint16(1047), "WSREP has not yet prepared node for application use"),
+			)
+		})
+
+		Context("db does not respond", func() {
+			var (
+				reqCtx  context.Context
+				cancel  context.CancelFunc
+				checker *sequence_number.SequenceNumberChecker
+			)
+
+			BeforeEach(func() {
+				mock.ExpectPing().WillDelayFor(5 * time.Second)
+
+				reqCtx, cancel = context.WithTimeout(context.Background(), 50*time.Millisecond)
+				rootConfig.DataDir = GinkgoT().TempDir()
+				checker = sequence_number.New(db, mysqldCmd, rootConfig, logger, &sync.Mutex{})
+			})
+
+			AfterEach(func() {
+				cancel()
+			})
+
+			It("treats the database as running, releases the mutex, and does not invoke mysqld --wsrep-recover", func() {
+				req := createReq().WithContext(reqCtx)
+
+				start := time.Now()
+				_, err := checker.Check(req)
+				Expect(err).To(MatchError("can't determine sequence number when database is running"))
+				Expect(time.Since(start)).To(BeNumerically("<", 2*time.Second))
+				Expect(mysqldCmd.RecoverSeqnoCallCount()).To(Equal(0))
+			})
+		})
+
 		Context("when the process mutex is held by a concurrent start request", func() {
 			var (
-				mutex   *sync.Mutex
-				dbUp    atomic.Bool
-				results chan error
+				mutex     *sync.Mutex
+				dbUp      atomic.Bool
+				dynamicDB *sql.DB
+				results   chan error
 			)
 
 			BeforeEach(func() {
 				mutex = &sync.Mutex{}
 				dbUp.Store(false)
 				rootConfig.DataDir = GinkgoT().TempDir()
-				testdb.SetExecFunc(func(query string) (driver.Result, error) {
-					if dbUp.Load() {
-						return nil, nil
-					}
-					return nil, errors.New("failed to connect")
-				})
+				dynamicDB = sql.OpenDB(&togglingConnector{up: &dbUp})
+			})
+
+			AfterEach(func() {
+				_ = dynamicDB.Close()
 			})
 
 			It("evaluates db state after acquiring the mutex and does not run mysqld --wsrep-recover", func() {
-				checker := sequence_number.New(db, mysqldCmd, rootConfig, logger, mutex)
+				checker := sequence_number.New(dynamicDB, mysqldCmd, rootConfig, logger, mutex)
 
 				mutex.Lock()
 				results = make(chan error, 1)
@@ -198,3 +246,22 @@ func createReq() *http.Request {
 	Expect(err).ToNot(HaveOccurred())
 	return req
 }
+
+// togglingConnector simulates a database that refuses connections until up is
+// set, then accepts them. Pings on the resulting connection succeed.
+type togglingConnector struct{ up *atomic.Bool }
+
+func (c *togglingConnector) Connect(context.Context) (driver.Conn, error) {
+	if !c.up.Load() {
+		return nil, errors.New("failed to connect")
+	}
+	return togglingConn{}, nil
+}
+
+func (c *togglingConnector) Driver() driver.Driver { return nil }
+
+type togglingConn struct{}
+
+func (togglingConn) Prepare(string) (driver.Stmt, error) { return nil, errors.New("unsupported") }
+func (togglingConn) Close() error                        { return nil }
+func (togglingConn) Begin() (driver.Tx, error)           { return nil, errors.New("unsupported") }
