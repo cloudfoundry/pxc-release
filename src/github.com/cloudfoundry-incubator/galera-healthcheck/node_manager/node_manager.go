@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/cloudfoundry-incubator/galera-healthcheck/monit_client"
+	"github.com/google/renameio/v2"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . MonitClient
@@ -36,7 +37,7 @@ func (m *NodeManager) StartServiceBootstrap(_ *http.Request) (string, error) {
 		return "", fmt.Errorf("bootstrapping arbitrator not allowed")
 	}
 
-	if err := os.WriteFile(m.StateFilePath, []byte("NEEDS_BOOTSTRAP"), 0777); err != nil {
+	if err := writeStateFile(m.StateFilePath, []byte("NEEDS_BOOTSTRAP"), 0o600); err != nil {
 		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
@@ -55,7 +56,7 @@ func (m *NodeManager) StartServiceJoin(_ *http.Request) (string, error) {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	if err := os.WriteFile(m.StateFilePath, []byte("CLUSTERED"), 0777); err != nil {
+	if err := writeStateFile(m.StateFilePath, []byte("CLUSTERED"), 0o600); err != nil {
 		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
@@ -74,7 +75,7 @@ func (m *NodeManager) StartServiceSingleNode(_ *http.Request) (string, error) {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	if err := os.WriteFile(m.StateFilePath, []byte("SINGLE_NODE"), 0777); err != nil {
+	if err := writeStateFile(m.StateFilePath, []byte("SINGLE_NODE"), 0o600); err != nil {
 		return "", fmt.Errorf("failed to initialize state file: %w", err)
 	}
 
@@ -145,4 +146,20 @@ func (m *NodeManager) waitForGaleraInit() error {
 			return nil
 		}
 	}
+}
+
+// writeStateFile replaces the state file atomically and always leaves it 0600,
+// including when an older release left it with looser permissions.
+func writeStateFile(filename string, data []byte, perm os.FileMode) error {
+	t, err := renameio.NewPendingFile(filename, renameio.WithStaticPermissions(perm))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = t.Cleanup() }()
+
+	if _, err := t.Write(data); err != nil {
+		return err
+	}
+
+	return t.CloseAtomicallyReplace()
 }

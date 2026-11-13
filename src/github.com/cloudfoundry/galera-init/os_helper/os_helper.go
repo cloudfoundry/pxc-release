@@ -73,8 +73,25 @@ func (h OsHelperImpl) ReadFile(filename string) (string, error) {
 }
 
 // Overwrite the contents, creating if necessary. Panic on err
-func (h OsHelperImpl) WriteStringToFile(filename string, contents string) error {
-	return renameio.WriteFile(filename, []byte(contents), 0644)
+func (h OsHelperImpl) WriteStringToFile(filename, contents string) error {
+	return WriteFileAtomic(filename, []byte(contents), 0o600)
+}
+
+// WriteFileAtomic replaces filename atomically with data, always leaving it
+// with exactly perm (ignoring umask). Unlike renameio.WriteFile, it does not
+// inherit the mode of an existing file, so overly permissive files are corrected.
+func WriteFileAtomic(filename string, data []byte, perm os.FileMode) error {
+	t, err := renameio.NewPendingFile(filename, renameio.WithStaticPermissions(perm))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = t.Cleanup() }()
+
+	if _, err := t.Write(data); err != nil {
+		return err
+	}
+
+	return t.CloseAtomicallyReplace()
 }
 
 func (h OsHelperImpl) Sleep(duration time.Duration) {

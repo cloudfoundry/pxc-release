@@ -3,7 +3,7 @@ package node_starter
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -97,10 +97,10 @@ func (s *starter) GetMysqlCmd() *exec.Cmd {
 
 func (s *starter) bootstrapNode() (chan error, error) {
 	s.logger.Info("Updating safe_to_bootstrap flag")
-	read, err := ioutil.ReadFile(s.config.GrastateFileLocation)
+	read, err := os.ReadFile(s.config.GrastateFileLocation)
 	if err == nil {
 		subbed := strings.Replace(string(read), "safe_to_bootstrap: 0", "safe_to_bootstrap: 1", -1)
-		err = ioutil.WriteFile(s.config.GrastateFileLocation, []byte(subbed), 0777)
+		err = os_helper.WriteFileAtomic(s.config.GrastateFileLocation, []byte(subbed), 0o640)
 		if err != nil {
 			return nil, err
 		}

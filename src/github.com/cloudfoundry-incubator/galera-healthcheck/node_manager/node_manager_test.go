@@ -54,7 +54,7 @@ var _ = Describe("NodeManager", func() {
 				Expect(err).
 					To(
 						MatchError(
-							fmt.Sprintf(`failed to initialize state file: open %s: no such file or directory`, mgr.StateFilePath),
+							MatchRegexp(`^failed to initialize state file: open .*: no such file or directory$`),
 						),
 					)
 			})
@@ -150,7 +150,26 @@ var _ = Describe("NodeManager", func() {
 					msg, err := mgr.StartServiceBootstrap(nil)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("NEEDS_BOOTSTRAP")))
+					info, err := os.Stat(mgr.StateFilePath)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o600)))
 					Expect(msg).To(Equal(`cluster bootstrap successful`))
+				})
+
+				When("the state file already exists with permissive permissions", func() {
+					BeforeEach(func() {
+						Expect(os.WriteFile(mgr.StateFilePath, []byte("OLD"), 0o777)).To(Succeed())
+						Expect(os.Chmod(mgr.StateFilePath, 0o777)).To(Succeed())
+					})
+
+					It("resets the mode to 0600", func() {
+						_, err := mgr.StartServiceBootstrap(nil)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("NEEDS_BOOTSTRAP")))
+						info, err := os.Stat(mgr.StateFilePath)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o600)))
+					})
 				})
 			})
 		})
@@ -167,7 +186,7 @@ var _ = Describe("NodeManager", func() {
 				Expect(err).
 					To(
 						MatchError(
-							fmt.Sprintf(`failed to initialize state file: open %s: no such file or directory`, mgr.StateFilePath),
+							MatchRegexp(`^failed to initialize state file: open .*: no such file or directory$`),
 						),
 					)
 			})
@@ -263,6 +282,9 @@ var _ = Describe("NodeManager", func() {
 					msg, err := mgr.StartServiceJoin(nil)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("CLUSTERED")))
+					info, err := os.Stat(mgr.StateFilePath)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o600)))
 					Expect(msg).To(Equal(`join cluster successful`))
 				})
 			})
@@ -280,7 +302,7 @@ var _ = Describe("NodeManager", func() {
 				Expect(err).
 					To(
 						MatchError(
-							fmt.Sprintf(`failed to initialize state file: open %s: no such file or directory`, mgr.StateFilePath),
+							MatchRegexp(`^failed to initialize state file: open .*: no such file or directory$`),
 						),
 					)
 			})
@@ -376,6 +398,9 @@ var _ = Describe("NodeManager", func() {
 					msg, err := mgr.StartServiceSingleNode(nil)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(os.ReadFile(mgr.StateFilePath)).To(Equal([]byte("SINGLE_NODE")))
+					info, err := os.Stat(mgr.StateFilePath)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o600)))
 					Expect(msg).To(Equal(`single node start successful`))
 				})
 			})

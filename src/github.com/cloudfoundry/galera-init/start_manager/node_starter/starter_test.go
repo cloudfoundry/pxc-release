@@ -106,6 +106,9 @@ var _ = Describe("Starter", func() {
 
 					grastateFileOutput, _ := os.ReadFile(grastateFile.Name())
 					Expect(string(grastateFileOutput)).To(Equal("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 1\nLESS IMPORTANT STUFF"))
+					info, err := os.Stat(grastateFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o640)))
 				})
 
 				Describe("when it is not present", func() {
@@ -149,6 +152,9 @@ var _ = Describe("Starter", func() {
 
 						grastateFileOutput, _ := os.ReadFile(grastateFile.Name())
 						Expect(string(grastateFileOutput)).To(Equal("IMPORTANT OTHER STUFF\nsafe_to_bootstrap: 1\nLESS IMPORTANT STUFF"))
+						info, err := os.Stat(grastateFile.Name())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o640)))
 					})
 
 					Describe("when it is not present", func() {
