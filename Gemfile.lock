@@ -5,6 +5,7 @@ GEM
       semi_semantic (~> 1.2.0)
     diff-lcs (1.5.0)
     iniparse (1.5.0)
+    ostruct (0.6.3)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -26,6 +27,7 @@ PLATFORMS
 DEPENDENCIES
   bosh-template
   iniparse
+  ostruct
   rspec
 
 BUNDLED WITH
