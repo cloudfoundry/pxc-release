@@ -25,5 +25,11 @@ export PROXY_HOST="<%= proxy_host %>"
 export MYSQL_HOSTS="<%= mysql_hosts.join(" ") %>"
 export MYSQL_USERNAME="<%= p('db_username') %>"
 export MYSQL_PASSWORD="<%= p('db_password') %>"
+<% if_p('tls.ca') do %>
+export MYSQL_CA_PATH="/var/vcap/jobs/smoke-tests/config/ca.pem"
+<% end %>
+<% if_p('tls.server_name') do |server_name| %>
+export MYSQL_TLS_SERVER_NAME="<%= server_name %>"
+<% end %>
 
 /var/vcap/packages/smoke-tests/bin/smoke-test

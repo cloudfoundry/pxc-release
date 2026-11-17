@@ -1,11 +1,14 @@
 package smoke_test
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/go-sql-driver/mysql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -13,13 +16,45 @@ import (
 var _ = Describe("Smoke Test Database Connectivity", func() {
 	var db *sql.DB
 
+	// tlsParam returns the DSN tls parameter for connecting to host. When a CA is
+	// configured, the server certificate chain and name are verified.
+	tlsParam := func(host string) (string, error) {
+		caPath := os.Getenv("MYSQL_CA_PATH")
+		if caPath == "" {
+			return "preferred", nil
+		}
+		caPEM, err := os.ReadFile(caPath)
+		if err != nil {
+			return "", err
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caPEM) {
+			return "", fmt.Errorf("no certificates found in %s", caPath)
+		}
+		serverName := os.Getenv("MYSQL_TLS_SERVER_NAME")
+		if serverName == "" {
+			serverName = host
+		}
+		name := "smoke-tests-" + host
+		err = mysql.RegisterTLSConfig(name, &tls.Config{
+			RootCAs:    pool,
+			ServerName: serverName,
+			MinVersion: tls.VersionTLS12,
+		})
+		return name, err
+	}
+
 	openDB := func(host string) (*sql.DB, error) {
 		var (
 			mysqlUser     = os.Getenv("MYSQL_USERNAME")
 			mysqlPassword = os.Getenv("MYSQL_PASSWORD")
 		)
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?tls=preferred&wsrep_sync_wait=1",
-			mysqlUser, mysqlPassword, host)
+		tlsMode, err := tlsParam(host)
+		if err != nil {
+			return nil, err
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?tls=%s&wsrep_sync_wait=1",
+			mysqlUser, mysqlPassword, host, tlsMode)
 		return sql.Open("mysql", dsn)
 	}
 

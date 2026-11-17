@@ -38,6 +38,9 @@ instance_groups:
     release: pxc
     properties:
       db_password: ((smoke_tests_db_password))
+      tls:
+        ca: ((mysql_server_certificate.ca))
+        server_name: mysql_server_certificate
 
 stemcells:
 - alias: default
@@ -72,9 +75,10 @@ variables:
     common_name: galera_server_certificate
 - name: mysql_server_certificate
   type: certificate
+  update_mode: converge
   options:
     ca: pxc_server_ca
     common_name: mysql_server_certificate
-    alternative_names: ["localhost"]
+    alternative_names: ["mysql_server_certificate"]
 - name: smoke_tests_db_password
   type: password

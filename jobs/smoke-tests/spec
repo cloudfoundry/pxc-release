@@ -5,6 +5,7 @@ packages:
 
 templates:
   errand.sh: bin/run
+  ca.pem.erb: config/ca.pem
   bpm.yml.erb: config/bpm.yml
   run-smoke-test.sh.erb: bin/run-smoke-test
 
@@ -30,3 +31,13 @@ properties:
     default: 'smoke-tests-user'
   db_password:
     description: 'Password for generated database user'
+  tls.ca:
+    description: |
+      Optional. PEM-encoded CA certificate used to verify the MySQL server certificate.
+      When set, the smoke tests require TLS and verify the server certificate chain and hostname.
+      When unset, the smoke tests use opportunistic TLS (tls=preferred) without certificate verification.
+  tls.server_name:
+    description: |
+      Optional. Server name to verify the MySQL server certificate against. Set this when the certificate
+      does not include the proxy and MySQL node addresses as subject alternative names.
+      Defaults to the address being connected to.
