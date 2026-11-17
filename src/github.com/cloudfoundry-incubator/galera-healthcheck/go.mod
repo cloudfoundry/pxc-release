@@ -8,6 +8,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.10.2
+	github.com/google/renameio/v2 v2.0.2
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.14.0
 	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0

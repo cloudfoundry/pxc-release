@@ -200,6 +200,17 @@ var _ = Describe("OsHelper", func() {
 			Expect(string(contents)).To(Equal("some fancy string"))
 		})
 
+		It("resets the permissions of an existing file", func() {
+			Expect(os.WriteFile(tempDir+"/foo", []byte("old"), 0o777)).To(Succeed())
+			Expect(os.Chmod(tempDir+"/foo", 0o777)).To(Succeed())
+
+			Expect(helper.WriteStringToFile(tempDir+"/foo", "new")).To(Succeed())
+
+			info, err := os.Stat(tempDir + "/foo")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o600)))
+		})
+
 		When("writing to a file fails", func() {
 			It("returns an error", func() {
 				err := helper.WriteStringToFile(tempDir+"/invalid-directory/"+uuid.NewString(), "anything")

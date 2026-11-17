@@ -45,6 +45,9 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/pprof v0.0.0-20261111200114-fac431ef4d26
 ## explicit; go 1.26.0
 github.com/google/pprof/profile
+# github.com/google/renameio/v2 v2.0.2
+## explicit; go 1.25
+github.com/google/renameio/v2
 # github.com/maxbrunsfeld/counterfeiter/v6 v6.14.0
 ## explicit; go 1.26.0
 github.com/maxbrunsfeld/counterfeiter/v6
