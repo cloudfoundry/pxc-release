@@ -1,0 +1,34 @@
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/server_id?
+  value: 1
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/engine_config?/binlog?/enable_gtid_mode
+  value: true
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/provides?
+  value:
+    mysql-backup-user-creds:
+      as: source-creds
+      shared: true
+    mysql:
+      as: replica-source
+      shared: true
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/mysql_backup_username?
+  value: ((mysql_backup_user.username))
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/mysql_backup_password?
+  value: ((mysql_backup_user.password))
+- type: replace
+  path: /instance_groups/name=mysql/jobs/name=pxc-mysql/properties/mysql_backup_allowed_remote_hosts?
+  value: '%'
+
+- type: replace
+  path: /variables/name=mysql_backup_user?
+  value:
+    name: mysql_backup_user
+    type: user
+    parameters:
+      length: 32
+
+

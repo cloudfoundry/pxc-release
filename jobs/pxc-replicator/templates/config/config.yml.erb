@@ -1,0 +1,76 @@
+<%-
+require 'json'
+
+# --- SOURCE CREDENTIALS ---
+source_creds = {}
+fallback = true
+
+if_link('mysql-backup-user-creds') do |link|
+  link.if_p('mysql_backup_username', 'mysql_backup_password') do |user, pass|
+    source_creds = { 'username' => user, 'password' => pass }
+    fallback = false
+  end
+end
+
+if fallback
+  if_p('mysql_backup_username', 'mysql_backup_password') do |user, pass|
+    source_creds = { 'username' => user, 'password' => pass }
+  end
+end
+
+if_p('source_admin_username', 'source_admin_password') do |user, pass|
+  source_creds['admin_username'] = user
+  source_creds['admin_password'] = pass
+end
+
+# --- SOURCE SECTION ---
+source_tls = {}
+source_config = { 'name' => 'source' }
+
+if_link('source') do |link|
+  link.if_p('tls.client.ca') { |val| source_tls['ca'] = val }
+  source_config['host'] = link.address
+  source_config['port'] = link.p('port', 3306)
+  source_config['version'] = link.p('mysql_version', p('mysql_version'))
+end.else do
+  if_p('source_tls.ca') { |val| source_tls['ca'] = val }
+  source_config['host'] = p('source_host', '127.0.0.1')
+  source_config['port'] = p('source_port')
+  source_config['version'] = p('mysql_version')
+end
+
+source_config['creds'] = source_creds
+source_config['tls'] = source_tls
+
+# --- TARGET SECTION ---
+target_creds = {}
+if_p('target_admin_username', 'target_admin_password') do |user, pass|
+  target_creds = { 'admin_username' => user, 'admin_password' => pass }
+end
+
+target_tls = {}
+target_config = { 'name' => 'target' }
+
+if_link('target') do |link|
+  link.if_p('tls.client.ca') { |ca| target_tls['ca'] = ca }
+  target_config['host'] = 'localhost'
+  target_config['port'] = link.p('port', 3306)
+  target_config['version'] = link.p('mysql_version', p('mysql_version'))
+end.else do
+  if_p('target_tls.ca') { |ca| target_tls['ca'] = ca }
+  target_config['host'] = p('target_host', '127.0.0.1')
+  target_config['port'] = p('target_port')
+  target_config['version'] = p('mysql_version')
+end
+
+target_config['creds'] = target_creds
+target_config['tls'] = target_tls
+
+# --- FULL CONFIGURATION HASH ---
+config = {
+  'version' => p('mysql_version'),
+  'source'  => source_config,
+  'target'  => target_config
+}
+-%>
+<%= JSON.pretty_generate(config) %>
